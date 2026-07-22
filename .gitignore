@@ -1,14 +1,42 @@
-config/.storage/
-config/.cloud/
-config/deps/
-config/tts/
-config/www/
-config/secrets.yaml
-config/home-assistant.log*
-config/home-assistant_v2.db*
-config/.HA_VERSION
+# Python
 .venv/
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Validation tools
+.yamllint-cache
+.ruff_cache/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+secrets.yaml
+
+# Home Assistant runtime files
+.homeassistant/
+.storage/
+*.db
+*.db-shm
+*.db-wal
+home-assistant.log*
+deps/
+tts/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
 .DS_Store
-dist/
-*.zip
+
+# Temporary files
+*.tmp
+*.bak
+*~

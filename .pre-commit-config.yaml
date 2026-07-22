@@ -1,0 +1,22 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-yaml
+        args:
+          - --unsafe
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args:
+          - --fix=lf
+
+  - repo: local
+    hooks:
+      - id: electricity-pro-validation
+        name: Electricity Pro validation
+        entry: ./scripts/validate.sh
+        language: system
+        pass_filenames: false
