@@ -3,42 +3,20 @@
 from decimal import Decimal
 
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.electricity_pro.const import (
-    CONF_POWER_ENTITY,
-    DOMAIN,
-)
+from custom_components.electricity_pro.const import DOMAIN
 
-ENTITY_ID = "sensor.electricity_pro_current_power"
+ENTITY_ID = f"sensor.{DOMAIN}_current_power"
+SOURCE_ENTITY_ID = "sensor.test_power"
 
 
 async def test_current_power_initial_value(
     hass: HomeAssistant,
+    setup_electricity_pro,
 ) -> None:
-    """Current power should reflect the configured source sensor."""
+    """Current power should use the initial source value."""
 
-    hass.states.async_set(
-        "sensor.test_power",
-        "1234",
-        {
-            "unit_of_measurement": "W",
-            "device_class": "power",
-        },
-    )
-
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Electricity Pro",
-        data={
-            CONF_POWER_ENTITY: "sensor.test_power",
-        },
-    )
-
-    entry.add_to_hass(hass)
-
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await setup_electricity_pro(value="1234", unit="W")
 
     state = hass.states.get(ENTITY_ID)
 
@@ -47,47 +25,23 @@ async def test_current_power_initial_value(
     assert state.attributes["unit_of_measurement"] == "W"
     assert state.attributes["device_class"] == "power"
 
+
 async def test_current_power_updates_when_source_changes(
     hass: HomeAssistant,
+    setup_electricity_pro,
 ) -> None:
-    """Current power should update when the source sensor changes."""
+    """Current power should update when the source changes."""
+
+    await setup_electricity_pro(value="1000", unit="W")
 
     hass.states.async_set(
-        "sensor.test_power",
-        "1000",
-        {
-            "unit_of_measurement": "W",
-            "device_class": "power",
-        },
-    )
-
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Electricity Pro",
-        data={
-            CONF_POWER_ENTITY: "sensor.test_power",
-        },
-    )
-
-    entry.add_to_hass(hass)
-
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-
-    state = hass.states.get(ENTITY_ID)
-
-    assert state is not None
-    assert state.state == "1000"
-
-    hass.states.async_set(
-        "sensor.test_power",
+        SOURCE_ENTITY_ID,
         "850",
         {
             "unit_of_measurement": "W",
             "device_class": "power",
         },
     )
-
     await hass.async_block_till_done()
 
     state = hass.states.get(ENTITY_ID)
@@ -95,32 +49,14 @@ async def test_current_power_updates_when_source_changes(
     assert state is not None
     assert state.state == "850"
 
+
 async def test_current_power_converts_kw_to_w(
     hass: HomeAssistant,
+    setup_electricity_pro,
 ) -> None:
     """Current power should convert kilowatts to watts."""
 
-    hass.states.async_set(
-        "sensor.test_power",
-        "1.5",
-        {
-            "unit_of_measurement": "kW",
-            "device_class": "power",
-        },
-    )
-
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Electricity Pro",
-        data={
-            CONF_POWER_ENTITY: "sensor.test_power",
-        },
-    )
-
-    entry.add_to_hass(hass)
-
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await setup_electricity_pro(value="1.5", unit="kW")
 
     state = hass.states.get(ENTITY_ID)
 
@@ -128,42 +64,23 @@ async def test_current_power_converts_kw_to_w(
     assert Decimal(state.state) == Decimal("1500")
     assert state.attributes["unit_of_measurement"] == "W"
 
+
 async def test_current_power_becomes_unavailable(
     hass: HomeAssistant,
+    setup_electricity_pro,
 ) -> None:
-    """Current power should become unavailable when the source is unknown."""
+    """Current power should become unavailable for an unknown source."""
+
+    await setup_electricity_pro(value="1000", unit="W")
 
     hass.states.async_set(
-        "sensor.test_power",
-        "1000",
-        {
-            "unit_of_measurement": "W",
-            "device_class": "power",
-        },
-    )
-
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Electricity Pro",
-        data={
-            CONF_POWER_ENTITY: "sensor.test_power",
-        },
-    )
-
-    entry.add_to_hass(hass)
-
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-
-    hass.states.async_set(
-        "sensor.test_power",
+        SOURCE_ENTITY_ID,
         "unknown",
         {
             "unit_of_measurement": "W",
             "device_class": "power",
         },
     )
-
     await hass.async_block_till_done()
 
     state = hass.states.get(ENTITY_ID)
