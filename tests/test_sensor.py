@@ -87,3 +87,26 @@ async def test_current_power_becomes_unavailable(
 
     assert state is not None
     assert state.state == "unavailable"
+
+async def test_current_power_becomes_unavailable_for_invalid_value(
+    hass: HomeAssistant,
+    setup_electricity_pro,
+) -> None:
+    """Current power should become unavailable for a non-numeric source."""
+
+    await setup_electricity_pro(value="1000", unit="W")
+
+    hass.states.async_set(
+        SOURCE_ENTITY_ID,
+        "not-a-number",
+        {
+            "unit_of_measurement": "W",
+            "device_class": "power",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
