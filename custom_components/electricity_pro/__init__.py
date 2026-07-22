@@ -5,6 +5,9 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
+entry.runtime_data = coordinator
+await coordinator.async_start()
+
 from .const import PLATFORMS
 
 
