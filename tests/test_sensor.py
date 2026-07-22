@@ -88,6 +88,7 @@ async def test_current_power_becomes_unavailable(
     assert state is not None
     assert state.state == "unavailable"
 
+
 async def test_current_power_becomes_unavailable_for_invalid_value(
     hass: HomeAssistant,
     setup_electricity_pro,
@@ -133,6 +134,7 @@ async def test_current_price_initial_value(
     assert Decimal(state.state) == Decimal("1.25")
     assert state.attributes["unit_of_measurement"] == "SEK/kWh"
 
+
 async def test_current_price_updates_when_source_changes(
     hass: HomeAssistant,
     setup_electricity_pro,
@@ -161,3 +163,88 @@ async def test_current_price_updates_when_source_changes(
     assert state is not None
     assert Decimal(state.state) == Decimal("0.85")
     assert state.attributes["unit_of_measurement"] == "SEK/kWh"
+
+
+async def test_current_price_becomes_unavailable(
+    hass: HomeAssistant,
+    setup_electricity_pro,
+) -> None:
+    """Current price becomes unavailable when source is unknown."""
+
+    await setup_electricity_pro(
+        power_value="1000",
+        power_unit="W",
+        price_value="1.25",
+        price_unit="SEK/kWh",
+    )
+
+    hass.states.async_set(
+        "sensor.test_price",
+        "unknown",
+        {
+            "unit_of_measurement": "SEK/kWh",
+        },
+    )
+
+    await hass.async_block_till_done()
+
+    state = hass.states.get(PRICE_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_current_price_invalid_value(
+    hass: HomeAssistant,
+    setup_electricity_pro,
+) -> None:
+    """Invalid price should become unavailable."""
+
+    await setup_electricity_pro(
+        power_value="1000",
+        power_unit="W",
+        price_value="1.25",
+        price_unit="SEK/kWh",
+    )
+
+    hass.states.async_set(
+        "sensor.test_price",
+        "banana",
+        {
+            "unit_of_measurement": "SEK/kWh",
+        },
+    )
+
+    await hass.async_block_till_done()
+
+    state = hass.states.get(PRICE_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_current_price_requires_unit(
+    hass: HomeAssistant,
+    setup_electricity_pro,
+) -> None:
+    """Price requires a unit of measurement."""
+
+    await setup_electricity_pro(
+        power_value="1000",
+        power_unit="W",
+        price_value="1.25",
+        price_unit="SEK/kWh",
+    )
+
+    hass.states.async_set(
+        "sensor.test_price",
+        "0.85",
+        {},
+    )
+
+    await hass.async_block_till_done()
+
+    state = hass.states.get(PRICE_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
