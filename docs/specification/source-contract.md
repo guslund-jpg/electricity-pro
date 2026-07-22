@@ -38,13 +38,13 @@ tariff components, grid carbon intensity, and per-device consumption.
 
 ```text
 sensor.electricity_pro_current_power
-Property	Contract
-Meaning	Current whole-home electricity import power
-Canonical unit	W
-Expected value	Numeric and greater than or equal to zero
-Update behavior	As frequently as the source provides
-Missing source	Entity becomes unavailable
-Required	Yes for live-power features
+Property  Contract
+Meaning  Current whole-home electricity import power
+Canonical unit  W
+Expected value  Numeric and greater than or equal to zero
+Update behavior  As frequently as the source provides
+Missing source  Entity becomes unavailable
+Required  Yes for live-power features
 
 The source adapter must convert kilowatts to watts when required.
 
@@ -53,13 +53,13 @@ bidirectional power may be introduced separately in a future contract.
 
 Current price
 sensor.electricity_pro_current_price
-Property	Contract
-Meaning	Current effective electricity price
-Canonical unit	Currency per kWh
-Expected value	Numeric
-Update behavior	When the active price period changes
-Missing source	Entity becomes unavailable
-Required	Yes for pricing features
+Property  Contract
+Meaning  Current effective electricity price
+Canonical unit  Currency per kWh
+Expected value  Numeric
+Update behavior  When the active price period changes
+Missing source  Entity becomes unavailable
+Required  Yes for pricing features
 
 The configured currency must be consistent throughout one installation.
 
@@ -69,26 +69,26 @@ value includes.
 
 Energy today
 sensor.electricity_pro_energy_today
-Property	Contract
-Meaning	Imported electrical energy accumulated today
-Canonical unit	kWh
-Expected value	Numeric and greater than or equal to zero
-Reset behavior	Resets at the installation's local day boundary
-Missing source	Entity becomes unavailable
-Required	For daily energy features
+Property  Contract
+Meaning  Imported electrical energy accumulated today
+Canonical unit  kWh
+Expected value  Numeric and greater than or equal to zero
+Reset behavior  Resets at the installation's local day boundary
+Missing source  Entity becomes unavailable
+Required  For daily energy features
 
 A reset to zero at the beginning of a new local day is expected and is
 not considered an error.
 
 Cost today
 sensor.electricity_pro_cost_today
-Property	Contract
-Meaning	Electricity cost accumulated today
-Canonical unit	Configured currency
-Expected value	Numeric and normally greater than or equal to zero
-Reset behavior	Resets at the installation's local day boundary
-Missing source	Entity becomes unavailable
-Required	For daily cost features
+Property  Contract
+Meaning  Electricity cost accumulated today
+Canonical unit  Configured currency
+Expected value  Numeric and normally greater than or equal to zero
+Reset behavior  Resets at the installation's local day boundary
+Missing source  Entity becomes unavailable
+Required  For daily cost features
 
 Adapters or core calculation modules must document whether taxes, grid
 fees, and fixed fees are included.
@@ -138,11 +138,11 @@ calculation requirements justify normalization.
 
 Initial recommended display precision:
 
-Measurement	Display precision
-Power	0 W
-Price	3 currency/kWh decimals
-Energy today	3 kWh decimals
-Cost today	2 currency decimals
+Measurement  Display precision
+Power  0 W
+Price  3 currency/kWh decimals
+Energy today  3 kWh decimals
+Cost today  2 currency decimals
 
 These are presentation recommendations and not storage requirements.
 
@@ -152,11 +152,11 @@ The health layer must support source-specific freshness thresholds.
 
 Recommended initial defaults:
 
-Source type	Suggested threshold
-Live power	5 minutes
-Period price	Current period plus 5 minutes
-Daily accumulated energy	15 minutes
-Daily accumulated cost	15 minutes
+Source type  Suggested threshold
+Live power  5 minutes
+Period price  Current period plus 5 minutes
+Daily accumulated energy  15 minutes
+Daily accumulated cost  15 minutes
 
 Adapters may override these defaults when their provider has a different
 documented update model.
