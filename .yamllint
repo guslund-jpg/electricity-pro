@@ -8,3 +8,5 @@ rules:
     allowed-values: ['true', 'false', 'on', 'off']
 ignore: |
   config/
+  .venv/
+  .git/

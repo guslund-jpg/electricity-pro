@@ -1,3 +1,6 @@
 PyYAML>=6.0,<7
 yamllint>=1.35,<2
-pre-commit>=4.0,<5
+pre-commit>=4,<5
+pytest>=8,<9
+pytest-asyncio>=0.25,<2
+pytest-homeassistant-custom-component>=0.13,<1
