@@ -10,7 +10,11 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 
-from .const import CONF_POWER_ENTITY, DOMAIN
+from .const import (
+    CONF_POWER_ENTITY,
+    CONF_PRICE_ENTITY,
+    DOMAIN,
+)
 
 
 class ElectricityProConfigFlow(
@@ -39,7 +43,12 @@ class ElectricityProConfigFlow(
                         domain="sensor",
                         device_class="power",
                     )
-                )
+                ),
+                vol.Optional(CONF_PRICE_ENTITY): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                    )
+                ),
             }
         )
 
