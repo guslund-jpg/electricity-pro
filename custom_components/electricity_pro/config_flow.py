@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResult
+from typing import Any
 
-from .const import DOMAIN
+import voluptuous as vol
+
+from homeassistant import config_entries
+from homeassistant.data_entry_flow import ConfigFlowResult
+from homeassistant.helpers import selector
+
+from .const import CONF_POWER_ENTITY, DOMAIN
 
 
 class ElectricityProConfigFlow(
@@ -18,15 +23,27 @@ class ElectricityProConfigFlow(
 
     async def async_step_user(
         self,
-        user_input: dict[str, object] | None = None,
-    ) -> FlowResult:
-        """Handle the initial configuration step."""
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Handle setup initiated by the user."""
         if user_input is not None:
             return self.async_create_entry(
                 title="Electricity Pro",
-                data={},
+                data=user_input,
             )
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_POWER_ENTITY): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        device_class="power",
+                    )
+                )
+            }
+        )
 
         return self.async_show_form(
             step_id="user",
+            data_schema=data_schema,
         )

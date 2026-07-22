@@ -1,9 +1,16 @@
 {
+  "title": "Electricity Pro",
   "config": {
     "step": {
       "user": {
         "title": "Set up Electricity Pro",
-        "description": "Create the Electricity Pro integration. Electricity source selection will be added in the next development step."
+        "description": "Select the sensor that reports your current electricity power.",
+        "data": {
+          "power_entity": "Current power sensor"
+        },
+        "data_description": {
+          "power_entity": "Choose an existing Home Assistant sensor with the power device class."
+        }
       }
     }
   }
