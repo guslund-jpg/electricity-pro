@@ -1,0 +1,23 @@
+name: Home Assistant configuration
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy packages into test configuration
+        run: |
+          mkdir -p config/packages/electricity_pro
+          find packages -name '*.yaml' -exec cp {} config/packages/electricity_pro/ \;
+      - uses: frenck/action-home-assistant@v1
+        with:
+          path: "./config"
+          secrets: "fakesecrets.yaml"
+          version: stable

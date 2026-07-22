@@ -1,0 +1,14 @@
+config/.storage/
+config/.cloud/
+config/deps/
+config/tts/
+config/www/
+config/secrets.yaml
+config/home-assistant.log*
+config/home-assistant_v2.db*
+config/.HA_VERSION
+.venv/
+__pycache__/
+.DS_Store
+dist/
+*.zip
