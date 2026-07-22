@@ -6,13 +6,20 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import PLATFORMS
+from .coordinator import ElectricityProCoordinator
+
+type ElectricityProConfigEntry = ConfigEntry[ElectricityProCoordinator]
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: ElectricityProConfigEntry,
 ) -> bool:
     """Set up Electricity Pro from a config entry."""
+    coordinator = ElectricityProCoordinator(hass, entry)
+    entry.runtime_data = coordinator
+
+    await coordinator.async_start()
     await hass.config_entries.async_forward_entry_setups(
         entry,
         PLATFORMS,
@@ -23,7 +30,7 @@ async def async_setup_entry(
 
 async def async_unload_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: ElectricityProConfigEntry,
 ) -> bool:
     """Unload an Electricity Pro config entry."""
     return await hass.config_entries.async_unload_platforms(
