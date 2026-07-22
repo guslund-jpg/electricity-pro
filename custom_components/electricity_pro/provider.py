@@ -36,9 +36,14 @@ class ElectricityProEntityProvider:
     ) -> None:
         """Initialize the entity provider."""
         self._hass = hass
-        self._power_entity_id: str = entry.data[CONF_POWER_ENTITY]
-        self._price_entity_id: str | None = entry.data.get(
-            CONF_PRICE_ENTITY
+        self._power_entity_id: str = entry.options.get(
+            CONF_POWER_ENTITY,
+            entry.data[CONF_POWER_ENTITY],
+        )
+
+        self._price_entity_id: str | None = entry.options.get(
+            CONF_PRICE_ENTITY,
+            entry.data.get(CONF_PRICE_ENTITY),
         )
 
     @property

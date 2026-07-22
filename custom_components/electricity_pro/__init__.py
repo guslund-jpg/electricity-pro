@@ -19,6 +19,10 @@ async def async_setup_entry(
     coordinator = ElectricityProCoordinator(hass, entry)
     entry.runtime_data = coordinator
 
+    entry.async_on_unload(
+        entry.add_update_listener(_async_update_listener)
+    )
+
     await coordinator.async_start()
     await hass.config_entries.async_forward_entry_setups(
         entry,
@@ -37,3 +41,11 @@ async def async_unload_entry(
         entry,
         PLATFORMS,
     )
+
+
+async def _async_update_listener(
+    hass: HomeAssistant,
+    entry: ElectricityProConfigEntry,
+) -> None:
+    """Reload the config entry after options change."""
+    await hass.config_entries.async_reload(entry.entry_id)
