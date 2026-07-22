@@ -1,0 +1,10 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Electricity Pro",
+        "description": "Create the Electricity Pro integration. Electricity source selection will be added in the next development step."
+      }
+    }
+  }
+}
