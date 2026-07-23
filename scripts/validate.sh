@@ -27,16 +27,39 @@ else
 fi
 
 echo "Running YAML validation."
-"${YAMLLINT}" .
+"${YAMLLINT}" \
+  .github \
+  config \
+  dashboards \
+  packages \
+  custom_components
 
-if [[ -f scripts/check_duplicate_unique_ids.py ]]; then
-  echo "Checking for duplicate unique IDs."
-  "${PYTHON}" scripts/check_duplicate_unique_ids.py
-fi
+echo "Checking repository policies."
+"${PYTHON}" scripts/check_repository.py
 
-if [[ -f scripts/check_repository_policy.py ]]; then
-  echo "Checking repository policies."
-  "${PYTHON}" scripts/check_repository_policy.py
+echo "Checking for duplicate unique IDs."
+"${PYTHON}" scripts/check_unique_ids.py packages dashboards config
+
+echo "Checking JSON files."
+while IFS= read -r -d '' json_file; do
+  "${PYTHON}" -m json.tool "${json_file}" >/dev/null
+done < <(
+  find . \
+    -path './.git' -prune -o \
+    -path './.venv' -prune -o \
+    -name '*.json' -type f -print0
+)
+
+echo "Checking Python syntax."
+if [[ -d custom_components ]]; then
+  while IFS= read -r -d '' python_file; do
+    "${PYTHON}" -m py_compile "${python_file}"
+  done < <(
+    find custom_components \
+      -name '*.py' \
+      -type f \
+      -print0
+  )
 fi
 
 echo "Checking Git whitespace."

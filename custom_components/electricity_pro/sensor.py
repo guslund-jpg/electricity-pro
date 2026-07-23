@@ -1,126 +1,140 @@
-"""Data coordinator for Electricity Pro."""
+"""Sensor platform for Electricity Pro."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
-import logging
-from typing import Any
+from decimal import Decimal
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfPower
-from homeassistant.core import (
-    Event,
-    EventStateChangedData,
-    HomeAssistant,
-    callback,
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
 )
-from homeassistant.helpers.event import async_track_state_change_event
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.const import UnitOfPower
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_POWER_ENTITY, DOMAIN
-
-_LOGGER = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True, slots=True)
-class ElectricityProData:
-    """Normalized Electricity Pro data."""
-
-    current_power: Decimal | None
+from . import ElectricityProConfigEntry
+from .const import CONF_PRICE_ENTITY, DOMAIN
+from .coordinator import ElectricityProCoordinator
 
 
-class ElectricityProCoordinator(
-    DataUpdateCoordinator[ElectricityProData]
-):
-    """Coordinate source entity updates for Electricity Pro."""
-
-    config_entry: ConfigEntry
-
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        config_entry: ConfigEntry,
-    ) -> None:
-        """Initialize the coordinator."""
-        super().__init__(
-            hass,
-            _LOGGER,
-            config_entry=config_entry,
-            name=DOMAIN,
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ElectricityProConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Electricity Pro sensors."""
+    entities: list[SensorEntity] = [
+        ElectricityProCurrentPowerSensor(
+            coordinator=entry.runtime_data,
+            entry=entry,
         )
+    ]
 
-        self.config_entry = config_entry
-        self._power_entity_id = config_entry.data[CONF_POWER_ENTITY]
-        self.data = ElectricityProData(current_power=None)
-
-    async def async_start(self) -> None:
-        """Start listening for source entity changes."""
-        self.config_entry.async_on_unload(
-            async_track_state_change_event(
-                self.hass,
-                [self._power_entity_id],
-                self._async_source_state_changed,
+    if CONF_PRICE_ENTITY in entry.data:
+        entities.append(
+            ElectricityProCurrentPriceSensor(
+                coordinator=entry.runtime_data,
+                entry=entry,
             )
         )
 
-        self.async_set_updated_data(self._read_source_data())
+    async_add_entities(entities)
 
-    @callback
-    def _async_source_state_changed(
+
+class ElectricityProSensorEntity(
+    CoordinatorEntity[ElectricityProCoordinator],
+    SensorEntity,
+):
+    """Base class for Electricity Pro sensors."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
         self,
-        event: Event[EventStateChangedData],
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
     ) -> None:
-        """Handle a configured source entity update."""
-        self.async_set_updated_data(self._read_source_data())
+        """Initialize a common Electricity Pro sensor."""
+        super().__init__(coordinator)
 
-    @callback
-    def _read_source_data(self) -> ElectricityProData:
-        """Read and normalize all configured source entities."""
-        return ElectricityProData(
-            current_power=self._read_power_source(),
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name="Electricity Pro",
+            manufacturer="Electricity Pro",
+            model="Electricity monitor",
         )
 
-    @callback
-    def _read_power_source(self) -> Decimal | None:
-        """Read and normalize the configured power source."""
-        source_state = self.hass.states.get(self._power_entity_id)
 
-        if source_state is None:
-            return None
+class ElectricityProCurrentPowerSensor(
+    ElectricityProSensorEntity,
+):
+    """Represent canonical current electricity power."""
 
-        if source_state.state in {
-            "unknown",
-            "unavailable",
-            "",
-        }:
-            return None
+    _attr_name = "Current power"
+    _attr_icon = "mdi:flash"
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfPower.WATT
 
-        try:
-            source_value = Decimal(source_state.state)
-        except (InvalidOperation, ValueError):
-            return None
+    def __init__(
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_current_power"
 
-        watts = self._convert_to_watts(
-            source_value,
-            source_state.attributes.get("unit_of_measurement"),
+    @property
+    def native_value(self) -> Decimal | None:
+        """Return current power in watts."""
+        return self.coordinator.data.current_power
+
+    @property
+    def available(self) -> bool:
+        """Return whether current power is available."""
+        return (
+            super().available
+            and self.coordinator.data.current_power is not None
         )
 
-        if watts is None or watts < 0:
-            return None
 
-        return watts
+class ElectricityProCurrentPriceSensor(
+    ElectricityProSensorEntity,
+):
+    """Represent the canonical current electricity price."""
 
-    @staticmethod
-    def _convert_to_watts(
-        value: Decimal,
-        source_unit: Any,
-    ) -> Decimal | None:
-        """Convert a supported power value to watts."""
-        if source_unit == UnitOfPower.WATT:
-            return value
+    _attr_name = "Current price"
+    _attr_icon = "mdi:currency-usd"
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
-        if source_unit == UnitOfPower.KILO_WATT:
-            return value * Decimal("1000")
+    def __init__(
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_current_price"
 
-        return None
+    @property
+    def native_value(self) -> Decimal | None:
+        """Return the current electricity price."""
+        return self.coordinator.data.current_price
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the price source's native unit."""
+        return self.coordinator.data.current_price_unit
+
+    @property
+    def available(self) -> bool:
+        """Return whether the current price is available."""
+        return (
+            super().available
+            and self.coordinator.data.current_price is not None
+            and self.coordinator.data.current_price_unit is not None
+        )

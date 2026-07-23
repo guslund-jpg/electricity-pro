@@ -1,14 +1,15 @@
 {
+  "title": "Electricity Pro",
   "config": {
-    "abort": {
-      "single_instance_allowed": "Only one Electricity Pro instance is allowed."
-    },
     "step": {
       "user": {
-        "title": "Configure Electricity Pro",
-        "description": "Select the Home Assistant entity that reports your current electricity usage.",
+        "title": "Set up Electricity Pro",
+        "description": "Select the sensor that reports your current electricity power.",
         "data": {
-          "power_entity": "Current power entity"
+          "power_entity": "Current power sensor"
+        },
+        "data_description": {
+          "power_entity": "Choose an existing Home Assistant sensor with the power device class."
         }
       }
     }
