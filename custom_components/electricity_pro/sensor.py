@@ -12,14 +12,18 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfPower
+from homeassistant.const import UnitOfEnergy, UnitOfPower
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import ElectricityProConfigEntry
-from .const import CONF_PRICE_ENTITY, DOMAIN
+from .const import (
+    CONF_ENERGY_ENTITY,
+    CONF_PRICE_ENTITY,
+    DOMAIN,
+)
 from .coordinator import ElectricityProCoordinator
 from .provider import ElectricityProData
 
@@ -63,6 +67,20 @@ SENSOR_DESCRIPTIONS: tuple[
         ),
         required_config_key=CONF_PRICE_ENTITY,
     ),
+    ElectricityProSensorEntityDescription(
+        key="current_energy",
+        name="Energy",
+        icon="mdi:lightning-bolt",
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        value_fn=lambda data: data.current_energy,
+        unit_fn=lambda data: data.current_energy_unit,
+        available_fn=lambda data: (
+            data.current_energy is not None
+            and data.current_energy_unit is not None
+        ),
+        required_config_key=CONF_ENERGY_ENTITY,
+    ),
 )
 
 
@@ -81,6 +99,7 @@ async def async_setup_entry(
         for description in SENSOR_DESCRIPTIONS
         if (
             description.required_config_key is None
+            or description.required_config_key in entry.options
             or description.required_config_key in entry.data
         )
     ]
