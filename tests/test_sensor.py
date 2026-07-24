@@ -1,18 +1,149 @@
 """Tests for Electricity Pro sensors."""
 
+from collections.abc import Callable
 from decimal import Decimal
+from types import CoroutineType
+from typing import Any
 
 from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import DOMAIN
 
 ENTITY_ID = f"sensor.{DOMAIN}_current_power"
 SOURCE_ENTITY_ID = "sensor.test_power"
 
+ENERGY_ENTITY_ID = f"sensor.{DOMAIN}_energy"
+ENERGY_SOURCE_ENTITY_ID = "sensor.test_energy"
+
+COST_RATE_ENTITY_ID = f"sensor.{DOMAIN}_current_cost_rate"
+
+
+async def test_current_energy_initial_value(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Current energy should use the configured energy source."""
+
+    await setup_electricity_pro(
+        energy_value="12.5",
+        energy_unit="kWh",
+    )
+
+    state = hass.states.get(ENERGY_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("12.5")
+    assert state.attributes["unit_of_measurement"] == "kWh"
+    assert state.attributes["device_class"] == "energy"
+    assert state.attributes["state_class"] == "total_increasing"
+
+
+async def test_current_energy_updates_when_source_changes(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Current energy should update when its source changes."""
+
+    await setup_electricity_pro(
+        energy_value="12.5",
+        energy_unit="kWh",
+    )
+
+    hass.states.async_set(
+        ENERGY_SOURCE_ENTITY_ID,
+        "13.25",
+        {
+            "unit_of_measurement": "kWh",
+            "device_class": "energy",
+            "state_class": "total_increasing",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENERGY_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("13.25")
+    assert state.attributes["unit_of_measurement"] == "kWh"
+
+
+async def test_current_energy_accepts_wh(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Current energy should accept watt-hours."""
+
+    await setup_electricity_pro(
+        energy_value="1250",
+        energy_unit="Wh",
+    )
+
+    state = hass.states.get(ENERGY_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal(1250)
+    assert state.attributes["unit_of_measurement"] == "Wh"
+
+
+async def test_current_energy_becomes_unavailable(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Current energy should become unavailable for an unknown source."""
+
+    await setup_electricity_pro(
+        energy_value="12.5",
+        energy_unit="kWh",
+    )
+
+    hass.states.async_set(
+        ENERGY_SOURCE_ENTITY_ID,
+        "unknown",
+        {
+            "unit_of_measurement": "kWh",
+            "device_class": "energy",
+            "state_class": "total_increasing",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENERGY_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_current_energy_rejects_invalid_unit(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Current energy should reject unsupported units."""
+
+    await setup_electricity_pro(
+        energy_value="12.5",
+        energy_unit="kWh",
+    )
+
+    hass.states.async_set(
+        ENERGY_SOURCE_ENTITY_ID,
+        "12.6",
+        {
+            "unit_of_measurement": "J",
+            "device_class": "energy",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENERGY_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
 
 async def test_current_power_initial_value(
     hass: HomeAssistant,
-    setup_electricity_pro,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """Current power should use the initial source value."""
 
@@ -28,7 +159,7 @@ async def test_current_power_initial_value(
 
 async def test_current_power_updates_when_source_changes(
     hass: HomeAssistant,
-    setup_electricity_pro,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """Current power should update when the source changes."""
 
@@ -52,7 +183,7 @@ async def test_current_power_updates_when_source_changes(
 
 async def test_current_power_converts_kw_to_w(
     hass: HomeAssistant,
-    setup_electricity_pro,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """Current power should convert kilowatts to watts."""
 
@@ -61,13 +192,13 @@ async def test_current_power_converts_kw_to_w(
     state = hass.states.get(ENTITY_ID)
 
     assert state is not None
-    assert Decimal(state.state) == Decimal("1500")
+    assert Decimal(state.state) == Decimal(1500)
     assert state.attributes["unit_of_measurement"] == "W"
 
 
 async def test_current_power_becomes_unavailable(
     hass: HomeAssistant,
-    setup_electricity_pro,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """Current power should become unavailable for an unknown source."""
 
@@ -91,7 +222,7 @@ async def test_current_power_becomes_unavailable(
 
 async def test_current_power_becomes_unavailable_for_invalid_value(
     hass: HomeAssistant,
-    setup_electricity_pro,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """Current power should become unavailable for a non-numeric source."""
 
@@ -112,12 +243,13 @@ async def test_current_power_becomes_unavailable_for_invalid_value(
     assert state is not None
     assert state.state == "unavailable"
 
+
 PRICE_ENTITY_ID = f"sensor.{DOMAIN}_current_price"
 
 
 async def test_current_price_initial_value(
     hass: HomeAssistant,
-    setup_electricity_pro,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """Current price should use the configured price source."""
 
@@ -137,7 +269,7 @@ async def test_current_price_initial_value(
 
 async def test_current_price_updates_when_source_changes(
     hass: HomeAssistant,
-    setup_electricity_pro,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """Current price should update when the source changes."""
 
@@ -167,7 +299,7 @@ async def test_current_price_updates_when_source_changes(
 
 async def test_current_price_becomes_unavailable(
     hass: HomeAssistant,
-    setup_electricity_pro,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """Current price becomes unavailable when source is unknown."""
 
@@ -196,7 +328,7 @@ async def test_current_price_becomes_unavailable(
 
 async def test_current_price_invalid_value(
     hass: HomeAssistant,
-    setup_electricity_pro,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """Invalid price should become unavailable."""
 
@@ -225,7 +357,7 @@ async def test_current_price_invalid_value(
 
 async def test_current_price_requires_unit(
     hass: HomeAssistant,
-    setup_electricity_pro,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """Price requires a unit of measurement."""
 
@@ -248,3 +380,101 @@ async def test_current_price_requires_unit(
 
     assert state is not None
     assert state.state == "unavailable"
+
+
+async def test_current_cost_rate_sensor(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Current cost rate should use power and price sources."""
+    await setup_electricity_pro(
+        power_value="2400",
+        power_unit="W",
+        price_value="1.80",
+        price_unit="SEK/kWh",
+    )
+
+    state = hass.states.get(COST_RATE_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("4.32")
+    assert state.attributes["unit_of_measurement"] == "SEK/h"
+    assert state.attributes["state_class"] == "measurement"
+
+
+async def test_current_cost_rate_unavailable_without_price(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Current cost rate should become unavailable for an unknown price."""
+    await setup_electricity_pro(
+        power_value="2400",
+        power_unit="W",
+        price_value="unknown",
+        price_unit="SEK/kWh",
+    )
+
+    state = hass.states.get(COST_RATE_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_current_cost_rate_updates_when_power_changes(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Current cost rate should update when power changes."""
+    await setup_electricity_pro(
+        power_value="1000",
+        power_unit="W",
+        price_value="2.00",
+        price_unit="SEK/kWh",
+    )
+
+    hass.states.async_set(
+        SOURCE_ENTITY_ID,
+        "1500",
+        {
+            "unit_of_measurement": "W",
+            "device_class": "power",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(COST_RATE_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("3.00")
+    assert state.attributes["unit_of_measurement"] == "SEK/h"
+
+
+async def test_current_cost_rate_updates_when_price_changes(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Current cost rate should update when price changes."""
+    await setup_electricity_pro(
+        power_value="2000",
+        power_unit="W",
+        price_value="1.00",
+        price_unit="SEK/kWh",
+    )
+
+    hass.states.async_set(
+        "sensor.test_price",
+        "1.50",
+        {
+            "unit_of_measurement": "SEK/kWh",
+            "device_class": "monetary",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(COST_RATE_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("3.00")

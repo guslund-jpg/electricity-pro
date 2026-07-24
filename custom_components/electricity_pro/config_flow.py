@@ -18,6 +18,7 @@ from homeassistant.helpers import selector
 from .const import (
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
+    CONF_ENERGY_ENTITY,
     DOMAIN,
 )
 
@@ -26,6 +27,7 @@ def _entity_schema(
     *,
     power_default: str | None = None,
     price_default: str | None = None,
+    energy_default: str | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
     power_key: vol.Marker
@@ -48,6 +50,17 @@ def _entity_schema(
             default=price_default,
         )
 
+    energy_key: vol.Marker
+
+    if energy_default is None:
+       energy_key = vol.Optional(CONF_ENERGY_ENTITY)
+    else:
+       energy_key = vol.Optional(
+           CONF_ENERGY_ENTITY,
+           default=energy_default,
+       )
+
+
     return vol.Schema(
         {
             power_key: selector.EntitySelector(
@@ -57,6 +70,11 @@ def _entity_schema(
                 )
             ),
             price_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                )
+            ),
+            energy_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
                 )
@@ -119,11 +137,16 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_PRICE_ENTITY,
             self.config_entry.data.get(CONF_PRICE_ENTITY),
         )
+        current_energy = self.config_entry.options.get(
+            CONF_ENERGY_ENTITY,
+            self.config_entry.data.get(CONF_ENERGY_ENTITY),
+        )
 
         return self.async_show_form(
             step_id="init",
             data_schema=_entity_schema(
                 power_default=current_power,
                 price_default=current_price,
+                energy_default=current_energy,
             ),
         )

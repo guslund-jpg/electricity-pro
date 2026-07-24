@@ -34,4 +34,3 @@ Create the next sequentially numbered file using this structure:
 ## Consequences
 
 ## Alternatives considered
-
