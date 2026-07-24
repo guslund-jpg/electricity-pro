@@ -12,6 +12,8 @@ SOURCE_ENTITY_ID = "sensor.test_power"
 ENERGY_ENTITY_ID = f"sensor.{DOMAIN}_energy"
 ENERGY_SOURCE_ENTITY_ID = "sensor.test_energy"
 
+x = 1
+
 
 async def test_current_energy_initial_value(
     hass: HomeAssistant,
@@ -134,6 +136,7 @@ async def test_current_energy_rejects_invalid_unit(
     assert state is not None
     assert state.state == "unavailable"
 
+
 async def test_current_power_initial_value(
     hass: HomeAssistant,
     setup_electricity_pro,
@@ -235,6 +238,7 @@ async def test_current_power_becomes_unavailable_for_invalid_value(
 
     assert state is not None
     assert state.state == "unavailable"
+
 
 PRICE_ENTITY_ID = f"sensor.{DOMAIN}_current_price"
 
