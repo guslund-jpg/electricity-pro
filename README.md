@@ -139,7 +139,7 @@ Electricity Pro is developed with a strong focus on maintainability.
 
 Current automated test coverage:
 
-**98%**
+98%
 
 ---
 
