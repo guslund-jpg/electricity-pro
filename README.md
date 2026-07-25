@@ -50,7 +50,7 @@ See the [Roadmap](docs/ROADMAP.md).
 
 ---
 
-# Architecture
+## Architecture
 
 Electricity Pro separates data collection from analytics.
 
@@ -80,7 +80,7 @@ Read more in the Architecture documentation.
 
 ---
 
-# Philosophy
+## Philosophy
 
 Electricity Pro is built around one simple idea:
 
@@ -98,7 +98,7 @@ This philosophy guides every architectural decision.
 
 ---
 
-# Installation
+## Installation
 
 1. Install via HACS *(planned)* or manually.
 2. Restart Home Assistant.
@@ -108,7 +108,7 @@ This philosophy guides every architectural decision.
 
 ---
 
-# Development
+## Development
 
 ```bash
 git clone https://github.com/<your-account>/electricity-pro.git
@@ -126,7 +126,7 @@ pytest
 
 ---
 
-# Quality
+## Quality
 
 Electricity Pro is developed with a strong focus on maintainability.
 
@@ -143,7 +143,7 @@ Current automated test coverage:
 
 ---
 
-# Documentation
+## Documentation
 
 - Roadmap
 - Architecture
@@ -152,7 +152,7 @@ Current automated test coverage:
 
 ---
 
-# Contributing
+## Contributing
 
 Contributions are welcome.
 
@@ -167,7 +167,7 @@ The project values:
 
 ---
 
-# Roadmap
+## Roadmap
 
 | Version | Theme |
 |----------|----------------|
@@ -181,6 +181,6 @@ See the full roadmap in `docs/ROADMAP.md`.
 
 ---
 
-# License
+## License
 
 MIT License
