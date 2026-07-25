@@ -18,7 +18,6 @@ measurements to answer higher-level questions:
 Electricity Pro is currently under active development.
 
 ## Current capabilities
-
 - Current electricity cost rate
 - Remaining cost today
 - Configurable Home Assistant measurement sources
