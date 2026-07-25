@@ -1,22 +1,36 @@
 name: Home Assistant configuration
 
 on:
-  push:
   pull_request:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
 
+concurrency:
+  group: home-assistant-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
+    name: Validate Home Assistant configuration
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
+
       - name: Copy packages into test configuration
         run: |
           mkdir -p config/packages/electricity_pro
-          find packages -name '*.yaml' -exec cp {} config/packages/electricity_pro/ \;
-      - uses: frenck/action-home-assistant@v1
+          find packages -name '*.yaml' \
+            -exec cp {} config/packages/electricity_pro/ \;
+
+      - name: Validate Home Assistant configuration
+        uses: frenck/action-home-assistant@v1
         with:
           path: "./config"
           secrets: "fakesecrets.yaml"
