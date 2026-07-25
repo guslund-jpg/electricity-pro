@@ -1,8 +1,31 @@
-# Architecture
+# Electricity Pro Architecture
 
-1. Source adapters map provider-specific entities into stable Electricity Pro entities.
-2. Core exposes canonical power, price, energy, and cost entities.
-3. Statistics, health, and alerts consume only canonical entities.
-4. Dashboards consume only canonical entities.
+Electricity Pro is an analytics engine for Home Assistant.
 
-Provider-specific entity IDs must not appear outside `packages/10_sources/`.
+It does not collect electricity data.
+
+It interprets electricity data provided by other integrations.
+
+## Layers
+
+Provider
+↓
+
+Coordinator
+↓
+
+Pure calculations
+↓
+
+Pure statistics
+↓
+
+Sensors
+
+## Design principles
+
+- Provider independent
+- Pure calculation modules
+- Thin sensor layer
+- Comprehensive unit tests
+- Home Assistant idioms

@@ -17,6 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from . import ElectricityProConfigEntry
 from .calculations import calculate_current_cost_rate
@@ -27,6 +28,7 @@ from .const import (
 )
 from .coordinator import ElectricityProCoordinator
 from .provider import ElectricityProData
+from .statistics import remaining_cost_today
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -54,6 +56,36 @@ def cost_rate_unit(data: ElectricityProData) -> str | None:
             return f"{currency}/h"
 
     return None
+
+
+def cost_unit(data: ElectricityProData) -> str | None:
+    """Return the currency unit for calculated cost sensors."""
+    price_unit = data.current_price_unit
+
+    if price_unit is None:
+        return None
+
+    for suffix in ("/kWh", "/kwh"):
+        if price_unit.endswith(suffix):
+            return price_unit[: -len(suffix)]
+
+    return None
+
+
+def current_cost_rate(data: ElectricityProData) -> Decimal | None:
+    """Return the current electricity cost per hour."""
+    return calculate_current_cost_rate(
+        data.current_power,
+        data.current_price,
+    )
+
+
+def projected_remaining_cost(data: ElectricityProData) -> Decimal | None:
+    """Return the projected electricity cost until local midnight."""
+    return remaining_cost_today(
+        current_cost_rate(data),
+        dt_util.now(),
+    )
 
 
 SENSOR_DESCRIPTIONS: tuple[
@@ -87,15 +119,22 @@ SENSOR_DESCRIPTIONS: tuple[
         name="Current cost rate",
         icon="mdi:cash-clock",
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: calculate_current_cost_rate(
-            data.current_power,
-            data.current_price,
-        ),
+        value_fn=current_cost_rate,
         unit_fn=cost_rate_unit,
         available_fn=lambda data: (
-            data.current_power is not None
-            and data.current_price is not None
-            and cost_rate_unit(data) is not None
+            current_cost_rate(data) is not None and cost_rate_unit(data) is not None
+        ),
+        required_config_key=CONF_PRICE_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="remaining_cost_today",
+        name="Remaining cost today",
+        icon="mdi:progress-clock",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=projected_remaining_cost,
+        unit_fn=cost_unit,
+        available_fn=lambda data: (
+            current_cost_rate(data) is not None and cost_unit(data) is not None
         ),
         required_config_key=CONF_PRICE_ENTITY,
     ),
