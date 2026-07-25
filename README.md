@@ -1,253 +1,186 @@
-# Electricity Pro
+# ⚡ Electricity Pro
 
-> Advanced electricity analytics for Home Assistant.
+> **Understand. Predict. Optimise.**
 
-Electricity Pro transforms trusted electricity and energy measurements into
-understandable analytics, forecasts, and recommendations.
+**Intelligent electricity analytics for Home Assistant.**
 
-Most Home Assistant integrations expose measurements such as current power,
-energy consumption, and electricity price. Electricity Pro builds on those
-measurements to answer higher-level questions:
+Electricity Pro transforms raw electricity measurements into meaningful insights. Built around a provider-independent analytics engine, it helps you understand your current electricity usage, estimate costs, and lays the foundation for advanced energy optimisation.
 
-- How much is electricity costing right now?
-- How much will the rest of today cost?
-- What is the estimated total cost for today?
-- Am I likely to exceed my energy budget?
-- When is the cheapest time to use electricity?
+---
 
-Electricity Pro is currently under active development.
+## Why Electricity Pro?
 
-## Current capabilities
+Most energy integrations expose measurements.
 
-- Current electricity cost rate
-- Remaining cost today
-- Configurable Home Assistant measurement sources
-- Normalised provider data
-- Pure, testable analytics
-- Coordinator-based updates
-- Home Assistant sensor entities
+Electricity Pro focuses on answering the questions users actually have.
 
-## In development
+- 💰 What is my electricity costing me right now?
+- 📈 How much will today probably cost?
+- ⚡ What is my standby consumption?
+- 📊 Is my electricity usage changing over time?
+- 💡 How can I reduce my electricity bill?
 
-- Accumulated cost today
-- Estimated cost today
-- Daily cost analytics
-- Budget tracking
-- Monthly projections
-- Price and consumption forecasting
-- Energy-use recommendations
+The project is designed around reusable analytics rather than provider-specific logic.
 
-## How it works
+---
 
-```text
-Home Assistant entities
-          │
-          ▼
-       Provider
-          │
-          ▼
-  ElectricityProData
-          │
-          ▼
-      Coordinator
-          │
-          ▼
-       Analytics
-          │
-          ▼
- Sensors and other outputs
-```
+## Features
 
-Each layer has a clearly defined responsibility.
+### Current
 
-| Layer | Responsibility |
-|---|---|
-| Provider | Read and normalise Home Assistant entity states |
-| Data model | Represent measurements and metadata |
-| Coordinator | Refresh and distribute current data |
-| Analytics | Derive useful information from measurements |
-| Sensors | Publish results to Home Assistant |
+- ✅ Live electricity cost calculation
+- ✅ Daily cost projection
+- ✅ Provider-independent architecture
+- ✅ Event-driven coordinator
+- ✅ Pure analytics engine
+- ✅ Native Home Assistant integration
+- ✅ Comprehensive automated tests
+- ✅ Modern Home Assistant architecture
 
-## Design principles
+### Planned
 
-Electricity Pro follows a small set of engineering principles:
+- 🔄 Base load detection
+- 🔄 Historical analytics
+- 🔄 Cost anomaly detection
+- 🔄 Trend analysis
+- 🔄 Smart optimisation recommendations
+- 🔄 Solar and battery analytics
 
-1. Every measurement has a known source.
-2. Providers read and normalise data but do not perform business calculations.
-3. Analytics are deterministic and testable without Home Assistant.
-4. Sensors publish results but do not contain business logic.
-5. Data flows in one direction through the system.
-6. Every capability includes tests and documentation.
-7. Missing or invalid inputs produce an unavailable result rather than a misleading estimate.
+See the [Roadmap](docs/ROADMAP.md).
 
-## Measurements, analytics, and insights
+---
 
-Electricity Pro distinguishes between three kinds of information.
+# Architecture
 
-### Measurements
-
-Facts supplied by Home Assistant:
-
-- Current power
-- Current electricity price
-- Energy consumed today
-- Accumulated cost today
-
-### Analytics
-
-Values derived from measurements:
-
-- Current cost rate
-- Remaining cost today
-- Estimated cost today
-- Monthly cost projection
-
-### Insights
-
-Information that helps users make decisions:
-
-- Whether consumption is unusually high
-- Whether a daily or monthly budget may be exceeded
-- The cheapest remaining usage window
-- Why an estimate has increased
-- Which action may reduce cost
-
-This separation allows the analytics to be reused by sensors, services,
-dashboards, notifications, and automations.
-
-## Configuration
-
-Electricity Pro uses existing Home Assistant sensor entities as data sources.
-
-Depending on the enabled capabilities, configuration may include:
-
-- Current power sensor
-- Current electricity price sensor
-- Accumulated energy today sensor
-- Accumulated cost today sensor
-
-Optional sources may be added or changed through the integration options flow.
-
-Detailed installation and configuration instructions will be added before the
-first public release.
-
-## Project direction
-
-Development is organised around capabilities rather than individual sensors.
+Electricity Pro separates data collection from analytics.
 
 ```text
-Measurement
-     │
-     ▼
-Provider support
-     │
-     ▼
-Analytics
-     │
-     ▼
-Presentation
-     │
-     ▼
-Documentation and release
+                 Provider
+                     │
+                     ▼
+             ElectricityData
+                     │
+                     ▼
+          DataUpdateCoordinator
+                     │
+         ┌───────────┴───────────┐
+         ▼                       ▼
+   Analytics Engine         Sensor Layer
+ (Pure Calculations)      (Presentation)
 ```
 
-Planned development areas include:
+This architecture makes the project:
 
-### Cost analytics
+- Provider-independent
+- Easy to test
+- Easy to extend
+- Easy to maintain
 
-- Current cost rate
-- Remaining cost today
-- Estimated cost today
-- Budget progress
+Read more in the Architecture documentation.
 
-### Consumption analytics
+---
 
-- Daily usage patterns
-- Peak detection
-- Baseline consumption
-- Unusual-consumption detection
+# Philosophy
 
-### Forecasting
+Electricity Pro is built around one simple idea:
 
-- Daily consumption forecast
-- Monthly cost projection
-- Electricity-price forecast support
+> **Measurements are not enough.**
 
-### Optimisation
+Users want answers.
 
-- Cheapest appliance usage windows
-- EV charging recommendations
-- Battery scheduling
-- Heat-pump optimisation
+Every feature should help users:
 
-## Development status
+- Understand electricity usage
+- Predict future consumption and costs
+- Optimise energy usage
 
-Electricity Pro has not yet reached a stable public API.
+This philosophy guides every architectural decision.
 
-Until version 1.0, configuration fields, entity names, internal modules, and
-analytics interfaces may change between releases.
+---
 
-Version 1.0 will represent:
+# Installation
 
-- A stable measurement model
-- A mature analytics layer
-- Clear separation from Home Assistant framework code
-- Automated testing and quality checks
-- Contributor documentation
-- Stable user-facing entities and configuration
+1. Install via HACS *(planned)* or manually.
+2. Restart Home Assistant.
+3. Add the Electricity Pro integration.
+4. Select your electricity provider.
+5. Add the provided entities to your dashboard.
 
-## Documentation
+---
 
-The planned documentation structure is:
+# Development
 
-| Document | Purpose |
-|---|---|
-| `README.md` | Project overview |
-| `docs/ARCHITECTURE.md` | Technical architecture and layer boundaries |
-| `docs/ROADMAP.md` | Planned capabilities and releases |
-| `CONTRIBUTING.md` | Contribution workflow and coding conventions |
-| `CHANGELOG.md` | Release history |
-| `design/` | Short design specifications for capabilities |
+```bash
+git clone https://github.com/<your-account>/electricity-pro.git
 
-## Contributing
+cd electricity-pro
 
-Contributions will be welcome once the initial contributor documentation and
-development workflow are in place.
+python3 -m venv .venv
 
-Every new capability should define:
+source .venv/bin/activate
 
-- Purpose
-- Inputs
-- Outputs
-- Calculation or algorithm
-- Edge cases
-- Architectural ownership
-- Required tests
-- Documentation impact
+pip install -r requirements-dev.txt
 
-## Vision
-
-Electricity Pro aims to transform raw energy data into useful decisions.
-
-```text
-Measurements
-      │
-      ▼
-Analytics
-      │
-      ▼
-Insights
-      │
-      ▼
-Recommendations
-      │
-      ▼
-Automations
+pytest
 ```
 
-The long-term objective is a modular and trustworthy electricity analytics
-engine that integrates naturally with Home Assistant.
+---
 
-## Licence
+# Quality
 
-The project licence will be documented before the first public release.
+Electricity Pro is developed with a strong focus on maintainability.
+
+- Event-driven architecture
+- Pure analytics
+- Provider abstraction
+- Behaviour-focused tests
+- Continuous Integration
+- Modern Home Assistant patterns
+
+Current automated test coverage:
+
+**98%**
+
+---
+
+# Documentation
+
+- Roadmap
+- Architecture
+- Development Guide
+- Contributing Guide
+
+---
+
+# Contributing
+
+Contributions are welcome.
+
+Before implementing larger features, please open a GitHub issue to discuss the proposed design.
+
+The project values:
+
+- Clear architecture
+- Small pull requests
+- Automated tests
+- Long-term maintainability
+
+---
+
+# Roadmap
+
+| Version | Theme |
+|----------|----------------|
+| **0.6** | Foundation |
+| **0.7** | Understanding |
+| **0.8** | Insights |
+| **0.9** | Optimisation |
+| **1.0** | Stable Release |
+
+See the full roadmap in `docs/ROADMAP.md`.
+
+---
+
+# License
+
+MIT License
