@@ -14,7 +14,7 @@ Rather than exposing more raw data, Electricity Pro aims to answer practical que
 
 ---
 
-# Vision
+## Vision
 
 Electricity Pro is designed around a provider-independent analytics engine that complements Home Assistant.
 
@@ -26,17 +26,17 @@ Each release builds upon a stable architecture instead of adding isolated featur
 
 ---
 
-# Release Roadmap
+## Release Roadmap
 
-## v0.6 — Foundation
+### v0.6 — Foundation
 
 **Status:** In Progress
 
-### Goal
+#### Goal
 
 Build a stable and maintainable architecture for future analytics.
 
-### Scope
+#### Scope
 
 - Provider-independent data model
 - Event-driven coordinator
@@ -47,19 +47,19 @@ Build a stable and maintainable architecture for future analytics.
 - Repository quality improvements
 - Project documentation
 
-### Outcome
+#### Outcome
 
 A solid foundation that allows new analytics to be added without redesigning the architecture.
 
 ---
 
-## v0.7 — Understanding
+### v0.7 — Understanding
 
-### Goal
+#### Goal
 
 Help users understand their electricity usage.
 
-### Planned Features
+#### Planned Features
 
 - Base-load detection
 - Standby consumption estimates
@@ -69,7 +69,7 @@ Help users understand their electricity usage.
 - Historical consumption analysis
 - Recorder integration improvements
 
-### Questions Answered
+#### Questions Answered
 
 - What is my standby consumption?
 - What does my standby consumption cost?
@@ -78,13 +78,13 @@ Help users understand their electricity usage.
 
 ---
 
-## v0.8 — Insights
+### v0.8 — Insights
 
-### Goal
+#### Goal
 
 Explain electricity usage.
 
-### Planned Features
+#### Planned Features
 
 - Trend analysis
 - Cost anomaly detection
@@ -94,7 +94,7 @@ Explain electricity usage.
 - Insight entities
 - Confidence indicators
 
-### Questions Answered
+#### Questions Answered
 
 - Why was yesterday expensive?
 - Has my consumption changed?
@@ -103,13 +103,13 @@ Explain electricity usage.
 
 ---
 
-## v0.9 — Optimisation
+### v0.9 — Optimisation
 
-### Goal
+#### Goal
 
 Help users reduce electricity costs.
 
-### Planned Features
+#### Planned Features
 
 - Peak-load detection
 - Cheapest-hour analysis
@@ -118,7 +118,7 @@ Help users reduce electricity costs.
 - Smart recommendations
 - Appliance scheduling guidance
 
-### Questions Answered
+#### Questions Answered
 
 - When should I run the dishwasher?
 - Which electricity usage could be moved to cheaper hours?
@@ -126,13 +126,13 @@ Help users reduce electricity costs.
 
 ---
 
-## v1.0 — Stable
+### v1.0 — Stable
 
-### Goal
+#### Goal
 
 Deliver a mature production-ready release.
 
-### Objectives
+#### Objectives
 
 - Stable public API
 - Comprehensive documentation
@@ -143,7 +143,7 @@ Deliver a mature production-ready release.
 
 ---
 
-# Future Possibilities
+## Future Possibilities
 
 Potential future areas include:
 
@@ -158,9 +158,9 @@ These ideas are intentionally unscheduled.
 
 ---
 
-# Architecture Principles
+## Architecture Principles
 
-## Provider Independence
+### Provider Independence
 
 Providers collect and normalise measurements.
 
@@ -168,7 +168,7 @@ Analytics should remain independent of the underlying provider.
 
 ---
 
-## Event-Driven Updates
+### Event-Driven Updates
 
 The coordinator reacts to relevant source updates.
 
@@ -176,7 +176,7 @@ Entities should not poll unnecessarily.
 
 ---
 
-## Pure Analytics
+### Pure Analytics
 
 Business logic should be implemented using deterministic Python functions wherever practical.
 
@@ -184,7 +184,7 @@ Analytics should remain independently testable without Home Assistant.
 
 ---
 
-## Presentation-Only Entities
+### Presentation-Only Entities
 
 Entities expose analytics.
 
@@ -192,19 +192,19 @@ Business logic belongs in the analytics layer.
 
 ---
 
-## Immutable State
+### Immutable State
 
 Shared integration state should be represented using explicit immutable data structures.
 
 ---
 
-## Behaviour-Focused Tests
+### Behaviour-Focused Tests
 
 Tests should verify observable behaviour rather than implementation details.
 
 ---
 
-# Feature Criteria
+## Feature Criteria
 
 New functionality should normally satisfy at least one of these goals:
 
@@ -222,7 +222,7 @@ New features should also:
 
 ---
 
-# Non-Goals
+## Non-Goals
 
 Electricity Pro is **not** intended to become:
 
@@ -236,7 +236,7 @@ Instead, Electricity Pro complements Home Assistant by providing reusable electr
 
 ---
 
-# Development Process
+## Development Process
 
 Significant features generally follow this workflow:
 
@@ -252,6 +252,6 @@ Significant features generally follow this workflow:
 
 ---
 
-# Guiding Principle
+## Guiding Principle
 
 > **Electricity Pro should answer useful questions, not merely expose more data.**
