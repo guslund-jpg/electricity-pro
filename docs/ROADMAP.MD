@@ -1,208 +1,257 @@
 # Electricity Pro Roadmap
 
-> Understand. Predict. Optimise.
+> **Understand. Predict. Optimise.**
 
-Electricity Pro helps Home Assistant users understand, predict and optimise their electricity usage through provider-independent analytics.
+Electricity Pro transforms electricity measurements into meaningful analytics and actionable insights for Home Assistant.
 
----
+Rather than exposing more raw data, Electricity Pro aims to answer practical questions such as:
 
-# Vision
-
-Electricity data alone is rarely useful.
-
-People want answers.
-
-Electricity Pro transforms measurements into insights that help users understand what is happening now, what is likely to happen next, and how to reduce electricity costs.
+- What is my electricity costing right now?
+- How much will today probably cost?
+- What is my normal background consumption?
+- Is my electricity usage changing?
+- How can I reduce my electricity costs?
 
 ---
 
-# Guiding Principles
+## Vision
 
-Every feature should satisfy at least one of these goals:
+Electricity Pro is designed around a provider-independent analytics engine that complements Home Assistant.
 
-✓ Understand electricity usage
+The project evolves through four stages:
 
-✓ Predict future consumption or cost
+**Foundation → Understand → Insight → Optimise**
 
-✓ Optimise energy usage
-
-If a feature does not support one of these goals, it probably does not belong in Electricity Pro.
+Each release builds upon a stable architecture instead of adding isolated features.
 
 ---
 
-# Product Journey
+## Release Roadmap
 
-Measure
-    │
-    ▼
-Understand
-    │
-    ▼
-Predict
-    │
-    ▼
-Optimise
+### v0.6 — Foundation
 
----
+**Status:** In Progress
 
-# Version 0.6 — Foundation
+#### Goal
 
-Status: Complete
+Build a stable and maintainable architecture for future analytics.
 
-Focus
+#### Scope
 
-• Stable architecture
+- Provider-independent data model
+- Event-driven coordinator
+- Declarative sensor platform
+- Pure analytics layer
+- Automated testing
+- Continuous Integration
+- Repository quality improvements
+- Project documentation
 
-• Provider abstraction
+#### Outcome
 
-• Event-driven coordinator
-
-• Pure analytics
-
-• Test suite
-
-• CI/CD
-
-Outcome
-
-A stable foundation for future analytics.
+A solid foundation that allows new analytics to be added without redesigning the architecture.
 
 ---
 
-# Version 0.7 — Understand
+### v0.7 — Understanding
 
-Theme
+#### Goal
 
-Understand electricity usage.
+Help users understand their electricity usage.
 
-Features
+#### Planned Features
 
-• Base load detection
+- Base-load detection
+- Standby consumption estimates
+- Improved remaining-cost calculation
+- Daily energy projection
+- Daily cost projection
+- Historical consumption analysis
+- Recorder integration improvements
 
-• Remaining cost improvements
+#### Questions Answered
 
-• Daily projections
-
-• Historical analytics
-
-• Recorder integration
-
-Questions answered
-
-• What is my standby consumption?
-
-• How much will today cost?
-
-• How much energy remains today?
+- What is my standby consumption?
+- What does my standby consumption cost?
+- How much energy will I probably use today?
+- How much is today likely to cost?
 
 ---
 
-# Version 0.8 — Predict
+### v0.8 — Insights
 
-Theme
+#### Goal
 
-Explain and predict electricity usage.
+Explain electricity usage.
 
-Features
+#### Planned Features
 
-• Trend analysis
+- Trend analysis
+- Cost anomaly detection
+- Consumption anomaly detection
+- Daily summaries
+- Weekly summaries
+- Insight entities
+- Confidence indicators
 
-• Cost anomalies
+#### Questions Answered
 
-• Consumption anomalies
-
-• Daily summaries
-
-• Insight entities
-
-Questions answered
-
-• Why was yesterday expensive?
-
-• Is my consumption increasing?
-
-• What changed?
+- Why was yesterday expensive?
+- Has my consumption changed?
+- Is my background load increasing?
+- Was today unusual?
 
 ---
 
-# Version 0.9 — Optimise
+### v0.9 — Optimisation
 
-Theme
+#### Goal
 
-Reduce electricity cost.
+Help users reduce electricity costs.
 
-Features
+#### Planned Features
 
-• Cheapest hours
+- Peak-load detection
+- Cheapest-hour analysis
+- Cheapest time-window analysis
+- Load-shifting suggestions
+- Smart recommendations
+- Appliance scheduling guidance
 
-• Peak detection
+#### Questions Answered
 
-• Load shifting
-
-• Smart recommendations
-
-Questions answered
-
-• When should I run appliances?
-
-• How can I reduce today's bill?
-
----
-
-# Version 1.0 — Stable
-
-Goals
-
-• Stable public API
-
-• Complete documentation
-
-• Excellent automated tests
-
-• HACS ready
-
-• Community reviewed
+- When should I run the dishwasher?
+- Which electricity usage could be moved to cheaper hours?
+- How can I reduce today's cost?
 
 ---
 
-# Future
+### v1.0 — Stable
 
-Possible future areas
+#### Goal
 
-• Solar
+Deliver a mature production-ready release.
 
-• Battery
+#### Objectives
 
-• EV charging
-
-• Carbon intensity
-
-• Multi-home
-
-These are ideas rather than commitments.
-
----
-
-# Architecture Promise
-
-Electricity Pro values maintainability over rapid feature growth.
-
-New features should
-
-• Build on the existing architecture
-
-• Remain provider-independent
-
-• Use pure analytics
-
-• Include automated tests
-
-• Improve understanding, prediction or optimisation
-
-Large rewrites should be exceptional.
+- Stable public API
+- Comprehensive documentation
+- Excellent automated tests
+- Reliable upgrades
+- HACS-ready
+- Community feedback incorporated
 
 ---
 
-# Guiding Philosophy
+## Future Possibilities
 
-Electricity Pro should answer questions—not merely expose data.
+Potential future areas include:
+
+- Solar analytics
+- Battery analytics
+- EV charging analytics
+- Carbon-intensity integration
+- Multi-home support
+- Advanced forecasting
+
+These ideas are intentionally unscheduled.
+
+---
+
+## Architecture Principles
+
+### Provider Independence
+
+Providers collect and normalise measurements.
+
+Analytics should remain independent of the underlying provider.
+
+---
+
+### Event-Driven Updates
+
+The coordinator reacts to relevant source updates.
+
+Entities should not poll unnecessarily.
+
+---
+
+### Pure Analytics
+
+Business logic should be implemented using deterministic Python functions wherever practical.
+
+Analytics should remain independently testable without Home Assistant.
+
+---
+
+### Presentation-Only Entities
+
+Entities expose analytics.
+
+Business logic belongs in the analytics layer.
+
+---
+
+### Immutable State
+
+Shared integration state should be represented using explicit immutable data structures.
+
+---
+
+### Behaviour-Focused Tests
+
+Tests should verify observable behaviour rather than implementation details.
+
+---
+
+## Feature Criteria
+
+New functionality should normally satisfy at least one of these goals:
+
+- Help users understand electricity usage.
+- Help users predict future consumption or costs.
+- Explain meaningful changes or patterns.
+- Help users optimise electricity usage.
+
+New features should also:
+
+- preserve the existing architecture;
+- remain provider-independent where practical;
+- include automated tests;
+- update documentation where appropriate.
+
+---
+
+## Non-Goals
+
+Electricity Pro is **not** intended to become:
+
+- a replacement for the Home Assistant Energy Dashboard;
+- a cloud analytics service;
+- a vendor-specific integration;
+- a general automation platform;
+- a collection of unrelated sensors.
+
+Instead, Electricity Pro complements Home Assistant by providing reusable electricity analytics.
+
+---
+
+## Development Process
+
+Significant features generally follow this workflow:
+
+1. Define the user problem.
+2. Create a GitHub issue with acceptance criteria.
+3. Review the architecture.
+4. Add or update tests.
+5. Implement the feature.
+6. Validate locally.
+7. Verify CI.
+8. Review against the acceptance criteria.
+9. Update documentation.
+
+---
+
+## Guiding Principle
+
+> **Electricity Pro should answer useful questions, not merely expose more data.**
