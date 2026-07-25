@@ -2,9 +2,18 @@
 
 Electricity Pro is an analytics engine for Home Assistant.
 
-It does not collect electricity data.
+It consumes electricity measurements from existing integrations and
+produces higher-level analytics.
 
-It interprets electricity data provided by other integrations.
+Electricity Pro intentionally does not replace:
+
+- Home Assistant Energy Dashboard
+- Utility Meter
+- Recorder
+
+Instead it builds on them.
+
+---
 
 ## Layers
 
@@ -14,18 +23,21 @@ Provider
 Coordinator
 ↓
 
-Pure calculations
+Pure calculation modules
+
+- calculations.py
+- statistics.py
+
 ↓
 
-Pure statistics
-↓
+Sensor layer
 
-Sensors
+---
 
 ## Design principles
 
 - Provider independent
-- Pure calculation modules
-- Thin sensor layer
-- Comprehensive unit tests
-- Home Assistant idioms
+- Pure functions whenever possible
+- Thin Home Assistant entities
+- Comprehensive tests
+- One responsibility per module
