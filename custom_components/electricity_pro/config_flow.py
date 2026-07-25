@@ -16,9 +16,10 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_ACCUMULATED_COST_TODAY_ENTITY,
+    CONF_ENERGY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
-    CONF_ENERGY_ENTITY,
     DOMAIN,
 )
 
@@ -28,9 +29,9 @@ def _entity_schema(
     power_default: str | None = None,
     price_default: str | None = None,
     energy_default: str | None = None,
+    accumulated_cost_today_default: str | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
-    power_key: vol.Marker
 
     if power_default is None:
         power_key = vol.Required(CONF_POWER_ENTITY)
@@ -40,8 +41,6 @@ def _entity_schema(
             default=power_default,
         )
 
-    price_key: vol.Marker
-
     if price_default is None:
         price_key = vol.Optional(CONF_PRICE_ENTITY)
     else:
@@ -50,16 +49,23 @@ def _entity_schema(
             default=price_default,
         )
 
-    energy_key: vol.Marker
-
     if energy_default is None:
-       energy_key = vol.Optional(CONF_ENERGY_ENTITY)
+        energy_key = vol.Optional(CONF_ENERGY_ENTITY)
     else:
-       energy_key = vol.Optional(
-           CONF_ENERGY_ENTITY,
-           default=energy_default,
-       )
+        energy_key = vol.Optional(
+            CONF_ENERGY_ENTITY,
+            default=energy_default,
+        )
 
+    if accumulated_cost_today_default is None:
+        accumulated_cost_today_key = vol.Optional(
+            CONF_ACCUMULATED_COST_TODAY_ENTITY
+        )
+    else:
+        accumulated_cost_today_key = vol.Optional(
+            CONF_ACCUMULATED_COST_TODAY_ENTITY,
+            default=accumulated_cost_today_default,
+        )
 
     return vol.Schema(
         {
@@ -79,8 +85,15 @@ def _entity_schema(
                     domain="sensor",
                 )
             ),
+            accumulated_cost_today_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="monetary",
+                )
+            ),
         }
     )
+
 
 class ElectricityProConfigFlow(
     config_entries.ConfigFlow,
@@ -133,13 +146,22 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_POWER_ENTITY,
             self.config_entry.data[CONF_POWER_ENTITY],
         )
+
         current_price = self.config_entry.options.get(
             CONF_PRICE_ENTITY,
             self.config_entry.data.get(CONF_PRICE_ENTITY),
         )
+
         current_energy = self.config_entry.options.get(
             CONF_ENERGY_ENTITY,
             self.config_entry.data.get(CONF_ENERGY_ENTITY),
+        )
+
+        current_accumulated_cost_today = self.config_entry.options.get(
+            CONF_ACCUMULATED_COST_TODAY_ENTITY,
+            self.config_entry.data.get(
+                CONF_ACCUMULATED_COST_TODAY_ENTITY,
+            ),
         )
 
         return self.async_show_form(
@@ -148,5 +170,6 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 power_default=current_power,
                 price_default=current_price,
                 energy_default=current_energy,
+                accumulated_cost_today_default=current_accumulated_cost_today,
             ),
         )
