@@ -1,9 +1,11 @@
 """Tests for Electricity Pro sensors."""
 
 from collections.abc import Callable
+from datetime import UTC, datetime
 from decimal import Decimal
 from types import CoroutineType
 from typing import Any
+from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -17,6 +19,8 @@ ENERGY_ENTITY_ID = f"sensor.{DOMAIN}_energy"
 ENERGY_SOURCE_ENTITY_ID = "sensor.test_energy"
 
 COST_RATE_ENTITY_ID = f"sensor.{DOMAIN}_current_cost_rate"
+
+REMAINING_COST_ENTITY_ID = f"sensor.{DOMAIN}_remaining_cost_today"
 
 
 async def test_current_energy_initial_value(
@@ -478,3 +482,95 @@ async def test_current_cost_rate_updates_when_price_changes(
 
     assert state is not None
     assert Decimal(state.state) == Decimal("3.00")
+
+
+async def test_remaining_cost_today_sensor(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Remaining cost today should use current power and price."""
+
+    with patch(
+        "custom_components.electricity_pro.sensor.dt_util.now",
+        return_value=datetime(
+            2026,
+            7,
+            25,
+            15,
+            0,
+            tzinfo=UTC,
+        ),
+    ):
+        await setup_electricity_pro(
+            power_value="2400",
+            power_unit="W",
+            price_value="1.80",
+            price_unit="SEK/kWh",
+        )
+
+        state = hass.states.get(REMAINING_COST_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("38.88")
+    assert state.attributes["unit_of_measurement"] == "SEK"
+    assert state.attributes["state_class"] == "measurement"
+
+
+async def test_remaining_cost_today_unavailable_without_price(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Remaining cost today should become unavailable."""
+
+    await setup_electricity_pro(
+        power_value="2400",
+        power_unit="W",
+        price_value="unknown",
+        price_unit="SEK/kWh",
+    )
+
+    state = hass.states.get(REMAINING_COST_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_remaining_cost_today_updates_when_power_changes(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Remaining cost today should update when power changes."""
+
+    with patch(
+        "custom_components.electricity_pro.sensor.dt_util.now",
+        return_value=datetime(
+            2026,
+            7,
+            25,
+            15,
+            0,
+            tzinfo=UTC,
+        ),
+    ):
+        await setup_electricity_pro(
+            power_value="1000",
+            power_unit="W",
+            price_value="2.00",
+            price_unit="SEK/kWh",
+        )
+
+        hass.states.async_set(
+            SOURCE_ENTITY_ID,
+            "1500",
+            {
+                "unit_of_measurement": "W",
+                "device_class": "power",
+            },
+        )
+
+        await hass.async_block_till_done()
+
+        state = hass.states.get(REMAINING_COST_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("27.00")
