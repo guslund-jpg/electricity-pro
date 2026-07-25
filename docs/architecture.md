@@ -10,7 +10,7 @@ This separation keeps the project maintainable, testable and easy to extend.
 
 ---
 
-# Architecture Overview
+## Architecture Overview
 
 ```text
 Home Assistant
@@ -30,9 +30,9 @@ Presentation
 
 ---
 
-# Layers
+## Layers
 
-## Provider
+### Provider
 
 Responsibilities
 
@@ -45,7 +45,7 @@ The provider never performs business calculations.
 
 ---
 
-## ElectricityProData
+### ElectricityProData
 
 Responsibilities
 
@@ -62,7 +62,7 @@ The data model contains measurements, not calculated values.
 
 ---
 
-## Analytics
+### Analytics
 
 Responsibilities
 
@@ -79,7 +79,7 @@ The analytics layer should be pure Python and independent of Home Assistant.
 
 ---
 
-## Presentation
+### Presentation
 
 Responsibilities
 
@@ -93,7 +93,7 @@ Presentation should never contain business logic.
 
 ---
 
-# Dependency Direction
+## Dependency Direction
 
 Dependencies always flow downward.
 
@@ -117,9 +117,9 @@ No layer should depend on a layer below it.
 
 ---
 
-# Design Principles
+## Design Principles
 
-## Single Responsibility
+### Single Responsibility
 
 Each module has one responsibility.
 
@@ -127,19 +127,19 @@ Each module has one responsibility.
 
 Business logic belongs in the analytics layer.
 
-## Trusted Measurements
+### Trusted Measurements
 
 Measurements are never invented.
 
 If required data is unavailable, analytics should report unavailable rather than guessing.
 
-## Explainability
+### Explainability
 
 Every calculation should eventually be explainable.
 
 ---
 
-# Future Growth
+## Future Growth
 
 New capabilities should extend the analytics layer without requiring changes to the overall architecture.
 
