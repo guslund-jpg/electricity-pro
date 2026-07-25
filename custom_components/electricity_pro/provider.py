@@ -16,8 +16,9 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, State, callback
 
 from .const import (
-    CONF_POWER_ENTITY,
+    CONF_ACCUMULATED_COST_TODAY_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
 )
 
@@ -43,6 +44,7 @@ class ElectricityProEntityProvider:
     ) -> None:
         """Initialize the entity provider."""
         self._hass = hass
+
         self._power_entity_id: str = entry.options.get(
             CONF_POWER_ENTITY,
             entry.data[CONF_POWER_ENTITY],
@@ -58,6 +60,11 @@ class ElectricityProEntityProvider:
             entry.data.get(CONF_ENERGY_ENTITY),
         )
 
+        self._accumulated_cost_today_entity_id: str | None = entry.options.get(
+            CONF_ACCUMULATED_COST_TODAY_ENTITY,
+            entry.data.get(CONF_ACCUMULATED_COST_TODAY_ENTITY),
+        )
+
     @property
     def source_entity_ids(self) -> tuple[str, ...]:
         """Return all configured source entity IDs."""
@@ -68,6 +75,9 @@ class ElectricityProEntityProvider:
 
         if self._energy_entity_id is not None:
             entity_ids.append(self._energy_entity_id)
+
+        if self._accumulated_cost_today_entity_id is not None:
+            entity_ids.append(self._accumulated_cost_today_entity_id)
 
         return tuple(entity_ids)
 
@@ -101,15 +111,11 @@ class ElectricityProEntityProvider:
         source_state: State | None,
     ) -> Decimal | None:
         """Normalize a source power state to watts."""
-        if (
-            source_state is None
-            or source_state.state
-            in {
-                STATE_UNKNOWN,
-                STATE_UNAVAILABLE,
-                "",
-            }
-        ):
+        if source_state is None or source_state.state in {
+            STATE_UNKNOWN,
+            STATE_UNAVAILABLE,
+            "",
+        }:
             return None
 
         try:
@@ -117,14 +123,12 @@ class ElectricityProEntityProvider:
         except (InvalidOperation, ValueError):
             return None
 
-        source_unit: Any = source_state.attributes.get(
-            "unit_of_measurement"
-        )
+        source_unit: Any = source_state.attributes.get("unit_of_measurement")
 
         if source_unit == UnitOfPower.WATT:
             watts = source_value
         elif source_unit == UnitOfPower.KILO_WATT:
-            watts = source_value * Decimal("1000")
+            watts = source_value * Decimal(1000)
         else:
             return None
 
@@ -138,15 +142,11 @@ class ElectricityProEntityProvider:
         source_state: State | None,
     ) -> tuple[Decimal | None, str | None]:
         """Normalize a source electricity price."""
-        if (
-            source_state is None
-            or source_state.state
-            in {
-                STATE_UNKNOWN,
-                STATE_UNAVAILABLE,
-                "",
-            }
-        ):
+        if source_state is None or source_state.state in {
+            STATE_UNKNOWN,
+            STATE_UNAVAILABLE,
+            "",
+        }:
             return None, None
 
         try:
@@ -154,9 +154,7 @@ class ElectricityProEntityProvider:
         except (InvalidOperation, ValueError):
             return None, None
 
-        source_unit = source_state.attributes.get(
-            "unit_of_measurement"
-        )
+        source_unit = source_state.attributes.get("unit_of_measurement")
 
         if (
             not source_value.is_finite()
@@ -173,15 +171,11 @@ class ElectricityProEntityProvider:
         source_state: State | None,
     ) -> tuple[Decimal | None, str | None]:
         """Normalize a source electricity energy value."""
-        if (
-            source_state is None
-            or source_state.state
-            in {
-                STATE_UNKNOWN,
-                STATE_UNAVAILABLE,
-                "",
-            }
-        ):
+        if source_state is None or source_state.state in {
+            STATE_UNKNOWN,
+            STATE_UNAVAILABLE,
+            "",
+        }:
             return None, None
 
         try:
@@ -189,9 +183,7 @@ class ElectricityProEntityProvider:
         except (InvalidOperation, ValueError):
             return None, None
 
-        source_unit = source_state.attributes.get(
-            "unit_of_measurement"
-        )
+        source_unit = source_state.attributes.get("unit_of_measurement")
 
         if source_unit not in {
             UnitOfEnergy.WATT_HOUR,

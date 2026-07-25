@@ -4,12 +4,38 @@
     "step": {
       "user": {
         "title": "Set up Electricity Pro",
-        "description": "Select the sensor that reports your current electricity power.",
+        "description": "Select the sensors used by Electricity Pro.",
         "data": {
-          "power_entity": "Current power sensor"
+          "power_entity": "Current power sensor",
+          "price_entity": "Current electricity price sensor",
+          "energy_entity": "Today's accumulated energy sensor",
+          "accumulated_cost_today_entity": "Today's accumulated cost sensor"
         },
         "data_description": {
-          "power_entity": "Choose an existing Home Assistant sensor with the power device class."
+          "power_entity": "Choose an existing Home Assistant sensor with the power device class.",
+          "price_entity": "Optional sensor providing the current electricity price.",
+          "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
+          "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure Electricity Pro",
+        "description": "Update the sensors used by Electricity Pro.",
+        "data": {
+          "power_entity": "Current power sensor",
+          "price_entity": "Current electricity price sensor",
+          "energy_entity": "Today's accumulated energy sensor",
+          "accumulated_cost_today_entity": "Today's accumulated cost sensor"
+        },
+        "data_description": {
+          "power_entity": "Choose an existing Home Assistant sensor with the power device class.",
+          "price_entity": "Optional sensor providing the current electricity price.",
+          "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
+          "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost."
         }
       }
     }
