@@ -1,11 +1,58 @@
 # Contributing
 
-Use focused branches: `feature/<name>`, `fix/<name>`, or `docs/<name>`.
+Thank you for your interest in contributing to Electricity Pro!
 
-Use clear commits such as:
+We welcome bug reports, feature requests, documentation improvements, and pull requests.
 
-- `feat: add Nord Pool source adapter`
-- `fix: correct monetary sensor metadata`
-- `docs: explain clean installation`
+## Development Workflow
 
-Merge only through a pull request after CI passes.
+1. Fork the repository.
+2. Create a dedicated branch:
+   - `feature/<name>`
+   - `fix/<name>`
+   - `docs/<name>`
+3. Make focused changes.
+4. Ensure all tests and CI checks pass.
+5. Open a Pull Request.
+
+## Commit Messages
+
+Use conventional commit messages where appropriate.
+
+Examples:
+
+```text
+feat: add Nord Pool source adapter
+fix: correct monetary sensor metadata
+docs: explain clean installation
+test: improve coordinator coverage
+refactor: simplify provider registration
+```
+
+## Coding Guidelines
+
+- Keep pull requests focused on a single change.
+- Add or update tests when behaviour changes.
+- Update documentation when introducing user-visible functionality.
+- Avoid unrelated refactoring in feature pull requests.
+
+## Pull Requests
+
+Before opening a Pull Request, verify that:
+
+- [ ] Tests pass
+- [ ] CI passes
+- [ ] Documentation is updated (if needed)
+- [ ] CHANGELOG is updated for user-visible changes
+
+## Project Principles
+
+Electricity Pro values:
+
+- Clear, maintainable code
+- Good test coverage
+- Well-defined interfaces
+- Stable public behaviour
+- Small, incremental improvements
+
+If you're unsure about a design decision, please open an issue before implementing large changes.
