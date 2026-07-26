@@ -1,6 +1,8 @@
 # Changelog
 
-## [0.6.0] - Foundation Release
+## [Unreleased]
+
+## [0.6.0] - Foundation Release 2026-07-26
 
 ### Added
 
