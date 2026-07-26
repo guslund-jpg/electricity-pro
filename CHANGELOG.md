@@ -1,4 +1,4 @@
-# Changeloggit
+# Changelog
 
 ## [0.6.0] - Foundation Release
 
@@ -33,5 +33,3 @@
 - Added project design documentation.
 
 ---
-
-[Unreleased]: https://github.com/<your-org>/electricity-pro/compare/v0.6.0...HEAD
