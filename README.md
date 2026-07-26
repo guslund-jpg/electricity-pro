@@ -169,12 +169,12 @@ The project values:
 
 ## Roadmap
 
-| Version | Theme |
-|----------|----------------|
-| **0.6** | Foundation |
-| **0.7** | Understanding |
-| **0.8** | Insights |
-| **0.9** | Optimisation |
+| Version | Theme          |
+| ------- | -------------- |
+| **0.6** | Foundation     |
+| **0.7** | Understanding  |
+| **0.8** | Insights       |
+| **0.9** | Optimisation   |
 | **1.0** | Stable Release |
 
 See the full roadmap in `docs/ROADMAP.md`.

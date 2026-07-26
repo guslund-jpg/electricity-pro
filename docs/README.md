@@ -60,13 +60,13 @@ Home Assistant entities
 
 Each layer has a clearly defined responsibility.
 
-| Layer | Responsibility |
-|---|---|
-| Provider | Read and normalise Home Assistant entity states |
-| Data model | Represent measurements and metadata |
-| Coordinator | Refresh and distribute current data |
-| Analytics | Derive useful information from measurements |
-| Sensors | Publish results to Home Assistant |
+| Layer       | Responsibility                                  |
+| ----------- | ----------------------------------------------- |
+| Provider    | Read and normalise Home Assistant entity states |
+| Data model  | Represent measurements and metadata             |
+| Coordinator | Refresh and distribute current data             |
+| Analytics   | Derive useful information from measurements     |
+| Sensors     | Publish results to Home Assistant               |
 
 ## Design principles
 
@@ -200,14 +200,14 @@ Version 1.0 will represent:
 
 The planned documentation structure is:
 
-| Document | Purpose |
-|---|---|
-| `README.md` | Project overview |
-| `docs/ARCHITECTURE.md` | Technical architecture and layer boundaries |
-| `docs/ROADMAP.md` | Planned capabilities and releases |
-| `CONTRIBUTING.md` | Contribution workflow and coding conventions |
-| `CHANGELOG.md` | Release history |
-| `design/` | Short design specifications for capabilities |
+| Document               | Purpose                                      |
+| ---------------------- | -------------------------------------------- |
+| `README.md`            | Project overview                             |
+| `docs/ARCHITECTURE.md` | Technical architecture and layer boundaries  |
+| `docs/ROADMAP.md`      | Planned capabilities and releases            |
+| `CONTRIBUTING.md`      | Contribution workflow and coding conventions |
+| `CHANGELOG.md`         | Release history                              |
+| `design/`              | Short design specifications for capabilities |
 
 ## Contributing
 
