@@ -28,6 +28,7 @@ updates:
       timezone: "Europe/Stockholm"
     open-pull-requests-limit: 5
     labels:
+      - "dependencies"
       - "python"
     commit-message:
       prefix: "chore(deps)"
