@@ -4,19 +4,19 @@
 
 ---
 
-# Summary
+## Summary
 
 Briefly describe the proposal in one or two paragraphs.
 
 ---
 
-# Problem
+## Problem
 
 What problem does this solve?
 
 ---
 
-# Homeowner Question
+## Homeowner Question
 
 Which homeowner question does this proposal answer?
 
@@ -26,7 +26,7 @@ Example:
 
 ---
 
-# Goals
+## Goals
 
 - Goal 1
 - Goal 2
@@ -34,13 +34,13 @@ Example:
 
 ---
 
-# Non-Goals
+## Non-Goals
 
 Clearly state what is intentionally out of scope.
 
 ---
 
-# Proposed Design
+## Proposed Design
 
 Describe the solution.
 
@@ -48,13 +48,13 @@ Include diagrams if appropriate.
 
 ---
 
-# User Impact
+## User Impact
 
 How will homeowners benefit?
 
 ---
 
-# Technical Impact
+## Technical Impact
 
 Describe:
 
@@ -65,7 +65,7 @@ Describe:
 
 ---
 
-# Testing
+## Testing
 
 How will this be tested?
 
@@ -75,19 +75,19 @@ How will this be tested?
 
 ---
 
-# Alternatives Considered
+## Alternatives Considered
 
 List any alternatives and explain why they were not chosen.
 
 ---
 
-# Future Extensions
+## Future Extensions
 
 Describe possible future improvements without implementing them now.
 
 ---
 
-# Acceptance Criteria
+## Acceptance Criteria
 
 - [ ] Feature implemented
 - [ ] Tests added
