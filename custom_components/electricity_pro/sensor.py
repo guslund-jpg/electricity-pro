@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from homeassistant.components.sensor import (
@@ -13,9 +14,10 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import UnitOfPower
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
@@ -203,6 +205,26 @@ class ElectricityProSensor(
             manufacturer="Electricity Pro",
             model="Electricity monitor",
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Register entity update listeners."""
+        await super().async_added_to_hass()
+
+        if self.entity_description.key != "remaining_cost_today":
+            return
+
+        self.async_on_remove(
+            async_track_time_interval(
+                self.hass,
+                self._handle_time_update,
+                timedelta(minutes=1),
+            )
+        )
+
+    @callback
+    def _handle_time_update(self, now: datetime) -> None:
+        """Refresh a time-dependent sensor value."""
+        self.async_write_ha_state()
 
     @property
     def native_value(self) -> Decimal | None:
