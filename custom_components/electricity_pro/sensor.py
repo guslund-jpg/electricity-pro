@@ -121,6 +121,7 @@ SENSOR_DESCRIPTIONS: tuple[
         name="Current cost rate",
         icon="mdi:cash-clock",
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
         value_fn=current_cost_rate,
         unit_fn=cost_rate_unit,
         available_fn=lambda data: (
@@ -133,6 +134,7 @@ SENSOR_DESCRIPTIONS: tuple[
         name="Remaining cost today",
         icon="mdi:progress-clock",
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=3,
         value_fn=projected_remaining_cost,
         unit_fn=cost_unit,
         available_fn=lambda data: (
