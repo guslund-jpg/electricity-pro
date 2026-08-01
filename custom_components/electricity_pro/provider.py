@@ -17,6 +17,7 @@ from homeassistant.core import HomeAssistant, State, callback
 
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
+    CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
@@ -34,6 +35,7 @@ class ElectricityProData:
     current_energy_unit: str | None
     accumulated_cost_today: Decimal | None
     accumulated_cost_today_unit: str | None
+    peak_power_today: Decimal | None
 
 
 class ElectricityProEntityProvider:
@@ -66,6 +68,10 @@ class ElectricityProEntityProvider:
             CONF_ACCUMULATED_COST_TODAY_ENTITY,
             entry.data.get(CONF_ACCUMULATED_COST_TODAY_ENTITY),
         )
+        self._peak_power_today_entity_id: str | None = entry.options.get(
+            CONF_PEAK_POWER_TODAY_ENTITY,
+            entry.data.get(CONF_PEAK_POWER_TODAY_ENTITY),
+        )
 
     @property
     def source_entity_ids(self) -> tuple[str, ...]:
@@ -80,6 +86,9 @@ class ElectricityProEntityProvider:
 
         if self._accumulated_cost_today_entity_id is not None:
             entity_ids.append(self._accumulated_cost_today_entity_id)
+
+        if self._peak_power_today_entity_id is not None:
+            entity_ids.append(self._peak_power_today_entity_id)
 
         return tuple(entity_ids)
 
@@ -103,6 +112,11 @@ class ElectricityProEntityProvider:
             if self._accumulated_cost_today_entity_id is not None
             else None
         )
+        peak_power_today = self._normalize_power(
+            self._hass.states.get(self._peak_power_today_entity_id)
+            if self._peak_power_today_entity_id is not None
+            else None
+        )
 
         return ElectricityProData(
             current_power=self._normalize_power(
@@ -114,6 +128,7 @@ class ElectricityProEntityProvider:
             current_energy_unit=current_energy_unit,
             accumulated_cost_today=accumulated_cost_today,
             accumulated_cost_today_unit=accumulated_cost_today_unit,
+            peak_power_today=peak_power_today,
         )
 
     @staticmethod

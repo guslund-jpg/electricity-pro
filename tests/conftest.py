@@ -6,6 +6,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.electricity_pro.const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
     DOMAIN,
@@ -32,6 +33,8 @@ def setup_electricity_pro(hass):
         energy_unit: str = "kWh",
         accumulated_cost_today_value: str | None = None,
         accumulated_cost_today_unit: str = "SEK",
+        peak_power_today_value: str | None = None,
+        peak_power_today_unit: str = "W",
     ) -> MockConfigEntry:
         """Create and set up an Electricity Pro config entry."""
 
@@ -84,6 +87,18 @@ def setup_electricity_pro(hass):
             entry_data[CONF_ACCUMULATED_COST_TODAY_ENTITY] = (
                 "sensor.test_accumulated_cost_today"
             )
+
+        if peak_power_today_value is not None:
+            hass.states.async_set(
+                "sensor.test_peak_power_today",
+                peak_power_today_value,
+                {
+                    "unit_of_measurement": peak_power_today_unit,
+                    "device_class": "power",
+                },
+            )
+            entry_data[CONF_PEAK_POWER_TODAY_ENTITY] = "sensor.test_peak_power_today"
+
         entry = MockConfigEntry(
             domain=DOMAIN,
             title="Electricity Pro",

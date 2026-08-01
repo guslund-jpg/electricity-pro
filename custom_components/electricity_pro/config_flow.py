@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -18,6 +17,7 @@ from homeassistant.helpers import selector
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
     DOMAIN,
@@ -30,6 +30,7 @@ def _entity_schema(
     price_default: str | None = None,
     energy_default: str | None = None,
     accumulated_cost_today_default: str | None = None,
+    peak_power_today_default: str | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
 
@@ -58,13 +59,19 @@ def _entity_schema(
         )
 
     if accumulated_cost_today_default is None:
-        accumulated_cost_today_key = vol.Optional(
-            CONF_ACCUMULATED_COST_TODAY_ENTITY
-        )
+        accumulated_cost_today_key = vol.Optional(CONF_ACCUMULATED_COST_TODAY_ENTITY)
     else:
         accumulated_cost_today_key = vol.Optional(
             CONF_ACCUMULATED_COST_TODAY_ENTITY,
             default=accumulated_cost_today_default,
+        )
+
+    if peak_power_today_default is None:
+        peak_power_today_key = vol.Optional(CONF_PEAK_POWER_TODAY_ENTITY)
+    else:
+        peak_power_today_key = vol.Optional(
+            CONF_PEAK_POWER_TODAY_ENTITY,
+            default=peak_power_today_default,
         )
 
     return vol.Schema(
@@ -89,6 +96,12 @@ def _entity_schema(
                 selector.EntitySelectorConfig(
                     domain="sensor",
                     device_class="monetary",
+                )
+            ),
+            peak_power_today_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="power",
                 )
             ),
         }
@@ -163,6 +176,12 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 CONF_ACCUMULATED_COST_TODAY_ENTITY,
             ),
         )
+        current_peak_power_today = self.config_entry.options.get(
+            CONF_PEAK_POWER_TODAY_ENTITY,
+            self.config_entry.data.get(
+                CONF_PEAK_POWER_TODAY_ENTITY,
+            ),
+        )
 
         return self.async_show_form(
             step_id="init",
@@ -171,5 +190,6 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 price_default=current_price,
                 energy_default=current_energy,
                 accumulated_cost_today_default=current_accumulated_cost_today,
+                peak_power_today_default=current_peak_power_today,
             ),
         )
