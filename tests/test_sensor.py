@@ -19,6 +19,7 @@ ENERGY_ENTITY_ID = f"sensor.{DOMAIN}_energy"
 ENERGY_SOURCE_ENTITY_ID = "sensor.test_energy"
 
 COST_RATE_ENTITY_ID = f"sensor.{DOMAIN}_current_cost_rate"
+COST_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_cost_today"
 
 REMAINING_COST_ENTITY_ID = f"sensor.{DOMAIN}_remaining_cost_today"
 
@@ -574,3 +575,126 @@ async def test_remaining_cost_today_updates_when_power_changes(
 
     assert state is not None
     assert Decimal(state.state) == Decimal("27.00")
+
+
+async def test_cost_today_initial_value(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Cost today should use the configured accumulated-cost source."""
+
+    await setup_electricity_pro(
+        accumulated_cost_today_value="12.34",
+        accumulated_cost_today_unit="SEK",
+    )
+
+    state = hass.states.get(COST_TODAY_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("12.34")
+    assert state.attributes["unit_of_measurement"] == "SEK"
+
+
+async def test_cost_today_updates_when_source_changes(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Cost today should update when the source changes."""
+
+    await setup_electricity_pro(
+        accumulated_cost_today_value="12.34",
+        accumulated_cost_today_unit="SEK",
+    )
+
+    hass.states.async_set(
+        "sensor.test_accumulated_cost_today",
+        "13.57",
+        {
+            "unit_of_measurement": "SEK",
+            "device_class": "monetary",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(COST_TODAY_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("13.57")
+
+
+async def test_cost_today_becomes_unavailable(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Cost today should become unavailable for an unknown source."""
+
+    await setup_electricity_pro(
+        accumulated_cost_today_value="12.34",
+        accumulated_cost_today_unit="SEK",
+    )
+
+    hass.states.async_set(
+        "sensor.test_accumulated_cost_today",
+        "unknown",
+        {
+            "unit_of_measurement": "SEK",
+            "device_class": "monetary",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(COST_TODAY_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_cost_today_rejects_invalid_value(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Cost today should reject a non-numeric source."""
+
+    await setup_electricity_pro(
+        accumulated_cost_today_value="12.34",
+        accumulated_cost_today_unit="SEK",
+    )
+
+    hass.states.async_set(
+        "sensor.test_accumulated_cost_today",
+        "banana",
+        {
+            "unit_of_measurement": "SEK",
+            "device_class": "monetary",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(COST_TODAY_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_cost_today_requires_unit(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Cost today should require a unit of measurement."""
+
+    await setup_electricity_pro(
+        accumulated_cost_today_value="12.34",
+        accumulated_cost_today_unit="SEK",
+    )
+
+    hass.states.async_set(
+        "sensor.test_accumulated_cost_today",
+        "13.57",
+        {},
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(COST_TODAY_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"

@@ -32,6 +32,8 @@ class ElectricityProData:
     current_price_unit: str | None
     current_energy: Decimal | None
     current_energy_unit: str | None
+    accumulated_cost_today: Decimal | None
+    accumulated_cost_today_unit: str | None
 
 
 class ElectricityProEntityProvider:
@@ -96,6 +98,12 @@ class ElectricityProEntityProvider:
             else None
         )
 
+        accumulated_cost_today, accumulated_cost_today_unit = self._normalize_cost(
+            self._hass.states.get(self._accumulated_cost_today_entity_id)
+            if self._accumulated_cost_today_entity_id is not None
+            else None
+        )
+
         return ElectricityProData(
             current_power=self._normalize_power(
                 self._hass.states.get(self._power_entity_id)
@@ -104,6 +112,8 @@ class ElectricityProEntityProvider:
             current_price_unit=current_price_unit,
             current_energy=current_energy,
             current_energy_unit=current_energy_unit,
+            accumulated_cost_today=accumulated_cost_today,
+            accumulated_cost_today_unit=accumulated_cost_today_unit,
         )
 
     @staticmethod
@@ -192,6 +202,35 @@ class ElectricityProEntityProvider:
             return None, None
 
         if not source_value.is_finite() or source_value < 0:
+            return None, None
+
+        return source_value, source_unit
+
+    @staticmethod
+    def _normalize_cost(
+        source_state: State | None,
+    ) -> tuple[Decimal | None, str | None]:
+        """Normalize an accumulated electricity cost."""
+        if source_state is None or source_state.state in {
+            STATE_UNKNOWN,
+            STATE_UNAVAILABLE,
+            "",
+        }:
+            return None, None
+
+        try:
+            source_value = Decimal(source_state.state)
+        except (InvalidOperation, ValueError):
+            return None, None
+
+        source_unit = source_state.attributes.get("unit_of_measurement")
+
+        if (
+            not source_value.is_finite()
+            or source_value < 0
+            or not isinstance(source_unit, str)
+            or not source_unit.strip()
+        ):
             return None, None
 
         return source_value, source_unit

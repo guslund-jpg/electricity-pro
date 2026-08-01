@@ -24,6 +24,7 @@ from homeassistant.util import dt as dt_util
 from . import ElectricityProConfigEntry
 from .calculations import calculate_current_cost_rate
 from .const import (
+    CONF_ACCUMULATED_COST_TODAY_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_PRICE_ENTITY,
     DOMAIN,
@@ -121,7 +122,7 @@ SENSOR_DESCRIPTIONS: tuple[
         name="Current cost rate",
         icon="mdi:cash-clock",
         state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=2,
+        suggested_display_precision=3,
         value_fn=current_cost_rate,
         unit_fn=cost_rate_unit,
         available_fn=lambda data: (
@@ -134,13 +135,28 @@ SENSOR_DESCRIPTIONS: tuple[
         name="Remaining cost today",
         icon="mdi:progress-clock",
         state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=3,
+        suggested_display_precision=2,
         value_fn=projected_remaining_cost,
         unit_fn=cost_unit,
         available_fn=lambda data: (
             current_cost_rate(data) is not None and cost_unit(data) is not None
         ),
         required_config_key=CONF_PRICE_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="cost_today",
+        name="Cost today",
+        icon="mdi:cash",
+        device_class=SensorDeviceClass.MONETARY,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=2,
+        value_fn=lambda data: data.accumulated_cost_today,
+        unit_fn=lambda data: data.accumulated_cost_today_unit,
+        available_fn=lambda data: (
+            data.accumulated_cost_today is not None
+            and data.accumulated_cost_today_unit is not None
+        ),
+        required_config_key=CONF_ACCUMULATED_COST_TODAY_ENTITY,
     ),
     ElectricityProSensorEntityDescription(
         key="current_energy",
