@@ -1,0 +1,164 @@
+title: Electricity Pro
+
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:home-lightning-bolt
+    cards:
+      - type: heading
+        heading: Electricity Pro
+        icon: mdi:home-lightning-bolt
+
+      - type: heading
+        heading: Live
+        icon: mdi:flash
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: tile
+            entity: sensor.electricity_pro_current_power
+            name: Current power
+            icon: mdi:flash
+            color: amber
+
+          - type: tile
+            entity: sensor.electricity_pro_current_price
+            name: Current price
+            icon: mdi:currency-usd
+            color: green
+
+          - type: tile
+            entity: sensor.electricity_pro_current_cost_rate
+            name: Current cost rate
+            icon: mdi:cash-clock
+            color: green
+
+          - type: tile
+            entity: sensor.electricity_pro_energy
+            name: Energy
+            icon: mdi:lightning-bolt
+            color: blue
+
+      - type: heading
+        heading: Today
+        icon: mdi:calendar-today
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: tile
+            entity: sensor.electricity_pro_cost_today
+            name: Cost today
+            icon: mdi:cash
+            color: green
+
+          - type: tile
+            entity: sensor.electricity_pro_remaining_cost_today
+            name: Remaining cost today
+            icon: mdi:progress-clock
+            color: green
+
+          - type: tile
+            entity: sensor.electricity_pro_peak_power_today
+            name: Peak power today
+            icon: mdi:flash-outline
+            color: amber
+
+      - type: history-graph
+        title: Power history
+        hours_to_show: 12
+        entities:
+          - entity: sensor.electricity_pro_current_power
+            name: Current power
+
+  - title: Live
+    path: live
+    icon: mdi:flash
+    cards:
+      - type: heading
+        heading: Live electricity
+        icon: mdi:flash
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: tile
+            entity: sensor.electricity_pro_current_power
+            name: Current power
+            icon: mdi:flash
+            color: amber
+
+          - type: tile
+            entity: sensor.electricity_pro_current_price
+            name: Current price
+            icon: mdi:currency-usd
+            color: green
+
+          - type: tile
+            entity: sensor.electricity_pro_current_cost_rate
+            name: Current cost rate
+            icon: mdi:cash-clock
+            color: green
+
+      - type: history-graph
+        title: Power — last 24 hours
+        hours_to_show: 24
+        entities:
+          - entity: sensor.electricity_pro_current_power
+            name: Current power
+
+      - type: history-graph
+        title: Electricity price — last 24 hours
+        hours_to_show: 24
+        entities:
+          - entity: sensor.electricity_pro_current_price
+            name: Current price
+
+  - title: Today
+    path: today
+    icon: mdi:calendar-today
+    cards:
+      - type: heading
+        heading: Today
+        icon: mdi:calendar-today
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: tile
+            entity: sensor.electricity_pro_energy
+            name: Energy
+            icon: mdi:lightning-bolt
+            color: blue
+
+          - type: tile
+            entity: sensor.electricity_pro_cost_today
+            name: Cost today
+            icon: mdi:cash
+            color: green
+
+          - type: tile
+            entity: sensor.electricity_pro_remaining_cost_today
+            name: Remaining cost today
+            icon: mdi:progress-clock
+            color: green
+
+          - type: tile
+            entity: sensor.electricity_pro_peak_power_today
+            name: Peak power today
+            icon: mdi:flash-outline
+            color: amber
+
+      - type: history-graph
+        title: Today’s electricity
+        hours_to_show: 24
+        entities:
+          - entity: sensor.electricity_pro_current_power
+            name: Current power
+          - entity: sensor.electricity_pro_peak_power_today
+            name: Peak power today
