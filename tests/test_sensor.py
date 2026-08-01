@@ -20,6 +20,7 @@ ENERGY_SOURCE_ENTITY_ID = "sensor.test_energy"
 
 COST_RATE_ENTITY_ID = f"sensor.{DOMAIN}_current_cost_rate"
 COST_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_cost_today"
+PEAK_POWER_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_peak_power_today"
 
 REMAINING_COST_ENTITY_ID = f"sensor.{DOMAIN}_remaining_cost_today"
 
@@ -698,3 +699,106 @@ async def test_cost_today_requires_unit(
 
     assert state is not None
     assert state.state == "unavailable"
+
+
+async def test_peak_power_today_initial_value(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Peak power today should use the configured source."""
+
+    await setup_electricity_pro(
+        peak_power_today_value="4200",
+        peak_power_today_unit="W",
+    )
+
+    state = hass.states.get(PEAK_POWER_TODAY_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal(4200)
+    assert state.attributes["unit_of_measurement"] == "W"
+    assert state.attributes["device_class"] == "power"
+    assert state.attributes["state_class"] == "measurement"
+
+
+async def test_peak_power_today_converts_kw_to_w(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Peak power today should convert kilowatts to watts."""
+
+    await setup_electricity_pro(
+        peak_power_today_value="4.2",
+        peak_power_today_unit="kW",
+    )
+
+    state = hass.states.get(PEAK_POWER_TODAY_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal(4200)
+    assert state.attributes["unit_of_measurement"] == "W"
+
+
+async def test_peak_power_today_updates_when_source_changes(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Peak power today should update when the source changes."""
+
+    await setup_electricity_pro(
+        peak_power_today_value="4200",
+        peak_power_today_unit="W",
+    )
+
+    hass.states.async_set(
+        "sensor.test_peak_power_today",
+        "5100",
+        {
+            "unit_of_measurement": "W",
+            "device_class": "power",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(PEAK_POWER_TODAY_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal(5100)
+
+
+async def test_peak_power_today_becomes_unavailable(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Peak power today should become unavailable for an unknown source."""
+
+    await setup_electricity_pro(
+        peak_power_today_value="4200",
+        peak_power_today_unit="W",
+    )
+
+    hass.states.async_set(
+        "sensor.test_peak_power_today",
+        "unknown",
+        {
+            "unit_of_measurement": "W",
+            "device_class": "power",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(PEAK_POWER_TODAY_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_peak_power_today_not_created_without_source(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Peak power today should not exist when no source is configured."""
+
+    await setup_electricity_pro()
+
+    assert hass.states.get(PEAK_POWER_TODAY_ENTITY_ID) is None

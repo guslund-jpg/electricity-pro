@@ -26,6 +26,7 @@ from .calculations import calculate_current_cost_rate
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_PRICE_ENTITY,
     DOMAIN,
 )
@@ -157,6 +158,18 @@ SENSOR_DESCRIPTIONS: tuple[
             and data.accumulated_cost_today_unit is not None
         ),
         required_config_key=CONF_ACCUMULATED_COST_TODAY_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="peak_power_today",
+        name="Peak power today",
+        icon="mdi:flash-outline",
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        suggested_display_precision=0,
+        value_fn=lambda data: data.peak_power_today,
+        available_fn=lambda data: data.peak_power_today is not None,
+        required_config_key=CONF_PEAK_POWER_TODAY_ENTITY,
     ),
     ElectricityProSensorEntityDescription(
         key="current_energy",

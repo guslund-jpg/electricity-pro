@@ -1,21 +1,20 @@
 {
-  "title": "Electricity Pro",
   "config": {
     "step": {
       "user": {
-        "title": "Set up Electricity Pro",
-        "description": "Select the sensors used by Electricity Pro.",
         "data": {
-          "power_entity": "Current power sensor",
-          "price_entity": "Current electricity price sensor",
-          "energy_entity": "Today's accumulated energy sensor",
-          "accumulated_cost_today_entity": "Today's accumulated cost sensor"
+          "power_entity": "Power sensor",
+          "price_entity": "Electricity price sensor",
+          "energy_entity": "Accumulated consumption sensor",
+          "accumulated_cost_today_entity": "Today's accumulated cost sensor",
+          "peak_power_today_entity": "Today's peak power sensor"
         },
         "data_description": {
-          "power_entity": "Choose an existing Home Assistant sensor with the power device class.",
+          "power_entity": "Required sensor providing the current power.",
           "price_entity": "Optional sensor providing the current electricity price.",
-          "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
-          "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost."
+          "energy_entity": "Optional sensor providing accumulated electricity consumption.",
+          "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost.",
+          "peak_power_today_entity": "Optional sensor providing today's maximum measured power."
         }
       }
     }
@@ -23,19 +22,19 @@
   "options": {
     "step": {
       "init": {
-        "title": "Configure Electricity Pro",
-        "description": "Update the sensors used by Electricity Pro.",
         "data": {
-          "power_entity": "Current power sensor",
-          "price_entity": "Current electricity price sensor",
-          "energy_entity": "Today's accumulated energy sensor",
-          "accumulated_cost_today_entity": "Today's accumulated cost sensor"
+          "power_entity": "Power sensor",
+          "price_entity": "Electricity price sensor",
+          "energy_entity": "Accumulated consumption sensor",
+          "accumulated_cost_today_entity": "Today's accumulated cost sensor",
+          "peak_power_today_entity": "Today's maximum power sensor"
         },
         "data_description": {
-          "power_entity": "Choose an existing Home Assistant sensor with the power device class.",
+          "power_entity": "Required sensor providing the current power.",
           "price_entity": "Optional sensor providing the current electricity price.",
-          "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
-          "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost."
+          "energy_entity": "Optional sensor providing accumulated electricity consumption.",
+          "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost.",
+          "peak_power_today_entity": "Optional sensor providing today's maximum measured power."
         }
       }
     }

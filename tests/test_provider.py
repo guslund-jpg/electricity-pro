@@ -8,6 +8,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import (
     CONF_ENERGY_ENTITY,
+    CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
     DOMAIN,
@@ -22,6 +23,7 @@ def _create_provider(
     *,
     include_price: bool = True,
     include_energy: bool = True,
+    include_peak_power_today: bool = False,
 ) -> ElectricityProEntityProvider:
     """Create a provider with configurable source entities."""
     entry_data = {
@@ -33,6 +35,11 @@ def _create_provider(
 
     if include_energy:
         entry_data[CONF_ENERGY_ENTITY] = "sensor.test_energy"
+
+    if include_peak_power_today:
+        entry_data[CONF_PEAK_POWER_TODAY_ENTITY] = (
+            "sensor.test_peak_power_today"
+        )
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -243,3 +250,93 @@ def test_valid_energy_units(
 
     assert data.current_energy == Decimal(value)
     assert data.current_energy_unit == unit
+
+def test_peak_power_today_source_entity_id(
+    hass: HomeAssistant,
+) -> None:
+    """Provider should expose the configured peak-power source."""
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_peak_power_today=True,
+    )
+
+    assert provider.source_entity_ids == (
+        "sensor.test_power",
+        "sensor.test_peak_power_today",
+    )
+
+
+@pytest.mark.parametrize(
+    ("value", "unit", "expected"),
+    [
+        ("4200", "W", Decimal("4200")),
+        ("4.2", "kW", Decimal("4200")),
+    ],
+)
+def test_valid_peak_power_today_values(
+    hass: HomeAssistant,
+    value: str,
+    unit: str,
+    expected: Decimal,
+) -> None:
+    """Provider should normalize daily peak power to watts."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_peak_power_today",
+        value,
+        {"unit_of_measurement": unit},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_peak_power_today=True,
+    )
+
+    assert provider.read().peak_power_today == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "unit"),
+    [
+        ("unknown", "W"),
+        ("unavailable", "W"),
+        ("not-a-number", "W"),
+        ("-1", "W"),
+        ("4200", "V"),
+        ("NaN", "W"),
+        ("Infinity", "W"),
+    ],
+)
+def test_invalid_peak_power_today_returns_none(
+    hass: HomeAssistant,
+    value: str,
+    unit: str,
+) -> None:
+    """Invalid daily peak-power values should normalize to None."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_peak_power_today",
+        value,
+        {"unit_of_measurement": unit},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_peak_power_today=True,
+    )
+
+    assert provider.read().peak_power_today is None
