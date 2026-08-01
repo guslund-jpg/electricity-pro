@@ -98,7 +98,7 @@ The project will include example dashboards using both standard Home Assistant c
 ## Documentation
 
 - 📖 ROADMAP.md
-- 🏗️ ARCHITECTURE.md
+- 🏗️ docs/ARCHITECTURE.md
 - 🤝 CONTRIBUTING.md
 - 📝 CHANGELOG.md
 
