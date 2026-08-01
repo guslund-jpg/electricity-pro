@@ -106,9 +106,9 @@ The project will include example dashboards using both standard Home Assistant c
 
 ## Project Status
 
-**Current release**
+### Current release
 
-**v0.6.0 – Foundation Release**
+v0.6.0 – Foundation Release
 
 Electricity Pro is actively developed with a clear public roadmap.
 

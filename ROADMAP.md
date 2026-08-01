@@ -129,7 +129,7 @@ Highlights:
 
 ### v0.7 — Traditional Sensors & Statistics
 
-**Goal**
+#### Goal
 
 Expand Electricity Pro with native Home Assistant sensors and statistics.
 
@@ -148,7 +148,7 @@ Planned work:
 
 ### v0.8 — Intelligence
 
-**Goal**
+#### Goal
 
 Transform measurements into insight.
 
@@ -165,7 +165,7 @@ Examples:
 
 ### v0.9 — Dashboard Experience
 
-**Goal**
+#### Goal
 
 Provide polished dashboards built on native Electricity Pro sensors.
 
@@ -183,7 +183,7 @@ Uses optional custom cards for richer visualisations and analytics.
 
 ### v1.0 — Stable Release
 
-**Goal**
+#### Goal
 
 A mature Home Assistant integration suitable for broad adoption.
 
