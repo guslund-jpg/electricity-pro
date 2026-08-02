@@ -16,6 +16,9 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
+    CONF_CURRENT_L1_ENTITY,
+    CONF_CURRENT_L2_ENTITY,
+    CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
@@ -31,6 +34,9 @@ def _entity_schema(
     energy_default: str | None = None,
     accumulated_cost_today_default: str | None = None,
     peak_power_today_default: str | None = None,
+    current_l1_default: str | None = None,
+    current_l2_default: str | None = None,
+    current_l3_default: str | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
 
@@ -73,7 +79,29 @@ def _entity_schema(
             CONF_PEAK_POWER_TODAY_ENTITY,
             default=peak_power_today_default,
         )
+    if current_l1_default is None:
+        current_l1_key = vol.Optional(CONF_CURRENT_L1_ENTITY)
+    else:
+        current_l1_key = vol.Optional(
+            CONF_CURRENT_L1_ENTITY,
+            default=current_l1_default,
+        )
 
+    if current_l2_default is None:
+        current_l2_key = vol.Optional(CONF_CURRENT_L2_ENTITY)
+    else:
+        current_l2_key = vol.Optional(
+            CONF_CURRENT_L2_ENTITY,
+            default=current_l2_default,
+        )
+
+    if current_l3_default is None:
+        current_l3_key = vol.Optional(CONF_CURRENT_L3_ENTITY)
+    else:
+        current_l3_key = vol.Optional(
+            CONF_CURRENT_L3_ENTITY,
+            default=current_l3_default,
+        )
     return vol.Schema(
         {
             power_key: selector.EntitySelector(
@@ -102,6 +130,24 @@ def _entity_schema(
                 selector.EntitySelectorConfig(
                     domain="sensor",
                     device_class="power",
+                )
+            ),
+            current_l1_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="current",
+                )
+            ),
+            current_l2_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="current",
+                )
+            ),
+            current_l3_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="current",
                 )
             ),
         }
@@ -182,6 +228,20 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 CONF_PEAK_POWER_TODAY_ENTITY,
             ),
         )
+        current_l1 = self.config_entry.options.get(
+            CONF_CURRENT_L1_ENTITY,
+            self.config_entry.data.get(CONF_CURRENT_L1_ENTITY),
+        )
+
+        current_l2 = self.config_entry.options.get(
+            CONF_CURRENT_L2_ENTITY,
+            self.config_entry.data.get(CONF_CURRENT_L2_ENTITY),
+        )
+
+        current_l3 = self.config_entry.options.get(
+            CONF_CURRENT_L3_ENTITY,
+            self.config_entry.data.get(CONF_CURRENT_L3_ENTITY),
+        )
 
         return self.async_show_form(
             step_id="init",
@@ -191,5 +251,8 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 energy_default=current_energy,
                 accumulated_cost_today_default=current_accumulated_cost_today,
                 peak_power_today_default=current_peak_power_today,
+                current_l1_default=current_l1,
+                current_l2_default=current_l2,
+                current_l3_default=current_l3,
             ),
         )

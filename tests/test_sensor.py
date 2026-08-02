@@ -21,6 +21,9 @@ ENERGY_SOURCE_ENTITY_ID = "sensor.test_energy"
 COST_RATE_ENTITY_ID = f"sensor.{DOMAIN}_current_cost_rate"
 COST_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_cost_today"
 PEAK_POWER_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_peak_power_today"
+CURRENT_L1_ENTITY_ID = f"sensor.{DOMAIN}_current_l1"
+CURRENT_L2_ENTITY_ID = f"sensor.{DOMAIN}_current_l2"
+CURRENT_L3_ENTITY_ID = f"sensor.{DOMAIN}_current_l3"
 
 REMAINING_COST_ENTITY_ID = f"sensor.{DOMAIN}_remaining_cost_today"
 
@@ -802,3 +805,128 @@ async def test_peak_power_today_not_created_without_source(
     await setup_electricity_pro()
 
     assert hass.states.get(PEAK_POWER_TODAY_ENTITY_ID) is None
+
+
+async def test_phase_current_initial_values(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Phase current sensors should use the configured source values."""
+
+    await setup_electricity_pro(
+        current_l1_value="4.5",
+        current_l2_value="5.25",
+        current_l3_value="6.75",
+    )
+
+    state_l1 = hass.states.get(CURRENT_L1_ENTITY_ID)
+    state_l2 = hass.states.get(CURRENT_L2_ENTITY_ID)
+    state_l3 = hass.states.get(CURRENT_L3_ENTITY_ID)
+
+    assert state_l1 is not None
+    assert state_l2 is not None
+    assert state_l3 is not None
+
+    assert Decimal(state_l1.state) == Decimal("4.5")
+    assert Decimal(state_l2.state) == Decimal("5.25")
+    assert Decimal(state_l3.state) == Decimal("6.75")
+
+    assert state_l1.attributes["unit_of_measurement"] == "A"
+    assert state_l1.attributes["device_class"] == "current"
+    assert state_l1.attributes["state_class"] == "measurement"
+
+
+async def test_phase_current_updates_when_source_changes(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A phase current sensor should update when its source changes."""
+
+    await setup_electricity_pro(
+        current_l1_value="4.5",
+        current_l2_value="5.25",
+        current_l3_value="6.75",
+    )
+
+    hass.states.async_set(
+        "sensor.test_current_l1",
+        "8.25",
+        {
+            "unit_of_measurement": "A",
+            "device_class": "current",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state_l1 = hass.states.get(CURRENT_L1_ENTITY_ID)
+    state_l2 = hass.states.get(CURRENT_L2_ENTITY_ID)
+
+    assert state_l1 is not None
+    assert state_l2 is not None
+    assert Decimal(state_l1.state) == Decimal("8.25")
+    assert Decimal(state_l2.state) == Decimal("5.25")
+
+
+async def test_phase_current_becomes_unavailable(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A phase current sensor should become unavailable for an unknown source."""
+
+    await setup_electricity_pro(
+        current_l1_value="4.5",
+    )
+
+    hass.states.async_set(
+        "sensor.test_current_l1",
+        "unknown",
+        {
+            "unit_of_measurement": "A",
+            "device_class": "current",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(CURRENT_L1_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_phase_current_rejects_invalid_value(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A phase current sensor should reject a non-numeric source."""
+
+    await setup_electricity_pro(
+        current_l1_value="4.5",
+    )
+
+    hass.states.async_set(
+        "sensor.test_current_l1",
+        "banana",
+        {
+            "unit_of_measurement": "A",
+            "device_class": "current",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(CURRENT_L1_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_phase_current_not_created_without_sources(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Phase current sensors should not exist when no sources are configured."""
+
+    await setup_electricity_pro()
+
+    assert hass.states.get(CURRENT_L1_ENTITY_ID) is None
+    assert hass.states.get(CURRENT_L2_ENTITY_ID) is None
+    assert hass.states.get(CURRENT_L3_ENTITY_ID) is None

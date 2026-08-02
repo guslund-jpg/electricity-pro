@@ -9,13 +9,19 @@
           "power_entity": "Current power sensor",
           "price_entity": "Current electricity price sensor",
           "energy_entity": "Today's accumulated energy sensor",
-          "accumulated_cost_today_entity": "Today's accumulated cost sensor"
+          "accumulated_cost_today_entity": "Today's accumulated cost sensor",
+          "current_l1_entity": "Current L1 sensor",
+          "current_l2_entity": "Current L2 sensor",
+          "current_l3_entity": "Current L3 sensor"
         },
         "data_description": {
           "power_entity": "Choose an existing Home Assistant sensor with the power device class.",
           "price_entity": "Optional sensor providing the current electricity price.",
           "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
-          "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost."
+          "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost.",
+          "current_l1_entity": "Optional sensor providing instantaneous current for phase L1.",
+          "current_l2_entity": "Optional sensor providing instantaneous current for phase L2.",
+          "current_l3_entity": "Optional sensor providing instantaneous current for phase L3."
         }
       }
     }
@@ -29,13 +35,20 @@
           "power_entity": "Current power sensor",
           "price_entity": "Current electricity price sensor",
           "energy_entity": "Today's accumulated energy sensor",
-          "accumulated_cost_today_entity": "Today's accumulated cost sensor"
+          "accumulated_cost_today_entity": "Today's accumulated cost sensor",
+          "current_l1_entity": "Current L1 sensor",
+          "current_l2_entity": "Current L2 sensor",
+          "current_l3_entity": "Current L3 sensor"
+
         },
         "data_description": {
           "power_entity": "Choose an existing Home Assistant sensor with the power device class.",
           "price_entity": "Optional sensor providing the current electricity price.",
           "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
-          "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost."
+          "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost.",
+          "current_l1_entity": "Optional sensor providing instantaneous current for phase L1.",
+          "current_l2_entity": "Optional sensor providing instantaneous current for phase L2.",
+          "current_l3_entity": "Optional sensor providing instantaneous current for phase L3."
         }
       }
     }

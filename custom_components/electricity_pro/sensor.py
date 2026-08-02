@@ -13,7 +13,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfPower
+from homeassistant.const import UnitOfElectricCurrent, UnitOfPower
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -25,6 +25,9 @@ from . import ElectricityProConfigEntry
 from .calculations import calculate_current_cost_rate
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
+    CONF_CURRENT_L1_ENTITY,
+    CONF_CURRENT_L2_ENTITY,
+    CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_PRICE_ENTITY,
@@ -183,6 +186,42 @@ SENSOR_DESCRIPTIONS: tuple[
             data.current_energy is not None and data.current_energy_unit is not None
         ),
         required_config_key=CONF_ENERGY_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="current_l1",
+        name="Current L1",
+        icon="mdi:current-ac",
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        suggested_display_precision=2,
+        value_fn=lambda data: data.current_l1,
+        available_fn=lambda data: data.current_l1 is not None,
+        required_config_key=CONF_CURRENT_L1_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="current_l2",
+        name="Current L2",
+        icon="mdi:current-ac",
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        suggested_display_precision=2,
+        value_fn=lambda data: data.current_l2,
+        available_fn=lambda data: data.current_l2 is not None,
+        required_config_key=CONF_CURRENT_L2_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="current_l3",
+        name="Current L3",
+        icon="mdi:current-ac",
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        suggested_display_precision=2,
+        value_fn=lambda data: data.current_l3,
+        available_fn=lambda data: data.current_l3 is not None,
+        required_config_key=CONF_CURRENT_L3_ENTITY,
     ),
 )
 

@@ -15,6 +15,9 @@
 - Comprehensive automated test suite.
 - Contributor documentation.
 - Initial project design templates.
+- Three-phase current sensors (L1, L2, L3)
+- Support for ampere and milliampere source sensors
+- Comprehensive provider and sensor tests
 
 ### Changed
 

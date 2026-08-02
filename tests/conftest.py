@@ -5,6 +5,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
+    CONF_CURRENT_L1_ENTITY,
+    CONF_CURRENT_L2_ENTITY,
+    CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
@@ -35,6 +38,9 @@ def setup_electricity_pro(hass):
         accumulated_cost_today_unit: str = "SEK",
         peak_power_today_value: str | None = None,
         peak_power_today_unit: str = "W",
+        current_l1_value: str | None = None,
+        current_l2_value: str | None = None,
+        current_l3_value: str | None = None,
     ) -> MockConfigEntry:
         """Create and set up an Electricity Pro config entry."""
 
@@ -98,6 +104,39 @@ def setup_electricity_pro(hass):
                 },
             )
             entry_data[CONF_PEAK_POWER_TODAY_ENTITY] = "sensor.test_peak_power_today"
+
+        if current_l1_value is not None:
+            hass.states.async_set(
+                "sensor.test_current_l1",
+                current_l1_value,
+                {
+                    "unit_of_measurement": "A",
+                    "device_class": "current",
+                },
+            )
+            entry_data[CONF_CURRENT_L1_ENTITY] = "sensor.test_current_l1"
+
+        if current_l2_value is not None:
+            hass.states.async_set(
+                "sensor.test_current_l2",
+                current_l2_value,
+                {
+                    "unit_of_measurement": "A",
+                    "device_class": "current",
+                },
+            )
+            entry_data[CONF_CURRENT_L2_ENTITY] = "sensor.test_current_l2"
+
+        if current_l3_value is not None:
+            hass.states.async_set(
+                "sensor.test_current_l3",
+                current_l3_value,
+                {
+                    "unit_of_measurement": "A",
+                    "device_class": "current",
+                },
+            )
+            entry_data[CONF_CURRENT_L3_ENTITY] = "sensor.test_current_l3"
 
         entry = MockConfigEntry(
             domain=DOMAIN,

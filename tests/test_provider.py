@@ -7,6 +7,9 @@ from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import (
+    CONF_CURRENT_L1_ENTITY,
+    CONF_CURRENT_L2_ENTITY,
+    CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
@@ -24,8 +27,9 @@ def _create_provider(
     include_price: bool = True,
     include_energy: bool = True,
     include_peak_power_today: bool = False,
+    include_phase_currents: bool = False,
 ) -> ElectricityProEntityProvider:
-    """Create a provider with configurable source entities."""
+    "Create a provider with configurable source entities."
     entry_data = {
         CONF_POWER_ENTITY: "sensor.test_power",
     }
@@ -37,9 +41,12 @@ def _create_provider(
         entry_data[CONF_ENERGY_ENTITY] = "sensor.test_energy"
 
     if include_peak_power_today:
-        entry_data[CONF_PEAK_POWER_TODAY_ENTITY] = (
-            "sensor.test_peak_power_today"
-        )
+        entry_data[CONF_PEAK_POWER_TODAY_ENTITY] = "sensor.test_peak_power_today"
+
+    if include_phase_currents:
+        entry_data[CONF_CURRENT_L1_ENTITY] = "sensor.test_current_l1"
+        entry_data[CONF_CURRENT_L2_ENTITY] = "sensor.test_current_l2"
+        entry_data[CONF_CURRENT_L3_ENTITY] = "sensor.test_current_l3"
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -99,7 +106,7 @@ def test_read_valid_sources(
     provider = _create_provider(hass)
     data = provider.read()
 
-    assert data.current_power == Decimal("1500")
+    assert data.current_power == Decimal(1500)
     assert data.current_price == Decimal("1.25")
     assert data.current_price_unit == "SEK/kWh"
     assert data.current_energy == Decimal("12.5")
@@ -251,6 +258,7 @@ def test_valid_energy_units(
     assert data.current_energy == Decimal(value)
     assert data.current_energy_unit == unit
 
+
 def test_peak_power_today_source_entity_id(
     hass: HomeAssistant,
 ) -> None:
@@ -271,8 +279,8 @@ def test_peak_power_today_source_entity_id(
 @pytest.mark.parametrize(
     ("value", "unit", "expected"),
     [
-        ("4200", "W", Decimal("4200")),
-        ("4.2", "kW", Decimal("4200")),
+        ("4200", "W", Decimal(4200)),
+        ("4.2", "kW", Decimal(4200)),
     ],
 )
 def test_valid_peak_power_today_values(
@@ -340,3 +348,157 @@ def test_invalid_peak_power_today_returns_none(
     )
 
     assert provider.read().peak_power_today is None
+
+
+def test_phase_current_source_entity_ids(
+    hass: HomeAssistant,
+) -> None:
+    """Provider should expose all configured phase-current sources."""
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_phase_currents=True,
+    )
+
+    assert provider.source_entity_ids == (
+        "sensor.test_power",
+        "sensor.test_current_l1",
+        "sensor.test_current_l2",
+        "sensor.test_current_l3",
+    )
+
+
+def test_read_valid_phase_currents(
+    hass: HomeAssistant,
+) -> None:
+    """Provider should normalize all configured phase currents."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_current_l1",
+        "4.5",
+        {"unit_of_measurement": "A"},
+    )
+    hass.states.async_set(
+        "sensor.test_current_l2",
+        "5.25",
+        {"unit_of_measurement": "A"},
+    )
+    hass.states.async_set(
+        "sensor.test_current_l3",
+        "6.75",
+        {"unit_of_measurement": "A"},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_phase_currents=True,
+    )
+    data = provider.read()
+
+    assert data.current_l1 == Decimal("4.5")
+    assert data.current_l2 == Decimal("5.25")
+    assert data.current_l3 == Decimal("6.75")
+
+
+@pytest.mark.parametrize(
+    ("value", "unit", "expected"),
+    [
+        ("12.5", "A", Decimal("12.5")),
+        ("12500", "mA", Decimal("12.5")),
+    ],
+)
+def test_valid_phase_current_units(
+    hass: HomeAssistant,
+    value: str,
+    unit: str,
+    expected: Decimal,
+) -> None:
+    """Provider should normalize amperes and milliamperes to amperes."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_current_l1",
+        value,
+        {"unit_of_measurement": unit},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_phase_currents=True,
+    )
+
+    assert provider.read().current_l1 == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "unit"),
+    [
+        ("unknown", "A"),
+        ("unavailable", "A"),
+        ("not-a-number", "A"),
+        ("-1", "A"),
+        ("12.5", "V"),
+        ("12.5", ""),
+        ("NaN", "A"),
+        ("Infinity", "A"),
+    ],
+)
+def test_invalid_phase_current_returns_none(
+    hass: HomeAssistant,
+    value: str,
+    unit: str,
+) -> None:
+    """Invalid phase-current values should normalize to None."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_current_l1",
+        value,
+        {"unit_of_measurement": unit},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_phase_currents=True,
+    )
+
+    assert provider.read().current_l1 is None
+
+
+def test_unconfigured_phase_currents_are_none(
+    hass: HomeAssistant,
+) -> None:
+    """Unconfigured phase-current values should remain unavailable."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+    )
+    data = provider.read()
+
+    assert data.current_l1 is None
+    assert data.current_l2 is None
+    assert data.current_l3 is None
