@@ -78,13 +78,11 @@ clear and broadly useful.
 | Daily | Remaining cost today | `remaining_cost_today` | Calculated | Currency | None | Measurement | Available |
 | Daily | Peak power today | `peak_power_today` | Mirrored | W | Power | Measurement | Available |
 
-
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
 | ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
 | Current L1 | `current_l1`        | Mirrored | A           | Current      | Measurement | High     |
 | Current L2 | `current_l2`        | Mirrored | A           | Current      | Measurement | High.    |
 | Current L3 | `current_l3`        | Mirrored | A           | Current      | Measurement | High     |
-
 
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
 | ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
@@ -93,8 +91,6 @@ clear and broadly useful.
 | Voltage L3 | `voltage_l3`        | Mirrored | V           | Voltage      | Measurement | Medium   |
 
 ## Planned live electrical measurements
-
-
 
 ### Power factor
 
