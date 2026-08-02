@@ -41,4 +41,27 @@
 - Added `CHANGELOG.md`
 - Added project design documentation.
 
+## [0.7.0] - 2026-08-02
+
+### Added
+
+- Cost Today
+- Remaining Cost Today
+- Peak Power Today
+- Monthly Peak Hour Consumption
+- Three-phase Current (L1/L2/L3)
+- Three-phase Voltage (L1/L2/L3)
+
+### Improved
+
+- Provider abstraction
+- Configuration flow
+- Documentation
+- Dashboard example
+
+### Quality
+
+- 144 automated tests
+- Home Assistant verification
+
 ---
