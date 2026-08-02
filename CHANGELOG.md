@@ -20,6 +20,8 @@
 - Comprehensive provider and sensor tests
 - Added optional Voltage L1, Voltage L2 and Voltage L3 sensors.
 - Added normalization for volt and millivolt source sensors.
+- Added an optional Monthly Peak Hour Consumption sensor.
+- Added support for Wh and kWh source values.
 
 ### Changed
 
