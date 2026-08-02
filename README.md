@@ -38,7 +38,9 @@ Monitor your home's energy usage in real time.
 - Current Energy
 - Current Electricity Price
 - Current Cost Rate
-- Remaining Cost Today
+- Cost Today
+- Peak Power Today
+- Current L1 / L2 / L3
 
 ### Native Home Assistant Integration
 
