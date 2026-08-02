@@ -27,6 +27,9 @@ CURRENT_L3_ENTITY_ID = f"sensor.{DOMAIN}_current_l3"
 VOLTAGE_L1_ENTITY_ID = f"sensor.{DOMAIN}_voltage_l1"
 VOLTAGE_L2_ENTITY_ID = f"sensor.{DOMAIN}_voltage_l2"
 VOLTAGE_L3_ENTITY_ID = f"sensor.{DOMAIN}_voltage_l3"
+MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY_ID = (
+    f"sensor.{DOMAIN}_monthly_peak_hour_consumption"
+)
 
 REMAINING_COST_ENTITY_ID = f"sensor.{DOMAIN}_remaining_cost_today"
 
@@ -1058,3 +1061,106 @@ async def test_phase_voltage_not_created_without_sources(
     assert hass.states.get(VOLTAGE_L1_ENTITY_ID) is None
     assert hass.states.get(VOLTAGE_L2_ENTITY_ID) is None
     assert hass.states.get(VOLTAGE_L3_ENTITY_ID) is None
+
+
+async def test_monthly_peak_hour_consumption_initial_value(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Monthly peak-hour consumption should use the configured source."""
+
+    await setup_electricity_pro(
+        monthly_peak_hour_consumption_value="2.45",
+        monthly_peak_hour_consumption_unit="kWh",
+    )
+
+    state = hass.states.get(MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("2.45")
+    assert state.attributes["unit_of_measurement"] == "kWh"
+    assert state.attributes["device_class"] == "energy"
+    assert state.attributes["state_class"] == "measurement"
+
+
+async def test_monthly_peak_hour_consumption_preserves_wh(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Monthly peak-hour consumption should preserve watt-hours."""
+
+    await setup_electricity_pro(
+        monthly_peak_hour_consumption_value="2450",
+        monthly_peak_hour_consumption_unit="Wh",
+    )
+
+    state = hass.states.get(MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal(2450)
+    assert state.attributes["unit_of_measurement"] == "Wh"
+
+
+async def test_monthly_peak_hour_consumption_updates(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Monthly peak-hour consumption should update with its source."""
+
+    await setup_electricity_pro(
+        monthly_peak_hour_consumption_value="2.45",
+    )
+
+    hass.states.async_set(
+        "sensor.test_monthly_peak_hour_consumption",
+        "3.10",
+        {
+            "unit_of_measurement": "kWh",
+            "device_class": "energy",
+            "state_class": "measurement",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("3.10")
+
+
+async def test_monthly_peak_hour_consumption_becomes_unavailable(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Monthly peak-hour consumption should become unavailable."""
+
+    await setup_electricity_pro(
+        monthly_peak_hour_consumption_value="2.45",
+    )
+
+    hass.states.async_set(
+        "sensor.test_monthly_peak_hour_consumption",
+        "unknown",
+        {
+            "unit_of_measurement": "kWh",
+            "device_class": "energy",
+            "state_class": "measurement",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_monthly_peak_hour_consumption_not_created_without_source(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Monthly peak-hour consumption should be omitted when unconfigured."""
+
+    await setup_electricity_pro()
+
+    assert hass.states.get(MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY_ID) is None

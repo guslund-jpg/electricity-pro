@@ -21,6 +21,7 @@ from .const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
@@ -48,6 +49,8 @@ class ElectricityProData:
     voltage_l1: Decimal | None
     voltage_l2: Decimal | None
     voltage_l3: Decimal | None
+    monthly_peak_hour_consumption: Decimal | None
+    monthly_peak_hour_consumption_unit: str | None
 
 
 class ElectricityProEntityProvider:
@@ -108,6 +111,10 @@ class ElectricityProEntityProvider:
             CONF_VOLTAGE_L3_ENTITY,
             entry.data.get(CONF_VOLTAGE_L3_ENTITY),
         )
+        self._monthly_peak_hour_consumption_entity_id: str | None = entry.options.get(
+            CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+            entry.data.get(CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY),
+        )
 
     @property
     def source_entity_ids(self) -> tuple[str, ...]:
@@ -143,6 +150,9 @@ class ElectricityProEntityProvider:
 
         if self._voltage_l3_entity_id is not None:
             entity_ids.append(self._voltage_l3_entity_id)
+
+        if self._monthly_peak_hour_consumption_entity_id is not None:
+            entity_ids.append(self._monthly_peak_hour_consumption_entity_id)
 
         return tuple(entity_ids)
 
@@ -203,6 +213,14 @@ class ElectricityProEntityProvider:
             if self._voltage_l3_entity_id is not None
             else None
         )
+        (
+            monthly_peak_hour_consumption,
+            monthly_peak_hour_consumption_unit,
+        ) = self._normalize_energy(
+            self._hass.states.get(self._monthly_peak_hour_consumption_entity_id)
+            if self._monthly_peak_hour_consumption_entity_id is not None
+            else None
+        )
 
         return ElectricityProData(
             current_power=self._normalize_power(
@@ -221,6 +239,10 @@ class ElectricityProEntityProvider:
             voltage_l1=voltage_l1,
             voltage_l2=voltage_l2,
             voltage_l3=voltage_l3,
+            monthly_peak_hour_consumption=monthly_peak_hour_consumption,
+            monthly_peak_hour_consumption_unit=(
+                monthly_peak_hour_consumption_unit
+            ),
         )
 
     @staticmethod

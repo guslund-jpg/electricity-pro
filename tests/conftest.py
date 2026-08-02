@@ -9,6 +9,7 @@ from custom_components.electricity_pro.const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
@@ -47,6 +48,8 @@ def setup_electricity_pro(hass):
         voltage_l1_value: str | None = None,
         voltage_l2_value: str | None = None,
         voltage_l3_value: str | None = None,
+        monthly_peak_hour_consumption_value: str | None = None,
+        monthly_peak_hour_consumption_unit: str = "kWh",
     ) -> MockConfigEntry:
         """Create and set up an Electricity Pro config entry."""
 
@@ -176,6 +179,19 @@ def setup_electricity_pro(hass):
             )
             entry_data[CONF_VOLTAGE_L3_ENTITY] = "sensor.test_voltage_l3"
 
+        if monthly_peak_hour_consumption_value is not None:
+            hass.states.async_set(
+                "sensor.test_monthly_peak_hour_consumption",
+                monthly_peak_hour_consumption_value,
+                {
+                    "unit_of_measurement": monthly_peak_hour_consumption_unit,
+                    "device_class": "energy",
+                    "state_class": "measurement",
+                },
+            )
+            entry_data[CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY] = (
+                "sensor.test_monthly_peak_hour_consumption"
+            )
         entry = MockConfigEntry(
             domain=DOMAIN,
             title="Electricity Pro",
