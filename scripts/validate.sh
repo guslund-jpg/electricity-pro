@@ -45,8 +45,7 @@ while IFS= read -r -d '' json_file; do
   "${PYTHON}" -m json.tool "${json_file}" >/dev/null
 done < <(
   find . \
-    -path './.git' -prune -o \
-    -path './.venv' -prune -o \
+    \( -name '.git' -o -name '.venv*' \) -prune -o \
     -name '*.json' -type f -print0
 )
 
