@@ -42,6 +42,7 @@ Monitor your home's energy usage in real time.
 - Peak Power Today
 - Current L1 / L2 / L3
 - Voltage L1 / L2 / L3
+- Monthly Peak Hour Consumption.
 
 ### Native Home Assistant Integration
 

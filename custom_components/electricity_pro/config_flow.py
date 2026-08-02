@@ -20,6 +20,7 @@ from .const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
@@ -43,6 +44,7 @@ def _entity_schema(
     voltage_l1_default: str | None = None,
     voltage_l2_default: str | None = None,
     voltage_l3_default: str | None = None,
+    monthly_peak_hour_consumption_default: str | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
 
@@ -129,6 +131,15 @@ def _entity_schema(
             CONF_VOLTAGE_L3_ENTITY,
             default=voltage_l3_default,
         )
+    if monthly_peak_hour_consumption_default is None:
+        monthly_peak_hour_consumption_key = vol.Optional(
+            CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY
+        )
+    else:
+        monthly_peak_hour_consumption_key = vol.Optional(
+            CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+            default=monthly_peak_hour_consumption_default,
+        )
     return vol.Schema(
         {
             power_key: selector.EntitySelector(
@@ -193,6 +204,12 @@ def _entity_schema(
                 selector.EntitySelectorConfig(
                     domain="sensor",
                     device_class="voltage",
+                )
+            ),
+            monthly_peak_hour_consumption_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="energy",
                 )
             ),
         }
@@ -301,6 +318,10 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_VOLTAGE_L3_ENTITY,
             self.config_entry.data.get(CONF_VOLTAGE_L3_ENTITY),
         )
+        current_monthly_peak_hour_consumption = self.config_entry.options.get(
+            CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+            self.config_entry.data.get(CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY),
+        )
 
         return self.async_show_form(
             step_id="init",
@@ -316,5 +337,6 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 voltage_l1_default=current_voltage_l1,
                 voltage_l2_default=current_voltage_l2,
                 voltage_l3_default=current_voltage_l3,
+                monthly_peak_hour_consumption_default=current_monthly_peak_hour_consumption,
             ),
         )

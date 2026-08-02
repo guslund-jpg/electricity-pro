@@ -11,6 +11,7 @@ from custom_components.electricity_pro.const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
@@ -32,6 +33,7 @@ def _create_provider(
     include_peak_power_today: bool = False,
     include_phase_currents: bool = False,
     include_phase_voltages: bool = False,
+    include_monthly_peak_hour_consumption: bool = False,
 ) -> ElectricityProEntityProvider:
     "Create a provider with configurable source entities."
     entry_data = {
@@ -55,6 +57,10 @@ def _create_provider(
         entry_data[CONF_VOLTAGE_L1_ENTITY] = "sensor.test_voltage_l1"
         entry_data[CONF_VOLTAGE_L2_ENTITY] = "sensor.test_voltage_l2"
         entry_data[CONF_VOLTAGE_L3_ENTITY] = "sensor.test_voltage_l3"
+    if include_monthly_peak_hour_consumption:
+        entry_data[CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY] = (
+            "sensor.test_monthly_peak_hour_consumption"
+        )
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -664,3 +670,119 @@ def test_unconfigured_phase_voltages_are_none(
     assert data.voltage_l1 is None
     assert data.voltage_l2 is None
     assert data.voltage_l3 is None
+
+
+def test_monthly_peak_hour_consumption_source_entity_id(
+    hass: HomeAssistant,
+) -> None:
+    """Provider should expose the configured monthly peak-hour source."""
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_monthly_peak_hour_consumption=True,
+    )
+
+    assert provider.source_entity_ids == (
+        "sensor.test_power",
+        "sensor.test_monthly_peak_hour_consumption",
+    )
+
+
+@pytest.mark.parametrize(
+    ("value", "unit"),
+    [
+        ("2450", "Wh"),
+        ("2.45", "kWh"),
+    ],
+)
+def test_valid_monthly_peak_hour_consumption(
+    hass: HomeAssistant,
+    value: str,
+    unit: str,
+) -> None:
+    """Provider should accept supported monthly peak-hour energy units."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_monthly_peak_hour_consumption",
+        value,
+        {"unit_of_measurement": unit},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_monthly_peak_hour_consumption=True,
+    )
+    data = provider.read()
+
+    assert data.monthly_peak_hour_consumption == Decimal(value)
+    assert data.monthly_peak_hour_consumption_unit == unit
+
+
+@pytest.mark.parametrize(
+    ("value", "unit"),
+    [
+        ("unknown", "kWh"),
+        ("unavailable", "kWh"),
+        ("banana", "kWh"),
+        ("-1", "kWh"),
+        ("2.45", "W"),
+        ("2.45", ""),
+        ("NaN", "kWh"),
+        ("Infinity", "kWh"),
+    ],
+)
+def test_invalid_monthly_peak_hour_consumption_returns_none(
+    hass: HomeAssistant,
+    value: str,
+    unit: str,
+) -> None:
+    """Invalid monthly peak-hour values should normalize to None."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_monthly_peak_hour_consumption",
+        value,
+        {"unit_of_measurement": unit},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_monthly_peak_hour_consumption=True,
+    )
+    data = provider.read()
+
+    assert data.monthly_peak_hour_consumption is None
+    assert data.monthly_peak_hour_consumption_unit is None
+
+
+def test_unconfigured_monthly_peak_hour_consumption_is_none(
+    hass: HomeAssistant,
+) -> None:
+    """Unconfigured monthly peak-hour consumption should remain unavailable."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+    )
+    data = provider.read()
+
+    assert data.monthly_peak_hour_consumption is None
+    assert data.monthly_peak_hour_consumption_unit is None

@@ -38,6 +38,7 @@ from .const import (
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
+    CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     DOMAIN,
 )
 from .coordinator import ElectricityProCoordinator
@@ -153,6 +154,21 @@ SENSOR_DESCRIPTIONS: tuple[
             current_cost_rate(data) is not None and cost_unit(data) is not None
         ),
         required_config_key=CONF_PRICE_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="monthly_peak_hour_consumption",
+        name="Monthly peak-hour consumption",
+        icon="mdi:chart-bell-curve",
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        value_fn=lambda data: data.monthly_peak_hour_consumption,
+        unit_fn=lambda data: data.monthly_peak_hour_consumption_unit,
+        available_fn=lambda data: (
+            data.monthly_peak_hour_consumption is not None
+            and data.monthly_peak_hour_consumption_unit is not None
+        ),
+        required_config_key=CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     ),
     ElectricityProSensorEntityDescription(
         key="cost_today",
