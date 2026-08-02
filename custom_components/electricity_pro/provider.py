@@ -17,8 +17,11 @@ from homeassistant.core import HomeAssistant, State, callback
 
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
-    CONF_PEAK_POWER_TODAY_ENTITY,
+    CONF_CURRENT_L1_ENTITY,
+    CONF_CURRENT_L2_ENTITY,
+    CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
 )
@@ -36,6 +39,9 @@ class ElectricityProData:
     accumulated_cost_today: Decimal | None
     accumulated_cost_today_unit: str | None
     peak_power_today: Decimal | None
+    current_l1: Decimal | None
+    current_l2: Decimal | None
+    current_l3: Decimal | None
 
 
 class ElectricityProEntityProvider:
@@ -72,6 +78,18 @@ class ElectricityProEntityProvider:
             CONF_PEAK_POWER_TODAY_ENTITY,
             entry.data.get(CONF_PEAK_POWER_TODAY_ENTITY),
         )
+        self._current_l1_entity_id: str | None = entry.options.get(
+            CONF_CURRENT_L1_ENTITY,
+            entry.data.get(CONF_CURRENT_L1_ENTITY),
+        )
+        self._current_l2_entity_id: str | None = entry.options.get(
+            CONF_CURRENT_L2_ENTITY,
+            entry.data.get(CONF_CURRENT_L2_ENTITY),
+        )
+        self._current_l3_entity_id: str | None = entry.options.get(
+            CONF_CURRENT_L3_ENTITY,
+            entry.data.get(CONF_CURRENT_L3_ENTITY),
+        )
 
     @property
     def source_entity_ids(self) -> tuple[str, ...]:
@@ -89,6 +107,15 @@ class ElectricityProEntityProvider:
 
         if self._peak_power_today_entity_id is not None:
             entity_ids.append(self._peak_power_today_entity_id)
+
+        if self._current_l1_entity_id is not None:
+            entity_ids.append(self._current_l1_entity_id)
+
+        if self._current_l2_entity_id is not None:
+            entity_ids.append(self._current_l2_entity_id)
+
+        if self._current_l3_entity_id is not None:
+            entity_ids.append(self._current_l3_entity_id)
 
         return tuple(entity_ids)
 
@@ -117,6 +144,23 @@ class ElectricityProEntityProvider:
             if self._peak_power_today_entity_id is not None
             else None
         )
+        current_l1 = self._normalize_current(
+            self._hass.states.get(self._current_l1_entity_id)
+            if self._current_l1_entity_id is not None
+            else None
+        )
+
+        current_l2 = self._normalize_current(
+            self._hass.states.get(self._current_l2_entity_id)
+            if self._current_l2_entity_id is not None
+            else None
+        )
+
+        current_l3 = self._normalize_current(
+            self._hass.states.get(self._current_l3_entity_id)
+            if self._current_l3_entity_id is not None
+            else None
+        )
 
         return ElectricityProData(
             current_power=self._normalize_power(
@@ -129,6 +173,9 @@ class ElectricityProEntityProvider:
             accumulated_cost_today=accumulated_cost_today,
             accumulated_cost_today_unit=accumulated_cost_today_unit,
             peak_power_today=peak_power_today,
+            current_l1=current_l1,
+            current_l2=current_l2,
+            current_l3=current_l3,
         )
 
     @staticmethod
@@ -249,3 +296,34 @@ class ElectricityProEntityProvider:
             return None, None
 
         return source_value, source_unit
+
+    @staticmethod
+    def _normalize_current(
+        source_state: State | None,
+    ) -> Decimal | None:
+        """Normalize a source electrical current to amperes."""
+        if source_state is None or source_state.state in {
+            STATE_UNKNOWN,
+            STATE_UNAVAILABLE,
+            "",
+        }:
+            return None
+
+        try:
+            source_value = Decimal(source_state.state)
+        except (InvalidOperation, ValueError):
+            return None
+
+        source_unit: Any = source_state.attributes.get("unit_of_measurement")
+
+        if source_unit == "A":
+            amperes = source_value
+        elif source_unit == "mA":
+            amperes = source_value / Decimal(1000)
+        else:
+            return None
+
+        if not amperes.is_finite() or amperes < 0:
+            return None
+
+        return amperes
