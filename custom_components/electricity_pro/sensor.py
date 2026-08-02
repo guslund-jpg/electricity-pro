@@ -13,7 +13,11 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfElectricCurrent, UnitOfPower
+from homeassistant.const import (
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfPower,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -31,6 +35,9 @@ from .const import (
     CONF_ENERGY_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_PRICE_ENTITY,
+    CONF_VOLTAGE_L1_ENTITY,
+    CONF_VOLTAGE_L2_ENTITY,
+    CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
 )
 from .coordinator import ElectricityProCoordinator
@@ -222,6 +229,42 @@ SENSOR_DESCRIPTIONS: tuple[
         value_fn=lambda data: data.current_l3,
         available_fn=lambda data: data.current_l3 is not None,
         required_config_key=CONF_CURRENT_L3_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="voltage_l1",
+        name="Voltage L1",
+        icon="mdi:sine-wave",
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        suggested_display_precision=1,
+        value_fn=lambda data: data.voltage_l1,
+        available_fn=lambda data: data.voltage_l1 is not None,
+        required_config_key=CONF_VOLTAGE_L1_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="voltage_l2",
+        name="Voltage L2",
+        icon="mdi:sine-wave",
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        suggested_display_precision=1,
+        value_fn=lambda data: data.voltage_l2,
+        available_fn=lambda data: data.voltage_l2 is not None,
+        required_config_key=CONF_VOLTAGE_L2_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="voltage_l3",
+        name="Voltage L3",
+        icon="mdi:sine-wave",
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        suggested_display_precision=1,
+        value_fn=lambda data: data.voltage_l3,
+        available_fn=lambda data: data.voltage_l3 is not None,
+        required_config_key=CONF_VOLTAGE_L3_ENTITY,
     ),
 )
 

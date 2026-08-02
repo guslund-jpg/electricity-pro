@@ -78,26 +78,11 @@ clear and broadly useful.
 | Daily | Remaining cost today | `remaining_cost_today` | Calculated | Currency | None | Measurement | Available |
 | Daily | Peak power today | `peak_power_today` | Mirrored | W | Power | Measurement | Available |
 
-## Planned live electrical measurements
-
-### Phase current
-
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
 | ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
 | Current L1 | `current_l1`        | Mirrored | A           | Current      | Measurement | High     |
 | Current L2 | `current_l2`        | Mirrored | A           | Current      | Measurement | High.    |
 | Current L3 | `current_l3`        | Mirrored | A           | Current      | Measurement | High     |
-
-Purpose:
-
-- visualize phase loading;
-- identify phase imbalance;
-- support graphs and diagnostics;
-- provide inputs for future phase-balance analysis.
-
-The source should represent instantaneous current for the specified phase.
-
-### Phase voltage
 
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
 | ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
@@ -105,11 +90,7 @@ The source should represent instantaneous current for the specified phase.
 | Voltage L2 | `voltage_l2`        | Mirrored | V           | Voltage      | Measurement | Medium   |
 | Voltage L3 | `voltage_l3`        | Mirrored | V           | Voltage      | Measurement | Medium   |
 
-Purpose:
-
-- visualize voltage trends;
-- detect voltage differences between phases;
-- help identify grid-quality or voltage-drop problems.
+## Planned live electrical measurements
 
 ### Power factor
 

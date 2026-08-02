@@ -12,5 +12,8 @@ CONF_PEAK_POWER_TODAY_ENTITY = "peak_power_today_entity"
 CONF_CURRENT_L1_ENTITY = "current_l1_entity"
 CONF_CURRENT_L2_ENTITY = "current_l2_entity"
 CONF_CURRENT_L3_ENTITY = "current_l3_entity"
+CONF_VOLTAGE_L1_ENTITY = "voltage_l1_entity"
+CONF_VOLTAGE_L2_ENTITY = "voltage_l2_entity"
+CONF_VOLTAGE_L3_ENTITY = "voltage_l3_entity"
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
