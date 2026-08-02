@@ -10,7 +10,10 @@
           "peak_power_today_entity": "Today's peak power sensor",
           "current_l1_entity": "Current L1 sensor",
           "current_l2_entity": "Current L2 sensor",
-          "current_l3_entity": "Current L3 sensor"
+          "current_l3_entity": "Current L3 sensor",
+          "voltage_l1_entity": "Voltage L1 sensor",
+          "voltage_l2_entity": "Voltage L2 sensor",
+          "voltage_l3_entity": "Voltage L3 sensor"
         },
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
@@ -20,7 +23,10 @@
           "peak_power_today_entity": "Optional sensor providing today's maximum measured power.",
           "current_l1_entity": "Optional sensor providing instantaneous current for phase L1.",
           "current_l2_entity": "Optional sensor providing instantaneous current for phase L2.",
-          "current_l3_entity": "Optional sensor providing instantaneous current for phase L3."
+          "current_l3_entity": "Optional sensor providing instantaneous current for phase L3.",
+          "voltage_l1_entity": "Optional sensor providing instantaneous voltage for phase L1.",
+          "voltage_l2_entity": "Optional sensor providing instantaneous voltage for phase L2.",
+          "voltage_l3_entity": "Optional sensor providing instantaneous voltage for phase L3."
         }
       }
     }
@@ -36,7 +42,10 @@
           "peak_power_today_entity": "Today's maximum power sensor",
           "current_l1_entity": "Current L1 sensor",
           "current_l2_entity": "Current L2 sensor",
-          "current_l3_entity": "Current L3 sensor"
+          "current_l3_entity": "Current L3 sensor",
+          "voltage_l1_entity": "Voltage L1 sensor",
+          "voltage_l2_entity": "Voltage L2 sensor",
+          "voltage_l3_entity": "Voltage L3 sensor"
         },
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
@@ -46,7 +55,10 @@
           "peak_power_today_entity": "Optional sensor providing today's maximum measured power.",
           "current_l1_entity": "Optional sensor providing instantaneous current for phase L1.",
           "current_l2_entity": "Optional sensor providing instantaneous current for phase L2.",
-          "current_l3_entity": "Optional sensor providing instantaneous current for phase L3."
+          "current_l3_entity": "Optional sensor providing instantaneous current for phase L3.",
+          "voltage_l1_entity": "Optional sensor providing instantaneous voltage for phase L1.",
+          "voltage_l2_entity": "Optional sensor providing instantaneous voltage for phase L2.",
+          "voltage_l3_entity": "Optional sensor providing instantaneous voltage for phase L3."
         }
       }
     }

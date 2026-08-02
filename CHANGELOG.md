@@ -18,6 +18,8 @@
 - Three-phase current sensors (L1, L2, L3)
 - Support for ampere and milliampere source sensors
 - Comprehensive provider and sensor tests
+- Added optional Voltage L1, Voltage L2 and Voltage L3 sensors.
+- Added normalization for volt and millivolt source sensors.
 
 ### Changed
 

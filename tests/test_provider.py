@@ -14,6 +14,9 @@ from custom_components.electricity_pro.const import (
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
+    CONF_VOLTAGE_L1_ENTITY,
+    CONF_VOLTAGE_L2_ENTITY,
+    CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
 )
 from custom_components.electricity_pro.provider import (
@@ -28,6 +31,7 @@ def _create_provider(
     include_energy: bool = True,
     include_peak_power_today: bool = False,
     include_phase_currents: bool = False,
+    include_phase_voltages: bool = False,
 ) -> ElectricityProEntityProvider:
     "Create a provider with configurable source entities."
     entry_data = {
@@ -47,6 +51,10 @@ def _create_provider(
         entry_data[CONF_CURRENT_L1_ENTITY] = "sensor.test_current_l1"
         entry_data[CONF_CURRENT_L2_ENTITY] = "sensor.test_current_l2"
         entry_data[CONF_CURRENT_L3_ENTITY] = "sensor.test_current_l3"
+    if include_phase_voltages:
+        entry_data[CONF_VOLTAGE_L1_ENTITY] = "sensor.test_voltage_l1"
+        entry_data[CONF_VOLTAGE_L2_ENTITY] = "sensor.test_voltage_l2"
+        entry_data[CONF_VOLTAGE_L3_ENTITY] = "sensor.test_voltage_l3"
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -502,3 +510,157 @@ def test_unconfigured_phase_currents_are_none(
     assert data.current_l1 is None
     assert data.current_l2 is None
     assert data.current_l3 is None
+
+
+def test_phase_voltage_source_entity_ids(
+    hass: HomeAssistant,
+) -> None:
+    """Provider should expose all configured phase-voltage sources."""
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_phase_voltages=True,
+    )
+
+    assert provider.source_entity_ids == (
+        "sensor.test_power",
+        "sensor.test_voltage_l1",
+        "sensor.test_voltage_l2",
+        "sensor.test_voltage_l3",
+    )
+
+
+def test_read_valid_phase_voltages(
+    hass: HomeAssistant,
+) -> None:
+    """Provider should normalize all configured phase voltages."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_voltage_l1",
+        "231.4",
+        {"unit_of_measurement": "V"},
+    )
+    hass.states.async_set(
+        "sensor.test_voltage_l2",
+        "232.1",
+        {"unit_of_measurement": "V"},
+    )
+    hass.states.async_set(
+        "sensor.test_voltage_l3",
+        "230.8",
+        {"unit_of_measurement": "V"},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_phase_voltages=True,
+    )
+    data = provider.read()
+
+    assert data.voltage_l1 == Decimal("231.4")
+    assert data.voltage_l2 == Decimal("232.1")
+    assert data.voltage_l3 == Decimal("230.8")
+
+
+@pytest.mark.parametrize(
+    ("value", "unit", "expected"),
+    [
+        ("236.2", "V", Decimal("236.2")),
+        ("236200", "mV", Decimal("236.2")),
+    ],
+)
+def test_valid_phase_voltage_units(
+    hass: HomeAssistant,
+    value: str,
+    unit: str,
+    expected: Decimal,
+) -> None:
+    """Provider should normalize volts and millivolts to volts."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_voltage_l1",
+        value,
+        {"unit_of_measurement": unit},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_phase_voltages=True,
+    )
+
+    assert provider.read().voltage_l1 == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "unit"),
+    [
+        ("unknown", "V"),
+        ("unavailable", "V"),
+        ("not-a-number", "V"),
+        ("-1", "V"),
+        ("230", "A"),
+        ("230", ""),
+        ("NaN", "V"),
+        ("Infinity", "V"),
+    ],
+)
+def test_invalid_phase_voltage_returns_none(
+    hass: HomeAssistant,
+    value: str,
+    unit: str,
+) -> None:
+    """Invalid phase-voltage values should normalize to None."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_voltage_l1",
+        value,
+        {"unit_of_measurement": unit},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_phase_voltages=True,
+    )
+
+    assert provider.read().voltage_l1 is None
+
+
+def test_unconfigured_phase_voltages_are_none(
+    hass: HomeAssistant,
+) -> None:
+    """Unconfigured phase-voltage values should remain unavailable."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+    )
+    data = provider.read()
+
+    assert data.voltage_l1 is None
+    assert data.voltage_l2 is None
+    assert data.voltage_l3 is None

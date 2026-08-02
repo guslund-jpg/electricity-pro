@@ -41,6 +41,7 @@ Monitor your home's energy usage in real time.
 - Cost Today
 - Peak Power Today
 - Current L1 / L2 / L3
+- Voltage L1 / L2 / L3
 
 ### Native Home Assistant Integration
 

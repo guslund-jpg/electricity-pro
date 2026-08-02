@@ -24,6 +24,9 @@ from .const import (
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
+    CONF_VOLTAGE_L1_ENTITY,
+    CONF_VOLTAGE_L2_ENTITY,
+    CONF_VOLTAGE_L3_ENTITY,
 )
 
 
@@ -42,6 +45,9 @@ class ElectricityProData:
     current_l1: Decimal | None
     current_l2: Decimal | None
     current_l3: Decimal | None
+    voltage_l1: Decimal | None
+    voltage_l2: Decimal | None
+    voltage_l3: Decimal | None
 
 
 class ElectricityProEntityProvider:
@@ -90,6 +96,18 @@ class ElectricityProEntityProvider:
             CONF_CURRENT_L3_ENTITY,
             entry.data.get(CONF_CURRENT_L3_ENTITY),
         )
+        self._voltage_l1_entity_id: str | None = entry.options.get(
+            CONF_VOLTAGE_L1_ENTITY,
+            entry.data.get(CONF_VOLTAGE_L1_ENTITY),
+        )
+        self._voltage_l2_entity_id: str | None = entry.options.get(
+            CONF_VOLTAGE_L2_ENTITY,
+            entry.data.get(CONF_VOLTAGE_L2_ENTITY),
+        )
+        self._voltage_l3_entity_id: str | None = entry.options.get(
+            CONF_VOLTAGE_L3_ENTITY,
+            entry.data.get(CONF_VOLTAGE_L3_ENTITY),
+        )
 
     @property
     def source_entity_ids(self) -> tuple[str, ...]:
@@ -116,6 +134,15 @@ class ElectricityProEntityProvider:
 
         if self._current_l3_entity_id is not None:
             entity_ids.append(self._current_l3_entity_id)
+
+        if self._voltage_l1_entity_id is not None:
+            entity_ids.append(self._voltage_l1_entity_id)
+
+        if self._voltage_l2_entity_id is not None:
+            entity_ids.append(self._voltage_l2_entity_id)
+
+        if self._voltage_l3_entity_id is not None:
+            entity_ids.append(self._voltage_l3_entity_id)
 
         return tuple(entity_ids)
 
@@ -161,6 +188,21 @@ class ElectricityProEntityProvider:
             if self._current_l3_entity_id is not None
             else None
         )
+        voltage_l1 = self._normalize_voltage(
+            self._hass.states.get(self._voltage_l1_entity_id)
+            if self._voltage_l1_entity_id is not None
+            else None
+        )
+        voltage_l2 = self._normalize_voltage(
+            self._hass.states.get(self._voltage_l2_entity_id)
+            if self._voltage_l2_entity_id is not None
+            else None
+        )
+        voltage_l3 = self._normalize_voltage(
+            self._hass.states.get(self._voltage_l3_entity_id)
+            if self._voltage_l3_entity_id is not None
+            else None
+        )
 
         return ElectricityProData(
             current_power=self._normalize_power(
@@ -176,6 +218,9 @@ class ElectricityProEntityProvider:
             current_l1=current_l1,
             current_l2=current_l2,
             current_l3=current_l3,
+            voltage_l1=voltage_l1,
+            voltage_l2=voltage_l2,
+            voltage_l3=voltage_l3,
         )
 
     @staticmethod
@@ -327,3 +372,34 @@ class ElectricityProEntityProvider:
             return None
 
         return amperes
+
+    @staticmethod
+    def _normalize_voltage(
+        source_state: State | None,
+    ) -> Decimal | None:
+        """Normalize a source electrical voltage to volts."""
+        if source_state is None or source_state.state in {
+            STATE_UNKNOWN,
+            STATE_UNAVAILABLE,
+            "",
+        }:
+            return None
+
+        try:
+            source_value = Decimal(source_state.state)
+        except (InvalidOperation, ValueError):
+            return None
+
+        source_unit: Any = source_state.attributes.get("unit_of_measurement")
+
+        if source_unit == "V":
+            volts = source_value
+        elif source_unit == "mV":
+            volts = source_value / Decimal(1000)
+        else:
+            return None
+
+        if not volts.is_finite() or volts < 0:
+            return None
+
+        return volts

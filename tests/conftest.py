@@ -12,6 +12,9 @@ from custom_components.electricity_pro.const import (
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
+    CONF_VOLTAGE_L1_ENTITY,
+    CONF_VOLTAGE_L2_ENTITY,
+    CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
 )
 
@@ -41,6 +44,9 @@ def setup_electricity_pro(hass):
         current_l1_value: str | None = None,
         current_l2_value: str | None = None,
         current_l3_value: str | None = None,
+        voltage_l1_value: str | None = None,
+        voltage_l2_value: str | None = None,
+        voltage_l3_value: str | None = None,
     ) -> MockConfigEntry:
         """Create and set up an Electricity Pro config entry."""
 
@@ -137,6 +143,38 @@ def setup_electricity_pro(hass):
                 },
             )
             entry_data[CONF_CURRENT_L3_ENTITY] = "sensor.test_current_l3"
+        if voltage_l1_value is not None:
+            hass.states.async_set(
+                "sensor.test_voltage_l1",
+                voltage_l1_value,
+                {
+                    "unit_of_measurement": "V",
+                    "device_class": "voltage",
+                },
+            )
+            entry_data[CONF_VOLTAGE_L1_ENTITY] = "sensor.test_voltage_l1"
+
+        if voltage_l2_value is not None:
+            hass.states.async_set(
+                "sensor.test_voltage_l2",
+                voltage_l2_value,
+                {
+                    "unit_of_measurement": "V",
+                    "device_class": "voltage",
+                },
+            )
+            entry_data[CONF_VOLTAGE_L2_ENTITY] = "sensor.test_voltage_l2"
+
+        if voltage_l3_value is not None:
+            hass.states.async_set(
+                "sensor.test_voltage_l3",
+                voltage_l3_value,
+                {
+                    "unit_of_measurement": "V",
+                    "device_class": "voltage",
+                },
+            )
+            entry_data[CONF_VOLTAGE_L3_ENTITY] = "sensor.test_voltage_l3"
 
         entry = MockConfigEntry(
             domain=DOMAIN,

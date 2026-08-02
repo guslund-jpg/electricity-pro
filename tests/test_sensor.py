@@ -24,6 +24,9 @@ PEAK_POWER_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_peak_power_today"
 CURRENT_L1_ENTITY_ID = f"sensor.{DOMAIN}_current_l1"
 CURRENT_L2_ENTITY_ID = f"sensor.{DOMAIN}_current_l2"
 CURRENT_L3_ENTITY_ID = f"sensor.{DOMAIN}_current_l3"
+VOLTAGE_L1_ENTITY_ID = f"sensor.{DOMAIN}_voltage_l1"
+VOLTAGE_L2_ENTITY_ID = f"sensor.{DOMAIN}_voltage_l2"
+VOLTAGE_L3_ENTITY_ID = f"sensor.{DOMAIN}_voltage_l3"
 
 REMAINING_COST_ENTITY_ID = f"sensor.{DOMAIN}_remaining_cost_today"
 
@@ -930,3 +933,128 @@ async def test_phase_current_not_created_without_sources(
     assert hass.states.get(CURRENT_L1_ENTITY_ID) is None
     assert hass.states.get(CURRENT_L2_ENTITY_ID) is None
     assert hass.states.get(CURRENT_L3_ENTITY_ID) is None
+
+
+async def test_phase_voltage_initial_values(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Phase voltage sensors should use the configured source values."""
+
+    await setup_electricity_pro(
+        voltage_l1_value="231.4",
+        voltage_l2_value="232.1",
+        voltage_l3_value="230.8",
+    )
+
+    state_l1 = hass.states.get(VOLTAGE_L1_ENTITY_ID)
+    state_l2 = hass.states.get(VOLTAGE_L2_ENTITY_ID)
+    state_l3 = hass.states.get(VOLTAGE_L3_ENTITY_ID)
+
+    assert state_l1 is not None
+    assert state_l2 is not None
+    assert state_l3 is not None
+
+    assert Decimal(state_l1.state) == Decimal("231.4")
+    assert Decimal(state_l2.state) == Decimal("232.1")
+    assert Decimal(state_l3.state) == Decimal("230.8")
+
+    assert state_l1.attributes["unit_of_measurement"] == "V"
+    assert state_l1.attributes["device_class"] == "voltage"
+    assert state_l1.attributes["state_class"] == "measurement"
+
+
+async def test_phase_voltage_updates_when_source_changes(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A phase voltage sensor should update when its source changes."""
+
+    await setup_electricity_pro(
+        voltage_l1_value="231.4",
+        voltage_l2_value="232.1",
+        voltage_l3_value="230.8",
+    )
+
+    hass.states.async_set(
+        "sensor.test_voltage_l1",
+        "235.6",
+        {
+            "unit_of_measurement": "V",
+            "device_class": "voltage",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state_l1 = hass.states.get(VOLTAGE_L1_ENTITY_ID)
+    state_l2 = hass.states.get(VOLTAGE_L2_ENTITY_ID)
+
+    assert state_l1 is not None
+    assert state_l2 is not None
+    assert Decimal(state_l1.state) == Decimal("235.6")
+    assert Decimal(state_l2.state) == Decimal("232.1")
+
+
+async def test_phase_voltage_becomes_unavailable(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A phase voltage sensor should become unavailable for an unknown source."""
+
+    await setup_electricity_pro(
+        voltage_l1_value="231.4",
+    )
+
+    hass.states.async_set(
+        "sensor.test_voltage_l1",
+        "unknown",
+        {
+            "unit_of_measurement": "V",
+            "device_class": "voltage",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(VOLTAGE_L1_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_phase_voltage_rejects_invalid_value(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A phase voltage sensor should reject a non-numeric source."""
+
+    await setup_electricity_pro(
+        voltage_l1_value="231.4",
+    )
+
+    hass.states.async_set(
+        "sensor.test_voltage_l1",
+        "banana",
+        {
+            "unit_of_measurement": "V",
+            "device_class": "voltage",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(VOLTAGE_L1_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_phase_voltage_not_created_without_sources(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Phase voltage sensors should not exist when no sources are configured."""
+
+    await setup_electricity_pro()
+
+    assert hass.states.get(VOLTAGE_L1_ENTITY_ID) is None
+    assert hass.states.get(VOLTAGE_L2_ENTITY_ID) is None
+    assert hass.states.get(VOLTAGE_L3_ENTITY_ID) is None

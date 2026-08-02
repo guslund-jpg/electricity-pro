@@ -23,6 +23,9 @@ from .const import (
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
+    CONF_VOLTAGE_L1_ENTITY,
+    CONF_VOLTAGE_L2_ENTITY,
+    CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
 )
 
@@ -37,6 +40,9 @@ def _entity_schema(
     current_l1_default: str | None = None,
     current_l2_default: str | None = None,
     current_l3_default: str | None = None,
+    voltage_l1_default: str | None = None,
+    voltage_l2_default: str | None = None,
+    voltage_l3_default: str | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
 
@@ -102,6 +108,27 @@ def _entity_schema(
             CONF_CURRENT_L3_ENTITY,
             default=current_l3_default,
         )
+    if voltage_l1_default is None:
+        voltage_l1_key = vol.Optional(CONF_VOLTAGE_L1_ENTITY)
+    else:
+        voltage_l1_key = vol.Optional(
+            CONF_VOLTAGE_L1_ENTITY,
+            default=voltage_l1_default,
+        )
+    if voltage_l2_default is None:
+        voltage_l2_key = vol.Optional(CONF_VOLTAGE_L2_ENTITY)
+    else:
+        voltage_l2_key = vol.Optional(
+            CONF_VOLTAGE_L2_ENTITY,
+            default=voltage_l2_default,
+        )
+    if voltage_l3_default is None:
+        voltage_l3_key = vol.Optional(CONF_VOLTAGE_L3_ENTITY)
+    else:
+        voltage_l3_key = vol.Optional(
+            CONF_VOLTAGE_L3_ENTITY,
+            default=voltage_l3_default,
+        )
     return vol.Schema(
         {
             power_key: selector.EntitySelector(
@@ -148,6 +175,24 @@ def _entity_schema(
                 selector.EntitySelectorConfig(
                     domain="sensor",
                     device_class="current",
+                )
+            ),
+            voltage_l1_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="voltage",
+                )
+            ),
+            voltage_l2_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="voltage",
+                )
+            ),
+            voltage_l3_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="voltage",
                 )
             ),
         }
@@ -242,6 +287,20 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_CURRENT_L3_ENTITY,
             self.config_entry.data.get(CONF_CURRENT_L3_ENTITY),
         )
+        current_voltage_l1 = self.config_entry.options.get(
+            CONF_VOLTAGE_L1_ENTITY,
+            self.config_entry.data.get(CONF_VOLTAGE_L1_ENTITY),
+        )
+
+        current_voltage_l2 = self.config_entry.options.get(
+            CONF_VOLTAGE_L2_ENTITY,
+            self.config_entry.data.get(CONF_VOLTAGE_L2_ENTITY),
+        )
+
+        current_voltage_l3 = self.config_entry.options.get(
+            CONF_VOLTAGE_L3_ENTITY,
+            self.config_entry.data.get(CONF_VOLTAGE_L3_ENTITY),
+        )
 
         return self.async_show_form(
             step_id="init",
@@ -254,5 +313,8 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 current_l1_default=current_l1,
                 current_l2_default=current_l2,
                 current_l3_default=current_l3,
+                voltage_l1_default=current_voltage_l1,
+                voltage_l2_default=current_voltage_l2,
+                voltage_l3_default=current_voltage_l3,
             ),
         )
