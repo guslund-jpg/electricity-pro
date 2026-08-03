@@ -21,10 +21,12 @@ from .const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_GRID_FEE_PER_KWH,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
+    CONF_TAX_PER_KWH,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
@@ -55,6 +57,8 @@ class ElectricityProData:
     energy_this_month_unit: str | None
     cost_this_month: Decimal | None
     cost_this_month_unit: str | None
+    grid_fee_per_kwh: Decimal | None
+    tax_per_kwh: Decimal | None
 
 
 class ElectricityProEntityProvider:
@@ -118,6 +122,18 @@ class ElectricityProEntityProvider:
         self._monthly_peak_hour_consumption_entity_id: str | None = entry.options.get(
             CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
             entry.data.get(CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY),
+        )
+        self._grid_fee_per_kwh = self._normalize_adjustment(
+            entry.options.get(
+                CONF_GRID_FEE_PER_KWH,
+                entry.data.get(CONF_GRID_FEE_PER_KWH),
+            )
+        )
+        self._tax_per_kwh = self._normalize_adjustment(
+            entry.options.get(
+                CONF_TAX_PER_KWH,
+                entry.data.get(CONF_TAX_PER_KWH),
+            )
         )
 
     @property
@@ -251,7 +267,22 @@ class ElectricityProEntityProvider:
             energy_this_month_unit=None,
             cost_this_month=None,
             cost_this_month_unit=None,
+            grid_fee_per_kwh=self._grid_fee_per_kwh,
+            tax_per_kwh=self._tax_per_kwh,
         )
+
+    @staticmethod
+    def _normalize_adjustment(value: Any) -> Decimal | None:
+        """Normalize an optional configured per-kWh adjustment."""
+        if value is None:
+            return None
+        try:
+            adjustment = Decimal(str(value))
+        except (InvalidOperation, ValueError):
+            return None
+        if not adjustment.is_finite() or adjustment < 0:
+            return None
+        return adjustment
 
     @staticmethod
     def _normalize_power(
