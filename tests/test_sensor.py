@@ -1201,7 +1201,7 @@ async def test_monthly_peak_hour_consumption_initial_value(
     assert Decimal(state.state) == Decimal("2.45")
     assert state.attributes["unit_of_measurement"] == "kWh"
     assert state.attributes["device_class"] == "energy"
-    assert state.attributes["state_class"] == "measurement"
+    assert state.attributes["state_class"] == "total"
 
 
 async def test_monthly_peak_hour_consumption_preserves_wh(
