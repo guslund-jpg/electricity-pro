@@ -4,7 +4,17 @@
 
 Electricity Pro extends Home Assistant with intelligent sensors, statistics and forecasting that help homeowners understand **what is happening, why it is happening, and what they can do next**.
 
-Built on Home Assistant's native Energy platform, Electricity Pro feels like a natural extension of your smart home, providing deeper analysis today while laying the foundation for future energy intelligence.
+Built on Home Assistant's native Energy platfogitrm, Electricity Pro feels like a natural extension of your smart home, providing deeper analysis today while laying the foundation for future energy intelligence.
+
+---
+
+## Project Vision
+
+Electricity Pro is a provider-independent electricity analytics platform for
+Home Assistant.
+
+Read more about the project's long-term goals in
+`docs/vision/VISION.md`.
 
 ---
 
