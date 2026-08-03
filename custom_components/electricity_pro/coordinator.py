@@ -36,6 +36,8 @@ _LOGGER = logging.getLogger(__name__)
 
 _STORAGE_VERSION = 1
 _ENERGY_THIS_MONTH = "energy_this_month"
+_COST_THIS_MONTH = "cost_this_month"
+_COST_THIS_MONTH_UNIT = "cost_this_month_unit"
 _KWH_PER_WH = Decimal("0.001")
 
 
@@ -62,6 +64,8 @@ class ElectricityProCoordinator(
             entry=entry,
         )
         self._energy_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
+        self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
+        self._cost_this_month_unit: str | None = None
         self._store: Store[dict[str, Any]] = Store(
             hass,
             _STORAGE_VERSION,
@@ -93,19 +97,32 @@ class ElectricityProCoordinator(
     async def _async_restore_statistics(self) -> None:
         """Restore persisted statistics state when available."""
         stored = await self._store.async_load()
-        if stored is None or _ENERGY_THIS_MONTH not in stored:
+        if stored is None:
             return
 
-        try:
-            snapshot = StatisticsSnapshot.from_dict(stored[_ENERGY_THIS_MONTH])
-        except ValueError:
-            _LOGGER.warning("Ignoring invalid persisted statistics state")
-            return
+        if _ENERGY_THIS_MONTH in stored:
+            try:
+                snapshot = StatisticsSnapshot.from_dict(stored[_ENERGY_THIS_MONTH])
+            except ValueError:
+                _LOGGER.warning("Ignoring invalid persisted energy statistics state")
+            else:
+                self._energy_this_month = CumulativeStatistic(
+                    CalendarPeriod.MONTH,
+                    snapshot,
+                )
 
-        self._energy_this_month = CumulativeStatistic(
-            CalendarPeriod.MONTH,
-            snapshot,
-        )
+        cost_unit = stored.get(_COST_THIS_MONTH_UNIT)
+        if _COST_THIS_MONTH in stored and isinstance(cost_unit, str) and cost_unit:
+            try:
+                snapshot = StatisticsSnapshot.from_dict(stored[_COST_THIS_MONTH])
+            except ValueError:
+                _LOGGER.warning("Ignoring invalid persisted cost statistics state")
+            else:
+                self._cost_this_month = CumulativeStatistic(
+                    CalendarPeriod.MONTH,
+                    snapshot,
+                )
+                self._cost_this_month_unit = cost_unit
 
     @callback
     def _read(self) -> ElectricityProData:
@@ -116,29 +133,55 @@ class ElectricityProCoordinator(
             data.current_energy_unit,
         )
 
+        now = dt_util.now()
+        updates: dict[str, Decimal | str | None] = {}
+        should_save = False
+
         if energy_kwh is None:
-            return replace(
-                data,
-                energy_this_month=None,
-                energy_this_month_unit=None,
+            updates["energy_this_month"] = None
+            updates["energy_this_month_unit"] = None
+        else:
+            updates["energy_this_month"] = self._energy_this_month.update(
+                energy_kwh,
+                now,
             )
+            updates["energy_this_month_unit"] = UnitOfEnergy.KILO_WATT_HOUR
+            should_save = True
 
-        value = self._energy_this_month.update(energy_kwh, dt_util.now())
-        self._store.async_delay_save(self._statistics_data, delay=1)
+        cost = data.accumulated_cost_today
+        cost_unit = data.accumulated_cost_today_unit
+        if cost is None or cost_unit is None:
+            updates["cost_this_month"] = None
+            updates["cost_this_month_unit"] = None
+        else:
+            if (
+                self._cost_this_month_unit is not None
+                and self._cost_this_month_unit != cost_unit
+            ):
+                self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
+            self._cost_this_month_unit = cost_unit
+            updates["cost_this_month"] = self._cost_this_month.update(cost, now)
+            updates["cost_this_month_unit"] = cost_unit
+            should_save = True
 
-        return replace(
-            data,
-            energy_this_month=value,
-            energy_this_month_unit=UnitOfEnergy.KILO_WATT_HOUR,
-        )
+        if should_save:
+            self._store.async_delay_save(self._statistics_data, delay=1)
+
+        return replace(data, **updates)
 
     @callback
     def _statistics_data(self) -> dict[str, Any]:
         """Return serializable statistics state."""
-        snapshot = self._energy_this_month.snapshot
-        if snapshot is None:
-            return {}
-        return {_ENERGY_THIS_MONTH: snapshot.as_dict()}
+        data: dict[str, Any] = {}
+        if (snapshot := self._energy_this_month.snapshot) is not None:
+            data[_ENERGY_THIS_MONTH] = snapshot.as_dict()
+        if (
+            (snapshot := self._cost_this_month.snapshot) is not None
+            and self._cost_this_month_unit is not None
+        ):
+            data[_COST_THIS_MONTH] = snapshot.as_dict()
+            data[_COST_THIS_MONTH_UNIT] = self._cost_this_month_unit
+        return data
 
 
 def _energy_in_kwh(
