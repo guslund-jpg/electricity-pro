@@ -1226,11 +1226,11 @@ async def test_monthly_peak_hour_consumption_initial_value(
     assert state.attributes["state_class"] == "total"
 
 
-async def test_cost_this_month_starts_at_zero(
+async def test_cost_this_month_starts_with_cost_today(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """The first observed daily cost should establish the monthly baseline."""
+    """The first observed daily cost should seed the partial monthly value."""
     await setup_electricity_pro(
         accumulated_cost_today_value="12.34",
         accumulated_cost_today_unit="SEK",
@@ -1239,7 +1239,7 @@ async def test_cost_this_month_starts_at_zero(
     state = hass.states.get(COST_THIS_MONTH_ENTITY_ID)
 
     assert state is not None
-    assert Decimal(state.state) == Decimal(0)
+    assert Decimal(state.state) == Decimal("12.34")
     assert state.attributes["unit_of_measurement"] == "SEK"
     assert state.attributes["device_class"] == "monetary"
     assert state.attributes["state_class"] == "total"
@@ -1270,7 +1270,7 @@ async def test_cost_this_month_accumulates_and_handles_daily_reset(
     state = hass.states.get(COST_THIS_MONTH_ENTITY_ID)
 
     assert state is not None
-    assert Decimal(state.state) == Decimal(7)
+    assert Decimal(state.state) == Decimal(17)
 
 
 async def test_cost_this_month_restores_persisted_state(
