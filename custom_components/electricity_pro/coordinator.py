@@ -160,6 +160,15 @@ class ElectricityProCoordinator(
             ):
                 self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
             self._cost_this_month_unit = cost_unit
+            if self._cost_this_month.snapshot is None:
+                self._cost_this_month = CumulativeStatistic(
+                    CalendarPeriod.MONTH,
+                    StatisticsSnapshot(
+                        period_start=CalendarPeriod.MONTH.start(now),
+                        last_value=cost,
+                        value=cost,
+                    ),
+                )
             updates["cost_this_month"] = self._cost_this_month.update(cost, now)
             updates["cost_this_month_unit"] = cost_unit
             should_save = True
