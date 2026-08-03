@@ -53,6 +53,8 @@ class ElectricityProData:
     monthly_peak_hour_consumption_unit: str | None
     energy_this_month: Decimal | None
     energy_this_month_unit: str | None
+    cost_this_month: Decimal | None
+    cost_this_month_unit: str | None
 
 
 class ElectricityProEntityProvider:
@@ -247,6 +249,8 @@ class ElectricityProEntityProvider:
             ),
             energy_this_month=None,
             energy_this_month_unit=None,
+            cost_this_month=None,
+            cost_this_month_unit=None,
         )
 
     @staticmethod
