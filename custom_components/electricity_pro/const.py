@@ -18,5 +18,6 @@ CONF_VOLTAGE_L3_ENTITY = "voltage_l3_entity"
 CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY = "monthly_peak_hour_consumption_entity"
 CONF_GRID_FEE_PER_KWH = "grid_fee_per_kwh"
 CONF_TAX_PER_KWH = "tax_per_kwh"
+CONF_GOOD_PRICE_THRESHOLD = "good_price_threshold"
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
