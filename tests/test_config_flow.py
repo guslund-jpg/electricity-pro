@@ -4,8 +4,10 @@ from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 
 from custom_components.electricity_pro.const import (
+    CONF_GRID_FEE_PER_KWH,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
+    CONF_TAX_PER_KWH,
     DOMAIN,
 )
 
@@ -58,6 +60,32 @@ async def test_user_flow_power_and_price(
         CONF_POWER_ENTITY: "sensor.power",
         CONF_PRICE_ENTITY: "sensor.price",
     }
+
+
+async def test_user_flow_effective_price_adjustments(
+    hass: HomeAssistant,
+) -> None:
+    """Create an entry with fixed effective-price adjustments."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_USER},
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_POWER_ENTITY: "sensor.power",
+            CONF_PRICE_ENTITY: "sensor.price",
+            CONF_GRID_FEE_PER_KWH: 0.25,
+            CONF_TAX_PER_KWH: 0.15,
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"][CONF_GRID_FEE_PER_KWH] == 0.25
+    assert result["data"][CONF_TAX_PER_KWH] == 0.15
+
+
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
