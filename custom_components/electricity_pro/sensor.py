@@ -211,6 +211,21 @@ SENSOR_DESCRIPTIONS: tuple[
         required_config_key=CONF_ENERGY_ENTITY,
     ),
     ElectricityProSensorEntityDescription(
+        key="energy_this_month",
+        name="Energy this month",
+        icon="mdi:calendar-month",
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=2,
+        value_fn=lambda data: data.energy_this_month,
+        unit_fn=lambda data: data.energy_this_month_unit,
+        available_fn=lambda data: (
+            data.energy_this_month is not None
+            and data.energy_this_month_unit is not None
+        ),
+        required_config_key=CONF_ENERGY_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
         key="current_l1",
         name="Current L1",
         icon="mdi:current-ac",

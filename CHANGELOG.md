@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added an Energy This Month sensor derived from the configured cumulative
+  energy source.
+- Added persistent monthly accumulation with calendar-month and source-meter
+  reset handling.
+
 ## [0.6.0] - Foundation Release 2026-07-26
 
 ### Added

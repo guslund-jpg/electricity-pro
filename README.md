@@ -46,6 +46,7 @@ Monitor your home's energy usage in real time.
 
 - Current Power
 - Current Energy
+- Energy This Month
 - Current Electricity Price
 - Current Cost Rate
 - Cost Today

@@ -51,6 +51,8 @@ class ElectricityProData:
     voltage_l3: Decimal | None
     monthly_peak_hour_consumption: Decimal | None
     monthly_peak_hour_consumption_unit: str | None
+    energy_this_month: Decimal | None
+    energy_this_month_unit: str | None
 
 
 class ElectricityProEntityProvider:
@@ -243,6 +245,8 @@ class ElectricityProEntityProvider:
             monthly_peak_hour_consumption_unit=(
                 monthly_peak_hour_consumption_unit
             ),
+            energy_this_month=None,
+            energy_this_month_unit=None,
         )
 
     @staticmethod

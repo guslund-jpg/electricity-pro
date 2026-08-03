@@ -17,6 +17,7 @@ SOURCE_ENTITY_ID = "sensor.test_power"
 
 ENERGY_ENTITY_ID = f"sensor.{DOMAIN}_energy"
 ENERGY_SOURCE_ENTITY_ID = "sensor.test_energy"
+ENERGY_THIS_MONTH_ENTITY_ID = f"sensor.{DOMAIN}_energy_this_month"
 
 COST_RATE_ENTITY_ID = f"sensor.{DOMAIN}_current_cost_rate"
 COST_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_cost_today"
@@ -99,6 +100,126 @@ async def test_current_energy_accepts_wh(
     assert state is not None
     assert Decimal(state.state) == Decimal(1250)
     assert state.attributes["unit_of_measurement"] == "Wh"
+
+
+async def test_energy_this_month_starts_at_zero(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """The first observed cumulative reading should establish the baseline."""
+    await setup_electricity_pro(energy_value="100", energy_unit="kWh")
+
+    state = hass.states.get(ENERGY_THIS_MONTH_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal(0)
+    assert state.attributes["unit_of_measurement"] == "kWh"
+    assert state.attributes["device_class"] == "energy"
+    assert state.attributes["state_class"] == "total"
+
+
+async def test_energy_this_month_accumulates_source_changes(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Cumulative source changes should update monthly energy."""
+    await setup_electricity_pro(energy_value="100", energy_unit="kWh")
+
+    hass.states.async_set(
+        ENERGY_SOURCE_ENTITY_ID,
+        "102.5",
+        {
+            "unit_of_measurement": "kWh",
+            "device_class": "energy",
+            "state_class": "total_increasing",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENERGY_THIS_MONTH_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("2.5")
+
+
+async def test_energy_this_month_normalizes_wh_to_kwh(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Monthly energy should always use kilowatt-hours."""
+    await setup_electricity_pro(energy_value="1000", energy_unit="Wh")
+
+    hass.states.async_set(
+        ENERGY_SOURCE_ENTITY_ID,
+        "2250",
+        {
+            "unit_of_measurement": "Wh",
+            "device_class": "energy",
+            "state_class": "total_increasing",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENERGY_THIS_MONTH_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("1.25")
+    assert state.attributes["unit_of_measurement"] == "kWh"
+
+
+async def test_energy_this_month_restores_persisted_state(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Monthly energy should continue from its persisted snapshot."""
+    stored = {
+        "energy_this_month": {
+            "period_start": "2026-08-01",
+            "last_value": "105",
+            "value": "5",
+        }
+    }
+
+    with patch(
+        "custom_components.electricity_pro.coordinator.Store.async_load",
+        return_value=stored,
+    ):
+        await setup_electricity_pro(energy_value="108", energy_unit="kWh")
+
+    state = hass.states.get(ENERGY_THIS_MONTH_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal(8)
+
+
+async def test_energy_this_month_resets_at_month_boundary(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Monthly energy should reset when the local calendar month changes."""
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        side_effect=[
+            datetime(2026, 8, 31, 23, 59, tzinfo=UTC),
+            datetime(2026, 9, 1, 0, 1, tzinfo=UTC),
+        ],
+    ):
+        await setup_electricity_pro(energy_value="100", energy_unit="kWh")
+        hass.states.async_set(
+            ENERGY_SOURCE_ENTITY_ID,
+            "101",
+            {
+                "unit_of_measurement": "kWh",
+                "device_class": "energy",
+                "state_class": "total_increasing",
+            },
+        )
+        await hass.async_block_till_done()
+
+    state = hass.states.get(ENERGY_THIS_MONTH_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal(1)
 
 
 async def test_current_energy_becomes_unavailable(
