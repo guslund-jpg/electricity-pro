@@ -4,7 +4,30 @@ from decimal import Decimal
 
 from custom_components.electricity_pro.calculations import (
     calculate_current_cost_rate,
+    calculate_effective_price,
 )
+
+
+def test_calculate_effective_price_with_adjustments() -> None:
+    """Effective price should include both variable adjustments."""
+    assert calculate_effective_price(
+        Decimal("0.80"),
+        Decimal("0.25"),
+        Decimal("0.15"),
+    ) == Decimal("1.20")
+
+
+def test_calculate_effective_price_without_adjustments() -> None:
+    """Omitted adjustments should behave as zero."""
+    assert calculate_effective_price(Decimal("0.80")) == Decimal("0.80")
+
+
+def test_calculate_effective_price_rejects_negative_adjustment() -> None:
+    """Negative adjustments should not produce an effective price."""
+    assert calculate_effective_price(
+        Decimal("0.80"),
+        Decimal("-0.10"),
+    ) is None
 
 
 def test_calculate_current_cost_rate() -> None:
