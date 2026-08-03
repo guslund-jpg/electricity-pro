@@ -382,6 +382,7 @@ async def test_current_power_becomes_unavailable_for_invalid_value(
 
 
 PRICE_ENTITY_ID = f"sensor.{DOMAIN}_current_price"
+EFFECTIVE_PRICE_ENTITY_ID = f"sensor.{DOMAIN}_effective_price"
 
 
 async def test_current_price_initial_value(
@@ -402,6 +403,26 @@ async def test_current_price_initial_value(
     assert state is not None
     assert Decimal(state.state) == Decimal("1.25")
     assert state.attributes["unit_of_measurement"] == "SEK/kWh"
+
+
+async def test_effective_price_includes_configured_adjustments(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Effective price should add grid fee and tax to current price."""
+    await setup_electricity_pro(
+        price_value="0.80",
+        price_unit="SEK/kWh",
+        grid_fee_per_kwh=0.25,
+        tax_per_kwh=0.15,
+    )
+
+    state = hass.states.get(EFFECTIVE_PRICE_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("1.20")
+    assert state.attributes["unit_of_measurement"] == "SEK/kWh"
+    assert state.attributes["state_class"] == "measurement"
 
 
 async def test_current_price_updates_when_source_changes(
