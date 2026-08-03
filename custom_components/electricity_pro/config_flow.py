@@ -20,10 +20,12 @@ from .const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_GRID_FEE_PER_KWH,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
+    CONF_TAX_PER_KWH,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
@@ -45,6 +47,8 @@ def _entity_schema(
     voltage_l2_default: str | None = None,
     voltage_l3_default: str | None = None,
     monthly_peak_hour_consumption_default: str | None = None,
+    grid_fee_per_kwh_default: float | None = None,
+    tax_per_kwh_default: float | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
 
@@ -140,6 +144,20 @@ def _entity_schema(
             CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
             default=monthly_peak_hour_consumption_default,
         )
+    if grid_fee_per_kwh_default is None:
+        grid_fee_key = vol.Optional(CONF_GRID_FEE_PER_KWH)
+    else:
+        grid_fee_key = vol.Optional(
+            CONF_GRID_FEE_PER_KWH,
+            default=grid_fee_per_kwh_default,
+        )
+    if tax_per_kwh_default is None:
+        tax_key = vol.Optional(CONF_TAX_PER_KWH)
+    else:
+        tax_key = vol.Optional(
+            CONF_TAX_PER_KWH,
+            default=tax_per_kwh_default,
+        )
     return vol.Schema(
         {
             power_key: selector.EntitySelector(
@@ -210,6 +228,20 @@ def _entity_schema(
                 selector.EntitySelectorConfig(
                     domain="sensor",
                     device_class="energy",
+                )
+            ),
+            grid_fee_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            tax_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
                 )
             ),
         }
@@ -322,6 +354,14 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
             self.config_entry.data.get(CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY),
         )
+        current_grid_fee = self.config_entry.options.get(
+            CONF_GRID_FEE_PER_KWH,
+            self.config_entry.data.get(CONF_GRID_FEE_PER_KWH),
+        )
+        current_tax = self.config_entry.options.get(
+            CONF_TAX_PER_KWH,
+            self.config_entry.data.get(CONF_TAX_PER_KWH),
+        )
 
         return self.async_show_form(
             step_id="init",
@@ -338,5 +378,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 voltage_l2_default=current_voltage_l2,
                 voltage_l3_default=current_voltage_l3,
                 monthly_peak_hour_consumption_default=current_monthly_peak_hour_consumption,
+                grid_fee_per_kwh_default=current_grid_fee,
+                tax_per_kwh_default=current_tax,
             ),
         )
