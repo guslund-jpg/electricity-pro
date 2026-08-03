@@ -16,7 +16,8 @@
           "voltage_l3_entity": "Voltage L3 sensor",
           "monthly_peak_hour_consumption_entity": "Monthly peak hour consumption sensor",
           "grid_fee_per_kwh": "Variable grid fee per kWh",
-          "tax_per_kwh": "Tax or markup per kWh"
+          "tax_per_kwh": "Tax or markup per kWh",
+          "good_price_threshold": "Good price threshold per kWh"
         },
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
@@ -32,7 +33,8 @@
           "voltage_l3_entity": "Optional sensor providing instantaneous voltage for phase L3.",
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor.",
-          "tax_per_kwh": "Optional non-negative tax or markup in the same currency per kWh as the price sensor."
+          "tax_per_kwh": "Optional non-negative tax or markup in the same currency per kWh as the price sensor.",
+          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh."
         }
       }
     }
@@ -54,7 +56,8 @@
           "voltage_l3_entity": "Voltage L3 sensor",
           "monthly_peak_hour_consumption_entity": "Monthly peak hour consumption sensor",
           "grid_fee_per_kwh": "Variable grid fee per kWh",
-          "tax_per_kwh": "Tax or markup per kWh"
+          "tax_per_kwh": "Tax or markup per kWh",
+          "good_price_threshold": "Good price threshold per kWh"
         },
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
@@ -70,7 +73,8 @@
           "voltage_l3_entity": "Optional sensor providing instantaneous voltage for phase L3.",
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor.",
-          "tax_per_kwh": "Optional non-negative tax or markup in the same currency per kWh as the price sensor."
+          "tax_per_kwh": "Optional non-negative tax or markup in the same currency per kWh as the price sensor.",
+          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh."
         }
       }
     }

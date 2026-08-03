@@ -160,6 +160,18 @@ complete.
 A future provider-independent implementation may calculate billing peaks from
 historical interval data and configurable tariff rules.
 
+## Current insights
+
+### Good time to use electricity
+
+The optional `good_time_to_use_electricity` binary sensor compares Effective
+Price with a user-configured good-price threshold in the same currency per
+kWh. It is on at or below the threshold and off above it.
+
+The insight is unavailable without current price data and is not created until
+a threshold is configured. This first version uses an absolute threshold;
+future forecast adapters may add relative and forward-looking recommendations.
+
 ## Planned intelligence sensors
 
 | Sensor                       | Proposed entity key        | Type         | Priority |
