@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added a Cost This Month sensor derived from the configured cumulative Cost
+  Today source.
 - Added an Energy This Month sensor derived from the configured cumulative
   energy source.
 - Added persistent monthly accumulation with calendar-month and source-meter

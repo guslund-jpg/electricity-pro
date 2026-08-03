@@ -76,6 +76,7 @@ clear and broadly useful.
 | Consumption | Energy | `current_energy` | Mirrored | Wh or kWh | Energy | Total increasing | Available |
 | Monthly | Energy this month | `energy_this_month` | Calculated | kWh | Energy | Total | Available |
 | Daily | Cost today | `cost_today` | Mirrored | Currency | Monetary | Total | Available |
+| Monthly | Cost this month | `cost_this_month` | Calculated | Currency | Monetary | Total | Available |
 | Daily | Remaining cost today | `remaining_cost_today` | Calculated | Currency | None | Measurement | Available |
 | Daily | Peak power today | `peak_power_today` | Mirrored | W | Power | Measurement | Available |
 
@@ -116,7 +117,6 @@ or a percentage.
 | Energy today | `energy_today` | Mirrored or calculated | kWh | Future | Requires explicit daily semantics |
 | Average power today | `average_power_today` | Calculated | W | Future | Requires statistics implementation |
 | Average price today | `average_price_today` | Calculated | Currency/kWh | Future | Requires price history |
-| Cost this month | `cost_this_month` | Mirrored or calculated | Currency | Medium | Provider semantics must be documented |
 | Monthly peak-hour consumption | `monthly_peak_hour_consumption` | Mirrored initially | kWh | High | Highest hourly consumption in current month |
 | Time of monthly peak hour | `monthly_peak_hour_time` | Mirrored initially | Timestamp | Medium | Optional companion sensor |
 
@@ -143,6 +143,17 @@ the local calendar month. Values are normalized to kWh.
 The first reading establishes the baseline. The first month may therefore be
 partial when Electricity Pro is installed or the energy source is configured
 after the month has started. Subsequent full months are complete.
+
+### Cost this month
+
+This sensor accumulates changes from the configured Cost Today source,
+persists its state across Home Assistant restarts, and handles the source's
+daily reset. It resets at the start of the local calendar month and preserves
+the source currency.
+
+The first reading establishes the baseline. The first month may therefore be
+partial when Electricity Pro is installed or the Cost Today source is
+configured after the month has started. Subsequent full months are complete.
 
 A future provider-independent implementation may calculate billing peaks from
 historical interval data and configurable tariff rules.

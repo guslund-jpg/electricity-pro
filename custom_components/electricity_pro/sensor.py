@@ -186,6 +186,21 @@ SENSOR_DESCRIPTIONS: tuple[
         required_config_key=CONF_ACCUMULATED_COST_TODAY_ENTITY,
     ),
     ElectricityProSensorEntityDescription(
+        key="cost_this_month",
+        name="Cost this month",
+        icon="mdi:calendar-month-outline",
+        device_class=SensorDeviceClass.MONETARY,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=2,
+        value_fn=lambda data: data.cost_this_month,
+        unit_fn=lambda data: data.cost_this_month_unit,
+        available_fn=lambda data: (
+            data.cost_this_month is not None
+            and data.cost_this_month_unit is not None
+        ),
+        required_config_key=CONF_ACCUMULATED_COST_TODAY_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
         key="peak_power_today",
         name="Peak power today",
         icon="mdi:flash-outline",

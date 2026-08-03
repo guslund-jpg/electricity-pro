@@ -50,6 +50,7 @@ Monitor your home's energy usage in real time.
 - Current Electricity Price
 - Current Cost Rate
 - Cost Today
+- Cost This Month
 - Peak Power Today
 - Current L1 / L2 / L3
 - Voltage L1 / L2 / L3
