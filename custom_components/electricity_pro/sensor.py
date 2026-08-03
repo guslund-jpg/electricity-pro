@@ -160,7 +160,7 @@ SENSOR_DESCRIPTIONS: tuple[
         name="Monthly peak-hour consumption",
         icon="mdi:chart-bell-curve",
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
         value_fn=lambda data: data.monthly_peak_hour_consumption,
         unit_fn=lambda data: data.monthly_peak_hour_consumption_unit,
