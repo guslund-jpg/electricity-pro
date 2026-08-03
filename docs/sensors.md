@@ -152,9 +152,10 @@ persists its state across Home Assistant restarts, and handles the source's
 daily reset. It resets at the start of the local calendar month and preserves
 the source currency.
 
-The first reading establishes the baseline. The first month may therefore be
-partial when Electricity Pro is installed or the Cost Today source is
-configured after the month has started. Subsequent full months are complete.
+On first setup, the current Cost Today value seeds the monthly total so Cost
+This Month includes the whole current day. The first month may still be partial
+because costs from earlier days are unavailable. Subsequent full months are
+complete.
 
 A future provider-independent implementation may calculate billing peaks from
 historical interval data and configurable tariff rules.
