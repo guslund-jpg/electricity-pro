@@ -13,6 +13,10 @@
 - Added persistent monthly accumulation with calendar-month and source-meter
   reset handling.
 
+### Fixed
+
+- Seed Cost This Month with the available Cost Today value on first setup.
+
 ## [0.7.0] - 2026-08-02
 
 ### Added
