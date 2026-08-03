@@ -57,6 +57,10 @@ Monitor your home's energy usage in real time.
 - Voltage L1 / L2 / L3
 - Monthly Peak Hour Consumption.
 
+### Insights
+
+- Good Time to Use Electricity based on an optional Effective Price threshold
+
 ### Native Home Assistant Integration
 
 - Standard sensor entities
