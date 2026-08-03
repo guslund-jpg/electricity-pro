@@ -15,7 +15,9 @@
           "current_l3_entity": "Current L3 sensor",
           "voltage_l1_entity": "Voltage L1 sensor",
           "voltage_l2_entity": "Voltage L2 sensor",
-          "voltage_l3_entity": "Voltage L3 sensor"
+          "voltage_l3_entity": "Voltage L3 sensor",
+          "grid_fee_per_kwh": "Variable grid fee per kWh",
+          "tax_per_kwh": "Tax or markup per kWh"
 
         },
         "data_description": {
@@ -29,7 +31,9 @@
           "voltage_l1_entity": "Optional sensor providing instantaneous voltage for phase L1.",
           "voltage_l2_entity": "Optional sensor providing instantaneous voltage for phase L2.",
           "voltage_l3_entity": "Optional sensor providing instantaneous voltage for phase L3.",
-          "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption."
+          "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
+          "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor.",
+          "tax_per_kwh": "Optional non-negative tax or markup in the same currency per kWh as the price sensor."
         }
       }
     }
@@ -50,7 +54,9 @@
           "voltage_l1_entity": "Voltage L1 sensor",
           "voltage_l2_entity": "Voltage L2 sensor",
           "voltage_l3_entity": "Voltage L3 sensor",
-          "monthly_peak_hour_consumption_entity": "Monthly peak hour consumption sensor"
+          "monthly_peak_hour_consumption_entity": "Monthly peak hour consumption sensor",
+          "grid_fee_per_kwh": "Variable grid fee per kWh",
+          "tax_per_kwh": "Tax or markup per kWh"
         },
         "data_description": {
           "power_entity": "Choose an existing Home Assistant sensor with the power device class.",
@@ -63,7 +69,9 @@
           "voltage_l1_entity": "Optional sensor providing instantaneous voltage for phase L1.",
           "voltage_l2_entity": "Optional sensor providing instantaneous voltage for phase L2.",
           "voltage_l3_entity": "Optional sensor providing instantaneous voltage for phase L3.",
-          "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption."
+          "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
+          "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor.",
+          "tax_per_kwh": "Optional non-negative tax or markup in the same currency per kWh as the price sensor."
         }
       }
     }

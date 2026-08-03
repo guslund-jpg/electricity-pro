@@ -72,6 +72,7 @@ clear and broadly useful.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Live | Current power | `current_power` | Mirrored | W | Power | Measurement | Available |
 | Live | Current price | `current_price` | Mirrored | Currency/kWh | None | Measurement | Available |
+| Live | Effective price | `effective_price` | Calculated | Currency/kWh | None | Measurement | Available |
 | Live | Current cost rate | `current_cost_rate` | Calculated | Currency/h | None | Measurement | Available |
 | Consumption | Energy | `current_energy` | Mirrored | Wh or kWh | Energy | Total increasing | Available |
 | Monthly | Energy this month | `energy_this_month` | Calculated | kWh | Energy | Total | Available |

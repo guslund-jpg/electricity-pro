@@ -26,7 +26,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from . import ElectricityProConfigEntry
-from .calculations import calculate_current_cost_rate
+from .calculations import calculate_current_cost_rate, calculate_effective_price
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
     CONF_CURRENT_L1_ENTITY,
@@ -95,6 +95,15 @@ def current_cost_rate(data: ElectricityProData) -> Decimal | None:
     )
 
 
+def effective_price(data: ElectricityProData) -> Decimal | None:
+    """Return electricity price including configured variable adjustments."""
+    return calculate_effective_price(
+        data.current_price,
+        data.grid_fee_per_kwh,
+        data.tax_per_kwh,
+    )
+
+
 def projected_remaining_cost(data: ElectricityProData) -> Decimal | None:
     """Return the projected electricity cost until local midnight."""
     return remaining_cost_today(
@@ -139,6 +148,20 @@ SENSOR_DESCRIPTIONS: tuple[
         unit_fn=cost_rate_unit,
         available_fn=lambda data: (
             current_cost_rate(data) is not None and cost_rate_unit(data) is not None
+        ),
+        required_config_key=CONF_PRICE_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="effective_price",
+        name="Effective price",
+        icon="mdi:cash-plus",
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=3,
+        value_fn=effective_price,
+        unit_fn=lambda data: data.current_price_unit,
+        available_fn=lambda data: (
+            effective_price(data) is not None
+            and data.current_price_unit is not None
         ),
         required_config_key=CONF_PRICE_ENTITY,
     ),

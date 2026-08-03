@@ -9,10 +9,12 @@ from custom_components.electricity_pro.const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_GRID_FEE_PER_KWH,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
+    CONF_TAX_PER_KWH,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
@@ -50,6 +52,8 @@ def setup_electricity_pro(hass):
         voltage_l3_value: str | None = None,
         monthly_peak_hour_consumption_value: str | None = None,
         monthly_peak_hour_consumption_unit: str = "kWh",
+        grid_fee_per_kwh: float | None = None,
+        tax_per_kwh: float | None = None,
     ) -> MockConfigEntry:
         """Create and set up an Electricity Pro config entry."""
 
@@ -65,6 +69,12 @@ def setup_electricity_pro(hass):
         entry_data = {
             CONF_POWER_ENTITY: "sensor.test_power",
         }
+
+        if grid_fee_per_kwh is not None:
+            entry_data[CONF_GRID_FEE_PER_KWH] = grid_fee_per_kwh
+
+        if tax_per_kwh is not None:
+            entry_data[CONF_TAX_PER_KWH] = tax_per_kwh
 
         if price_value is not None:
             hass.states.async_set(

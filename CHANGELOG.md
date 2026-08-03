@@ -4,12 +4,37 @@
 
 ### Added
 
+- Added an Effective Price sensor with optional fixed grid-fee and tax/markup
+  adjustments per kWh.
 - Added a Cost This Month sensor derived from the configured cumulative Cost
   Today source.
 - Added an Energy This Month sensor derived from the configured cumulative
   energy source.
 - Added persistent monthly accumulation with calendar-month and source-meter
   reset handling.
+
+## [0.7.0] - 2026-08-02
+
+### Added
+
+- Cost Today
+- Remaining Cost Today
+- Peak Power Today
+- Monthly Peak Hour Consumption
+- Three-phase Current (L1/L2/L3)
+- Three-phase Voltage (L1/L2/L3)
+
+### Improved
+
+- Provider abstraction
+- Configuration flow
+- Documentation
+- Dashboard example
+
+### Quality
+
+- 144 automated tests
+- Home Assistant verification
 
 ## [0.6.0] - Foundation Release 2026-07-26
 
@@ -49,28 +74,5 @@
 - Added `CONTRIBUTING.md`
 - Added `CHANGELOG.md`
 - Added project design documentation.
-
-## [0.7.0] - 2026-08-02
-
-### Added
-
-- Cost Today
-- Remaining Cost Today
-- Peak Power Today
-- Monthly Peak Hour Consumption
-- Three-phase Current (L1/L2/L3)
-- Three-phase Voltage (L1/L2/L3)
-
-### Improved
-
-- Provider abstraction
-- Configuration flow
-- Documentation
-- Dashboard example
-
-### Quality
-
-- 144 automated tests
-- Home Assistant verification
 
 ---
