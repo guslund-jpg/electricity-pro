@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added an optional Good Time to Use Electricity insight based on a configured
+  Effective Price threshold.
 - Added an Effective Price sensor with optional fixed grid-fee and tax/markup
   adjustments per kWh.
 - Added a Cost This Month sensor derived from the configured cumulative Cost
