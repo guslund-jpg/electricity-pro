@@ -5,6 +5,7 @@ from homeassistant.core import HomeAssistant
 
 from custom_components.electricity_pro.const import (
     CONF_GRID_FEE_PER_KWH,
+    CONF_GOOD_PRICE_THRESHOLD,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
     CONF_TAX_PER_KWH,
@@ -78,12 +79,14 @@ async def test_user_flow_effective_price_adjustments(
             CONF_PRICE_ENTITY: "sensor.price",
             CONF_GRID_FEE_PER_KWH: 0.25,
             CONF_TAX_PER_KWH: 0.15,
+            CONF_GOOD_PRICE_THRESHOLD: 1.20,
         },
     )
 
     assert result["type"] == "create_entry"
     assert result["data"][CONF_GRID_FEE_PER_KWH] == 0.25
     assert result["data"][CONF_TAX_PER_KWH] == 0.15
+    assert result["data"][CONF_GOOD_PRICE_THRESHOLD] == 1.20
 
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
