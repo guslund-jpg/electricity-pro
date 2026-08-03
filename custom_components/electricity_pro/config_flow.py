@@ -21,6 +21,7 @@ from .const import (
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_GRID_FEE_PER_KWH,
+    CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
@@ -49,6 +50,7 @@ def _entity_schema(
     monthly_peak_hour_consumption_default: str | None = None,
     grid_fee_per_kwh_default: float | None = None,
     tax_per_kwh_default: float | None = None,
+    good_price_threshold_default: float | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
 
@@ -158,6 +160,13 @@ def _entity_schema(
             CONF_TAX_PER_KWH,
             default=tax_per_kwh_default,
         )
+    if good_price_threshold_default is None:
+        good_price_threshold_key = vol.Optional(CONF_GOOD_PRICE_THRESHOLD)
+    else:
+        good_price_threshold_key = vol.Optional(
+            CONF_GOOD_PRICE_THRESHOLD,
+            default=good_price_threshold_default,
+        )
     return vol.Schema(
         {
             power_key: selector.EntitySelector(
@@ -238,6 +247,13 @@ def _entity_schema(
                 )
             ),
             tax_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            good_price_threshold_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
                     step=0.001,
@@ -362,6 +378,10 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_TAX_PER_KWH,
             self.config_entry.data.get(CONF_TAX_PER_KWH),
         )
+        current_good_price_threshold = self.config_entry.options.get(
+            CONF_GOOD_PRICE_THRESHOLD,
+            self.config_entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
+        )
 
         return self.async_show_form(
             step_id="init",
@@ -380,5 +400,6 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 monthly_peak_hour_consumption_default=current_monthly_peak_hour_consumption,
                 grid_fee_per_kwh_default=current_grid_fee,
                 tax_per_kwh_default=current_tax,
+                good_price_threshold_default=current_good_price_threshold,
             ),
         )
