@@ -40,18 +40,18 @@ Electricity Pro is an analytics layer.
 It receives measurements from one or more providers and transforms them into
 statistics and insights that help users make better decisions.
 
-```
+```text
 Provider
-        ↓
- Measurements
-        ↓
- Normalization
-        ↓
- Statistics
-        ↓
- Insights
-        ↓
- Home Assistant
+    ↓
+Measurements
+    ↓
+Normalization
+    ↓
+Statistics
+    ↓
+Insights
+    ↓
+Home Assistant
 ```
 
 ---
