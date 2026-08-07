@@ -8,6 +8,9 @@
   green/yellow/red gauges and documented their editable example thresholds.
 - Presented Current Cost Rate as an editable gauge combining live power and
   Effective Price into current spending intensity.
+- Added planned v1.1 forecast-price and v1.2 recommendation-intelligence stages
+  to the roadmap, with Nord Pool as the first provider-independent forecast
+  adapter.
 
 ## [0.9.0] - 2026-08-07
 

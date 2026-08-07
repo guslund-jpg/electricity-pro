@@ -92,6 +92,8 @@ Electricity Pro is evolving in carefully planned stages.
 | **v0.8** | Intelligence                     | ✅ Released                      |
 | **v0.9** | Daily Statistics & Dashboards    | ✅ Released                      |
 | **v1.0** | Stable Release                   | 🎯 Target                        |
+| **v1.1** | Forecast Prices & Scheduling     | 🔭 Planned                       |
+| **v1.2** | Recommendation Intelligence      | 🔭 Planned                       |
 
 See [ROADMAP.md](ROADMAP.md) for more details.
 
