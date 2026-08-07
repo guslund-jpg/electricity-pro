@@ -2,7 +2,10 @@
 
 from decimal import Decimal
 
+import pytest
+
 from custom_components.electricity_pro.calculations import (
+    calculate_consumption_weighted_average_price,
     calculate_current_cost_rate,
     calculate_effective_price,
 )
@@ -28,6 +31,57 @@ def test_calculate_effective_price_rejects_negative_adjustment() -> None:
         Decimal("0.80"),
         Decimal("-0.10"),
     ) is None
+
+
+def test_calculate_consumption_weighted_average_price() -> None:
+    """Calculate achieved average price with adjustments applied once."""
+    assert calculate_consumption_weighted_average_price(
+        Decimal("12"),
+        Decimal("10"),
+        "kWh",
+        Decimal("0.25"),
+        Decimal("0.15"),
+    ) == Decimal("1.60")
+
+
+def test_calculate_consumption_weighted_average_price_accepts_wh() -> None:
+    """Normalize watt-hours before calculating the average price."""
+    assert calculate_consumption_weighted_average_price(
+        Decimal("3"),
+        Decimal("2500"),
+        "Wh",
+    ) == Decimal("1.2")
+
+
+@pytest.mark.parametrize(
+    ("cost", "energy", "unit", "grid_fee", "tax"),
+    [
+        (None, Decimal("1"), "kWh", None, None),
+        (Decimal("1"), None, "kWh", None, None),
+        (Decimal("1"), Decimal("0"), "kWh", None, None),
+        (Decimal("1"), Decimal("1"), "J", None, None),
+        (Decimal("-1"), Decimal("1"), "kWh", None, None),
+        (Decimal("1"), Decimal("1"), "kWh", Decimal("-1"), None),
+    ],
+)
+def test_calculate_consumption_weighted_average_price_rejects_invalid_inputs(
+    cost: Decimal | None,
+    energy: Decimal | None,
+    unit: str,
+    grid_fee: Decimal | None,
+    tax: Decimal | None,
+) -> None:
+    """Return unavailable for incomplete or incompatible daily inputs."""
+    assert (
+        calculate_consumption_weighted_average_price(
+            cost,
+            energy,
+            unit,
+            grid_fee,
+            tax,
+        )
+        is None
+    )
 
 
 def test_calculate_current_cost_rate() -> None:

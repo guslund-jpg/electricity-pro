@@ -16,6 +16,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
+    UnitOfEnergy,
     UnitOfPower,
 )
 from homeassistant.core import HomeAssistant, callback
@@ -26,7 +27,11 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from . import ElectricityProConfigEntry
-from .calculations import calculate_current_cost_rate, calculate_effective_price
+from .calculations import (
+    calculate_consumption_weighted_average_price,
+    calculate_current_cost_rate,
+    calculate_effective_price,
+)
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
     CONF_CURRENT_L1_ENTITY,
@@ -57,6 +62,7 @@ class ElectricityProSensorEntityDescription(
     available_fn: Callable[[ElectricityProData], bool]
     unit_fn: Callable[[ElectricityProData], str | None] | None = None
     required_config_key: str | None = None
+    required_config_keys: tuple[str, ...] = ()
 
 
 def cost_rate_unit(data: ElectricityProData) -> str | None:
@@ -103,6 +109,33 @@ def effective_price(data: ElectricityProData) -> Decimal | None:
         data.grid_fee_per_kwh,
         data.tax_per_kwh,
     )
+
+
+def consumption_weighted_average_price(
+    data: ElectricityProData,
+) -> Decimal | None:
+    """Return today's achieved average effective price per kWh."""
+    return calculate_consumption_weighted_average_price(
+        data.accumulated_cost_today,
+        data.current_energy,
+        data.current_energy_unit,
+        data.grid_fee_per_kwh,
+        data.tax_per_kwh,
+    )
+
+
+def consumption_weighted_average_price_unit(
+    data: ElectricityProData,
+) -> str | None:
+    """Return the currency-per-kWh unit for today's achieved average."""
+    if (
+        data.accumulated_cost_today_unit is None
+        or data.current_energy_unit
+        not in {UnitOfEnergy.WATT_HOUR, UnitOfEnergy.KILO_WATT_HOUR}
+    ):
+        return None
+
+    return f"{data.accumulated_cost_today_unit}/kWh"
 
 
 def projected_remaining_cost(data: ElectricityProData) -> Decimal | None:
@@ -165,6 +198,23 @@ SENSOR_DESCRIPTIONS: tuple[
             and data.current_price_unit is not None
         ),
         required_config_key=CONF_PRICE_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="consumption_weighted_average_price_today",
+        name="Consumption-weighted average price today",
+        icon="mdi:chart-line",
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=3,
+        value_fn=consumption_weighted_average_price,
+        unit_fn=consumption_weighted_average_price_unit,
+        available_fn=lambda data: (
+            consumption_weighted_average_price(data) is not None
+            and consumption_weighted_average_price_unit(data) is not None
+        ),
+        required_config_keys=(
+            CONF_ACCUMULATED_COST_TODAY_ENTITY,
+            CONF_ENERGY_ENTITY,
+        ),
     ),
     ElectricityProSensorEntityDescription(
         key="remaining_cost_today",
@@ -365,6 +415,10 @@ async def async_setup_entry(
             description.required_config_key is None
             or description.required_config_key in entry.options
             or description.required_config_key in entry.data
+        )
+        and all(
+            key in entry.options or key in entry.data
+            for key in description.required_config_keys
         )
     ]
 
