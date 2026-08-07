@@ -1,0 +1,363 @@
+title: Electricity Pro Enhanced
+
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:home-lightning-bolt
+    cards:
+      - type: custom:mushroom-title-card
+        title: Electricity Pro
+        subtitle: Live measurements, statistics, and insight
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: sensor.electricity_pro_current_power
+            name: Current power
+            icon: mdi:flash
+            icon_color: amber
+            layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_effective_price
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_effective_price
+              name: Effective price
+              icon: mdi:cash-plus
+              icon_color: green
+              layout: vertical
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.electricity_pro_good_time_to_use_electricity
+            state_not:
+              - unavailable
+              - unknown
+        card:
+          type: custom:mushroom-template-card
+          entity: binary_sensor.electricity_pro_good_time_to_use_electricity
+          primary: >-
+            {{ 'Good time to use electricity'
+               if is_state('binary_sensor.electricity_pro_good_time_to_use_electricity', 'on')
+               else 'Wait for a better price' }}
+          secondary: >-
+            Effective price:
+            {{ states('sensor.electricity_pro_effective_price') }}
+            {{ state_attr('sensor.electricity_pro_effective_price',
+                          'unit_of_measurement') or '' }}
+          icon: >-
+            {{ 'mdi:check-circle-outline'
+               if is_state('binary_sensor.electricity_pro_good_time_to_use_electricity', 'on')
+               else 'mdi:clock-outline' }}
+          icon_color: >-
+            {{ 'green'
+               if is_state('binary_sensor.electricity_pro_good_time_to_use_electricity', 'on')
+               else 'orange' }}
+          tap_action:
+            action: more-info
+
+      - type: custom:mushroom-title-card
+        title: Today
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_energy_today
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_energy_today
+              name: Energy today
+              icon: mdi:lightning-bolt
+              icon_color: blue
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cost_today
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_cost_today
+              name: Cost today
+              icon: mdi:cash
+              icon_color: green
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_consumption_weighted_average_price_today
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_consumption_weighted_average_price_today
+              name: Average effective price today
+              icon: mdi:chart-line
+              icon_color: green
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_today
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_peak_power_today
+              name: Peak power today
+              icon: mdi:flash-outline
+              icon_color: amber
+              layout: vertical
+
+      - type: custom:mushroom-title-card
+        title: This month
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_energy_this_month
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_energy_this_month
+              name: Energy this month
+              icon: mdi:calendar-month
+              icon_color: blue
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cost_this_month
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_cost_this_month
+              name: Cost this month
+              icon: mdi:calendar-month-outline
+              icon_color: green
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_consumption
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_monthly_peak_hour_consumption
+              name: Monthly peak-hour consumption
+              icon: mdi:chart-bell-curve
+              icon_color: amber
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_time
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_monthly_peak_hour_time
+              name: Monthly peak-hour time
+              icon: mdi:clock-outline
+              icon_color: amber
+              layout: vertical
+
+  - title: Trends
+    path: trends
+    icon: mdi:chart-areaspline
+    cards:
+      - type: custom:mushroom-title-card
+        title: Power
+        subtitle: Recorded household demand — last 24 hours
+
+      - type: custom:apexcharts-card
+        graph_span: 24h
+        header:
+          show: true
+          title: Household power
+          show_states: true
+          colorize_states: true
+        yaxis:
+          - min: 0
+            decimals: 0
+        series:
+          - entity: sensor.electricity_pro_current_power
+            name: Current power
+            type: area
+            color: "#ffb300"
+            stroke_width: 2
+            group_by:
+              duration: 5min
+              func: avg
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_effective_price
+            state_not:
+              - unavailable
+              - unknown
+        card:
+          type: custom:apexcharts-card
+          graph_span: 24h
+          header:
+            show: true
+            title: Supplier and effective price
+            show_states: true
+            colorize_states: true
+          yaxis:
+            - min: 0
+              decimals: 2
+          series:
+            - entity: sensor.electricity_pro_current_price
+              name: Current supplier price
+              type: line
+              color: "#42a5f5"
+              stroke_width: 2
+              group_by:
+                duration: 15min
+                func: avg
+            - entity: sensor.electricity_pro_effective_price
+              name: Effective price
+              type: line
+              color: "#66bb6a"
+              stroke_width: 3
+              group_by:
+                duration: 15min
+                func: avg
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_consumption_weighted_average_price_today
+            state_not:
+              - unavailable
+              - unknown
+        card:
+          type: custom:mushroom-entity-card
+          entity: sensor.electricity_pro_consumption_weighted_average_price_today
+          name: Average effective price today
+          icon: mdi:chart-line
+          icon_color: green
+
+  - title: Details
+    path: details
+    icon: mdi:transmission-tower
+    cards:
+      - type: custom:mushroom-title-card
+        title: Electrical details
+        subtitle: Optional phase measurements
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l1
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_current_l1
+              name: Current L1
+              layout: vertical
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l2
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_current_l2
+              name: Current L2
+              layout: vertical
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l3
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_current_l3
+              name: Current L3
+              layout: vertical
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l1
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_voltage_l1
+              name: Voltage L1
+              layout: vertical
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l2
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_voltage_l2
+              name: Voltage L2
+              layout: vertical
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l3
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_voltage_l3
+              name: Voltage L3
+              layout: vertical

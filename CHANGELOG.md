@@ -16,6 +16,8 @@
 
 ### Documentation
 
+- Added an optional enhanced dashboard using Mushroom and ApexCharts Card for
+  compact status cards and recorded power and price visualizations.
 - Refreshed the standard built-in-card dashboard for v0.9 daily and monthly
   statistics, Effective Price, and Good Time insight, with customization
   guidance and an illustrative preview.

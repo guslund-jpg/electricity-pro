@@ -105,7 +105,9 @@ The [standard dashboard example](examples/dashboards/README.md) uses only cards
 included with Home Assistant and covers live measurements, daily and monthly
 statistics, Effective Price, and the first Good Time insight.
 
-An enhanced dashboard using optional custom cards remains planned.
+The optional [enhanced dashboard](examples/dashboards/README.md#enhanced-dashboard)
+adds Mushroom-based cards and ApexCharts visualizations while keeping the
+standard dashboard as the dependency-free baseline.
 
 ---
 
