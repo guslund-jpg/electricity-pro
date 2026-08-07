@@ -68,7 +68,7 @@ depending on adapter configuration. Adapters must document what their
 value includes.
 
 Energy today
-sensor.electricity_pro_energy
+sensor.electricity_pro_energy_today
 Property  Contract
 Meaning  Imported electrical energy accumulated today
 Canonical unit  kWh

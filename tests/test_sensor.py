@@ -15,7 +15,7 @@ from custom_components.electricity_pro.const import DOMAIN
 ENTITY_ID = f"sensor.{DOMAIN}_current_power"
 SOURCE_ENTITY_ID = "sensor.test_power"
 
-ENERGY_ENTITY_ID = f"sensor.{DOMAIN}_energy"
+ENERGY_ENTITY_ID = f"sensor.{DOMAIN}_energy_today"
 ENERGY_SOURCE_ENTITY_ID = "sensor.test_energy"
 ENERGY_THIS_MONTH_ENTITY_ID = f"sensor.{DOMAIN}_energy_this_month"
 

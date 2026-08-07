@@ -5,7 +5,7 @@
 ### Changed
 
 - Clarified the existing mirrored Energy sensor as Energy Today while keeping
-  its stable entity key and recorded history compatible with existing setups.
+  its stable unique ID and recorded history compatible with existing setups.
 
 ### Documentation
 
