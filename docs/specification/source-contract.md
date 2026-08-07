@@ -68,7 +68,7 @@ depending on adapter configuration. Adapters must document what their
 value includes.
 
 Energy today
-sensor.electricity_pro_energy_today
+sensor.electricity_pro_energy
 Property  Contract
 Meaning  Imported electrical energy accumulated today
 Canonical unit  kWh
@@ -79,6 +79,9 @@ Required  For daily energy features
 
 A reset to zero at the beginning of a new local day is expected and is
 not considered an error.
+
+The internal entity key remains `current_energy` for compatibility with
+existing installations and recorded history.
 
 Cost today
 sensor.electricity_pro_cost_today

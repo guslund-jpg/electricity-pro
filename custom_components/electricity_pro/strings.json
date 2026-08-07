@@ -5,7 +5,7 @@
         "data": {
           "power_entity": "Power sensor",
           "price_entity": "Electricity price sensor",
-          "energy_entity": "Accumulated consumption sensor",
+          "energy_entity": "Today's accumulated energy sensor",
           "accumulated_cost_today_entity": "Today's accumulated cost sensor",
           "peak_power_today_entity": "Today's peak power sensor",
           "current_l1_entity": "Current L1 sensor",
@@ -22,7 +22,7 @@
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
           "price_entity": "Optional sensor providing the current electricity price.",
-          "energy_entity": "Optional sensor providing accumulated electricity consumption.",
+          "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
           "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost.",
           "peak_power_today_entity": "Optional sensor providing today's maximum measured power.",
           "current_l1_entity": "Optional sensor providing instantaneous current for phase L1.",
@@ -45,7 +45,7 @@
         "data": {
           "power_entity": "Power sensor",
           "price_entity": "Electricity price sensor",
-          "energy_entity": "Accumulated consumption sensor",
+          "energy_entity": "Today's accumulated energy sensor",
           "accumulated_cost_today_entity": "Today's accumulated cost sensor",
           "peak_power_today_entity": "Today's maximum power sensor",
           "current_l1_entity": "Current L1 sensor",
@@ -62,7 +62,7 @@
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
           "price_entity": "Optional sensor providing the current electricity price.",
-          "energy_entity": "Optional sensor providing accumulated electricity consumption.",
+          "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
           "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost.",
           "peak_power_today_entity": "Optional sensor providing today's maximum measured power.",
           "current_l1_entity": "Optional sensor providing instantaneous current for phase L1.",

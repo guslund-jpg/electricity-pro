@@ -74,7 +74,7 @@ clear and broadly useful.
 | Live | Current price | `current_price` | Mirrored | Currency/kWh | None | Measurement | Available |
 | Live | Effective price | `effective_price` | Calculated | Currency/kWh | None | Measurement | Available |
 | Live | Current cost rate | `current_cost_rate` | Calculated | Currency/h | None | Measurement | Available |
-| Consumption | Energy | `current_energy` | Mirrored | Wh or kWh | Energy | Total increasing | Available |
+| Daily | Energy today | `current_energy` | Mirrored | Wh or kWh | Energy | Total increasing | Available |
 | Monthly | Energy this month | `energy_this_month` | Calculated | kWh | Energy | Total | Available |
 | Daily | Cost today | `cost_today` | Mirrored | Currency | Monetary | Total | Available |
 | Monthly | Cost this month | `cost_this_month` | Calculated | Currency | Monetary | Total | Available |
@@ -115,7 +115,6 @@ or a percentage.
 
 | Sensor | Proposed entity key | Type | Unit | Priority | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Energy today | `energy_today` | Mirrored or calculated | kWh | Future | Requires explicit daily semantics |
 | Average power today | `average_power_today` | Calculated | W | Future | Requires statistics implementation |
 | Average price today | `average_price_today` | Calculated | Currency/kWh | Future | Requires price history |
 | Monthly peak-hour consumption | `monthly_peak_hour_consumption` | Mirrored initially | kWh | High | Highest hourly consumption in current month |
