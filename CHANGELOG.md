@@ -6,6 +6,8 @@
 
 - Replaced the Current Power and Effective Price dashboard tiles with
   green/yellow/red gauges and documented their editable example thresholds.
+- Presented Current Cost Rate as an editable gauge combining live power and
+  Effective Price into current spending intensity.
 
 ## [0.9.0] - 2026-08-07
 
