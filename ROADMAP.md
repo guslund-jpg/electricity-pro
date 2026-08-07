@@ -162,14 +162,14 @@ Delivered:
 
 ---
 
-### v0.9 — Daily Statistics & Dashboard Experience
+### v0.9 — Daily Statistics & Dashboard Experience ✅
 
 #### Goal
 
 Complete the core daily statistics and present measurements, statistics and
 insights through polished dashboards.
 
-Delivered in current v0.9 development:
+Delivered:
 
 - Energy Today
 - Monthly Peak Hour Time

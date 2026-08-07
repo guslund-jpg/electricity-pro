@@ -90,7 +90,7 @@ Electricity Pro is evolving in carefully planned stages.
 | **v0.6** | Foundation                       | ✅ Released                      |
 | **v0.7** | Traditional Sensors & Statistics | ✅ Released                      |
 | **v0.8** | Intelligence                     | ✅ Released                      |
-| **v0.9** | Daily Statistics & Dashboards    | 🚧 In progress                   |
+| **v0.9** | Daily Statistics & Dashboards    | ✅ Released                      |
 | **v1.0** | Stable Release                   | 🎯 Target                        |
 
 See [ROADMAP.md](ROADMAP.md) for more details.
@@ -127,7 +127,7 @@ standard dashboard as the dependency-free baseline.
 ## Documentation
 
 - 📖 ROADMAP.md
-- 🏗️ docs/ARCHITECTURE.md
+- 🏗️ docs/architecture.md
 - 🤝 CONTRIBUTING.md
 - 📝 CHANGELOG.md
 
@@ -137,11 +137,11 @@ standard dashboard as the dependency-free baseline.
 
 ### Current release
 
-v0.8.0 – Statistics Foundation & First Insight
+v0.9.0 – Daily Statistics & Dashboard Experience
 
 Electricity Pro is actively developed with a clear public roadmap.
 
-The current focus is the v0.9 daily statistics and dashboard experience.
+The next focus is v1.0 stability, packaging, and long-term maintainability.
 
 ---
 
