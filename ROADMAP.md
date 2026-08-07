@@ -175,6 +175,7 @@ Delivered in current v0.9 development:
 - Monthly Peak Hour Time
 - Consumption-Weighted Average Price Today
 - Standard dashboard using built-in Home Assistant cards
+- Enhanced optional dashboard using Mushroom and ApexCharts Card
 
 Dashboard examples:
 
@@ -184,7 +185,7 @@ Uses only built-in Home Assistant cards. Delivered.
 
 #### Enhanced
 
-Uses optional custom cards for richer visualisations and analytics. Remaining.
+Uses optional custom cards for richer visualisations and analytics. Delivered.
 
 Average Market Price Today and Average Power Today remain future candidates
 outside the committed v0.9 scope.
