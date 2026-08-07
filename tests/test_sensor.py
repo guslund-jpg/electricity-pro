@@ -385,6 +385,9 @@ async def test_current_power_becomes_unavailable_for_invalid_value(
 
 PRICE_ENTITY_ID = f"sensor.{DOMAIN}_current_price"
 EFFECTIVE_PRICE_ENTITY_ID = f"sensor.{DOMAIN}_effective_price"
+WEIGHTED_AVERAGE_PRICE_ENTITY_ID = (
+    f"sensor.{DOMAIN}_consumption_weighted_average_price_today"
+)
 
 
 async def test_current_price_initial_value(
@@ -425,6 +428,81 @@ async def test_effective_price_includes_configured_adjustments(
     assert Decimal(state.state) == Decimal("1.20")
     assert state.attributes["unit_of_measurement"] == "SEK/kWh"
     assert state.attributes["state_class"] == "measurement"
+
+
+async def test_consumption_weighted_average_price_today(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Achieved average price should use aligned daily totals and adjustments."""
+    await setup_electricity_pro(
+        energy_value="10",
+        energy_unit="kWh",
+        accumulated_cost_today_value="12",
+        accumulated_cost_today_unit="SEK",
+        grid_fee_per_kwh=0.25,
+        tax_per_kwh=0.15,
+    )
+
+    state = hass.states.get(WEIGHTED_AVERAGE_PRICE_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("1.60")
+    assert state.attributes["unit_of_measurement"] == "SEK/kWh"
+    assert state.attributes["state_class"] == "measurement"
+
+
+async def test_consumption_weighted_average_price_today_updates(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Achieved average price should update when a daily source changes."""
+    await setup_electricity_pro(
+        energy_value="10",
+        accumulated_cost_today_value="12",
+        accumulated_cost_today_unit="SEK",
+    )
+
+    hass.states.async_set(
+        "sensor.test_accumulated_cost_today",
+        "15",
+        {
+            "unit_of_measurement": "SEK",
+            "device_class": "monetary",
+            "state_class": "total",
+        },
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(WEIGHTED_AVERAGE_PRICE_ENTITY_ID)
+    assert state is not None
+    assert Decimal(state.state) == Decimal("1.5")
+
+
+async def test_consumption_weighted_average_price_unavailable_at_zero_energy(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Achieved average price should be unavailable before energy is consumed."""
+    await setup_electricity_pro(
+        energy_value="0",
+        accumulated_cost_today_value="0",
+        accumulated_cost_today_unit="SEK",
+    )
+
+    state = hass.states.get(WEIGHTED_AVERAGE_PRICE_ENTITY_ID)
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_consumption_weighted_average_price_requires_both_sources(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Achieved average price should be omitted without both daily sources."""
+    await setup_electricity_pro(energy_value="10")
+
+    assert hass.states.get(WEIGHTED_AVERAGE_PRICE_ENTITY_ID) is None
 
 
 async def test_current_price_updates_when_source_changes(

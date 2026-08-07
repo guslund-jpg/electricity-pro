@@ -36,8 +36,8 @@ views:
             color: green
 
           - type: tile
-            entity: sensor.electricity_pro_energy
-            name: Energy
+            entity: sensor.electricity_pro_energy_today
+            name: Energy today
             icon: mdi:lightning-bolt
             color: blue
 
@@ -53,6 +53,12 @@ views:
             entity: sensor.electricity_pro_cost_today
             name: Cost today
             icon: mdi:cash
+            color: green
+
+          - type: tile
+            entity: sensor.electricity_pro_consumption_weighted_average_price_today
+            name: Average price paid today
+            icon: mdi:chart-line
             color: green
 
           - type: tile
@@ -131,8 +137,8 @@ views:
         square: false
         cards:
           - type: tile
-            entity: sensor.electricity_pro_energy
-            name: Energy
+            entity: sensor.electricity_pro_energy_today
+            name: Energy today
             icon: mdi:lightning-bolt
             color: blue
 
@@ -140,6 +146,12 @@ views:
             entity: sensor.electricity_pro_cost_today
             name: Cost today
             icon: mdi:cash
+            color: green
+
+          - type: tile
+            entity: sensor.electricity_pro_consumption_weighted_average_price_today
+            name: Average price paid today
+            icon: mdi:chart-line
             color: green
 
           - type: tile

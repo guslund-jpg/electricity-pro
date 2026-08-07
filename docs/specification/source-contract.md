@@ -96,6 +96,21 @@ Required  For daily cost features
 Adapters or core calculation modules must document whether taxes, grid
 fees, and fixed fees are included.
 
+Consumption-weighted average price today
+sensor.electricity_pro_consumption_weighted_average_price_today
+Property  Contract
+Meaning  Average effective price achieved by today's actual energy use
+Canonical unit  Configured currency per kWh
+Expected value  Numeric and greater than or equal to zero
+Update behavior  When Cost Today or Energy Today changes
+Missing source  Entity becomes unavailable
+Required  Cost Today and Energy Today sources
+
+The calculation divides Cost Today by Energy Today normalized to kWh, then
+adds configured variable grid-fee and tax/markup adjustments exactly once.
+It is unavailable when Energy Today is zero and is retrospective rather than
+a recommendation about current consumption.
+
 Monthly peak-hour time
 sensor.electricity_pro_monthly_peak_hour_time
 Property  Contract

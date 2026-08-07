@@ -51,6 +51,7 @@ Monitor your home's energy usage in real time.
 - Effective Price
 - Current Cost Rate
 - Cost Today
+- Consumption-Weighted Average Price Today
 - Cost This Month
 - Peak Power Today
 - Current L1 / L2 / L3

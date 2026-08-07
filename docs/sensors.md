@@ -77,6 +77,7 @@ clear and broadly useful.
 | Daily | Energy today | `current_energy` | Mirrored | Wh or kWh | Energy | Total increasing | Available |
 | Monthly | Energy this month | `energy_this_month` | Calculated | kWh | Energy | Total | Available |
 | Daily | Cost today | `cost_today` | Mirrored | Currency | Monetary | Total | Available |
+| Daily | Consumption-weighted average price today | `consumption_weighted_average_price_today` | Calculated | Currency/kWh | None | Measurement | Available |
 | Monthly | Cost this month | `cost_this_month` | Calculated | Currency | Monetary | Total | Available |
 | Daily | Remaining cost today | `remaining_cost_today` | Calculated | Currency | None | Measurement | Available |
 | Daily | Peak power today | `peak_power_today` | Mirrored | W | Power | Measurement | Available |
@@ -117,8 +118,28 @@ or a percentage.
 | Sensor | Proposed entity key | Type | Unit | Priority | Notes |
 | --- | --- | --- | --- | --- | --- |
 | Average power today | `average_power_today` | Calculated | W | Future | Requires statistics implementation |
-| Average price today | `average_price_today` | Calculated | Currency/kWh | Future | Requires price history |
+| Average market price today | `average_price_today` | Calculated | Currency/kWh | Future | Requires price history |
 | Monthly peak-hour consumption | `monthly_peak_hour_consumption` | Mirrored initially | kWh | High | Highest hourly consumption in current month |
+
+### Consumption-weighted average price today
+
+This calculated sensor shows the average effective price achieved by the
+household's actual consumption pattern today:
+
+> Cost Today / Energy Today + configured variable grid fee and tax/markup
+
+Energy is normalized to kWh before division. The configured VAT-inclusive
+per-kWh adjustments are then applied exactly once. The sensor is unavailable
+when either daily source is unavailable, the energy unit is unsupported, or
+Energy Today is zero.
+
+The value is retrospective and is not a recommendation to consume electricity
+now. It differs from Average Market Price Today, which would average the day's
+market prices without considering when the household used electricity.
+
+Cost Today and Energy Today must cover the same local calendar-day period. On
+the first day, the result is only as complete as those source values; no
+historical values are reconstructed by Electricity Pro.
 
 ### Monthly peak-hour consumption
 

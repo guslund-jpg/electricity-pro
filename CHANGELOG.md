@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added a Consumption-Weighted Average Price Today sensor derived from Cost
+  Today, Energy Today, and configured VAT-inclusive per-kWh adjustments.
 - Added an optional Monthly Peak Hour Time sensor mirrored from a configured
   Home Assistant timestamp source.
 
