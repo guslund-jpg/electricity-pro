@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-07
+
 ### Added
 
 - Added an optional Good Time to Use Electricity insight based on a configured

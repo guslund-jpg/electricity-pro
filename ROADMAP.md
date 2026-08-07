@@ -150,16 +150,16 @@ Planned work:
 
 #### Goal
 
-Transform measurements into insight.
+Establish reusable monthly statistics and turn electricity prices into the
+first actionable insight.
 
-Examples:
+Delivered:
 
-- Improved Remaining Cost
-- Estimated Cost Today
-- Estimated Energy Today
-- Price-aware forecasting
-- Consumption-aware forecasting
-- Intelligent recommendations
+- Persistent monthly statistics foundation
+- Energy This Month
+- Cost This Month
+- Effective Price with optional variable grid-fee and tax/markup adjustments
+- Good Time to Use Electricity insight
 
 ---
 
