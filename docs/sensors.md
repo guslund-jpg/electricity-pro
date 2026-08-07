@@ -80,6 +80,7 @@ clear and broadly useful.
 | Monthly | Cost this month | `cost_this_month` | Calculated | Currency | Monetary | Total | Available |
 | Daily | Remaining cost today | `remaining_cost_today` | Calculated | Currency | None | Measurement | Available |
 | Daily | Peak power today | `peak_power_today` | Mirrored | W | Power | Measurement | Available |
+| Monthly | Monthly peak-hour time | `monthly_peak_hour_time` | Mirrored | Timestamp | Timestamp | None | Available |
 
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
 | ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
@@ -118,7 +119,6 @@ or a percentage.
 | Average power today | `average_power_today` | Calculated | W | Future | Requires statistics implementation |
 | Average price today | `average_price_today` | Calculated | Currency/kWh | Future | Requires price history |
 | Monthly peak-hour consumption | `monthly_peak_hour_consumption` | Mirrored initially | kWh | High | Highest hourly consumption in current month |
-| Time of monthly peak hour | `monthly_peak_hour_time` | Mirrored initially | Timestamp | Medium | Optional companion sensor |
 
 ### Monthly peak-hour consumption
 

@@ -96,6 +96,19 @@ Required  For daily cost features
 Adapters or core calculation modules must document whether taxes, grid
 fees, and fixed fees are included.
 
+Monthly peak-hour time
+sensor.electricity_pro_monthly_peak_hour_time
+Property  Contract
+Meaning  Start time of the highest-consumption hour in the current month
+Canonical unit  Timestamp
+Expected value  ISO 8601 timestamp with a timezone offset
+Update behavior  Changes when a new monthly peak hour is reported
+Missing source  Entity is not created when unconfigured and becomes unavailable when invalid
+Required  No
+
+This optional source complements Monthly Peak Hour Consumption. The timestamp
+must remain timezone-aware so Home Assistant can display it in local time.
+
 Source-health entities
 Power source health
 binary_sensor.electricity_pro_power_source_healthy

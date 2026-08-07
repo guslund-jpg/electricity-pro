@@ -39,6 +39,7 @@ from .const import (
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+    CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     DOMAIN,
 )
 from .coordinator import ElectricityProCoordinator
@@ -52,7 +53,7 @@ class ElectricityProSensorEntityDescription(
 ):
     """Describe an Electricity Pro sensor."""
 
-    value_fn: Callable[[ElectricityProData], Decimal | None]
+    value_fn: Callable[[ElectricityProData], Decimal | datetime | None]
     available_fn: Callable[[ElectricityProData], bool]
     unit_fn: Callable[[ElectricityProData], str | None] | None = None
     required_config_key: str | None = None
@@ -192,6 +193,15 @@ SENSOR_DESCRIPTIONS: tuple[
             and data.monthly_peak_hour_consumption_unit is not None
         ),
         required_config_key=CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="monthly_peak_hour_time",
+        name="Monthly peak-hour time",
+        icon="mdi:clock-outline",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda data: data.monthly_peak_hour_time,
+        available_fn=lambda data: data.monthly_peak_hour_time is not None,
+        required_config_key=CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     ),
     ElectricityProSensorEntityDescription(
         key="cost_today",
@@ -409,7 +419,7 @@ class ElectricityProSensor(
         self.async_write_ha_state()
 
     @property
-    def native_value(self) -> Decimal | None:
+    def native_value(self) -> Decimal | datetime | None:
         """Return the sensor's native value."""
         return self.entity_description.value_fn(self.coordinator.data)
 

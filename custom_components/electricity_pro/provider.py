@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -14,6 +15,7 @@ from homeassistant.const import (
     UnitOfPower,
 )
 from homeassistant.core import HomeAssistant, State, callback
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
@@ -24,6 +26,7 @@ from .const import (
     CONF_GRID_FEE_PER_KWH,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+    CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
@@ -54,6 +57,7 @@ class ElectricityProData:
     voltage_l3: Decimal | None
     monthly_peak_hour_consumption: Decimal | None
     monthly_peak_hour_consumption_unit: str | None
+    monthly_peak_hour_time: datetime | None
     energy_this_month: Decimal | None
     energy_this_month_unit: str | None
     cost_this_month: Decimal | None
@@ -125,6 +129,10 @@ class ElectricityProEntityProvider:
             CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
             entry.data.get(CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY),
         )
+        self._monthly_peak_hour_time_entity_id: str | None = entry.options.get(
+            CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
+            entry.data.get(CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY),
+        )
         self._grid_fee_per_kwh = self._normalize_adjustment(
             entry.options.get(
                 CONF_GRID_FEE_PER_KWH,
@@ -181,6 +189,9 @@ class ElectricityProEntityProvider:
 
         if self._monthly_peak_hour_consumption_entity_id is not None:
             entity_ids.append(self._monthly_peak_hour_consumption_entity_id)
+
+        if self._monthly_peak_hour_time_entity_id is not None:
+            entity_ids.append(self._monthly_peak_hour_time_entity_id)
 
         return tuple(entity_ids)
 
@@ -249,6 +260,11 @@ class ElectricityProEntityProvider:
             if self._monthly_peak_hour_consumption_entity_id is not None
             else None
         )
+        monthly_peak_hour_time = self._normalize_timestamp(
+            self._hass.states.get(self._monthly_peak_hour_time_entity_id)
+            if self._monthly_peak_hour_time_entity_id is not None
+            else None
+        )
 
         return ElectricityProData(
             current_power=self._normalize_power(
@@ -271,6 +287,7 @@ class ElectricityProEntityProvider:
             monthly_peak_hour_consumption_unit=(
                 monthly_peak_hour_consumption_unit
             ),
+            monthly_peak_hour_time=monthly_peak_hour_time,
             energy_this_month=None,
             energy_this_month_unit=None,
             cost_this_month=None,
@@ -279,6 +296,22 @@ class ElectricityProEntityProvider:
             tax_per_kwh=self._tax_per_kwh,
             good_price_threshold=self._good_price_threshold,
         )
+
+    @staticmethod
+    def _normalize_timestamp(source_state: State | None) -> datetime | None:
+        """Normalize a timestamp source to a timezone-aware datetime."""
+        if source_state is None or source_state.state in {
+            STATE_UNKNOWN,
+            STATE_UNAVAILABLE,
+            "",
+        }:
+            return None
+
+        timestamp = dt_util.parse_datetime(source_state.state)
+        if timestamp is None or timestamp.tzinfo is None:
+            return None
+
+        return timestamp
 
     @staticmethod
     def _normalize_adjustment(value: Any) -> Decimal | None:
