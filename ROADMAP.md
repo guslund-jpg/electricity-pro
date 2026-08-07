@@ -127,26 +127,25 @@ Highlights:
 
 ---
 
-### v0.7 — Traditional Sensors & Statistics
+### v0.7 — Traditional Sensors & Statistics ✅
 
 #### Goal
 
-Expand Electricity Pro with native Home Assistant sensors and statistics.
+Expand Electricity Pro with native Home Assistant sensors and provider
+abstractions.
 
-Planned work:
+Delivered:
 
-- Energy Today
 - Cost Today
-- Average Price Today
-- Average Power Today
+- Remaining Cost Today
 - Peak Power Today
-- Recorder compatibility review
-- Long-term statistics review
-- Standard Home Assistant dashboard example
+- Monthly Peak Hour Consumption
+- Three-phase current and voltage
+- Provider abstraction and configuration improvements
 
 ---
 
-### v0.8 — Intelligence
+### v0.8 — Statistics Foundation & First Insight ✅
 
 #### Goal
 
@@ -163,11 +162,19 @@ Delivered:
 
 ---
 
-### v0.9 — Dashboard Experience
+### v0.9 — Daily Statistics & Dashboard Experience
 
 #### Goal
 
-Provide polished dashboards built on native Electricity Pro sensors.
+Complete the core daily statistics and present measurements, statistics and
+insights through polished dashboards.
+
+Planned work:
+
+- Energy Today
+- Average Price Today
+- Average Power Today
+- Monthly Peak Hour Time
 
 Two example dashboards:
 
