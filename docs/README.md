@@ -200,14 +200,14 @@ Version 1.0 will represent:
 
 The planned documentation structure is:
 
-| Document               | Purpose                                      |
-| ---------------------- | -------------------------------------------- |
-| `README.md`            | Project overview                             |
-| `docs/ARCHITECTURE.md` | Technical architecture and layer boundaries  |
-| `docs/ROADMAP.md`      | Planned capabilities and releases            |
-| `CONTRIBUTING.md`      | Contribution workflow and coding conventions |
-| `CHANGELOG.md`         | Release history                              |
-| `design/`              | Short design specifications for capabilities |
+| Document                      | Purpose                                      |
+| ----------------------------- | -------------------------------------------- |
+| `README.md`                   | Project overview                             |
+| `docs/ARCHITECTURE.md`        | Technical architecture and layer boundaries  |
+| [`ROADMAP.md`](../ROADMAP.md) | Authoritative release roadmap                |
+| `CONTRIBUTING.md`             | Contribution workflow and coding conventions |
+| `CHANGELOG.md`                | Release history                              |
+| `design/`                     | Short design specifications for capabilities |
 
 ## Contributing
 

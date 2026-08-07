@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- Consolidated release planning into the canonical root roadmap and aligned
+  the v0.9 scope with its Daily Statistics and Dashboard Experience milestone.
+
 ## [0.8.0] - 2026-08-07
 
 ### Added

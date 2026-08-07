@@ -88,7 +88,7 @@ Electricity Pro is evolving in carefully planned stages.
 | **v0.6** | Foundation                       | ✅ Released                      |
 | **v0.7** | Traditional Sensors & Statistics | ✅ Released                      |
 | **v0.8** | Intelligence                     | ✅ Released                      |
-| **v0.9** | Dashboard Experience             | 📋 Planned                       |
+| **v0.9** | Daily Statistics & Dashboards    | 📋 Planned                       |
 | **v1.0** | Stable Release                   | 🎯 Target                        |
 
 See [ROADMAP.md](ROADMAP.md) for more details.
