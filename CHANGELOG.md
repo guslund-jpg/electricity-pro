@@ -16,6 +16,9 @@
 
 ### Documentation
 
+- Refreshed the standard built-in-card dashboard for v0.9 daily and monthly
+  statistics, Effective Price, and Good Time insight, with customization
+  guidance and an illustrative preview.
 - Consolidated release planning into the canonical root roadmap and aligned
   the v0.9 scope with its Daily Statistics and Dashboard Experience milestone.
 

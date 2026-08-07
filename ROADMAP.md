@@ -169,22 +169,25 @@ Delivered:
 Complete the core daily statistics and present measurements, statistics and
 insights through polished dashboards.
 
-Planned work:
+Delivered in current v0.9 development:
 
 - Energy Today
-- Average Price Today
-- Average Power Today
 - Monthly Peak Hour Time
+- Consumption-Weighted Average Price Today
+- Standard dashboard using built-in Home Assistant cards
 
-Two example dashboards:
+Dashboard examples:
 
 #### Standard
 
-Uses only built-in Home Assistant cards.
+Uses only built-in Home Assistant cards. Delivered.
 
 #### Enhanced
 
-Uses optional custom cards for richer visualisations and analytics.
+Uses optional custom cards for richer visualisations and analytics. Remaining.
+
+Average Market Price Today and Average Power Today remain future candidates
+outside the committed v0.9 scope.
 
 ---
 
