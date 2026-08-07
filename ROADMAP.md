@@ -206,9 +206,64 @@ Focus areas:
 - Performance optimisation
 - Long-term maintainability
 
+This stable foundation is a prerequisite for adding forecast providers and
+longer-lived recommendation APIs.
+
 ---
 
-## Beyond v1.0
+### v1.1 — Forecast Prices & Scheduling Insights
+
+#### Goal
+
+Introduce a provider-independent future-price model and use it to identify
+useful upcoming electricity windows.
+
+Focus areas:
+
+- Timestamped future-price intervals with hourly and quarter-hour resolution
+- Currency, price-area, publication-time and forecast-horizon metadata
+- Correct local-time, time-zone and daylight-saving handling
+- Explicit behavior for missing, delayed, overlapping or incomplete intervals
+- Persistence and refresh behavior across Home Assistant restarts
+- Nord Pool as the first forecast source and adapter
+- Effective future prices including configured variable fees and tax/markup
+- Cheapest upcoming interval and continuous multi-interval windows
+- Price direction and next inexpensive-window insights
+
+Nord Pool is the first implementation of the forecast-source contract, not the
+forecast architecture itself. The model must not assume that prices always
+arrive at a fixed time, use one interval length or cover exactly 24 hours.
+
+Initial v1.1 features should inform users and automations without directly
+controlling appliances.
+
+---
+
+### v1.2 — Recommendation Intelligence
+
+#### Goal
+
+Turn reliable future-price data and household statistics into explainable,
+actionable recommendations.
+
+Potential capabilities:
+
+- Best start time for a flexible appliance or charging session
+- Expected cost for a planned power level and duration
+- Estimated savings from waiting for a better window
+- EV charging, dishwasher and washing-machine scheduling guidance
+- Heat-pump preheating opportunities
+- Consumption Timing Score with historical and forward-looking coaching
+- Recommendation entities suitable for dashboards and Home Assistant
+  automations
+
+Recommendations should explain the price window, duration, assumptions and
+estimated benefit behind their advice. Automatic device control remains a
+separate, explicitly designed capability.
+
+---
+
+## Beyond v1.2
 
 Potential future capabilities include:
 
@@ -216,7 +271,6 @@ Potential future capabilities include:
 - Battery optimisation
 - EV charging optimisation
 - Heat pump optimisation
-- Dynamic electricity recommendations
 - Whole-home energy intelligence
 
 ---
