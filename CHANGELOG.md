@@ -19,6 +19,11 @@
 
 - Seed Cost This Month with the available Cost Today value on first setup.
 
+### Changed
+
+- Clarified that Effective Price grid-fee and tax/markup inputs should include
+  VAT, with guidance for the standard Swedish 2026 energy tax.
+
 ## [0.7.0] - 2026-08-02
 
 ### Added
