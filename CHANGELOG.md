@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Clarified the existing mirrored Energy sensor as Energy Today while keeping
+  its stable unique ID and recorded history compatible with existing setups.
+
 ### Documentation
 
 - Consolidated release planning into the canonical root roadmap and aligned

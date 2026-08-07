@@ -45,7 +45,7 @@ Electricity Pro is designed for Home Assistant users who want to:
 Monitor your home's energy usage in real time.
 
 - Current Power
-- Current Energy
+- Energy Today
 - Energy This Month
 - Current Electricity Price
 - Effective Price

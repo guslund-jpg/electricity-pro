@@ -237,7 +237,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ),
     ElectricityProSensorEntityDescription(
         key="current_energy",
-        name="Energy",
+        name="Energy today",
         icon="mdi:lightning-bolt",
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,

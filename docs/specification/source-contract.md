@@ -80,6 +80,9 @@ Required  For daily energy features
 A reset to zero at the beginning of a new local day is expected and is
 not considered an error.
 
+The internal entity key remains `current_energy` for compatibility with
+existing installations and recorded history.
+
 Cost today
 sensor.electricity_pro_cost_today
 Property  Contract

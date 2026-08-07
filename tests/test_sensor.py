@@ -15,7 +15,7 @@ from custom_components.electricity_pro.const import DOMAIN
 ENTITY_ID = f"sensor.{DOMAIN}_current_power"
 SOURCE_ENTITY_ID = "sensor.test_power"
 
-ENERGY_ENTITY_ID = f"sensor.{DOMAIN}_energy"
+ENERGY_ENTITY_ID = f"sensor.{DOMAIN}_energy_today"
 ENERGY_SOURCE_ENTITY_ID = "sensor.test_energy"
 ENERGY_THIS_MONTH_ENTITY_ID = f"sensor.{DOMAIN}_energy_this_month"
 
@@ -36,11 +36,11 @@ MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY_ID = (
 REMAINING_COST_ENTITY_ID = f"sensor.{DOMAIN}_remaining_cost_today"
 
 
-async def test_current_energy_initial_value(
+async def test_energy_today_initial_value(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """Current energy should use the configured energy source."""
+    """Energy today should use the configured daily energy source."""
 
     await setup_electricity_pro(
         energy_value="12.5",
@@ -54,13 +54,14 @@ async def test_current_energy_initial_value(
     assert state.attributes["unit_of_measurement"] == "kWh"
     assert state.attributes["device_class"] == "energy"
     assert state.attributes["state_class"] == "total_increasing"
+    assert state.attributes["friendly_name"] == "Electricity Pro Energy today"
 
 
-async def test_current_energy_updates_when_source_changes(
+async def test_energy_today_updates_when_source_changes(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """Current energy should update when its source changes."""
+    """Energy today should update when its source changes."""
 
     await setup_electricity_pro(
         energy_value="12.5",
@@ -85,11 +86,11 @@ async def test_current_energy_updates_when_source_changes(
     assert state.attributes["unit_of_measurement"] == "kWh"
 
 
-async def test_current_energy_accepts_wh(
+async def test_energy_today_accepts_wh(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """Current energy should accept watt-hours."""
+    """Energy today should accept watt-hours."""
 
     await setup_electricity_pro(
         energy_value="1250",
@@ -223,11 +224,11 @@ async def test_energy_this_month_resets_at_month_boundary(
     assert Decimal(state.state) == Decimal(1)
 
 
-async def test_current_energy_becomes_unavailable(
+async def test_energy_today_becomes_unavailable(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """Current energy should become unavailable for an unknown source."""
+    """Energy today should become unavailable for an unknown source."""
 
     await setup_electricity_pro(
         energy_value="12.5",
@@ -251,11 +252,11 @@ async def test_current_energy_becomes_unavailable(
     assert state.state == "unavailable"
 
 
-async def test_current_energy_rejects_invalid_unit(
+async def test_energy_today_rejects_invalid_unit(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """Current energy should reject unsupported units."""
+    """Energy today should reject unsupported units."""
 
     await setup_electricity_pro(
         energy_value="12.5",
