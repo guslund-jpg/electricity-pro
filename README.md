@@ -4,7 +4,7 @@
 
 Electricity Pro extends Home Assistant with intelligent sensors, statistics and forecasting that help homeowners understand **what is happening, why it is happening, and what they can do next**.
 
-Built on Home Assistant's native Energy platfogitrm, Electricity Pro feels like a natural extension of your smart home, providing deeper analysis today while laying the foundation for future energy intelligence.
+Built on Home Assistant's native Energy platform, Electricity Pro feels like a natural extension of your smart home, providing deeper analysis today while laying the foundation for future energy intelligence.
 
 ---
 
@@ -90,18 +90,22 @@ Electricity Pro is evolving in carefully planned stages.
 | **v0.6** | Foundation                       | ✅ Released                      |
 | **v0.7** | Traditional Sensors & Statistics | ✅ Released                      |
 | **v0.8** | Intelligence                     | ✅ Released                      |
-| **v0.9** | Daily Statistics & Dashboards    | 📋 Planned                       |
+| **v0.9** | Daily Statistics & Dashboards    | 🚧 In progress                   |
 | **v1.0** | Stable Release                   | 🎯 Target                        |
 
 See [ROADMAP.md](ROADMAP.md) for more details.
 
 ---
 
-## Screenshots
+## Dashboard
 
-> *Coming soon*
+![Electricity Pro standard dashboard preview](examples/dashboards/electricity-pro-preview.svg)
 
-The project will include example dashboards using both standard Home Assistant cards and enhanced dashboards using optional custom cards.
+The [standard dashboard example](examples/dashboards/README.md) uses only cards
+included with Home Assistant and covers live measurements, daily and monthly
+statistics, Effective Price, and the first Good Time insight.
+
+An enhanced dashboard using optional custom cards remains planned.
 
 ---
 
@@ -131,11 +135,11 @@ The project will include example dashboards using both standard Home Assistant c
 
 ### Current release
 
-v0.6.0 – Foundation Release
+v0.8.0 – Statistics Foundation & First Insight
 
 Electricity Pro is actively developed with a clear public roadmap.
 
-The current focus is expanding native Home Assistant sensors and statistics while building the foundation for intelligent forecasting and recommendations.
+The current focus is the v0.9 daily statistics and dashboard experience.
 
 ---
 

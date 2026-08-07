@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Electricity Pro standard dashboard preview</title>
+  <desc id="desc">Illustrative Home Assistant dashboard with live, daily, and monthly electricity cards.</desc>
+  <rect width="1200" height="720" fill="#101418"/>
+  <rect width="1200" height="72" fill="#181d22"/>
+  <circle cx="38" cy="36" r="16" fill="#03a9f4"/>
+  <path d="M42 17L27 39h11l-3 17 16-24H40z" fill="#fff"/>
+  <text x="72" y="45" fill="#f4f7f9" font-family="Arial, sans-serif" font-size="26" font-weight="700">Electricity Pro</text>
+  <text x="780" y="43" fill="#8f9ba5" font-family="Arial, sans-serif" font-size="17">Overview</text>
+  <text x="880" y="43" fill="#8f9ba5" font-family="Arial, sans-serif" font-size="17">Live</text>
+  <text x="944" y="43" fill="#8f9ba5" font-family="Arial, sans-serif" font-size="17">Today</text>
+  <text x="1020" y="43" fill="#8f9ba5" font-family="Arial, sans-serif" font-size="17">Month</text>
+  <rect x="775" y="63" width="82" height="4" rx="2" fill="#03a9f4"/>
+
+  <text x="42" y="118" fill="#f4f7f9" font-family="Arial, sans-serif" font-size="20" font-weight="700">Now</text>
+  <g font-family="Arial, sans-serif">
+    <g transform="translate(42 138)">
+      <rect width="348" height="112" rx="16" fill="#1c2329" stroke="#303940"/>
+      <circle cx="42" cy="42" r="24" fill="#594b23"/>
+      <text x="34" y="51" fill="#ffc107" font-size="26">⚡</text>
+      <text x="78" y="38" fill="#aeb8c0" font-size="16">Current power</text>
+      <text x="78" y="76" fill="#f4f7f9" font-size="30" font-weight="700">2,340 W</text>
+    </g>
+    <g transform="translate(426 138)">
+      <rect width="348" height="112" rx="16" fill="#1c2329" stroke="#303940"/>
+      <circle cx="42" cy="42" r="24" fill="#173f32"/>
+      <text x="32" y="50" fill="#43d79e" font-size="24">kr</text>
+      <text x="78" y="38" fill="#aeb8c0" font-size="16">Effective price</text>
+      <text x="78" y="76" fill="#f4f7f9" font-size="30" font-weight="700">1.24 SEK/kWh</text>
+    </g>
+    <g transform="translate(810 138)">
+      <rect width="348" height="112" rx="16" fill="#173f32" stroke="#2b7d5f"/>
+      <circle cx="42" cy="42" r="24" fill="#215d48"/>
+      <text x="34" y="51" fill="#70efb8" font-size="26">✓</text>
+      <text x="78" y="38" fill="#a9e8d0" font-size="16">Good time to use electricity</text>
+      <text x="78" y="76" fill="#f4f7f9" font-size="30" font-weight="700">Yes</text>
+    </g>
+  </g>
+
+  <text x="42" y="302" fill="#f4f7f9" font-family="Arial, sans-serif" font-size="20" font-weight="700">Today</text>
+  <g font-family="Arial, sans-serif">
+    <g transform="translate(42 322)">
+      <rect width="252" height="112" rx="16" fill="#1c2329" stroke="#303940"/>
+      <text x="24" y="36" fill="#aeb8c0" font-size="16">Energy today</text>
+      <text x="24" y="78" fill="#f4f7f9" font-size="30" font-weight="700">14.8 kWh</text>
+    </g>
+    <g transform="translate(330 322)">
+      <rect width="252" height="112" rx="16" fill="#1c2329" stroke="#303940"/>
+      <text x="24" y="36" fill="#aeb8c0" font-size="16">Cost today</text>
+      <text x="24" y="78" fill="#f4f7f9" font-size="30" font-weight="700">18.35 SEK</text>
+    </g>
+    <g transform="translate(618 322)">
+      <rect width="252" height="112" rx="16" fill="#1c2329" stroke="#303940"/>
+      <text x="24" y="36" fill="#aeb8c0" font-size="16">Average price paid</text>
+      <text x="24" y="78" fill="#f4f7f9" font-size="26" font-weight="700">1.24 SEK/kWh</text>
+    </g>
+    <g transform="translate(906 322)">
+      <rect width="252" height="112" rx="16" fill="#1c2329" stroke="#303940"/>
+      <text x="24" y="36" fill="#aeb8c0" font-size="16">Peak power today</text>
+      <text x="24" y="78" fill="#f4f7f9" font-size="30" font-weight="700">5,120 W</text>
+    </g>
+  </g>
+
+  <text x="42" y="486" fill="#f4f7f9" font-family="Arial, sans-serif" font-size="20" font-weight="700">This month</text>
+  <g font-family="Arial, sans-serif">
+    <g transform="translate(42 506)">
+      <rect width="348" height="112" rx="16" fill="#1c2329" stroke="#303940"/>
+      <text x="24" y="36" fill="#aeb8c0" font-size="16">Energy this month</text>
+      <text x="24" y="78" fill="#f4f7f9" font-size="30" font-weight="700">186.4 kWh</text>
+    </g>
+    <g transform="translate(426 506)">
+      <rect width="348" height="112" rx="16" fill="#1c2329" stroke="#303940"/>
+      <text x="24" y="36" fill="#aeb8c0" font-size="16">Cost this month</text>
+      <text x="24" y="78" fill="#f4f7f9" font-size="30" font-weight="700">231.10 SEK</text>
+    </g>
+    <g transform="translate(810 506)">
+      <rect width="348" height="112" rx="16" fill="#1c2329" stroke="#303940"/>
+      <text x="24" y="36" fill="#aeb8c0" font-size="16">Monthly peak hour</text>
+      <text x="24" y="73" fill="#f4f7f9" font-size="26" font-weight="700">4.82 kWh</text>
+      <text x="24" y="98" fill="#aeb8c0" font-size="15">6 August, 17:00</text>
+    </g>
+  </g>
+
+  <text x="42" y="680" fill="#7f8b94" font-family="Arial, sans-serif" font-size="14">Illustrative preview — actual values, language, and visible optional cards depend on your Home Assistant configuration.</text>
+</svg>
