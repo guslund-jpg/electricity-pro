@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-07
+
 ### Added
 
 - Added a Consumption-Weighted Average Price Today sensor derived from Cost
