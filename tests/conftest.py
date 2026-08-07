@@ -12,6 +12,7 @@ from custom_components.electricity_pro.const import (
     CONF_GRID_FEE_PER_KWH,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+    CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
@@ -53,6 +54,7 @@ def setup_electricity_pro(hass):
         voltage_l3_value: str | None = None,
         monthly_peak_hour_consumption_value: str | None = None,
         monthly_peak_hour_consumption_unit: str = "kWh",
+        monthly_peak_hour_time_value: str | None = None,
         grid_fee_per_kwh: float | None = None,
         tax_per_kwh: float | None = None,
         good_price_threshold: float | None = None,
@@ -206,6 +208,15 @@ def setup_electricity_pro(hass):
             )
             entry_data[CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY] = (
                 "sensor.test_monthly_peak_hour_consumption"
+            )
+        if monthly_peak_hour_time_value is not None:
+            hass.states.async_set(
+                "sensor.test_monthly_peak_hour_time",
+                monthly_peak_hour_time_value,
+                {"device_class": "timestamp"},
+            )
+            entry_data[CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY] = (
+                "sensor.test_monthly_peak_hour_time"
             )
         entry = MockConfigEntry(
             domain=DOMAIN,

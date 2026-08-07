@@ -32,6 +32,7 @@ VOLTAGE_L3_ENTITY_ID = f"sensor.{DOMAIN}_voltage_l3"
 MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY_ID = (
     f"sensor.{DOMAIN}_monthly_peak_hour_consumption"
 )
+MONTHLY_PEAK_HOUR_TIME_ENTITY_ID = f"sensor.{DOMAIN}_monthly_peak_hour_time"
 
 REMAINING_COST_ENTITY_ID = f"sensor.{DOMAIN}_remaining_cost_today"
 
@@ -1384,3 +1385,65 @@ async def test_monthly_peak_hour_consumption_not_created_without_source(
     await setup_electricity_pro()
 
     assert hass.states.get(MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY_ID) is None
+
+
+async def test_monthly_peak_hour_time_initial_value(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Monthly peak-hour time should mirror its configured timestamp source."""
+    await setup_electricity_pro(
+        monthly_peak_hour_time_value="2026-08-03T17:00:00+02:00",
+    )
+
+    state = hass.states.get(MONTHLY_PEAK_HOUR_TIME_ENTITY_ID)
+
+    assert state is not None
+    assert datetime.fromisoformat(state.state) == datetime(
+        2026, 8, 3, 15, tzinfo=UTC
+    )
+    assert state.attributes["device_class"] == "timestamp"
+
+
+async def test_monthly_peak_hour_time_updates_and_becomes_unavailable(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Monthly peak-hour time should follow source changes and availability."""
+    await setup_electricity_pro(
+        monthly_peak_hour_time_value="2026-08-03T17:00:00+02:00",
+    )
+
+    hass.states.async_set(
+        "sensor.test_monthly_peak_hour_time",
+        "2026-08-04T18:00:00+02:00",
+        {"device_class": "timestamp"},
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(MONTHLY_PEAK_HOUR_TIME_ENTITY_ID)
+    assert state is not None
+    assert datetime.fromisoformat(state.state) == datetime(
+        2026, 8, 4, 16, tzinfo=UTC
+    )
+
+    hass.states.async_set(
+        "sensor.test_monthly_peak_hour_time",
+        "unknown",
+        {"device_class": "timestamp"},
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(MONTHLY_PEAK_HOUR_TIME_ENTITY_ID)
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_monthly_peak_hour_time_not_created_without_source(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Monthly peak-hour time should be omitted when unconfigured."""
+    await setup_electricity_pro()
+
+    assert hass.states.get(MONTHLY_PEAK_HOUR_TIME_ENTITY_ID) is None

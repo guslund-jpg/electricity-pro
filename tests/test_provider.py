@@ -1,5 +1,6 @@
 """Tests for the Electricity Pro entity provider."""
 
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -12,6 +13,7 @@ from custom_components.electricity_pro.const import (
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+    CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
@@ -34,6 +36,7 @@ def _create_provider(
     include_phase_currents: bool = False,
     include_phase_voltages: bool = False,
     include_monthly_peak_hour_consumption: bool = False,
+    include_monthly_peak_hour_time: bool = False,
 ) -> ElectricityProEntityProvider:
     "Create a provider with configurable source entities."
     entry_data = {
@@ -60,6 +63,10 @@ def _create_provider(
     if include_monthly_peak_hour_consumption:
         entry_data[CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY] = (
             "sensor.test_monthly_peak_hour_consumption"
+        )
+    if include_monthly_peak_hour_time:
+        entry_data[CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY] = (
+            "sensor.test_monthly_peak_hour_time"
         )
 
     entry = MockConfigEntry(
@@ -786,3 +793,62 @@ def test_unconfigured_monthly_peak_hour_consumption_is_none(
 
     assert data.monthly_peak_hour_consumption is None
     assert data.monthly_peak_hour_consumption_unit is None
+
+
+def test_valid_monthly_peak_hour_time(hass: HomeAssistant) -> None:
+    """Provider should normalize a configured monthly peak-hour timestamp."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_monthly_peak_hour_time",
+        "2026-08-03T17:00:00+02:00",
+        {"device_class": "timestamp"},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_monthly_peak_hour_time=True,
+    )
+
+    assert provider.source_entity_ids == (
+        "sensor.test_power",
+        "sensor.test_monthly_peak_hour_time",
+    )
+    assert provider.read().monthly_peak_hour_time == datetime(
+        2026, 8, 3, 15, tzinfo=UTC
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["unknown", "unavailable", "not-a-timestamp", "2026-08-03T17:00:00"],
+)
+def test_invalid_monthly_peak_hour_time_returns_none(
+    hass: HomeAssistant,
+    value: str,
+) -> None:
+    """Provider should reject missing, invalid, and timezone-naive timestamps."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    hass.states.async_set(
+        "sensor.test_monthly_peak_hour_time",
+        value,
+        {"device_class": "timestamp"},
+    )
+
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+        include_monthly_peak_hour_time=True,
+    )
+
+    assert provider.read().monthly_peak_hour_time is None

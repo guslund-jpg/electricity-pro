@@ -23,6 +23,7 @@ from .const import (
     CONF_GRID_FEE_PER_KWH,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+    CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
@@ -48,6 +49,7 @@ def _entity_schema(
     voltage_l2_default: str | None = None,
     voltage_l3_default: str | None = None,
     monthly_peak_hour_consumption_default: str | None = None,
+    monthly_peak_hour_time_default: str | None = None,
     grid_fee_per_kwh_default: float | None = None,
     tax_per_kwh_default: float | None = None,
     good_price_threshold_default: float | None = None,
@@ -146,6 +148,15 @@ def _entity_schema(
             CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
             default=monthly_peak_hour_consumption_default,
         )
+    if monthly_peak_hour_time_default is None:
+        monthly_peak_hour_time_key = vol.Optional(
+            CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY
+        )
+    else:
+        monthly_peak_hour_time_key = vol.Optional(
+            CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
+            default=monthly_peak_hour_time_default,
+        )
     if grid_fee_per_kwh_default is None:
         grid_fee_key = vol.Optional(CONF_GRID_FEE_PER_KWH)
     else:
@@ -237,6 +248,12 @@ def _entity_schema(
                 selector.EntitySelectorConfig(
                     domain="sensor",
                     device_class="energy",
+                )
+            ),
+            monthly_peak_hour_time_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="timestamp",
                 )
             ),
             grid_fee_key: selector.NumberSelector(
@@ -370,6 +387,10 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
             self.config_entry.data.get(CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY),
         )
+        current_monthly_peak_hour_time = self.config_entry.options.get(
+            CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
+            self.config_entry.data.get(CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY),
+        )
         current_grid_fee = self.config_entry.options.get(
             CONF_GRID_FEE_PER_KWH,
             self.config_entry.data.get(CONF_GRID_FEE_PER_KWH),
@@ -398,6 +419,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 voltage_l2_default=current_voltage_l2,
                 voltage_l3_default=current_voltage_l3,
                 monthly_peak_hour_consumption_default=current_monthly_peak_hour_consumption,
+                monthly_peak_hour_time_default=current_monthly_peak_hour_time,
                 grid_fee_per_kwh_default=current_grid_fee,
                 tax_per_kwh_default=current_tax,
                 good_price_threshold_default=current_good_price_threshold,

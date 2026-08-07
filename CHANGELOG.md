@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added an optional Monthly Peak Hour Time sensor mirrored from a configured
+  Home Assistant timestamp source.
+
 ### Changed
 
 - Clarified the existing mirrored Energy sensor as Energy Today while keeping
