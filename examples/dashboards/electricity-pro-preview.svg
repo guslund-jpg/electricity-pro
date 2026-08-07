@@ -16,17 +16,23 @@
   <g font-family="Arial, sans-serif">
     <g transform="translate(42 138)">
       <rect width="348" height="112" rx="16" fill="#1c2329" stroke="#303940"/>
-      <circle cx="42" cy="42" r="24" fill="#594b23"/>
-      <text x="34" y="51" fill="#ffc107" font-size="26">⚡</text>
-      <text x="78" y="38" fill="#aeb8c0" font-size="16">Current power</text>
-      <text x="78" y="76" fill="#f4f7f9" font-size="30" font-weight="700">2,340 W</text>
+      <path d="M35 78 A64 64 0 0 1 103 24" fill="none" stroke="#43a047" stroke-width="13"/>
+      <path d="M103 24 A64 64 0 0 1 148 42" fill="none" stroke="#fbc02d" stroke-width="13"/>
+      <path d="M148 42 A64 64 0 0 1 163 78" fill="none" stroke="#e53935" stroke-width="13"/>
+      <line x1="99" y1="78" x2="77" y2="40" stroke="#f4f7f9" stroke-width="3"/>
+      <circle cx="99" cy="78" r="5" fill="#f4f7f9"/>
+      <text x="188" y="38" fill="#aeb8c0" font-size="16">Current power</text>
+      <text x="188" y="76" fill="#f4f7f9" font-size="28" font-weight="700">2,340 W</text>
     </g>
     <g transform="translate(426 138)">
       <rect width="348" height="112" rx="16" fill="#1c2329" stroke="#303940"/>
-      <circle cx="42" cy="42" r="24" fill="#173f32"/>
-      <text x="32" y="50" fill="#43d79e" font-size="24">kr</text>
-      <text x="78" y="38" fill="#aeb8c0" font-size="16">Effective price</text>
-      <text x="78" y="76" fill="#f4f7f9" font-size="30" font-weight="700">1.24 SEK/kWh</text>
+      <path d="M35 78 A64 64 0 0 1 99 14" fill="none" stroke="#43a047" stroke-width="13"/>
+      <path d="M99 14 A64 64 0 0 1 145 34" fill="none" stroke="#fbc02d" stroke-width="13"/>
+      <path d="M145 34 A64 64 0 0 1 163 78" fill="none" stroke="#e53935" stroke-width="13"/>
+      <line x1="99" y1="78" x2="112" y2="30" stroke="#f4f7f9" stroke-width="3"/>
+      <circle cx="99" cy="78" r="5" fill="#f4f7f9"/>
+      <text x="188" y="38" fill="#aeb8c0" font-size="16">Effective price</text>
+      <text x="188" y="73" fill="#f4f7f9" font-size="23" font-weight="700">1.24 SEK/kWh</text>
     </g>
     <g transform="translate(810 138)">
       <rect width="348" height="112" rx="16" fill="#173f32" stroke="#2b7d5f"/>

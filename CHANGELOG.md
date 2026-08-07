@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- Replaced the Current Power and Effective Price dashboard tiles with
+  green/yellow/red gauges and documented their editable example thresholds.
+
 ## [0.9.0] - 2026-08-07
 
 ### Added

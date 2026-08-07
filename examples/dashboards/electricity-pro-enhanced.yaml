@@ -13,12 +13,17 @@ views:
         columns: 2
         square: false
         cards:
-          - type: custom:mushroom-entity-card
+          # Example thresholds: edit max and severity to suit your home.
+          - type: gauge
             entity: sensor.electricity_pro_current_power
             name: Current power
-            icon: mdi:flash
-            icon_color: amber
-            layout: vertical
+            min: 0
+            max: 10000
+            needle: true
+            severity:
+              green: 0
+              yellow: 4000
+              red: 7000
 
           - type: conditional
             conditions:
@@ -28,12 +33,17 @@ views:
                   - unavailable
                   - unknown
             card:
-              type: custom:mushroom-entity-card
+              # Example thresholds in the sensor's currency/kWh unit.
+              type: gauge
               entity: sensor.electricity_pro_effective_price
               name: Effective price
-              icon: mdi:cash-plus
-              icon_color: green
-              layout: vertical
+              min: 0
+              max: 3
+              needle: true
+              severity:
+                green: 0
+                yellow: 1
+                red: 1.5
 
       - type: conditional
         conditions:
