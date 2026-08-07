@@ -15,13 +15,17 @@ semantics. It is an optional presentation layer only.
 - **Today** — daily energy, cost, achieved average price, and peak power
 - **Month** — monthly energy, cost, and peak-hour information
 
-The Overview and Live views present Current Power and Effective Price as
-green/yellow/red gauges. Their values are examples, not universal limits:
+The Overview and Live views present Current Power, Effective Price, and Current
+Cost Rate as green/yellow/red gauges. Their values are examples, not universal
+limits:
 
 - Current Power uses a 10,000 W scale, with yellow at 4,000 W and red at
   7,000 W.
 - Effective Price uses a 0–3 scale in the price sensor's currency per kWh,
   with yellow at 1 and red at 1.5.
+- Current Cost Rate combines Current Power and Effective Price into the rate at
+  which money is currently being spent. It uses a 0–20 scale in the price
+  sensor's currency per hour, with yellow at 5 and red at 10.
 
 Edit each gauge's `max` and `severity` values to suit the home's normal power
 demand, local currency, electricity contract, and preferred price limits.
@@ -100,9 +104,9 @@ does not create forecasts, modify prices, or contain provider-specific
 calculations. Optional cards are wrapped in built-in conditional cards and are
 hidden when their entities are `unknown` or `unavailable`.
 
-Its Overview view uses the same editable Current Power and Effective Price
-gauges as the standard dashboard. These gauges use built-in Home Assistant
-cards and do not add another frontend dependency.
+Its Overview view uses the same editable Current Power, Effective Price, and
+Current Cost Rate gauges as the standard dashboard. These gauges use built-in
+Home Assistant cards and do not add another frontend dependency.
 
 ## Customization
 

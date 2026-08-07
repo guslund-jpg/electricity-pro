@@ -48,6 +48,26 @@ views:
           - type: conditional
             conditions:
               - condition: state
+                entity: sensor.electricity_pro_current_cost_rate
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              # Example thresholds in the sensor's currency/hour unit.
+              type: gauge
+              entity: sensor.electricity_pro_current_cost_rate
+              name: Current cost rate
+              min: 0
+              max: 20
+              needle: true
+              severity:
+                green: 0
+                yellow: 5
+                red: 10
+
+          - type: conditional
+            conditions:
+              - condition: state
                 entity: binary_sensor.electricity_pro_good_time_to_use_electricity
                 state_not:
                   - unavailable
@@ -225,11 +245,17 @@ views:
                   - unavailable
                   - unknown
             card:
-              type: tile
+              # Example thresholds in the sensor's currency/hour unit.
+              type: gauge
               entity: sensor.electricity_pro_current_cost_rate
               name: Current cost rate
-              icon: mdi:cash-clock
-              color: green
+              min: 0
+              max: 20
+              needle: true
+              severity:
+                green: 0
+                yellow: 5
+                red: 10
 
       - type: history-graph
         title: Power — last 24 hours
