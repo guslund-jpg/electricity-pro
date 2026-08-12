@@ -214,24 +214,27 @@ Delivered:
 
 #### Goal
 
-Introduce a provider-independent future-price model and use it to identify
-useful upcoming electricity windows.
+Introduce Nord Pool-based future-price insights and scheduling windows while
+keeping the internal design clean enough to support broader forecast sources
+later.
 
 Focus areas:
 
 - Timestamped future-price intervals with hourly and quarter-hour resolution
+- A normalized internal interval model for forecast calculations
 - Currency, price-area, publication-time and forecast-horizon metadata
 - Correct local-time, time-zone and daylight-saving handling
 - Explicit behavior for missing, delayed, overlapping or incomplete intervals
 - Persistence and refresh behavior across Home Assistant restarts
-- Nord Pool as the first forecast source and adapter
+- Nord Pool as the required initial source for forecast features
 - Effective future prices including configured variable fees and tax/markup
 - Cheapest upcoming interval and continuous multi-interval windows
 - Price direction and next inexpensive-window insights
 
-Nord Pool is the first implementation of the forecast-source contract, not the
-forecast architecture itself. The model must not assume that prices always
-arrive at a fixed time, use one interval length or cover exactly 24 hours.
+Forecast features in v1.1 require Nord Pool. Internally, forecast calculations
+should operate on normalized intervals rather than on Nord Pool-specific
+payloads. The model must not assume that prices always arrive at a fixed time,
+use one interval length or cover exactly 24 hours.
 
 Initial v1.1 features should inform users and automations without directly
 controlling appliances.
