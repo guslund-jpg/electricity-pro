@@ -62,6 +62,9 @@ The current structure is:
 ```text
 custom_components/electricity_pro/
 ├── __init__.py
+├── binary_sensor.py
+├── brand/
+│   └── icon.png
 ├── calculations.py
 ├── config_flow.py
 ├── const.py
@@ -70,6 +73,7 @@ custom_components/electricity_pro/
 ├── provider.py
 ├── sensor.py
 ├── statistics.py
+├── statistics_engine.py
 ├── strings.json
 └── translations/
     └── en.json
@@ -82,7 +86,9 @@ tests/                  Automated tests
 scripts/                Repository validation tools
 config/                 Home Assistant test configuration
 docs/                   Detailed project documentation
-.github/workflows/       Continuous Integration workflows
+examples/               Dashboard YAML examples
+hacs.json               HACS integration metadata
+.github/workflows/      Continuous Integration workflows
 ```
 
 ## Configuration flow
@@ -154,7 +160,13 @@ It currently contains:
 
 The provider normalises supported values before they reach calculations or entities.
 
-Examples include:
+A shared `_parse_state` helper handles the steps common to every numeric
+measurement: guarding against `None`, `unknown`, `unavailable` and empty
+states, then parsing the state string into a `Decimal`. Each measurement
+normalizer calls this helper first and returns early on `None`, then applies
+its own unit conversion and validation.
+
+Examples of measurement-specific normalisation include:
 
 - converting kilowatts to watts;
 - accepting watt-hours and kilowatt-hours;
