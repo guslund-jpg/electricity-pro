@@ -146,6 +146,61 @@ def projected_remaining_cost(data: ElectricityProData) -> Decimal | None:
     )
 
 
+PHASES: tuple[str, ...] = ("l1", "l2", "l3")
+
+
+def _phase_current_descriptions() -> (
+    tuple[ElectricityProSensorEntityDescription, ...]
+):
+    """Return current sensor descriptions for all three phases."""
+    conf_keys = (
+        CONF_CURRENT_L1_ENTITY,
+        CONF_CURRENT_L2_ENTITY,
+        CONF_CURRENT_L3_ENTITY,
+    )
+    return tuple(
+        ElectricityProSensorEntityDescription(
+            key=f"current_{phase}",
+            name=f"Current {phase.upper()}",
+            icon="mdi:current-ac",
+            device_class=SensorDeviceClass.CURRENT,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+            suggested_display_precision=2,
+            value_fn=lambda data, p=phase: getattr(data, f"current_{p}"),
+            available_fn=lambda data, p=phase: getattr(data, f"current_{p}") is not None,
+            required_config_key=conf_key,
+        )
+        for phase, conf_key in zip(PHASES, conf_keys)
+    )
+
+
+def _phase_voltage_descriptions() -> (
+    tuple[ElectricityProSensorEntityDescription, ...]
+):
+    """Return voltage sensor descriptions for all three phases."""
+    conf_keys = (
+        CONF_VOLTAGE_L1_ENTITY,
+        CONF_VOLTAGE_L2_ENTITY,
+        CONF_VOLTAGE_L3_ENTITY,
+    )
+    return tuple(
+        ElectricityProSensorEntityDescription(
+            key=f"voltage_{phase}",
+            name=f"Voltage {phase.upper()}",
+            icon="mdi:sine-wave",
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            suggested_display_precision=1,
+            value_fn=lambda data, p=phase: getattr(data, f"voltage_{p}"),
+            available_fn=lambda data, p=phase: getattr(data, f"voltage_{p}") is not None,
+            required_config_key=conf_key,
+        )
+        for phase, conf_key in zip(PHASES, conf_keys)
+    )
+
+
 SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription,
     ...,
@@ -323,78 +378,8 @@ SENSOR_DESCRIPTIONS: tuple[
         ),
         required_config_key=CONF_ENERGY_ENTITY,
     ),
-    ElectricityProSensorEntityDescription(
-        key="current_l1",
-        name="Current L1",
-        icon="mdi:current-ac",
-        device_class=SensorDeviceClass.CURRENT,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-        suggested_display_precision=2,
-        value_fn=lambda data: data.current_l1,
-        available_fn=lambda data: data.current_l1 is not None,
-        required_config_key=CONF_CURRENT_L1_ENTITY,
-    ),
-    ElectricityProSensorEntityDescription(
-        key="current_l2",
-        name="Current L2",
-        icon="mdi:current-ac",
-        device_class=SensorDeviceClass.CURRENT,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-        suggested_display_precision=2,
-        value_fn=lambda data: data.current_l2,
-        available_fn=lambda data: data.current_l2 is not None,
-        required_config_key=CONF_CURRENT_L2_ENTITY,
-    ),
-    ElectricityProSensorEntityDescription(
-        key="current_l3",
-        name="Current L3",
-        icon="mdi:current-ac",
-        device_class=SensorDeviceClass.CURRENT,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-        suggested_display_precision=2,
-        value_fn=lambda data: data.current_l3,
-        available_fn=lambda data: data.current_l3 is not None,
-        required_config_key=CONF_CURRENT_L3_ENTITY,
-    ),
-    ElectricityProSensorEntityDescription(
-        key="voltage_l1",
-        name="Voltage L1",
-        icon="mdi:sine-wave",
-        device_class=SensorDeviceClass.VOLTAGE,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
-        suggested_display_precision=1,
-        value_fn=lambda data: data.voltage_l1,
-        available_fn=lambda data: data.voltage_l1 is not None,
-        required_config_key=CONF_VOLTAGE_L1_ENTITY,
-    ),
-    ElectricityProSensorEntityDescription(
-        key="voltage_l2",
-        name="Voltage L2",
-        icon="mdi:sine-wave",
-        device_class=SensorDeviceClass.VOLTAGE,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
-        suggested_display_precision=1,
-        value_fn=lambda data: data.voltage_l2,
-        available_fn=lambda data: data.voltage_l2 is not None,
-        required_config_key=CONF_VOLTAGE_L2_ENTITY,
-    ),
-    ElectricityProSensorEntityDescription(
-        key="voltage_l3",
-        name="Voltage L3",
-        icon="mdi:sine-wave",
-        device_class=SensorDeviceClass.VOLTAGE,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
-        suggested_display_precision=1,
-        value_fn=lambda data: data.voltage_l3,
-        available_fn=lambda data: data.voltage_l3 is not None,
-        required_config_key=CONF_VOLTAGE_L3_ENTITY,
-    ),
+    *_phase_current_descriptions(),
+    *_phase_voltage_descriptions(),
 )
 
 
