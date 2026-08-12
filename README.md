@@ -115,14 +115,20 @@ standard dashboard as the dependency-free baseline.
 
 ## Installation
 
+### HACS installation (recommended)
+
+1. Open HACS in your Home Assistant sidebar.
+2. Go to **Integrations** and click **+ Explore & download repositories**.
+3. Search for **Electricity Pro** and select it.
+4. Click **Download** and restart Home Assistant.
+5. Add **Electricity Pro** from **Settings → Devices & Services**.
+
 ### Manual installation
 
 1. Copy the `custom_components/electricity_pro` folder into your Home Assistant configuration.
 2. Restart Home Assistant.
 3. Add **Electricity Pro** from **Settings → Devices & Services**.
 4. Select your existing energy sensors (for example Tibber, Nord Pool or other compatible providers).
-
-> HACS support is planned for a future release.
 
 ---
 
