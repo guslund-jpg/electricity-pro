@@ -298,6 +298,20 @@ class ElectricityProEntityProvider:
         )
 
     @staticmethod
+    def _parse_state(source_state: State | None) -> Decimal | None:
+        """Parse a HA state into a Decimal, or return None if unavailable/invalid."""
+        if source_state is None or source_state.state in {
+            STATE_UNKNOWN,
+            STATE_UNAVAILABLE,
+            "",
+        }:
+            return None
+        try:
+            return Decimal(source_state.state)
+        except (InvalidOperation, ValueError):
+            return None
+
+    @staticmethod
     def _normalize_timestamp(source_state: State | None) -> datetime | None:
         """Normalize a timestamp source to a timezone-aware datetime."""
         if source_state is None or source_state.state in {
@@ -331,19 +345,11 @@ class ElectricityProEntityProvider:
         source_state: State | None,
     ) -> Decimal | None:
         """Normalize a source power state to watts."""
-        if source_state is None or source_state.state in {
-            STATE_UNKNOWN,
-            STATE_UNAVAILABLE,
-            "",
-        }:
+        source_value = ElectricityProEntityProvider._parse_state(source_state)
+        if source_value is None:
             return None
 
-        try:
-            source_value = Decimal(source_state.state)
-        except (InvalidOperation, ValueError):
-            return None
-
-        source_unit: Any = source_state.attributes.get("unit_of_measurement")
+        source_unit: Any = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
 
         if source_unit == UnitOfPower.WATT:
             watts = source_value
@@ -362,19 +368,11 @@ class ElectricityProEntityProvider:
         source_state: State | None,
     ) -> tuple[Decimal | None, str | None]:
         """Normalize a source electricity price."""
-        if source_state is None or source_state.state in {
-            STATE_UNKNOWN,
-            STATE_UNAVAILABLE,
-            "",
-        }:
+        source_value = ElectricityProEntityProvider._parse_state(source_state)
+        if source_value is None:
             return None, None
 
-        try:
-            source_value = Decimal(source_state.state)
-        except (InvalidOperation, ValueError):
-            return None, None
-
-        source_unit = source_state.attributes.get("unit_of_measurement")
+        source_unit = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
 
         if (
             not source_value.is_finite()
@@ -391,19 +389,11 @@ class ElectricityProEntityProvider:
         source_state: State | None,
     ) -> tuple[Decimal | None, str | None]:
         """Normalize a source electricity energy value."""
-        if source_state is None or source_state.state in {
-            STATE_UNKNOWN,
-            STATE_UNAVAILABLE,
-            "",
-        }:
+        source_value = ElectricityProEntityProvider._parse_state(source_state)
+        if source_value is None:
             return None, None
 
-        try:
-            source_value = Decimal(source_state.state)
-        except (InvalidOperation, ValueError):
-            return None, None
-
-        source_unit = source_state.attributes.get("unit_of_measurement")
+        source_unit = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
 
         if source_unit not in {
             UnitOfEnergy.WATT_HOUR,
@@ -421,19 +411,11 @@ class ElectricityProEntityProvider:
         source_state: State | None,
     ) -> tuple[Decimal | None, str | None]:
         """Normalize an accumulated electricity cost."""
-        if source_state is None or source_state.state in {
-            STATE_UNKNOWN,
-            STATE_UNAVAILABLE,
-            "",
-        }:
+        source_value = ElectricityProEntityProvider._parse_state(source_state)
+        if source_value is None:
             return None, None
 
-        try:
-            source_value = Decimal(source_state.state)
-        except (InvalidOperation, ValueError):
-            return None, None
-
-        source_unit = source_state.attributes.get("unit_of_measurement")
+        source_unit = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
 
         if (
             not source_value.is_finite()
@@ -450,19 +432,11 @@ class ElectricityProEntityProvider:
         source_state: State | None,
     ) -> Decimal | None:
         """Normalize a source electrical current to amperes."""
-        if source_state is None or source_state.state in {
-            STATE_UNKNOWN,
-            STATE_UNAVAILABLE,
-            "",
-        }:
+        source_value = ElectricityProEntityProvider._parse_state(source_state)
+        if source_value is None:
             return None
 
-        try:
-            source_value = Decimal(source_state.state)
-        except (InvalidOperation, ValueError):
-            return None
-
-        source_unit: Any = source_state.attributes.get("unit_of_measurement")
+        source_unit: Any = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
 
         if source_unit == "A":
             amperes = source_value
@@ -481,19 +455,11 @@ class ElectricityProEntityProvider:
         source_state: State | None,
     ) -> Decimal | None:
         """Normalize a source electrical voltage to volts."""
-        if source_state is None or source_state.state in {
-            STATE_UNKNOWN,
-            STATE_UNAVAILABLE,
-            "",
-        }:
+        source_value = ElectricityProEntityProvider._parse_state(source_state)
+        if source_value is None:
             return None
 
-        try:
-            source_value = Decimal(source_state.state)
-        except (InvalidOperation, ValueError):
-            return None
-
-        source_unit: Any = source_state.attributes.get("unit_of_measurement")
+        source_unit: Any = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
 
         if source_unit == "V":
             volts = source_value
