@@ -62,3 +62,6 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local reference files
+docs/chatgtp-history.md
