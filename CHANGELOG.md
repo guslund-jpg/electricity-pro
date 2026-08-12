@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added `hacs.json` to make Electricity Pro installable as a HACS custom
+  repository.
+- Added `issue_tracker` field to `manifest.json`.
+- Added HACS validation and Hassfest CI workflows.
+- Added placeholder `icon.png` for integration branding.
+
 ### Documentation
 
 - Replaced the Current Power and Effective Price dashboard tiles with
