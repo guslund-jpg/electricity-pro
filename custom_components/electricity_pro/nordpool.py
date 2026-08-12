@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .forecast import ForecastInterval
 
 _MWH_TO_KWH = Decimal("0.001")
+_NORDPOOL_GET_PRICES_FOR_DATE = "get_prices_for_date"
 
 
 def normalize_nordpool_forecast_intervals(
@@ -56,3 +59,46 @@ def normalize_nordpool_forecast_intervals(
         )
 
     return normalized
+
+async def async_get_nordpool_forecast_intervals_for_date(
+    hass: HomeAssistant,
+    *,
+    config_entry_id: str,
+    target_date: date,
+    area: str,
+    currency: str,
+    published_at: datetime | None = None,
+) -> list[ForecastInterval]:
+    """Retrieve and normalize Nord Pool forecast intervals for one date."""
+    response = await hass.services.async_call(
+        "nordpool",
+        _NORDPOOL_GET_PRICES_FOR_DATE,
+        {
+            "config_entry": config_entry_id,
+            "date": target_date.isoformat(),
+            "areas": [area],
+            "currency": currency,
+        },
+        blocking=True,
+        return_response=True,
+    )
+
+    if not isinstance(response, dict):
+        raise ValueError("Nord Pool action response must be a mapping")
+
+    area_intervals = response.get(area)
+    if not isinstance(area_intervals, list):
+        raise ValueError(
+            "Nord Pool action response must include a list for the requested area"
+        )
+
+    if not all(isinstance(interval, dict) for interval in area_intervals):
+        raise ValueError("Nord Pool action area payload must contain interval mappings")
+
+    return normalize_nordpool_forecast_intervals(
+        area=area,
+        intervals=area_intervals,
+        currency=currency,
+        published_at=published_at,
+    )
+
