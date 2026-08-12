@@ -91,7 +91,7 @@ Electricity Pro is evolving in carefully planned stages.
 | **v0.7** | Traditional Sensors & Statistics | ✅ Released                      |
 | **v0.8** | Intelligence                     | ✅ Released                      |
 | **v0.9** | Daily Statistics & Dashboards    | ✅ Released                      |
-| **v1.0** | Stable Release                   | 🎯 Target                        |
+| **v1.0** | Stable Release                   | ✅ Released                      |
 | **v1.1** | Forecast Prices & Scheduling     | 🔭 Planned                       |
 | **v1.2** | Recommendation Intelligence      | 🔭 Planned                       |
 

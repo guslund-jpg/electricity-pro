@@ -2,13 +2,25 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-08
+
 ### Added
 
 - Added `hacs.json` to make Electricity Pro installable as a HACS custom
   repository.
 - Added `issue_tracker` field to `manifest.json`.
 - Added HACS validation and Hassfest CI workflows.
-- Added placeholder `icon.png` for integration branding.
+- Added brand icon (blue circle with amber lightning bolt, 256×256 PNG).
+
+### Changed
+
+- Replaced six repeated L1/L2/L3 sensor descriptions with a `PHASES` tuple
+  and two small generator functions, reducing duplication in `sensor.py`.
+- Extracted a shared `_parse_state` helper in `provider.py` to consolidate
+  the repeated state-availability guard and Decimal-parsing logic that
+  appeared in every numeric normalizer.
+- Replaced truncated MIT licence text with the full canonical SPDX-recognised
+  version.
 
 ### Documentation
 
@@ -19,6 +31,8 @@
 - Added planned v1.1 forecast-price and v1.2 recommendation-intelligence stages
   to the roadmap, with Nord Pool as the first provider-independent forecast
   adapter.
+- Updated architecture documentation to reflect current file structure and
+  the `_parse_state` normalization helper.
 
 ## [0.9.0] - 2026-08-07
 

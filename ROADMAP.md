@@ -192,22 +192,21 @@ outside the committed v0.9 scope.
 
 ---
 
-### v1.0 — Stable Release
+### v1.0 — Stable Release ✅
 
 #### Goal
 
 A mature Home Assistant integration suitable for broad adoption.
 
-Focus areas:
+Delivered:
 
-- HACS support
-- Stable APIs
-- Complete documentation
-- Performance optimisation
-- Long-term maintainability
-
-This stable foundation is a prerequisite for adding forecast providers and
-longer-lived recommendation APIs.
+- HACS custom-repository installation support
+- Hassfest and HACS CI validation workflows
+- Brand icon
+- Phase sensor abstraction (`PHASES` refactor)
+- Measurement normalisation consolidation (`_parse_state` helper)
+- Full canonical MIT licence
+- Complete architecture and roadmap documentation
 
 ---
 
