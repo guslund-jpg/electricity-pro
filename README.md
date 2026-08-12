@@ -10,11 +10,12 @@ Built on Home Assistant's native Energy platform, Electricity Pro feels like a n
 
 ## Project Vision
 
-Electricity Pro is a provider-independent electricity analytics platform for
-Home Assistant.
+Electricity Pro is a provider-aware electricity analytics platform for Home
+Assistant.
 
-Read more about the project's long-term goals in
-`docs/vision/VISION.md`.
+Its long-term architecture aims to stay broadly provider-friendly, while some
+capabilities may begin with a narrower source requirement when that leads to a
+better and faster product.
 
 ---
 
@@ -25,6 +26,8 @@ Home Assistant already provides an excellent Energy Dashboard.
 Electricity Pro does **not** replace it.
 
 Instead, it builds an intelligence layer on top of your existing energy integrations, adding calculations, statistics, forecasting and insights that complement Home Assistant's native capabilities.
+
+Existing live measurements work with compatible Home Assistant entities from providers such as Tibber, Nord Pool and smart meters. Planned v1.1 forecast and scheduling insights will initially require Nord Pool future-price data.
 
 ## Who is Electricity Pro for?
 
