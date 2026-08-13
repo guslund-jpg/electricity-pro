@@ -1,5 +1,7 @@
 # Electricity Pro
 
+![Electricity Pro icon](docs/assets/electricity-pro-icon.svg)
+
 > **Turn your Home Assistant energy data into actionable insights.**
 
 Electricity Pro extends Home Assistant with intelligent sensors, statistics and forecasting that help homeowners understand **what is happening, why it is happening, and what they can do next**.

@@ -24,6 +24,8 @@
 
 ### Documentation
 
+- Added the Electricity Pro blue-ring and lightning-bolt brand icon.
+- Added the metadata and integration brand asset required for HACS validation.
 - Replaced the Current Power and Effective Price dashboard tiles with
   green/yellow/red gauges and documented their editable example thresholds.
 - Presented Current Cost Rate as an editable gauge combining live power and
