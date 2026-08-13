@@ -29,6 +29,12 @@ from .const import (
     DOMAIN,
 )
 from .forecast import ForecastInterval
+from .forecast_insights import (
+    ForecastDirectionInsight,
+    ForecastWindowInsight,
+    find_cheapest_continuous_window,
+    find_price_direction,
+)
 from .nordpool import async_get_nordpool_forecast_intervals_for_date
 from .provider import (
     ElectricityProData,
@@ -75,6 +81,9 @@ class ElectricityProCoordinator(
         self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._cost_this_month_unit: str | None = None
         self._forecast_intervals: list[ForecastInterval] = []
+        self._cheapest_1h_window: ForecastWindowInsight | None = None
+        self._cheapest_2h_window: ForecastWindowInsight | None = None
+        self._price_direction: ForecastDirectionInsight | None = None
         self._store: Store[dict[str, Any]] = Store(
             hass,
             _STORAGE_VERSION,
@@ -109,6 +118,21 @@ class ElectricityProCoordinator(
         """Return the currently stored forecast intervals."""
         return self._forecast_intervals
 
+    @property
+    def cheapest_1h_window(self) -> ForecastWindowInsight | None:
+        """Return the cheapest upcoming one-hour forecast window."""
+        return self._cheapest_1h_window
+
+    @property
+    def cheapest_2h_window(self) -> ForecastWindowInsight | None:
+        """Return the cheapest upcoming two-hour forecast window."""
+        return self._cheapest_2h_window
+
+    @property
+    def price_direction(self) -> ForecastDirectionInsight | None:
+        """Return the currently calculated near-term price direction."""
+        return self._price_direction
+
     async def _async_refresh_forecast_intervals(self, target_date: date) -> None:
         """Retrieve forecast intervals for one date and store them."""
         try:
@@ -136,6 +160,8 @@ class ElectricityProCoordinator(
         except ValueError:
             _LOGGER.warning("Unable to refresh Nord Pool forecast intervals")
             self._forecast_intervals = []
+
+        self._recalculate_forecast_insights()
 
     async def _async_restore_statistics(self) -> None:
         """Restore persisted statistics state when available."""
@@ -220,6 +246,31 @@ class ElectricityProCoordinator(
             self._store.async_delay_save(self._statistics_data, delay=1)
 
         return replace(data, **updates)
+
+    def _recalculate_forecast_insights(self) -> None:
+        """Recalculate cached forecast insight results from current intervals."""
+        now = dt_util.now()
+        provider_data = self._provider.read()
+        self._cheapest_1h_window = find_cheapest_continuous_window(
+            self._forecast_intervals,
+            now=now,
+            duration_minutes=60,
+            grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
+            tax_per_kwh=provider_data.tax_per_kwh,
+        )
+        self._cheapest_2h_window = find_cheapest_continuous_window(
+            self._forecast_intervals,
+            now=now,
+            duration_minutes=120,
+            grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
+            tax_per_kwh=provider_data.tax_per_kwh,
+        )
+        self._price_direction = find_price_direction(
+            self._forecast_intervals,
+            now=now,
+            grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
+            tax_per_kwh=provider_data.tax_per_kwh,
+        )
 
     @callback
     def _statistics_data(self) -> dict[str, Any]:

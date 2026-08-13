@@ -16,6 +16,10 @@ from custom_components.electricity_pro.const import (
 )
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
 from custom_components.electricity_pro.forecast import ForecastInterval
+from custom_components.electricity_pro.forecast_insights import (
+    ForecastDirectionInsight,
+    ForecastWindowInsight,
+)
 
 
 @pytest.fixture
@@ -49,13 +53,69 @@ async def test_async_start_stores_forecast_intervals(
 
     forecast_intervals = [
         ForecastInterval(
-            start=datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
-            end=datetime(2026, 8, 13, 10, 15, tzinfo=UTC),
+            start=datetime(2026, 8, 13, 20, 0, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 20, 15, tzinfo=UTC),
             market_price=Decimal("0.59104"),
             currency="SEK",
             area="SE3",
             published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
-        )
+        ),
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 20, 15, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 20, 30, tzinfo=UTC),
+            market_price=Decimal("0.69104"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 20, 30, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 20, 45, tzinfo=UTC),
+            market_price=Decimal("0.79104"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 20, 45, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 21, 0, tzinfo=UTC),
+            market_price=Decimal("0.89104"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 21, 0, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 21, 15, tzinfo=UTC),
+            market_price=Decimal("0.99104"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 21, 15, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 21, 30, tzinfo=UTC),
+            market_price=Decimal("1.09104"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 21, 30, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 21, 45, tzinfo=UTC),
+            market_price=Decimal("1.19104"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 21, 45, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 22, 0, tzinfo=UTC),
+            market_price=Decimal("1.29104"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
     ]
 
     async_get = AsyncMock(return_value=forecast_intervals)
@@ -72,6 +132,14 @@ async def test_async_start_stores_forecast_intervals(
     assert async_get.await_args.kwargs["config_entry_id"] == "nordpool-entry-id"
     assert async_get.await_args.kwargs["area"] == "SE3"
     assert async_get.await_args.kwargs["currency"] == "SEK"
+    assert isinstance(coordinator.cheapest_1h_window, ForecastWindowInsight)
+    assert coordinator.cheapest_1h_window.start == datetime(2026, 8, 13, 20, 0, tzinfo=UTC)
+    assert coordinator.cheapest_1h_window.end == datetime(2026, 8, 13, 21, 0, tzinfo=UTC)
+    assert isinstance(coordinator.cheapest_2h_window, ForecastWindowInsight)
+    assert coordinator.cheapest_2h_window.start == datetime(2026, 8, 13, 20, 0, tzinfo=UTC)
+    assert coordinator.cheapest_2h_window.end == datetime(2026, 8, 13, 22, 0, tzinfo=UTC)
+    assert isinstance(coordinator.price_direction, ForecastDirectionInsight)
+    assert coordinator.price_direction.direction == "rising"
 
 
 async def test_async_start_keeps_empty_forecast_intervals_on_retrieval_failure(
@@ -97,4 +165,7 @@ async def test_async_start_keeps_empty_forecast_intervals_on_retrieval_failure(
     await coordinator.async_start()
 
     assert coordinator.forecast_intervals == []
+    assert coordinator.cheapest_1h_window is None
+    assert coordinator.cheapest_2h_window is None
+    assert coordinator.price_direction is None
     async_get.assert_awaited_once()
