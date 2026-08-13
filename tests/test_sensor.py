@@ -43,6 +43,9 @@ REMAINING_COST_ENTITY_ID = f"sensor.{DOMAIN}_remaining_cost_today"
 CHEAPEST_1H_WINDOW_ENTITY_ID = f"sensor.{DOMAIN}_cheapest_1h_window_start"
 CHEAPEST_2H_WINDOW_ENTITY_ID = f"sensor.{DOMAIN}_cheapest_2h_window_start"
 CHEAPEST_3H_WINDOW_ENTITY_ID = f"sensor.{DOMAIN}_cheapest_3h_window_start"
+CHEAPEST_3H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID = (
+    f"sensor.{DOMAIN}_cheapest_3h_window_average_effective_price"
+)
 PRICE_DIRECTION_ENTITY_ID = f"sensor.{DOMAIN}_price_direction"
 
 
@@ -1633,6 +1636,9 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
     cheapest_1h_state = hass.states.get(CHEAPEST_1H_WINDOW_ENTITY_ID)
     cheapest_2h_state = hass.states.get(CHEAPEST_2H_WINDOW_ENTITY_ID)
     cheapest_3h_state = hass.states.get(CHEAPEST_3H_WINDOW_ENTITY_ID)
+    cheapest_3h_average_effective_price_state = hass.states.get(
+        CHEAPEST_3H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID
+    )
     direction_state = hass.states.get(PRICE_DIRECTION_ENTITY_ID)
 
     assert cheapest_1h_state is not None
@@ -1666,6 +1672,30 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
     assert cheapest_3h_state.attributes["window_duration_minutes"] == 180
     assert cheapest_3h_state.attributes["interval_count"] == 12
 
+    assert cheapest_3h_average_effective_price_state is not None
+    assert cheapest_3h_average_effective_price_state.state == "1.24104"
+    assert (
+        cheapest_3h_average_effective_price_state.attributes["window_start"]
+        == "2026-08-13T20:15:00+00:00"
+    )
+    assert (
+        cheapest_3h_average_effective_price_state.attributes["window_end"]
+        == "2026-08-13T23:15:00+00:00"
+    )
+    assert (
+        cheapest_3h_average_effective_price_state.attributes[
+            "window_duration_minutes"
+        ]
+        == 180
+    )
+    assert cheapest_3h_average_effective_price_state.attributes["interval_count"] == 12
+    assert (
+        cheapest_3h_average_effective_price_state.attributes["average_market_price"]
+        == "1.24104"
+    )
+    assert cheapest_3h_average_effective_price_state.attributes["currency"] == "SEK"
+    assert cheapest_3h_average_effective_price_state.attributes["price_area"] == "SE3"
+
     assert direction_state is not None
     assert direction_state.state == "rising"
     assert direction_state.attributes["current_interval_start"] == "2026-08-13T20:00:00+00:00"
@@ -1696,6 +1726,9 @@ async def test_forecast_insight_sensors_become_unavailable_without_forecast_data
     cheapest_1h_state = hass.states.get(CHEAPEST_1H_WINDOW_ENTITY_ID)
     cheapest_2h_state = hass.states.get(CHEAPEST_2H_WINDOW_ENTITY_ID)
     cheapest_3h_state = hass.states.get(CHEAPEST_3H_WINDOW_ENTITY_ID)
+    cheapest_3h_average_effective_price_state = hass.states.get(
+        CHEAPEST_3H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID
+    )
     direction_state = hass.states.get(PRICE_DIRECTION_ENTITY_ID)
 
     assert cheapest_1h_state is not None
@@ -1704,5 +1737,7 @@ async def test_forecast_insight_sensors_become_unavailable_without_forecast_data
     assert cheapest_2h_state.state == "unavailable"
     assert cheapest_3h_state is not None
     assert cheapest_3h_state.state == "unavailable"
+    assert cheapest_3h_average_effective_price_state is not None
+    assert cheapest_3h_average_effective_price_state.state == "unavailable"
     assert direction_state is not None
     assert direction_state.state == "unavailable"
