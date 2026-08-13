@@ -1,5 +1,9 @@
 """Shared fixtures for Electricity Pro tests."""
 
+from datetime import datetime
+from decimal import Decimal
+from unittest.mock import AsyncMock
+
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -9,6 +13,9 @@ from custom_components.electricity_pro.const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_FORECAST_CURRENCY,
+    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+    CONF_FORECAST_PRICE_AREA,
     CONF_GRID_FEE_PER_KWH,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
@@ -22,6 +29,7 @@ from custom_components.electricity_pro.const import (
     CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
 )
+from custom_components.electricity_pro.forecast import ForecastInterval
 
 
 @pytest.fixture(autouse=True)
@@ -58,6 +66,10 @@ def setup_electricity_pro(hass):
         grid_fee_per_kwh: float | None = None,
         tax_per_kwh: float | None = None,
         good_price_threshold: float | None = None,
+        forecast_price_area: str | None = None,
+        forecast_currency: str | None = None,
+        forecast_nordpool_config_entry: str | None = None,
+        forecast_intervals: list[dict[str, object]] | None = None,
     ) -> MockConfigEntry:
         """Create and set up an Electricity Pro config entry."""
 
@@ -82,6 +94,17 @@ def setup_electricity_pro(hass):
 
         if good_price_threshold is not None:
             entry_data[CONF_GOOD_PRICE_THRESHOLD] = good_price_threshold
+
+        if forecast_price_area is not None:
+            entry_data[CONF_FORECAST_PRICE_AREA] = forecast_price_area
+
+        if forecast_currency is not None:
+            entry_data[CONF_FORECAST_CURRENCY] = forecast_currency
+
+        if forecast_nordpool_config_entry is not None:
+            entry_data[CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] = (
+                forecast_nordpool_config_entry
+            )
 
         if price_value is not None:
             hass.states.async_set(
@@ -226,7 +249,25 @@ def setup_electricity_pro(hass):
 
         entry.add_to_hass(hass)
 
-        assert await hass.config_entries.async_setup(entry.entry_id)
+        if forecast_intervals is None:
+            assert await hass.config_entries.async_setup(entry.entry_id)
+        else:
+            normalized_forecast_intervals = [
+                ForecastInterval(
+                    start=datetime.fromisoformat(str(interval["start"])),
+                    end=datetime.fromisoformat(str(interval["end"])),
+                    market_price=Decimal(str(interval["price"])) / Decimal("1000"),
+                    currency=str(forecast_currency),
+                    area=str(forecast_price_area),
+                )
+                for interval in forecast_intervals
+            ]
+            with pytest.MonkeyPatch.context() as monkeypatch:
+                monkeypatch.setattr(
+                    "custom_components.electricity_pro.coordinator.async_get_nordpool_forecast_intervals_for_date",
+                    AsyncMock(return_value=normalized_forecast_intervals),
+                )
+                assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
         return entry

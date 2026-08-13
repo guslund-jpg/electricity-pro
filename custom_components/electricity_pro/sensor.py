@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -48,6 +49,7 @@ from .const import (
     DOMAIN,
 )
 from .coordinator import ElectricityProCoordinator
+from .forecast_insights import ForecastDirectionInsight, ForecastWindowInsight
 from .provider import ElectricityProData
 from .statistics import remaining_cost_today
 
@@ -407,6 +409,29 @@ async def async_setup_entry(
         )
     ]
 
+    entities.extend(
+        (
+            ElectricityProCheapestWindowSensor(
+                coordinator=entry.runtime_data,
+                entry=entry,
+                key="cheapest_1h_window_start",
+                name="Cheapest 1h window start",
+                duration_minutes=60,
+            ),
+            ElectricityProCheapestWindowSensor(
+                coordinator=entry.runtime_data,
+                entry=entry,
+                key="cheapest_2h_window_start",
+                name="Cheapest 2h window start",
+                duration_minutes=120,
+            ),
+            ElectricityProPriceDirectionSensor(
+                coordinator=entry.runtime_data,
+                entry=entry,
+            ),
+        )
+    )
+
     async_add_entities(entities)
 
 
@@ -476,3 +501,142 @@ class ElectricityProSensor(
         return super().available and self.entity_description.available_fn(
             self.coordinator.data
         )
+
+
+class ElectricityProForecastInsightSensor(
+    CoordinatorEntity[ElectricityProCoordinator],
+    SensorEntity,
+):
+    """Base entity for coordinator-backed forecast insight sensors."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+        *,
+        key: str,
+        name: str,
+    ) -> None:
+        """Initialize a forecast insight sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_{key}"
+        self._attr_name = name
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name="Electricity Pro",
+            manufacturer="Electricity Pro",
+            model="Electricity monitor",
+        )
+
+
+class ElectricityProCheapestWindowSensor(ElectricityProForecastInsightSensor):
+    """Represent a cheapest upcoming forecast window sensor."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+        *,
+        key: str,
+        name: str,
+        duration_minutes: int,
+    ) -> None:
+        """Initialize a cheapest-window sensor."""
+        super().__init__(coordinator, entry, key=key, name=name)
+        self._duration_minutes = duration_minutes
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return the cheapest window start time."""
+        insight = self._insight
+        return None if insight is None else insight.start
+
+    @property
+    def available(self) -> bool:
+        """Return whether the cheapest window is available."""
+        return super().available and self._insight is not None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return explanatory attributes for the selected window."""
+        insight = self._insight
+        if insight is None:
+            return None
+
+        return {
+            "window_end": insight.end.isoformat(),
+            "window_duration_minutes": insight.duration_minutes,
+            "interval_count": insight.interval_count,
+            "average_market_price": str(insight.average_market_price),
+            "average_effective_price": str(insight.average_effective_price),
+            "currency": insight.currency,
+            "price_area": insight.area,
+            "published_at": (
+                insight.published_at.isoformat()
+                if insight.published_at is not None
+                else None
+            ),
+        }
+
+    @property
+    def _insight(self) -> ForecastWindowInsight | None:
+        """Return the cached window insight for this duration."""
+        if self._duration_minutes == 60:
+            return self.coordinator.cheapest_1h_window
+        return self.coordinator.cheapest_2h_window
+
+
+class ElectricityProPriceDirectionSensor(ElectricityProForecastInsightSensor):
+    """Represent a near-term forecast price direction sensor."""
+
+    def __init__(
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+    ) -> None:
+        """Initialize a price-direction sensor."""
+        super().__init__(
+            coordinator,
+            entry,
+            key="price_direction",
+            name="Price direction",
+        )
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the direction state."""
+        insight = self.coordinator.price_direction
+        return None if insight is None else insight.direction
+
+    @property
+    def available(self) -> bool:
+        """Return whether the price direction is available."""
+        return super().available and self.coordinator.price_direction is not None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return explanatory attributes for price direction."""
+        insight = self.coordinator.price_direction
+        if insight is None:
+            return None
+
+        return {
+            "current_interval_start": insight.current_start.isoformat(),
+            "current_interval_end": insight.current_end.isoformat(),
+            "next_interval_start": insight.next_start.isoformat(),
+            "next_interval_end": insight.next_end.isoformat(),
+            "current_effective_price": str(insight.current_effective_price),
+            "next_effective_price": str(insight.next_effective_price),
+            "delta": str(insight.delta),
+            "currency": insight.currency,
+            "price_area": insight.area,
+            "published_at": (
+                insight.published_at.isoformat()
+                if insight.published_at is not None
+                else None
+            ),
+        }
