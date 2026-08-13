@@ -425,6 +425,13 @@ async def async_setup_entry(
                 name="Cheapest 2h window start",
                 duration_minutes=120,
             ),
+            ElectricityProCheapestWindowSensor(
+                coordinator=entry.runtime_data,
+                entry=entry,
+                key="cheapest_3h_window_start",
+                name="Cheapest 3h window start",
+                duration_minutes=180,
+            ),
             ElectricityProPriceDirectionSensor(
                 coordinator=entry.runtime_data,
                 entry=entry,
@@ -587,7 +594,9 @@ class ElectricityProCheapestWindowSensor(ElectricityProForecastInsightSensor):
         """Return the cached window insight for this duration."""
         if self._duration_minutes == 60:
             return self.coordinator.cheapest_1h_window
-        return self.coordinator.cheapest_2h_window
+        if self._duration_minutes == 120:
+            return self.coordinator.cheapest_2h_window
+        return self.coordinator.cheapest_3h_window
 
 
 class ElectricityProPriceDirectionSensor(ElectricityProForecastInsightSensor):
