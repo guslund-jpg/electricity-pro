@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added forecast insight sensors for the cheapest upcoming 1h window start, the
+  cheapest upcoming 2h window start, and near-term price direction, exposing the
+  first user-facing v1.1 scheduling insights from Nord Pool forecast data.
+
+### Changed
+
+- Normalized injected forecast fixture data to `ForecastInterval` objects in the
+  shared test setup and stabilized forecast sensor and coordinator tests with
+  deterministic coordinator time handling.
+
+### Documentation
+
+- Updated `README.md` to list the new forecast insight sensors, clarify the
+  current Nord Pool requirement for forecast intelligence, and mark v1.1 as in
+  progress.
+
 ## [1.0.0] - 2026-08-08
 
 ### Added
