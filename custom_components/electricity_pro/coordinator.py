@@ -83,6 +83,7 @@ class ElectricityProCoordinator(
         self._forecast_intervals: list[ForecastInterval] = []
         self._cheapest_1h_window: ForecastWindowInsight | None = None
         self._cheapest_2h_window: ForecastWindowInsight | None = None
+        self._cheapest_3h_window: ForecastWindowInsight | None = None
         self._price_direction: ForecastDirectionInsight | None = None
         self._store: Store[dict[str, Any]] = Store(
             hass,
@@ -127,6 +128,11 @@ class ElectricityProCoordinator(
     def cheapest_2h_window(self) -> ForecastWindowInsight | None:
         """Return the cheapest upcoming two-hour forecast window."""
         return self._cheapest_2h_window
+
+    @property
+    def cheapest_3h_window(self) -> ForecastWindowInsight | None:
+        """Return the cheapest upcoming three-hour forecast window."""
+        return self._cheapest_3h_window
 
     @property
     def price_direction(self) -> ForecastDirectionInsight | None:
@@ -262,6 +268,13 @@ class ElectricityProCoordinator(
             self._forecast_intervals,
             now=now,
             duration_minutes=120,
+            grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
+            tax_per_kwh=provider_data.tax_per_kwh,
+        )
+        self._cheapest_3h_window = find_cheapest_continuous_window(
+            self._forecast_intervals,
+            now=now,
+            duration_minutes=180,
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
             tax_per_kwh=provider_data.tax_per_kwh,
         )
