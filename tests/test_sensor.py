@@ -5,12 +5,17 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from types import CoroutineType
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.electricity_pro.const import DOMAIN
+from custom_components.electricity_pro.const import (
+    CONF_FORECAST_CURRENCY,
+    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+    CONF_FORECAST_PRICE_AREA,
+    DOMAIN,
+)
 
 ENTITY_ID = f"sensor.{DOMAIN}_current_power"
 SOURCE_ENTITY_ID = "sensor.test_power"
@@ -35,6 +40,9 @@ MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY_ID = (
 MONTHLY_PEAK_HOUR_TIME_ENTITY_ID = f"sensor.{DOMAIN}_monthly_peak_hour_time"
 
 REMAINING_COST_ENTITY_ID = f"sensor.{DOMAIN}_remaining_cost_today"
+CHEAPEST_1H_WINDOW_ENTITY_ID = f"sensor.{DOMAIN}_cheapest_1h_window_start"
+CHEAPEST_2H_WINDOW_ENTITY_ID = f"sensor.{DOMAIN}_cheapest_2h_window_start"
+PRICE_DIRECTION_ENTITY_ID = f"sensor.{DOMAIN}_price_direction"
 
 
 async def test_energy_today_initial_value(
@@ -202,10 +210,7 @@ async def test_energy_this_month_resets_at_month_boundary(
     """Monthly energy should reset when the local calendar month changes."""
     with patch(
         "custom_components.electricity_pro.coordinator.dt_util.now",
-        side_effect=[
-            datetime(2026, 8, 31, 23, 59, tzinfo=UTC),
-            datetime(2026, 9, 1, 0, 1, tzinfo=UTC),
-        ],
+        return_value=datetime(2026, 9, 1, 0, 1, tzinfo=UTC),
     ):
         await setup_electricity_pro(energy_value="100", energy_unit="kWh")
         hass.states.async_set(
@@ -1525,3 +1530,145 @@ async def test_monthly_peak_hour_time_not_created_without_source(
     await setup_electricity_pro()
 
     assert hass.states.get(MONTHLY_PEAK_HOUR_TIME_ENTITY_ID) is None
+
+
+async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Forecast insight sensors should expose cached coordinator forecast insights."""
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 20, 1, tzinfo=UTC),
+    ):
+        await setup_electricity_pro(
+            forecast_price_area="SE3",
+            forecast_currency="SEK",
+            forecast_nordpool_config_entry="nordpool-entry-id",
+            forecast_intervals=[
+                {
+                    "start": "2026-08-13T20:00:00+00:00",
+                    "end": "2026-08-13T20:15:00+00:00",
+                    "price": 591.04,
+                },
+                {
+                    "start": "2026-08-13T20:15:00+00:00",
+                    "end": "2026-08-13T20:30:00+00:00",
+                    "price": 691.04,
+                },
+                {
+                    "start": "2026-08-13T20:30:00+00:00",
+                    "end": "2026-08-13T20:45:00+00:00",
+                    "price": 791.04,
+                },
+                {
+                    "start": "2026-08-13T20:45:00+00:00",
+                    "end": "2026-08-13T21:00:00+00:00",
+                    "price": 891.04,
+                },
+                {
+                    "start": "2026-08-13T21:00:00+00:00",
+                    "end": "2026-08-13T21:15:00+00:00",
+                    "price": 991.04,
+                },
+                {
+                    "start": "2026-08-13T21:15:00+00:00",
+                    "end": "2026-08-13T21:30:00+00:00",
+                    "price": 1091.04,
+                },
+                {
+                    "start": "2026-08-13T21:30:00+00:00",
+                    "end": "2026-08-13T21:45:00+00:00",
+                    "price": 1191.04,
+                },
+                {
+                    "start": "2026-08-13T21:45:00+00:00",
+                    "end": "2026-08-13T22:00:00+00:00",
+                    "price": 1291.04,
+                },
+                {
+                    "start": "2026-08-13T22:00:00+00:00",
+                    "end": "2026-08-13T22:15:00+00:00",
+                    "price": 1391.04,
+                },
+                {
+                    "start": "2026-08-13T22:15:00+00:00",
+                    "end": "2026-08-13T22:30:00+00:00",
+                    "price": 1491.04,
+                },
+                {
+                    "start": "2026-08-13T22:30:00+00:00",
+                    "end": "2026-08-13T22:45:00+00:00",
+                    "price": 1591.04,
+                },
+                {
+                    "start": "2026-08-13T22:45:00+00:00",
+                    "end": "2026-08-13T23:00:00+00:00",
+                    "price": 1691.04,
+                },
+            ],
+        )
+
+    cheapest_1h_state = hass.states.get(CHEAPEST_1H_WINDOW_ENTITY_ID)
+    cheapest_2h_state = hass.states.get(CHEAPEST_2H_WINDOW_ENTITY_ID)
+    direction_state = hass.states.get(PRICE_DIRECTION_ENTITY_ID)
+
+    assert cheapest_1h_state is not None
+    assert cheapest_1h_state.attributes["device_class"] == "timestamp"
+    assert datetime.fromisoformat(cheapest_1h_state.state) == datetime(
+        2026, 8, 13, 20, 15, tzinfo=UTC
+    )
+    assert cheapest_1h_state.attributes["window_end"] == "2026-08-13T21:15:00+00:00"
+    assert cheapest_1h_state.attributes["window_duration_minutes"] == 60
+    assert cheapest_1h_state.attributes["interval_count"] == 4
+    assert cheapest_1h_state.attributes["average_market_price"] == "0.84104"
+    assert cheapest_1h_state.attributes["average_effective_price"] == "0.84104"
+    assert cheapest_1h_state.attributes["currency"] == "SEK"
+    assert cheapest_1h_state.attributes["price_area"] == "SE3"
+
+    assert cheapest_2h_state is not None
+    assert cheapest_2h_state.attributes["device_class"] == "timestamp"
+    assert datetime.fromisoformat(cheapest_2h_state.state) == datetime(
+        2026, 8, 13, 20, 15, tzinfo=UTC
+    )
+    assert cheapest_2h_state.attributes["window_end"] == "2026-08-13T22:15:00+00:00"
+    assert cheapest_2h_state.attributes["window_duration_minutes"] == 120
+    assert cheapest_2h_state.attributes["interval_count"] == 8
+
+    assert direction_state is not None
+    assert direction_state.state == "rising"
+    assert direction_state.attributes["current_interval_start"] == "2026-08-13T20:00:00+00:00"
+    assert direction_state.attributes["next_interval_start"] == "2026-08-13T20:15:00+00:00"
+    assert direction_state.attributes["current_effective_price"] == "0.59104"
+    assert direction_state.attributes["next_effective_price"] == "0.69104"
+    assert direction_state.attributes["delta"] == "0.10000"
+    assert direction_state.attributes["currency"] == "SEK"
+    assert direction_state.attributes["price_area"] == "SE3"
+
+
+async def test_forecast_insight_sensors_become_unavailable_without_forecast_data(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Forecast insight sensors should be unavailable when no forecast is available."""
+    async_get = AsyncMock(side_effect=ValueError("bad forecast response"))
+    with patch(
+        "custom_components.electricity_pro.coordinator.async_get_nordpool_forecast_intervals_for_date",
+        async_get,
+    ):
+        await setup_electricity_pro(
+            forecast_price_area="SE3",
+            forecast_currency="SEK",
+            forecast_nordpool_config_entry="nordpool-entry-id",
+        )
+
+    cheapest_1h_state = hass.states.get(CHEAPEST_1H_WINDOW_ENTITY_ID)
+    cheapest_2h_state = hass.states.get(CHEAPEST_2H_WINDOW_ENTITY_ID)
+    direction_state = hass.states.get(PRICE_DIRECTION_ENTITY_ID)
+
+    assert cheapest_1h_state is not None
+    assert cheapest_1h_state.state == "unavailable"
+    assert cheapest_2h_state is not None
+    assert cheapest_2h_state.state == "unavailable"
+    assert direction_state is not None
+    assert direction_state.state == "unavailable"
