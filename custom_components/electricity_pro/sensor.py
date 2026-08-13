@@ -432,6 +432,10 @@ async def async_setup_entry(
                 name="Cheapest 3h window start",
                 duration_minutes=180,
             ),
+            ElectricityProCheapest3hWindowAverageEffectivePriceSensor(
+                coordinator=entry.runtime_data,
+                entry=entry,
+            ),
             ElectricityProPriceDirectionSensor(
                 coordinator=entry.runtime_data,
                 entry=entry,
@@ -597,6 +601,66 @@ class ElectricityProCheapestWindowSensor(ElectricityProForecastInsightSensor):
         if self._duration_minutes == 120:
             return self.coordinator.cheapest_2h_window
         return self.coordinator.cheapest_3h_window
+
+
+class ElectricityProCheapest3hWindowAverageEffectivePriceSensor(
+    ElectricityProForecastInsightSensor
+):
+    """Represent the average effective price for the cheapest upcoming 3h window."""
+
+    _attr_suggested_display_precision = 5
+
+    def __init__(
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+    ) -> None:
+        """Initialize a cheapest 3h window price sensor."""
+        super().__init__(
+            coordinator,
+            entry,
+            key="cheapest_3h_window_average_effective_price",
+            name="Cheapest 3h window average effective price",
+        )
+
+    @property
+    def native_value(self) -> Decimal | None:
+        """Return the average effective price of the cheapest upcoming 3h window."""
+        insight = self.coordinator.cheapest_3h_window
+        return None if insight is None else insight.average_effective_price
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the price unit for the cheapest upcoming 3h window."""
+        insight = self.coordinator.cheapest_3h_window
+        return None if insight is None else f"{insight.currency}/kWh"
+
+    @property
+    def available(self) -> bool:
+        """Return whether the 3h window average effective price is available."""
+        return super().available and self.coordinator.cheapest_3h_window is not None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return explanatory attributes for the cheapest upcoming 3h window."""
+        insight = self.coordinator.cheapest_3h_window
+        if insight is None:
+            return None
+
+        return {
+            "window_start": insight.start.isoformat(),
+            "window_end": insight.end.isoformat(),
+            "window_duration_minutes": insight.duration_minutes,
+            "interval_count": insight.interval_count,
+            "average_market_price": str(insight.average_market_price),
+            "currency": insight.currency,
+            "price_area": insight.area,
+            "published_at": (
+                insight.published_at.isoformat()
+                if insight.published_at is not None
+                else None
+            ),
+        }
 
 
 class ElectricityProPriceDirectionSensor(ElectricityProForecastInsightSensor):
