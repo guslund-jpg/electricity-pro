@@ -29,7 +29,7 @@ Electricity Pro does **not** replace it.
 
 Instead, it builds an intelligence layer on top of your existing energy integrations, adding calculations, statistics, forecasting and insights that complement Home Assistant's native capabilities.
 
-Existing live measurements work with compatible Home Assistant entities from providers such as Tibber, Nord Pool and smart meters. Planned v1.1 forecast and scheduling insights will initially require Nord Pool future-price data.
+Existing live measurements work with compatible Home Assistant entities from providers such as Tibber, Nord Pool and smart meters. v1.1 forecast insight sensors currently use Nord Pool future-price data for the first scheduling-oriented intelligence layer.
 
 ## Who is Electricity Pro for?
 
@@ -39,7 +39,7 @@ Electricity Pro is designed for Home Assistant users who want to:
 - Build richer dashboards
 - Create smarter automations
 - Analyse historical trends
-- Prepare for intelligent forecasting and optimisation
+- Use forecast-based insights for better electricity scheduling
 
 ---
 
@@ -67,6 +67,9 @@ Monitor your home's energy usage in real time.
 ### Insights
 
 - Good Time to Use Electricity based on an optional Effective Price threshold
+- Cheapest upcoming 1h window start (Nord Pool forecast)
+- Cheapest upcoming 2h window start (Nord Pool forecast)
+- Price direction (Nord Pool forecast)
 
 ### Native Home Assistant Integration
 
@@ -97,7 +100,7 @@ Electricity Pro is evolving in carefully planned stages.
 | **v0.8** | Intelligence                     | ✅ Released                      |
 | **v0.9** | Daily Statistics & Dashboards    | ✅ Released                      |
 | **v1.0** | Stable Release                   | ✅ Released                      |
-| **v1.1** | Forecast Prices & Scheduling     | 🔭 Planned                       |
+| **v1.1** | Forecast Prices & Scheduling     | 🚧 In progress                   |
 | **v1.2** | Recommendation Intelligence      | 🔭 Planned                       |
 
 See [ROADMAP.md](ROADMAP.md) for more details.
@@ -150,11 +153,11 @@ standard dashboard as the dependency-free baseline.
 
 ### Current release
 
-v0.9.0 – Daily Statistics & Dashboard Experience
+v1.0.0 – Stable Release
 
 Electricity Pro is actively developed with a clear public roadmap.
 
-The next focus is v1.0 stability, packaging, and long-term maintainability.
+The current focus is v1.1 forecast prices and scheduling insights.
 
 ---
 
