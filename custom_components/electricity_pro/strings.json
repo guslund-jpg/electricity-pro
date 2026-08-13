@@ -20,7 +20,8 @@
           "tax_per_kwh": "Additional tax or markup per kWh (including VAT)",
           "good_price_threshold": "Good price threshold per kWh",
           "forecast_price_area": "Forecast price area",
-          "forecast_currency": "Forecast currency"
+          "forecast_currency": "Forecast currency",
+          "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
         },
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
@@ -40,7 +41,8 @@
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
           "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh.",
           "forecast_price_area": "Optional market area used for forecast retrieval, for example SE3.",
-          "forecast_currency": "Optional currency used for forecast retrieval, for example SEK."
+          "forecast_currency": "Optional currency used for forecast retrieval, for example SEK.",
+          "forecast_nordpool_config_entry": "Optional Nord Pool config entry id used for forecast retrieval."
         }
       }
     }
@@ -66,7 +68,8 @@
           "tax_per_kwh": "Additional tax or markup per kWh (including VAT)",
           "good_price_threshold": "Good price threshold per kWh",
           "forecast_price_area": "Forecast price area",
-          "forecast_currency": "Forecast currency"
+          "forecast_currency": "Forecast currency",
+          "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
         },
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
@@ -86,7 +89,8 @@
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
           "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh.",
           "forecast_price_area": "Optional market area used for forecast retrieval, for example SE3.",
-          "forecast_currency": "Optional currency used for forecast retrieval, for example SEK."
+          "forecast_currency": "Optional currency used for forecast retrieval, for example SEK.",
+          "forecast_nordpool_config_entry": "Optional Nord Pool config entry id used for forecast retrieval."
         }
       }
     }

@@ -20,6 +20,9 @@ from .const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_FORECAST_CURRENCY,
+    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+    CONF_FORECAST_PRICE_AREA,
     CONF_GRID_FEE_PER_KWH,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
@@ -53,6 +56,9 @@ def _entity_schema(
     grid_fee_per_kwh_default: float | None = None,
     tax_per_kwh_default: float | None = None,
     good_price_threshold_default: float | None = None,
+    forecast_price_area_default: str | None = None,
+    forecast_currency_default: str | None = None,
+    forecast_nordpool_config_entry_default: str | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
 
@@ -178,6 +184,29 @@ def _entity_schema(
             CONF_GOOD_PRICE_THRESHOLD,
             default=good_price_threshold_default,
         )
+    if forecast_price_area_default is None:
+        forecast_price_area_key = vol.Optional(CONF_FORECAST_PRICE_AREA)
+    else:
+        forecast_price_area_key = vol.Optional(
+            CONF_FORECAST_PRICE_AREA,
+            default=forecast_price_area_default,
+        )
+    if forecast_currency_default is None:
+        forecast_currency_key = vol.Optional(CONF_FORECAST_CURRENCY)
+    else:
+        forecast_currency_key = vol.Optional(
+            CONF_FORECAST_CURRENCY,
+            default=forecast_currency_default,
+        )
+    if forecast_nordpool_config_entry_default is None:
+        forecast_nordpool_config_entry_key = vol.Optional(
+            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+        )
+    else:
+        forecast_nordpool_config_entry_key = vol.Optional(
+            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+            default=forecast_nordpool_config_entry_default,
+        )
     return vol.Schema(
         {
             power_key: selector.EntitySelector(
@@ -277,6 +306,9 @@ def _entity_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
+            forecast_price_area_key: selector.TextSelector(),
+            forecast_currency_key: selector.TextSelector(),
+            forecast_nordpool_config_entry_key: selector.TextSelector(),
         }
     )
 
@@ -403,6 +435,18 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_GOOD_PRICE_THRESHOLD,
             self.config_entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
         )
+        current_forecast_price_area = self.config_entry.options.get(
+            CONF_FORECAST_PRICE_AREA,
+            self.config_entry.data.get(CONF_FORECAST_PRICE_AREA),
+        )
+        current_forecast_currency = self.config_entry.options.get(
+            CONF_FORECAST_CURRENCY,
+            self.config_entry.data.get(CONF_FORECAST_CURRENCY),
+        )
+        current_forecast_nordpool_config_entry = self.config_entry.options.get(
+            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+            self.config_entry.data.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY),
+        )
 
         return self.async_show_form(
             step_id="init",
@@ -423,5 +467,8 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 grid_fee_per_kwh_default=current_grid_fee,
                 tax_per_kwh_default=current_tax,
                 good_price_threshold_default=current_good_price_threshold,
+                forecast_price_area_default=current_forecast_price_area,
+                forecast_currency_default=current_forecast_currency,
+                forecast_nordpool_config_entry_default=current_forecast_nordpool_config_entry,
             ),
         )

@@ -22,7 +22,12 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+from .const import (
+    CONF_FORECAST_CURRENCY,
+    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+    CONF_FORECAST_PRICE_AREA,
+    DOMAIN,
+)
 from .forecast import ForecastInterval
 from .nordpool import async_get_nordpool_forecast_intervals_for_date
 from .provider import (
@@ -107,10 +112,25 @@ class ElectricityProCoordinator(
     async def _async_refresh_forecast_intervals(self, target_date: date) -> None:
         """Retrieve forecast intervals for one date and store them."""
         try:
+            nordpool_config_entry_id = self._entry.options.get(
+                CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+                self._entry.data.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY),
+            )
+            if not isinstance(nordpool_config_entry_id, str) or not nordpool_config_entry_id:
+                raise ValueError("Forecast Nord Pool config entry is required")
+
             self._forecast_intervals = await async_get_nordpool_forecast_intervals_for_date(
                 self.hass,
-                config_entry_id=self._entry.entry_id,
+                config_entry_id=nordpool_config_entry_id,
                 target_date=target_date,
+                area=self._entry.options.get(
+                    CONF_FORECAST_PRICE_AREA,
+                    self._entry.data.get(CONF_FORECAST_PRICE_AREA),
+                ),
+                currency=self._entry.options.get(
+                    CONF_FORECAST_CURRENCY,
+                    self._entry.data.get(CONF_FORECAST_CURRENCY),
+                ),
                 published_at=dt_util.now(),
             )
         except ValueError:
