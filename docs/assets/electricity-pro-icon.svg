@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">Electricity Pro icon</title>
+  <desc id="description">A blue circular ring surrounding a white lightning bolt with a blue outline.</desc>
+  <circle
+    cx="256"
+    cy="256"
+    r="202"
+    fill="none"
+    stroke="#03a9f4"
+    stroke-width="56"
+  />
+  <path
+    d="M279 122 167 274h78l-28 117 128-175h-80z"
+    fill="#ffffff"
+    stroke="#03a9f4"
+    stroke-width="14"
+    stroke-linejoin="round"
+  />
+</svg>
