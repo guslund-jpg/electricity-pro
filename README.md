@@ -1,8 +1,6 @@
-<p align="center">
-  <img src="docs/assets/electricity-pro-icon.svg" alt="Electricity Pro icon" width="128">
-</p>
-
 # Electricity Pro
+
+![Electricity Pro icon](docs/assets/electricity-pro-icon.svg)
 
 > **Turn your Home Assistant energy data into actionable insights.**
 
