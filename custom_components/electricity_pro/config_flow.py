@@ -38,6 +38,27 @@ from .const import (
 )
 
 
+_FORECAST_PRICE_AREAS = [
+    "DK1",
+    "DK2",
+    "EE",
+    "FI",
+    "LT",
+    "LV",
+    "NO1",
+    "NO2",
+    "NO3",
+    "NO4",
+    "NO5",
+    "SE1",
+    "SE2",
+    "SE3",
+    "SE4",
+]
+
+_FORECAST_CURRENCIES = ["DKK", "EUR", "NOK", "SEK"]
+
+
 def _entity_schema(
     *,
     power_default: str | None = None,
@@ -306,9 +327,23 @@ def _entity_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
-            forecast_price_area_key: selector.TextSelector(),
-            forecast_currency_key: selector.TextSelector(),
-            forecast_nordpool_config_entry_key: selector.TextSelector(),
+            forecast_price_area_key: selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_FORECAST_PRICE_AREAS,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            forecast_currency_key: selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_FORECAST_CURRENCIES,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            forecast_nordpool_config_entry_key: selector.ConfigEntrySelector(
+                selector.ConfigEntrySelectorConfig(
+                    integration="nordpool",
+                )
+            ),
         }
     )
 
