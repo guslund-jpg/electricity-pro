@@ -22,5 +22,6 @@ CONF_TAX_PER_KWH = "tax_per_kwh"
 CONF_GOOD_PRICE_THRESHOLD = "good_price_threshold"
 CONF_FORECAST_PRICE_AREA = "forecast_price_area"
 CONF_FORECAST_CURRENCY = "forecast_currency"
+CONF_FORECAST_NORDPOOL_CONFIG_ENTRY = "forecast_nordpool_config_entry"
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]

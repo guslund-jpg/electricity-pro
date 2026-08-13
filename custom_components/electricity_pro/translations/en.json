@@ -6,8 +6,8 @@
         "title": "Set up Electricity Pro",
         "description": "Select the sensors used by Electricity Pro.",
         "data": {
-          "power_entity": "Current power sensor",
-          "price_entity": "Current electricity price sensor",
+          "power_entity": "Power sensor",
+          "price_entity": "Electricity price sensor",
           "energy_entity": "Today's accumulated energy sensor",
           "accumulated_cost_today_entity": "Today's accumulated cost sensor",
           "peak_power_today_entity": "Today's peak power sensor",
@@ -21,13 +21,17 @@
           "monthly_peak_hour_time_entity": "Monthly peak hour time sensor",
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
           "tax_per_kwh": "Additional tax or markup per kWh (including VAT)",
-          "good_price_threshold": "Good price threshold per kWh"
+          "good_price_threshold": "Good price threshold per kWh",
+          "forecast_price_area": "Forecast price area",
+          "forecast_currency": "Forecast currency",
+          "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
         },
         "data_description": {
-          "power_entity": "Choose an existing Home Assistant sensor with the power device class.",
+          "power_entity": "Required sensor providing the current power.",
           "price_entity": "Optional sensor providing the current electricity price.",
           "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
           "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost.",
+          "peak_power_today_entity": "Optional sensor providing today's maximum measured power.",
           "current_l1_entity": "Optional sensor providing instantaneous current for phase L1.",
           "current_l2_entity": "Optional sensor providing instantaneous current for phase L2.",
           "current_l3_entity": "Optional sensor providing instantaneous current for phase L3.",
@@ -38,7 +42,10 @@
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
           "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor, including VAT.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
-          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh."
+          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh.",
+          "forecast_price_area": "Enter the electricity price area you belong to.",
+          "forecast_currency": "Optional currency used for forecast retrieval, for example SEK.",
+          "forecast_nordpool_config_entry": "Optional Nord Pool config entry id used for forecast retrieval."
         }
       }
     }
@@ -49,10 +56,11 @@
         "title": "Configure Electricity Pro",
         "description": "Update the sensors used by Electricity Pro.",
         "data": {
-          "power_entity": "Current power sensor",
-          "price_entity": "Current electricity price sensor",
+          "power_entity": "Power sensor",
+          "price_entity": "Electricity price sensor",
           "energy_entity": "Today's accumulated energy sensor",
           "accumulated_cost_today_entity": "Today's accumulated cost sensor",
+          "peak_power_today_entity": "Today's maximum power sensor",
           "current_l1_entity": "Current L1 sensor",
           "current_l2_entity": "Current L2 sensor",
           "current_l3_entity": "Current L3 sensor",
@@ -63,13 +71,17 @@
           "monthly_peak_hour_time_entity": "Monthly peak hour time sensor",
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
           "tax_per_kwh": "Additional tax or markup per kWh (including VAT)",
-          "good_price_threshold": "Good price threshold per kWh"
+          "good_price_threshold": "Good price threshold per kWh",
+          "forecast_price_area": "Forecast price area",
+          "forecast_currency": "Forecast currency",
+          "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
         },
         "data_description": {
-          "power_entity": "Choose an existing Home Assistant sensor with the power device class.",
+          "power_entity": "Required sensor providing the current power.",
           "price_entity": "Optional sensor providing the current electricity price.",
           "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
           "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost.",
+          "peak_power_today_entity": "Optional sensor providing today's maximum measured power.",
           "current_l1_entity": "Optional sensor providing instantaneous current for phase L1.",
           "current_l2_entity": "Optional sensor providing instantaneous current for phase L2.",
           "current_l3_entity": "Optional sensor providing instantaneous current for phase L3.",
@@ -80,7 +92,10 @@
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
           "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor, including VAT.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
-          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh."
+          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh.",
+          "forecast_price_area": "Enter the electricity price area you belong to.",
+          "forecast_currency": "Optional currency used for forecast retrieval, for example SEK.",
+          "forecast_nordpool_config_entry": "Optional Nord Pool config entry id used for forecast retrieval."
         }
       }
     }

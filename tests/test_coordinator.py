@@ -9,6 +9,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import (
     CONF_FORECAST_CURRENCY,
+    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
     CONF_POWER_ENTITY,
     DOMAIN,
@@ -27,6 +28,7 @@ def mock_entry() -> MockConfigEntry:
             CONF_POWER_ENTITY: "sensor.test_power",
             CONF_FORECAST_PRICE_AREA: "SE3",
             CONF_FORECAST_CURRENCY: "SEK",
+            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id",
         },
         entry_id="test-entry-id",
     )
@@ -67,7 +69,7 @@ async def test_async_start_stores_forecast_intervals(
 
     assert coordinator.forecast_intervals == forecast_intervals
     async_get.assert_awaited_once()
-    assert async_get.await_args.kwargs["config_entry_id"] == "test-entry-id"
+    assert async_get.await_args.kwargs["config_entry_id"] == "nordpool-entry-id"
     assert async_get.await_args.kwargs["area"] == "SE3"
     assert async_get.await_args.kwargs["currency"] == "SEK"
 
