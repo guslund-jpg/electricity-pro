@@ -12,11 +12,12 @@ Built on Home Assistant's native Energy platform, Electricity Pro feels like a n
 
 ## Project Vision
 
-Electricity Pro is a provider-independent electricity analytics platform for
-Home Assistant.
+Electricity Pro is a provider-aware electricity analytics platform for Home
+Assistant.
 
-Read more about the project's long-term goals in
-`docs/vision/VISION.md`.
+Its long-term architecture aims to stay broadly provider-friendly, while some
+capabilities may begin with a narrower source requirement when that leads to a
+better and faster product.
 
 ---
 
@@ -27,6 +28,8 @@ Home Assistant already provides an excellent Energy Dashboard.
 Electricity Pro does **not** replace it.
 
 Instead, it builds an intelligence layer on top of your existing energy integrations, adding calculations, statistics, forecasting and insights that complement Home Assistant's native capabilities.
+
+Existing live measurements work with compatible Home Assistant entities from providers such as Tibber, Nord Pool and smart meters. Planned v1.1 forecast and scheduling insights will initially require Nord Pool future-price data.
 
 ## Who is Electricity Pro for?
 
@@ -93,7 +96,7 @@ Electricity Pro is evolving in carefully planned stages.
 | **v0.7** | Traditional Sensors & Statistics | ✅ Released                      |
 | **v0.8** | Intelligence                     | ✅ Released                      |
 | **v0.9** | Daily Statistics & Dashboards    | ✅ Released                      |
-| **v1.0** | Stable Release                   | 🎯 Target                        |
+| **v1.0** | Stable Release                   | ✅ Released                      |
 | **v1.1** | Forecast Prices & Scheduling     | 🔭 Planned                       |
 | **v1.2** | Recommendation Intelligence      | 🔭 Planned                       |
 
@@ -117,14 +120,20 @@ standard dashboard as the dependency-free baseline.
 
 ## Installation
 
+### HACS installation (recommended)
+
+1. Open HACS in your Home Assistant sidebar.
+2. Go to **Integrations** and click **+ Explore & download repositories**.
+3. Search for **Electricity Pro** and select it.
+4. Click **Download** and restart Home Assistant.
+5. Add **Electricity Pro** from **Settings → Devices & Services**.
+
 ### Manual installation
 
 1. Copy the `custom_components/electricity_pro` folder into your Home Assistant configuration.
 2. Restart Home Assistant.
 3. Add **Electricity Pro** from **Settings → Devices & Services**.
 4. Select your existing energy sensors (for example Tibber, Nord Pool or other compatible providers).
-
-> HACS support is planned for a future release.
 
 ---
 
