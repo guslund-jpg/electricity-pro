@@ -206,14 +206,20 @@ def _entity_schema(
             default=good_price_threshold_default,
         )
     if forecast_price_area_default is None:
-        forecast_price_area_key = vol.Optional(CONF_FORECAST_PRICE_AREA)
+        forecast_price_area_key = vol.Optional(
+            CONF_FORECAST_PRICE_AREA,
+            default="SE3",
+        )
     else:
         forecast_price_area_key = vol.Optional(
             CONF_FORECAST_PRICE_AREA,
             default=forecast_price_area_default,
         )
     if forecast_currency_default is None:
-        forecast_currency_key = vol.Optional(CONF_FORECAST_CURRENCY)
+        forecast_currency_key = vol.Optional(
+            CONF_FORECAST_CURRENCY,
+            default="SEK",
+        )
     else:
         forecast_currency_key = vol.Optional(
             CONF_FORECAST_CURRENCY,
