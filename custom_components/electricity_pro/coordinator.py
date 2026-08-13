@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from dataclasses import replace
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
@@ -22,6 +23,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
+from .forecast import ForecastInterval
+from .nordpool import async_get_nordpool_forecast_intervals_for_date
 from .provider import (
     ElectricityProData,
     ElectricityProEntityProvider,
@@ -66,6 +69,7 @@ class ElectricityProCoordinator(
         self._energy_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._cost_this_month_unit: str | None = None
+        self._forecast_intervals: list[ForecastInterval] = []
         self._store: Store[dict[str, Any]] = Store(
             hass,
             _STORAGE_VERSION,
@@ -75,6 +79,7 @@ class ElectricityProCoordinator(
     async def async_start(self) -> None:
         """Start listening for provider source changes."""
         await self._async_restore_statistics()
+        await self._async_refresh_forecast_intervals(date.today())
 
         self._entry.async_on_unload(
             async_track_state_change_event(
@@ -93,6 +98,24 @@ class ElectricityProCoordinator(
     ) -> None:
         """Handle a configured source entity change."""
         self.async_set_updated_data(self._read())
+
+    @property
+    def forecast_intervals(self) -> list[ForecastInterval]:
+        """Return the currently stored forecast intervals."""
+        return self._forecast_intervals
+
+    async def _async_refresh_forecast_intervals(self, target_date: date) -> None:
+        """Retrieve forecast intervals for one date and store them."""
+        try:
+            self._forecast_intervals = await async_get_nordpool_forecast_intervals_for_date(
+                self.hass,
+                config_entry_id=self._entry.entry_id,
+                target_date=target_date,
+                published_at=dt_util.now(),
+            )
+        except ValueError:
+            _LOGGER.warning("Unable to refresh Nord Pool forecast intervals")
+            self._forecast_intervals = []
 
     async def _async_restore_statistics(self) -> None:
         """Restore persisted statistics state when available."""

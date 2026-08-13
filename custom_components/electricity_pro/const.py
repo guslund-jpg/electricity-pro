@@ -20,5 +20,7 @@ CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY = "monthly_peak_hour_time_entity"
 CONF_GRID_FEE_PER_KWH = "grid_fee_per_kwh"
 CONF_TAX_PER_KWH = "tax_per_kwh"
 CONF_GOOD_PRICE_THRESHOLD = "good_price_threshold"
+CONF_FORECAST_PRICE_AREA = "forecast_price_area"
+CONF_FORECAST_CURRENCY = "forecast_currency"
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
