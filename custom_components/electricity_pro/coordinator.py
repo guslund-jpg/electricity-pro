@@ -111,8 +111,6 @@ class ElectricityProCoordinator(
                 self.hass,
                 config_entry_id=self._entry.entry_id,
                 target_date=target_date,
-                area="SE3",
-                currency="SEK",
                 published_at=dt_util.now(),
             )
         except ValueError:

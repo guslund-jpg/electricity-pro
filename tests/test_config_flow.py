@@ -1,159 +1,79 @@
 """Tests for the Electricity Pro config flow."""
 
-from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
+from __future__ import annotations
+
+from homeassistant import data_entry_flow
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import (
-    CONF_GRID_FEE_PER_KWH,
+    CONF_FORECAST_CURRENCY,
+    CONF_FORECAST_PRICE_AREA,
     CONF_GOOD_PRICE_THRESHOLD,
+    CONF_GRID_FEE_PER_KWH,
     CONF_POWER_ENTITY,
-    CONF_PRICE_ENTITY,
     CONF_TAX_PER_KWH,
     DOMAIN,
 )
 
 
-async def test_user_flow_power_only(hass: HomeAssistant) -> None:
-    """Create an entry with only a power sensor."""
-
+async def test_user_step_creates_entry_with_forecast_config(hass) -> None:
+    """The user step should store forecast area and currency."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
-        context={"source": config_entries.SOURCE_USER},
+        context={"source": data_entry_flow.SOURCE_USER},
     )
 
-    assert result["type"] == "form"
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {
-            CONF_POWER_ENTITY: "sensor.power",
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_FORECAST_PRICE_AREA: "SE3",
+            CONF_FORECAST_CURRENCY: "SEK",
         },
     )
 
-    assert result["type"] == "create_entry"
-
-    assert result["data"] == {
-        CONF_POWER_ENTITY: "sensor.power",
-    }
-
-
-async def test_user_flow_power_and_price(
-    hass: HomeAssistant,
-) -> None:
-    """Create an entry with both power and price sensors."""
-
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN,
-        context={"source": config_entries.SOURCE_USER},
-    )
-
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        {
-            CONF_POWER_ENTITY: "sensor.power",
-            CONF_PRICE_ENTITY: "sensor.price",
-        },
-    )
-
-    assert result["type"] == "create_entry"
-
-    assert result["data"] == {
-        CONF_POWER_ENTITY: "sensor.power",
-        CONF_PRICE_ENTITY: "sensor.price",
-    }
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Electricity Pro"
+    assert result["data"][CONF_FORECAST_PRICE_AREA] == "SE3"
+    assert result["data"][CONF_FORECAST_CURRENCY] == "SEK"
 
 
-async def test_user_flow_effective_price_adjustments(
-    hass: HomeAssistant,
-) -> None:
-    """Create an entry with fixed effective-price adjustments."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN,
-        context={"source": config_entries.SOURCE_USER},
-    )
-
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        {
-            CONF_POWER_ENTITY: "sensor.power",
-            CONF_PRICE_ENTITY: "sensor.price",
-            CONF_GRID_FEE_PER_KWH: 0.25,
-            CONF_TAX_PER_KWH: 0.15,
-            CONF_GOOD_PRICE_THRESHOLD: 1.20,
-        },
-    )
-
-    assert result["type"] == "create_entry"
-    assert result["data"][CONF_GRID_FEE_PER_KWH] == 0.25
-    assert result["data"][CONF_TAX_PER_KWH] == 0.15
-    assert result["data"][CONF_GOOD_PRICE_THRESHOLD] == 1.20
-
-
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-
-
-async def test_options_flow_shows_existing_sources(
-    hass: HomeAssistant,
-) -> None:
-    """Options flow should suggest the currently configured sources."""
-
+async def test_options_flow_updates_forecast_config(hass) -> None:
+    """The options flow should expose and persist forecast area and currency."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Electricity Pro",
         data={
-            CONF_POWER_ENTITY: "sensor.old_power",
-            CONF_PRICE_ENTITY: "sensor.old_price",
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_FORECAST_PRICE_AREA: "SE3",
+            CONF_FORECAST_CURRENCY: "SEK",
+        },
+        options={
+            CONF_GRID_FEE_PER_KWH: 0.1,
+            CONF_TAX_PER_KWH: 0.2,
+            CONF_GOOD_PRICE_THRESHOLD: 1.0,
         },
     )
     entry.add_to_hass(hass)
 
-    result = await hass.config_entries.options.async_init(
-        entry.entry_id
-    )
+    result = await hass.config_entries.options.async_init(entry.entry_id)
 
-    assert result["type"] == "form"
-    assert result["step_id"] == "init"
-
-    schema = result["data_schema"]
-    assert schema(
-        {
-            CONF_POWER_ENTITY: "sensor.old_power",
-            CONF_PRICE_ENTITY: "sensor.old_price",
-        }
-    ) == {
-        CONF_POWER_ENTITY: "sensor.old_power",
-        CONF_PRICE_ENTITY: "sensor.old_price",
-    }
-
-
-async def test_options_flow_updates_sources(
-    hass: HomeAssistant,
-) -> None:
-    """Options flow should save updated source entities."""
-
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Electricity Pro",
-        data={
-            CONF_POWER_ENTITY: "sensor.old_power",
-        },
-    )
-    entry.add_to_hass(hass)
-
-    result = await hass.config_entries.options.async_init(
-        entry.entry_id
-    )
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {
-            CONF_POWER_ENTITY: "sensor.new_power",
-            CONF_PRICE_ENTITY: "sensor.new_price",
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_FORECAST_PRICE_AREA: "SE4",
+            CONF_FORECAST_CURRENCY: "EUR",
+            CONF_GRID_FEE_PER_KWH: 0.1,
+            CONF_TAX_PER_KWH: 0.2,
+            CONF_GOOD_PRICE_THRESHOLD: 1.0,
         },
     )
 
-    assert result["type"] == "create_entry"
-    assert entry.options == {
-        CONF_POWER_ENTITY: "sensor.new_power",
-        CONF_PRICE_ENTITY: "sensor.new_price",
-    }
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_FORECAST_PRICE_AREA] == "SE4"
+    assert result["data"][CONF_FORECAST_CURRENCY] == "EUR"

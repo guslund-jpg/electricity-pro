@@ -7,7 +7,12 @@ from unittest.mock import AsyncMock
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.electricity_pro.const import CONF_POWER_ENTITY, DOMAIN
+from custom_components.electricity_pro.const import (
+    CONF_FORECAST_CURRENCY,
+    CONF_FORECAST_PRICE_AREA,
+    CONF_POWER_ENTITY,
+    DOMAIN,
+)
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
 from custom_components.electricity_pro.forecast import ForecastInterval
 
@@ -18,7 +23,11 @@ def mock_entry() -> MockConfigEntry:
     return MockConfigEntry(
         domain=DOMAIN,
         title="Electricity Pro",
-        data={CONF_POWER_ENTITY: "sensor.test_power"},
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_FORECAST_PRICE_AREA: "SE3",
+            CONF_FORECAST_CURRENCY: "SEK",
+        },
         entry_id="test-entry-id",
     )
 
@@ -58,6 +67,9 @@ async def test_async_start_stores_forecast_intervals(
 
     assert coordinator.forecast_intervals == forecast_intervals
     async_get.assert_awaited_once()
+    assert async_get.await_args.kwargs["config_entry_id"] == "test-entry-id"
+    assert async_get.await_args.kwargs["area"] == "SE3"
+    assert async_get.await_args.kwargs["currency"] == "SEK"
 
 
 async def test_async_start_keeps_empty_forecast_intervals_on_retrieval_failure(
