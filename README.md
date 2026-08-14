@@ -148,6 +148,25 @@ integration. Electricity Pro inherits the native integration's currency and,
 for single-area entries, its price area automatically. It asks for an area only
 when the selected Nord Pool entry contains several.
 
+### After installation: find your data
+
+Electricity Pro creates Home Assistant entities; it does not replace or modify
+your dashboards automatically. Find all available values under **Settings →
+Devices & services → Electricity Pro → Entities**. From there, individual
+entities can be added to any existing dashboard.
+
+Two optional, ready-to-copy dashboard examples are maintained in
+[`examples/dashboards`](examples/dashboards/README.md):
+
+- [`electricity-pro.yaml`](examples/dashboards/electricity-pro.yaml) uses only
+  cards built into Home Assistant.
+- [`electricity-pro-enhanced.yaml`](examples/dashboards/electricity-pro-enhanced.yaml)
+  adds Mushroom and ApexCharts Card presentation.
+
+Dashboard YAML is not installed or imported by HACS. Follow the
+[dashboard installation guide](examples/dashboards/README.md#installation) to
+create a manual dashboard, copy an example, and verify its entity IDs.
+
 ### Manual installation
 
 1. Copy the `custom_components/electricity_pro` folder into your Home Assistant configuration.

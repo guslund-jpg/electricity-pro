@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- Clarified that HACS installs Electricity Pro entities but does not import a
+  dashboard, added a post-installation path to the entity list and dashboard
+  guide, and extended both example dashboards with the v1.1 forecast sensors.
+
 ## [1.1.0] - 2026-08-14
 
 ### Added
