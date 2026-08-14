@@ -240,7 +240,11 @@ async def test_async_start_keeps_empty_forecast_intervals_on_retrieval_failure(
     )
 
     coordinator = ElectricityProCoordinator(hass, mock_entry)
-    await coordinator.async_start()
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+    ):
+        await coordinator.async_start()
 
     assert coordinator.forecast_intervals == []
     assert coordinator.cheapest_1h_window is None
@@ -270,7 +274,11 @@ async def test_empty_forecast_response_remains_retryable(
     )
 
     coordinator = ElectricityProCoordinator(hass, mock_entry)
-    await coordinator.async_start()
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+    ):
+        await coordinator.async_start()
     await coordinator._async_forecast_tick(  # noqa: SLF001
         datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
     )
