@@ -24,7 +24,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_FORECAST_CURRENCY,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
     DOMAIN,
@@ -220,10 +219,6 @@ class ElectricityProCoordinator(
                 area=self._entry.options.get(
                     CONF_FORECAST_PRICE_AREA,
                     self._entry.data.get(CONF_FORECAST_PRICE_AREA),
-                ),
-                currency=self._entry.options.get(
-                    CONF_FORECAST_CURRENCY,
-                    self._entry.data.get(CONF_FORECAST_CURRENCY),
                 ),
             )
             if not intervals:

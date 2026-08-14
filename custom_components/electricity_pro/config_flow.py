@@ -20,7 +20,6 @@ from .const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
-    CONF_FORECAST_CURRENCY,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
     CONF_GRID_FEE_PER_KWH,
@@ -36,27 +35,6 @@ from .const import (
     CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
 )
-
-
-_FORECAST_PRICE_AREAS = [
-    "DK1",
-    "DK2",
-    "EE",
-    "FI",
-    "LT",
-    "LV",
-    "NO1",
-    "NO2",
-    "NO3",
-    "NO4",
-    "NO5",
-    "SE1",
-    "SE2",
-    "SE3",
-    "SE4",
-]
-
-_FORECAST_CURRENCIES = ["DKK", "EUR", "NOK", "SEK"]
 
 
 def _entity_schema(
@@ -77,8 +55,6 @@ def _entity_schema(
     grid_fee_per_kwh_default: float | None = None,
     tax_per_kwh_default: float | None = None,
     good_price_threshold_default: float | None = None,
-    forecast_price_area_default: str | None = None,
-    forecast_currency_default: str | None = None,
     forecast_nordpool_config_entry_default: str | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
@@ -205,26 +181,6 @@ def _entity_schema(
             CONF_GOOD_PRICE_THRESHOLD,
             default=good_price_threshold_default,
         )
-    if forecast_price_area_default is None:
-        forecast_price_area_key = vol.Optional(
-            CONF_FORECAST_PRICE_AREA,
-            default="SE3",
-        )
-    else:
-        forecast_price_area_key = vol.Optional(
-            CONF_FORECAST_PRICE_AREA,
-            default=forecast_price_area_default,
-        )
-    if forecast_currency_default is None:
-        forecast_currency_key = vol.Optional(
-            CONF_FORECAST_CURRENCY,
-            default="SEK",
-        )
-    else:
-        forecast_currency_key = vol.Optional(
-            CONF_FORECAST_CURRENCY,
-            default=forecast_currency_default,
-        )
     if forecast_nordpool_config_entry_default is None:
         forecast_nordpool_config_entry_key = vol.Optional(
             CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
@@ -333,18 +289,6 @@ def _entity_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
-            forecast_price_area_key: selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=_FORECAST_PRICE_AREAS,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            forecast_currency_key: selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=_FORECAST_CURRENCIES,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
             forecast_nordpool_config_entry_key: selector.ConfigEntrySelector(
                 selector.ConfigEntrySelectorConfig(
                     integration="nordpool",
@@ -362,6 +306,11 @@ class ElectricityProConfigFlow(
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        """Initialize the config flow."""
+        self._pending_user_input: dict[str, Any] | None = None
+        self._forecast_areas: list[str] = []
+
     @staticmethod
     @callback
     def async_get_options_flow(
@@ -376,6 +325,22 @@ class ElectricityProConfigFlow(
     ) -> ConfigFlowResult:
         """Handle setup initiated by the user."""
         if user_input is not None:
+            nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+            if isinstance(nordpool_entry_id, str):
+                nordpool_entry = self.hass.config_entries.async_get_entry(
+                    nordpool_entry_id
+                )
+                if nordpool_entry is not None:
+                    areas = nordpool_entry.data.get("areas", [])
+                    if isinstance(areas, list) and len(areas) > 1:
+                        self._pending_user_input = user_input
+                        self._forecast_areas = [str(area) for area in areas]
+                        return self.async_show_form(
+                            step_id="forecast_area",
+                            data_schema=_forecast_area_schema(self._forecast_areas),
+                        )
+
+            user_input.pop(CONF_FORECAST_PRICE_AREA, None)
             return self.async_create_entry(
                 title="Electricity Pro",
                 data=user_input,
@@ -386,9 +351,28 @@ class ElectricityProConfigFlow(
             data_schema=_entity_schema(),
         )
 
+    async def async_step_forecast_area(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Select one area when the Nord Pool entry contains several."""
+        if user_input is not None and self._pending_user_input is not None:
+            data = {**self._pending_user_input, **user_input}
+            return self.async_create_entry(title="Electricity Pro", data=data)
+
+        return self.async_show_form(
+            step_id="forecast_area",
+            data_schema=_forecast_area_schema(self._forecast_areas),
+        )
+
 
 class ElectricityProOptionsFlow(OptionsFlow):
     """Handle Electricity Pro options."""
+
+    def __init__(self) -> None:
+        """Initialize the options flow."""
+        self._pending_user_input: dict[str, Any] | None = None
+        self._forecast_areas: list[str] = []
 
     async def async_step_init(
         self,
@@ -396,6 +380,41 @@ class ElectricityProOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Manage source entity options."""
         if user_input is not None:
+            nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+            if isinstance(nordpool_entry_id, str):
+                nordpool_entry = self.hass.config_entries.async_get_entry(
+                    nordpool_entry_id
+                )
+                if nordpool_entry is not None:
+                    areas = nordpool_entry.data.get("areas", [])
+                    if isinstance(areas, list) and len(areas) > 1:
+                        selected_area = user_input.get(CONF_FORECAST_PRICE_AREA)
+                        current_nordpool_entry_id = self.config_entry.options.get(
+                            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+                            self.config_entry.data.get(
+                                CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+                            ),
+                        )
+                        if (
+                            selected_area is None
+                            and nordpool_entry_id == current_nordpool_entry_id
+                        ):
+                            selected_area = self.config_entry.options.get(
+                                CONF_FORECAST_PRICE_AREA,
+                                self.config_entry.data.get(CONF_FORECAST_PRICE_AREA),
+                            )
+                            if selected_area in areas:
+                                user_input[CONF_FORECAST_PRICE_AREA] = selected_area
+                        if selected_area not in areas:
+                            self._pending_user_input = user_input
+                            self._forecast_areas = [str(area) for area in areas]
+                            return self.async_show_form(
+                                step_id="forecast_area",
+                                data_schema=_forecast_area_schema(
+                                    self._forecast_areas
+                                ),
+                            )
+            user_input.pop(CONF_FORECAST_PRICE_AREA, None)
             return self.async_create_entry(
                 title="",
                 data=user_input,
@@ -476,14 +495,6 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_GOOD_PRICE_THRESHOLD,
             self.config_entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
         )
-        current_forecast_price_area = self.config_entry.options.get(
-            CONF_FORECAST_PRICE_AREA,
-            self.config_entry.data.get(CONF_FORECAST_PRICE_AREA),
-        )
-        current_forecast_currency = self.config_entry.options.get(
-            CONF_FORECAST_CURRENCY,
-            self.config_entry.data.get(CONF_FORECAST_CURRENCY),
-        )
         current_forecast_nordpool_config_entry = self.config_entry.options.get(
             CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
             self.config_entry.data.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY),
@@ -508,8 +519,34 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 grid_fee_per_kwh_default=current_grid_fee,
                 tax_per_kwh_default=current_tax,
                 good_price_threshold_default=current_good_price_threshold,
-                forecast_price_area_default=current_forecast_price_area,
-                forecast_currency_default=current_forecast_currency,
                 forecast_nordpool_config_entry_default=current_forecast_nordpool_config_entry,
             ),
         )
+
+    async def async_step_forecast_area(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Select one area when the Nord Pool entry contains several."""
+        if user_input is not None and self._pending_user_input is not None:
+            data = {**self._pending_user_input, **user_input}
+            return self.async_create_entry(title="", data=data)
+
+        return self.async_show_form(
+            step_id="forecast_area",
+            data_schema=_forecast_area_schema(self._forecast_areas),
+        )
+
+
+def _forecast_area_schema(areas: list[str]) -> vol.Schema:
+    """Return the area selector used only for multi-area Nord Pool entries."""
+    return vol.Schema(
+        {
+            vol.Required(CONF_FORECAST_PRICE_AREA): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=areas,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            )
+        }
+    )

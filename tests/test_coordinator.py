@@ -205,7 +205,6 @@ async def test_async_start_stores_forecast_intervals(
     assert all(
         call.kwargs["config_entry_id"] == "nordpool-entry-id"
         and call.kwargs["area"] == "SE3"
-        and call.kwargs["currency"] == "SEK"
         for call in async_get.await_args_list
     )
     assert isinstance(coordinator.cheapest_1h_window, ForecastWindowInsight)

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Electricity Pro now inherits forecast currency and single-area settings from
+  the selected native Nord Pool integration. A separate price-area selection is
+  shown only when that Nord Pool entry contains multiple areas.
+
 ## [1.1.0] - 2026-08-14
 
 ### Added
