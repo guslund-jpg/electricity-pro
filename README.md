@@ -100,7 +100,7 @@ Electricity Pro is evolving in carefully planned stages.
 | **v0.8** | Intelligence                     | ✅ Released                      |
 | **v0.9** | Daily Statistics & Dashboards    | ✅ Released                      |
 | **v1.0** | Stable Release                   | ✅ Released                      |
-| **v1.1** | Forecast Prices & Scheduling     | 🚧 In progress                   |
+| **v1.1** | Forecast Prices & Scheduling     | ✅ Released                      |
 | **v1.2** | Recommendation Intelligence      | 🔭 Planned                       |
 
 See [ROADMAP.md](ROADMAP.md) for more details.
@@ -153,11 +153,11 @@ standard dashboard as the dependency-free baseline.
 
 ### Current release
 
-v1.0.0 – Stable Release
+v1.1.0 – Forecast Prices & Scheduling Insights
 
 Electricity Pro is actively developed with a clear public roadmap.
 
-The current focus is v1.1 forecast prices and scheduling insights.
+The current focus is v1.2 recommendation intelligence.
 
 ---
 

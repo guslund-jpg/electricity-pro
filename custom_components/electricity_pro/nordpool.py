@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
+
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
