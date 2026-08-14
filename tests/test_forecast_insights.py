@@ -6,6 +6,7 @@ from decimal import Decimal
 from custom_components.electricity_pro.forecast import ForecastInterval
 from custom_components.electricity_pro.forecast_insights import (
     find_cheapest_continuous_window,
+    find_next_inexpensive_1h_window,
     find_price_direction,
 )
 
@@ -257,6 +258,145 @@ def test_find_price_direction_returns_none_on_overlap() -> None:
     result = find_price_direction(
         intervals,
         now=datetime(2026, 8, 13, 10, 10, tzinfo=UTC),
+    )
+
+    assert result is None
+
+
+def test_find_next_inexpensive_1h_window_returns_earliest_qualifying_window() -> None:
+    """The first window at or below threshold should be returned."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    intervals = [
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.80"),
+        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.50"),
+        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.30"),
+    ]
+
+    result = find_next_inexpensive_1h_window(
+        intervals,
+        now=now,
+        threshold=Decimal("0.55"),
+    )
+
+    assert result is not None
+    assert result.start == datetime(2026, 8, 13, 11, 0, tzinfo=UTC)
+    assert result.end == datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
+    assert result.duration_minutes == 60
+    assert result.interval_count == 1
+    assert result.average_effective_price == Decimal("0.50")
+    assert result.threshold == Decimal("0.55")
+
+
+def test_find_next_inexpensive_1h_window_returns_none_when_none_qualify() -> None:
+    """None should be returned when every upcoming window exceeds the threshold."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    intervals = [
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.80"),
+        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.70"),
+    ]
+
+    result = find_next_inexpensive_1h_window(
+        intervals,
+        now=now,
+        threshold=Decimal("0.60"),
+    )
+
+    assert result is None
+
+
+def test_find_next_inexpensive_1h_window_qualifies_on_exact_threshold() -> None:
+    """A window exactly equal to the threshold should qualify."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    intervals = [
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.50"),
+    ]
+
+    result = find_next_inexpensive_1h_window(
+        intervals,
+        now=now,
+        threshold=Decimal("0.50"),
+    )
+
+    assert result is not None
+    assert result.average_effective_price == Decimal("0.50")
+
+
+def test_find_next_inexpensive_1h_window_uses_effective_price_for_comparison() -> None:
+    """The threshold comparison should use the effective price including adjustments."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    intervals = [
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
+        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.30"),
+    ]
+
+    # With grid_fee=0.15, effective prices are 0.55 and 0.45; threshold 0.50 skips first
+    result = find_next_inexpensive_1h_window(
+        intervals,
+        now=now,
+        threshold=Decimal("0.50"),
+        grid_fee_per_kwh=Decimal("0.15"),
+    )
+
+    assert result is not None
+    assert result.start == datetime(2026, 8, 13, 11, 0, tzinfo=UTC)
+    assert result.average_effective_price == Decimal("0.45")
+    assert result.average_market_price == Decimal("0.30")
+
+
+def test_find_next_inexpensive_1h_window_quarter_hour_intervals() -> None:
+    """The function should compose four 15-min intervals into a qualifying 1h window."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    # All four first intervals are 0.90; the second four are 0.20.
+    # Starting at 10:45 gives avg (0.90+0.20+0.20+0.20)/4=0.375, which already qualifies.
+    intervals = [
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.90"),
+        _interval(datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=15, market_price="0.90"),
+        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=15, market_price="0.90"),
+        _interval(datetime(2026, 8, 13, 10, 45, tzinfo=UTC), minutes=15, market_price="0.90"),
+        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=15, market_price="0.20"),
+        _interval(datetime(2026, 8, 13, 11, 15, tzinfo=UTC), minutes=15, market_price="0.20"),
+        _interval(datetime(2026, 8, 13, 11, 30, tzinfo=UTC), minutes=15, market_price="0.20"),
+        _interval(datetime(2026, 8, 13, 11, 45, tzinfo=UTC), minutes=15, market_price="0.20"),
+    ]
+
+    result = find_next_inexpensive_1h_window(
+        intervals,
+        now=now,
+        threshold=Decimal("0.50"),
+    )
+
+    assert result is not None
+    # 10:45 window: (0.90+0.20+0.20+0.20)/4 = 0.375 ≤ 0.50 — earliest qualifying
+    assert result.start == datetime(2026, 8, 13, 10, 45, tzinfo=UTC)
+    assert result.end == datetime(2026, 8, 13, 11, 45, tzinfo=UTC)
+    assert result.interval_count == 4
+
+
+def test_find_next_inexpensive_1h_window_excludes_past_intervals() -> None:
+    """Intervals starting before now should not be considered."""
+    now = datetime(2026, 8, 13, 11, 5, tzinfo=UTC)
+    intervals = [
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.10"),
+        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.10"),
+        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.30"),
+    ]
+
+    result = find_next_inexpensive_1h_window(
+        intervals,
+        now=now,
+        threshold=Decimal("0.50"),
+    )
+
+    assert result is not None
+    assert result.start == datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
+
+
+def test_find_next_inexpensive_1h_window_returns_none_on_empty_intervals() -> None:
+    """An empty interval list should return None."""
+    result = find_next_inexpensive_1h_window(
+        [],
+        now=datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+        threshold=Decimal("1.00"),
     )
 
     assert result is None

@@ -10,6 +10,22 @@ from .forecast import ForecastInterval
 
 
 @dataclass(frozen=True, slots=True)
+class NextInexpensive1hWindowInsight:
+    """The earliest upcoming 1-hour window whose average effective price is at or below threshold."""
+
+    start: datetime
+    end: datetime
+    duration_minutes: int
+    interval_count: int
+    average_market_price: Decimal
+    average_effective_price: Decimal
+    threshold: Decimal
+    currency: str
+    area: str
+    published_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
 class ForecastWindowInsight:
     """A selected continuous future price window."""
 
@@ -186,3 +202,60 @@ def _average_effective_price(
         for interval in window
     )
     return weighted_sum / Decimal(total_minutes)
+
+
+def find_next_inexpensive_1h_window(
+    intervals: list[ForecastInterval],
+    *,
+    now: datetime,
+    threshold: Decimal,
+    grid_fee_per_kwh: Decimal | None = None,
+    tax_per_kwh: Decimal | None = None,
+) -> NextInexpensive1hWindowInsight | None:
+    """Return the earliest upcoming 1-hour window whose average effective price is at or below threshold."""
+    upcoming = [interval for interval in intervals if interval.start >= now]
+
+    for start_index, start_interval in enumerate(upcoming):
+        window = [start_interval]
+        total_minutes = start_interval.resolution_minutes
+
+        for interval in upcoming[start_index + 1 :]:
+            previous = window[-1]
+            if interval.start < previous.end:
+                return None
+            if interval.start != previous.end or total_minutes >= 60:
+                break
+            window.append(interval)
+            total_minutes += interval.resolution_minutes
+
+        if total_minutes != 60:
+            continue
+
+        if any(
+            interval.currency != start_interval.currency or interval.area != start_interval.area
+            for interval in window[1:]
+        ):
+            continue
+
+        average_effective_price = _average_effective_price(
+            window,
+            grid_fee_per_kwh=grid_fee_per_kwh,
+            tax_per_kwh=tax_per_kwh,
+        )
+        if average_effective_price > threshold:
+            continue
+
+        return NextInexpensive1hWindowInsight(
+            start=window[0].start,
+            end=window[-1].end,
+            duration_minutes=60,
+            interval_count=len(window),
+            average_market_price=_average_market_price(window),
+            average_effective_price=average_effective_price,
+            threshold=threshold,
+            currency=window[0].currency,
+            area=window[0].area,
+            published_at=window[0].published_at,
+        )
+
+    return None
