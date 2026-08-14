@@ -400,3 +400,118 @@ def test_find_next_inexpensive_1h_window_returns_none_on_empty_intervals() -> No
     )
 
     assert result is None
+
+
+def test_find_cheapest_continuous_window_skips_overlapping_start_finds_later_valid_window() -> None:
+    """An overlap at an early start should not prevent finding a valid later window."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    intervals = [
+        # A and B overlap — any window starting at A or B cannot complete cleanly
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.50"),
+        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.50"),
+        # C and D are contiguous and form a valid 2h window
+        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.30"),
+        _interval(datetime(2026, 8, 13, 13, 0, tzinfo=UTC), minutes=60, market_price="0.30"),
+    ]
+
+    result = find_cheapest_continuous_window(
+        intervals,
+        now=now,
+        duration_minutes=120,
+    )
+
+    assert result is not None
+    assert result.start == datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
+    assert result.end == datetime(2026, 8, 13, 14, 0, tzinfo=UTC)
+    assert result.interval_count == 2
+
+
+def test_find_cheapest_continuous_window_gap_before_valid_window_returns_later_result() -> None:
+    """A gap early in the list should not prevent finding a valid window later."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    intervals = [
+        # Lone interval — cannot form a 2h window by itself
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
+        # Gap here (missing 11:00–12:00)
+        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
+        _interval(datetime(2026, 8, 13, 13, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
+    ]
+
+    result = find_cheapest_continuous_window(
+        intervals,
+        now=now,
+        duration_minutes=120,
+    )
+
+    assert result is not None
+    assert result.start == datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
+    assert result.end == datetime(2026, 8, 13, 14, 0, tzinfo=UTC)
+
+
+def test_find_price_direction_skips_overlapping_pair_finds_next_clean_pair() -> None:
+    """An overlapping pair should be skipped; the next clean pair should be used."""
+    # now is inside C so the A/B overlap pair and the B/C gap pair are both bypassed
+    now = datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
+    intervals = [
+        # A and B overlap — this pair is invalid
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
+        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.30"),
+        # C and D are a clean contiguous pair; now falls inside C
+        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
+        _interval(datetime(2026, 8, 13, 13, 0, tzinfo=UTC), minutes=60, market_price="0.50"),
+    ]
+
+    result = find_price_direction(intervals, now=now)
+
+    assert result is not None
+    assert result.direction == "rising"
+    assert result.current_start == datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
+    assert result.next_start == datetime(2026, 8, 13, 13, 0, tzinfo=UTC)
+
+
+def test_find_next_inexpensive_1h_window_skips_overlapping_start_finds_later_valid_window() -> None:
+    """An overlap at an early start should not prevent finding a qualifying window later."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    intervals = [
+        # A and B overlap — cannot form a 1h window starting at A
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.80"),
+        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.80"),
+        # C is a valid 1h interval at or below threshold
+        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
+    ]
+
+    result = find_next_inexpensive_1h_window(
+        intervals,
+        now=now,
+        threshold=Decimal("0.50"),
+    )
+
+    assert result is not None
+    assert result.start == datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
+    assert result.end == datetime(2026, 8, 13, 13, 0, tzinfo=UTC)
+    assert result.average_effective_price == Decimal("0.40")
+
+
+def test_find_next_inexpensive_1h_window_gap_before_valid_window_returns_later_result() -> None:
+    """A gap early in the list should not prevent finding a qualifying window later."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    intervals = [
+        # Pair with a gap — neither alone forms a 1h window (each is 30 min)
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=30, market_price="0.80"),
+        # Gap here (missing 10:30–11:00)
+        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=30, market_price="0.80"),
+        # A clean contiguous pair forming a 1h window below threshold
+        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=30, market_price="0.40"),
+        _interval(datetime(2026, 8, 13, 12, 30, tzinfo=UTC), minutes=30, market_price="0.40"),
+    ]
+
+    result = find_next_inexpensive_1h_window(
+        intervals,
+        now=now,
+        threshold=Decimal("0.50"),
+    )
+
+    assert result is not None
+    assert result.start == datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
+    assert result.end == datetime(2026, 8, 13, 13, 0, tzinfo=UTC)
+    assert result.interval_count == 2

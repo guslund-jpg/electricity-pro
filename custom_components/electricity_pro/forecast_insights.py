@@ -76,7 +76,7 @@ def find_cheapest_continuous_window(
         for interval in upcoming[start_index + 1 :]:
             previous = window[-1]
             if interval.start < previous.end:
-                return None
+                break
             if interval.start != previous.end or total_minutes >= duration_minutes:
                 break
             window.append(interval)
@@ -132,7 +132,7 @@ def find_price_direction(
         current = sorted_intervals[index]
         following = sorted_intervals[index + 1]
         if following.start < current.end:
-            return None
+            continue
         if current.start <= now < current.end or current.start >= now:
             if current.currency != following.currency or current.area != following.area:
                 return None
@@ -222,7 +222,7 @@ def find_next_inexpensive_1h_window(
         for interval in upcoming[start_index + 1 :]:
             previous = window[-1]
             if interval.start < previous.end:
-                return None
+                break
             if interval.start != previous.end or total_minutes >= 60:
                 break
             window.append(interval)
