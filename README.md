@@ -144,7 +144,9 @@ Electricity Pro currently supports installation as a HACS custom repository:
 
 Forecast insights additionally require Home Assistant's native Nord Pool
 integration to be configured. They do not use the older HACS Nord Pool custom
-integration.
+integration. Electricity Pro inherits the native integration's currency and,
+for single-area entries, its price area automatically. It asks for an area only
+when the selected Nord Pool entry contains several.
 
 ### Manual installation
 

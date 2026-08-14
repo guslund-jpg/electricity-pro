@@ -164,13 +164,56 @@ async def test_async_get_nordpool_forecast_intervals_for_date() -> None:
             "config_entry": "test-entry-id",
             "date": "2026-08-13",
             "areas": ["SE3"],
-            "currency": "SEK",
         },
         blocking=True,
         return_response=True,
     )
     assert len(forecast_intervals) == 1
     assert forecast_intervals[0].market_price == Decimal("0.59104")
+
+
+async def test_forecast_retrieval_inherits_nordpool_area_and_currency() -> None:
+    """Forecast retrieval should use the selected native entry's settings."""
+    async_call = AsyncMock(
+        return_value={
+            "SE3": [
+                {
+                    "start": "2026-08-13T10:00:00+00:00",
+                    "end": "2026-08-13T11:00:00+00:00",
+                    "price": 500.0,
+                }
+            ]
+        }
+    )
+    nordpool_entry = SimpleNamespace(
+        data={"areas": ["SE3"], "currency": "SEK"}
+    )
+    hass = SimpleNamespace(
+        services=SimpleNamespace(async_call=async_call),
+        config_entries=SimpleNamespace(
+            async_get_entry=lambda entry_id: nordpool_entry
+        ),
+    )
+
+    intervals = await async_get_nordpool_forecast_intervals_for_date(
+        hass,
+        config_entry_id="test-entry-id",
+        target_date=date(2026, 8, 13),
+    )
+
+    async_call.assert_awaited_once_with(
+        "nordpool",
+        "get_prices_for_date",
+        {
+            "config_entry": "test-entry-id",
+            "date": "2026-08-13",
+            "areas": ["SE3"],
+        },
+        blocking=True,
+        return_response=True,
+    )
+    assert intervals[0].area == "SE3"
+    assert intervals[0].currency == "SEK"
 
 
 @pytest.mark.parametrize(

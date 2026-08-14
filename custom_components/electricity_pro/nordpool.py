@@ -70,14 +70,35 @@ async def async_get_nordpool_forecast_intervals_for_date(
     published_at: datetime | None = None,
 ) -> list[ForecastInterval]:
     """Retrieve and normalize Nord Pool forecast intervals for one date."""
+    nordpool_entry = None
+    config_entries = getattr(hass, "config_entries", None)
+    if config_entries is not None:
+        nordpool_entry = config_entries.async_get_entry(config_entry_id)
+
+    if nordpool_entry is not None:
+        configured_areas = nordpool_entry.data.get("areas", [])
+        configured_currency = nordpool_entry.data.get("currency")
+        if not isinstance(configured_areas, list) or not all(
+            isinstance(configured_area, str) for configured_area in configured_areas
+        ):
+            raise ValueError("Nord Pool config entry has invalid areas")
+        if not isinstance(configured_currency, str) or not configured_currency:
+            raise ValueError("Nord Pool config entry has invalid currency")
+
+        if len(configured_areas) == 1:
+            area = configured_areas[0]
+        elif area not in configured_areas:
+            raise ValueError(
+                "A configured Nord Pool area is required for multi-area entries"
+            )
+        currency = configured_currency
+
     service_data: dict[str, Any] = {
         "config_entry": config_entry_id,
         "date": target_date.isoformat(),
     }
     if area is not None:
         service_data["areas"] = [area]
-    if currency is not None:
-        service_data["currency"] = currency
 
     response = await hass.services.async_call(
         "nordpool",

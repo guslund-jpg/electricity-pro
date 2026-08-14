@@ -22,8 +22,6 @@
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
           "tax_per_kwh": "Additional tax or markup per kWh (including VAT)",
           "good_price_threshold": "Good price threshold per kWh",
-          "forecast_price_area": "Forecast price area",
-          "forecast_currency": "Forecast currency",
           "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
         },
         "data_description": {
@@ -43,9 +41,14 @@
           "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor, including VAT.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
           "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh.",
-          "forecast_price_area": "Enter the electricity price area you belong to.",
-          "forecast_currency": "Optional currency used for forecast retrieval, for example SEK.",
-          "forecast_nordpool_config_entry": "Optional Nord Pool config entry id used for forecast retrieval."
+          "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
+        }
+      },
+      "forecast_area": {
+        "title": "Select forecast price area",
+        "description": "The selected Nord Pool integration contains several price areas. Select the one Electricity Pro should use.",
+        "data": {
+          "forecast_price_area": "Forecast price area"
         }
       }
     }
@@ -72,8 +75,6 @@
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
           "tax_per_kwh": "Additional tax or markup per kWh (including VAT)",
           "good_price_threshold": "Good price threshold per kWh",
-          "forecast_price_area": "Forecast price area",
-          "forecast_currency": "Forecast currency",
           "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
         },
         "data_description": {
@@ -93,9 +94,14 @@
           "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor, including VAT.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
           "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh.",
-          "forecast_price_area": "Enter the electricity price area you belong to.",
-          "forecast_currency": "Optional currency used for forecast retrieval, for example SEK.",
-          "forecast_nordpool_config_entry": "Optional Nord Pool config entry id used for forecast retrieval."
+          "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
+        }
+      },
+      "forecast_area": {
+        "title": "Select forecast price area",
+        "description": "The selected Nord Pool integration contains several price areas. Select the one Electricity Pro should use.",
+        "data": {
+          "forecast_price_area": "Forecast price area"
         }
       }
     }
