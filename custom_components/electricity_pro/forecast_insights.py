@@ -66,7 +66,10 @@ def find_cheapest_continuous_window(
     tax_per_kwh: Decimal | None = None,
 ) -> ForecastWindowInsight | None:
     """Return the cheapest upcoming continuous window with the exact duration."""
-    upcoming = [interval for interval in intervals if interval.start >= now]
+    upcoming = sorted(
+        (interval for interval in intervals if interval.start >= now),
+        key=lambda interval: interval.start,
+    )
     best_window: ForecastWindowInsight | None = None
 
     for start_index, start_interval in enumerate(upcoming):
@@ -213,7 +216,10 @@ def find_next_inexpensive_1h_window(
     tax_per_kwh: Decimal | None = None,
 ) -> NextInexpensive1hWindowInsight | None:
     """Return the earliest upcoming 1-hour window whose average effective price is at or below threshold."""
-    upcoming = [interval for interval in intervals if interval.start >= now]
+    upcoming = sorted(
+        (interval for interval in intervals if interval.start >= now),
+        key=lambda interval: interval.start,
+    )
 
     for start_index, start_interval in enumerate(upcoming):
         window = [start_interval]

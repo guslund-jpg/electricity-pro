@@ -1,10 +1,11 @@
 """Tests for coordinator forecast runtime behavior."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import (
@@ -196,10 +197,17 @@ async def test_async_start_stores_forecast_intervals(
         await coordinator.async_start()
 
     assert coordinator.forecast_intervals == forecast_intervals
-    async_get.assert_awaited_once()
-    assert async_get.await_args.kwargs["config_entry_id"] == "nordpool-entry-id"
-    assert async_get.await_args.kwargs["area"] == "SE3"
-    assert async_get.await_args.kwargs["currency"] == "SEK"
+    assert async_get.await_count == 2
+    assert [call.kwargs["target_date"] for call in async_get.await_args_list] == [
+        date(2026, 8, 13),
+        date(2026, 8, 14),
+    ]
+    assert all(
+        call.kwargs["config_entry_id"] == "nordpool-entry-id"
+        and call.kwargs["area"] == "SE3"
+        and call.kwargs["currency"] == "SEK"
+        for call in async_get.await_args_list
+    )
     assert isinstance(coordinator.cheapest_1h_window, ForecastWindowInsight)
     assert coordinator.cheapest_1h_window.start == datetime(2026, 8, 13, 20, 15, tzinfo=UTC)
     assert coordinator.cheapest_1h_window.end == datetime(2026, 8, 13, 21, 15, tzinfo=UTC)
@@ -241,6 +249,144 @@ async def test_async_start_keeps_empty_forecast_intervals_on_retrieval_failure(
     assert coordinator.cheapest_3h_window is None
     assert coordinator.price_direction is None
     async_get.assert_awaited_once()
+
+
+async def test_empty_forecast_response_remains_retryable(
+    hass,
+    mock_entry: MockConfigEntry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An empty publication response should not be cached as a complete date."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    mock_entry.add_to_hass(hass)
+
+    async_get = AsyncMock(return_value=[])
+    monkeypatch.setattr(
+        "custom_components.electricity_pro.coordinator.async_get_nordpool_forecast_intervals_for_date",
+        async_get,
+    )
+
+    coordinator = ElectricityProCoordinator(hass, mock_entry)
+    await coordinator.async_start()
+    await coordinator._async_forecast_tick(  # noqa: SLF001
+        datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
+    )
+
+    assert coordinator.forecast_intervals == []
+    assert async_get.await_count == 2
+
+
+async def test_async_start_degrades_gracefully_on_native_action_failure(
+    hass,
+    mock_entry: MockConfigEntry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Native Nord Pool action failures must not prevent integration startup."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    mock_entry.add_to_hass(hass)
+    monkeypatch.setattr(
+        "custom_components.electricity_pro.coordinator.async_get_nordpool_forecast_intervals_for_date",
+        AsyncMock(side_effect=HomeAssistantError("Nord Pool unavailable")),
+    )
+
+    coordinator = ElectricityProCoordinator(hass, mock_entry)
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+    ):
+        await coordinator.async_start()
+
+    assert coordinator.data is not None
+    assert coordinator.forecast_intervals == []
+
+
+async def test_forecast_tick_retries_tomorrow_and_expires_insights(
+    hass,
+    mock_entry: MockConfigEntry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The lifecycle should retry tomorrow publication and expire old windows."""
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    mock_entry.add_to_hass(hass)
+    today_intervals = [
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 12, 0, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 13, 0, tzinfo=UTC),
+            market_price=Decimal("0.40"),
+            currency="SEK",
+            area="SE3",
+        )
+    ]
+    tomorrow_intervals = [
+        ForecastInterval(
+            start=datetime(2026, 8, 14, 0, 0, tzinfo=UTC),
+            end=datetime(2026, 8, 14, 1, 0, tzinfo=UTC),
+            market_price=Decimal("0.20"),
+            currency="SEK",
+            area="SE3",
+        )
+    ]
+    async_get = AsyncMock(return_value=today_intervals)
+    monkeypatch.setattr(
+        "custom_components.electricity_pro.coordinator.async_get_nordpool_forecast_intervals_for_date",
+        async_get,
+    )
+
+    coordinator = ElectricityProCoordinator(hass, mock_entry)
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 12, 0, tzinfo=UTC),
+    ):
+        await coordinator.async_start()
+    assert coordinator.cheapest_1h_window is not None
+
+    async_get.side_effect = HomeAssistantError("not published yet")
+    with (
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.as_local",
+            side_effect=lambda value: value,
+        ),
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=datetime(2026, 8, 13, 13, 0, tzinfo=UTC),
+        ),
+    ):
+        await coordinator._async_forecast_tick(
+            datetime(2026, 8, 13, 13, 0, tzinfo=UTC)
+        )
+    assert coordinator.cheapest_1h_window is None
+
+    async_get.side_effect = None
+    async_get.return_value = tomorrow_intervals
+    with (
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.as_local",
+            side_effect=lambda value: value,
+        ),
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=datetime(2026, 8, 13, 13, 15, tzinfo=UTC),
+        ),
+    ):
+        await coordinator._async_forecast_tick(
+            datetime(2026, 8, 13, 13, 15, tzinfo=UTC)
+        )
+
+    assert tomorrow_intervals[0] in coordinator.forecast_intervals
+    assert coordinator.cheapest_1h_window is not None
+    assert coordinator.cheapest_1h_window.start == tomorrow_intervals[0].start
 
 
 async def test_async_start_caches_next_inexpensive_1h_window_when_threshold_configured(

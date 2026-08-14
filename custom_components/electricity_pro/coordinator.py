@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import logging
-
 from dataclasses import replace
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -17,7 +16,9 @@ from homeassistant.core import (
     HomeAssistant,
     callback,
 )
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
@@ -55,6 +56,8 @@ _ENERGY_THIS_MONTH = "energy_this_month"
 _COST_THIS_MONTH = "cost_this_month"
 _COST_THIS_MONTH_UNIT = "cost_this_month_unit"
 _KWH_PER_WH = Decimal("0.001")
+_FORECAST_REFRESH_INTERVAL = timedelta(minutes=15)
+_TOMORROW_PUBLICATION_HOUR = 13
 
 
 class ElectricityProCoordinator(
@@ -82,6 +85,7 @@ class ElectricityProCoordinator(
         self._energy_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._cost_this_month_unit: str | None = None
+        self._forecast_intervals_by_date: dict[date, list[ForecastInterval]] = {}
         self._forecast_intervals: list[ForecastInterval] = []
         self._cheapest_1h_window: ForecastWindowInsight | None = None
         self._cheapest_2h_window: ForecastWindowInsight | None = None
@@ -97,7 +101,22 @@ class ElectricityProCoordinator(
     async def async_start(self) -> None:
         """Start listening for provider source changes."""
         await self._async_restore_statistics()
-        await self._async_refresh_forecast_intervals(date.today())
+        if self._forecast_configured:
+            now = dt_util.now()
+            await self._async_refresh_forecast_intervals(now.date())
+            if now.hour >= _TOMORROW_PUBLICATION_HOUR:
+                await self._async_refresh_forecast_intervals(
+                    now.date() + timedelta(days=1)
+                )
+
+            self._entry.async_on_unload(
+                async_track_time_interval(
+                    self.hass,
+                    self._async_forecast_tick,
+                    _FORECAST_REFRESH_INTERVAL,
+                    cancel_on_shutdown=True,
+                )
+            )
 
         self._entry.async_on_unload(
             async_track_state_change_event(
@@ -147,7 +166,44 @@ class ElectricityProCoordinator(
         """Return the currently calculated near-term price direction."""
         return self._price_direction
 
-    async def _async_refresh_forecast_intervals(self, target_date: date) -> None:
+    @property
+    def _forecast_configured(self) -> bool:
+        """Return whether native Nord Pool forecast retrieval is configured."""
+        config_entry_id = self._entry.options.get(
+            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+            self._entry.data.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY),
+        )
+        return isinstance(config_entry_id, str) and bool(config_entry_id)
+
+    async def _async_forecast_tick(self, now: datetime) -> None:
+        """Refresh published dates and expire cached insights as time advances."""
+        local_now = dt_util.as_local(now)
+        today = local_now.date()
+
+        stale_dates = [
+            stored_date
+            for stored_date in self._forecast_intervals_by_date
+            if stored_date < today
+        ]
+        for stale_date in stale_dates:
+            del self._forecast_intervals_by_date[stale_date]
+
+        if today not in self._forecast_intervals_by_date:
+            await self._async_refresh_forecast_intervals(today)
+
+        tomorrow = today + timedelta(days=1)
+        if (
+            local_now.hour >= _TOMORROW_PUBLICATION_HOUR
+            and tomorrow not in self._forecast_intervals_by_date
+        ):
+            await self._async_refresh_forecast_intervals(tomorrow)
+
+        self._rebuild_forecast_intervals()
+        self._recalculate_forecast_insights()
+        if self.data is not None:
+            self.async_set_updated_data(self.data)
+
+    async def _async_refresh_forecast_intervals(self, target_date: date) -> bool:
         """Retrieve forecast intervals for one date and store them."""
         try:
             nordpool_config_entry_id = self._entry.options.get(
@@ -157,7 +213,7 @@ class ElectricityProCoordinator(
             if not isinstance(nordpool_config_entry_id, str) or not nordpool_config_entry_id:
                 raise ValueError("Forecast Nord Pool config entry is required")
 
-            self._forecast_intervals = await async_get_nordpool_forecast_intervals_for_date(
+            intervals = await async_get_nordpool_forecast_intervals_for_date(
                 self.hass,
                 config_entry_id=nordpool_config_entry_id,
                 target_date=target_date,
@@ -169,13 +225,41 @@ class ElectricityProCoordinator(
                     CONF_FORECAST_CURRENCY,
                     self._entry.data.get(CONF_FORECAST_CURRENCY),
                 ),
-                published_at=dt_util.now(),
             )
-        except ValueError:
-            _LOGGER.warning("Unable to refresh Nord Pool forecast intervals")
-            self._forecast_intervals = []
+            if not intervals:
+                raise ValueError("Nord Pool returned no forecast intervals")
+        except (HomeAssistantError, TimeoutError, ValueError) as err:
+            _LOGGER.warning(
+                "Unable to refresh Nord Pool forecast intervals for %s: %s",
+                target_date,
+                err,
+            )
+            self._forecast_intervals_by_date.pop(target_date, None)
+            self._rebuild_forecast_intervals()
+            self._recalculate_forecast_insights()
+            return False
 
+        self._forecast_intervals_by_date[target_date] = intervals
+        self._rebuild_forecast_intervals()
         self._recalculate_forecast_insights()
+        return True
+
+    def _rebuild_forecast_intervals(self) -> None:
+        """Build one ordered forecast sequence from the cached delivery dates."""
+        unique_intervals = {
+            (
+                interval.start,
+                interval.end,
+                interval.currency,
+                interval.area,
+            ): interval
+            for intervals in self._forecast_intervals_by_date.values()
+            for interval in intervals
+        }
+        self._forecast_intervals = sorted(
+            unique_intervals.values(),
+            key=lambda interval: interval.start,
+        )
 
     async def _async_restore_statistics(self) -> None:
         """Restore persisted statistics state when available."""

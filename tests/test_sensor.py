@@ -1895,7 +1895,7 @@ async def test_next_inexpensive_1h_window_sensor_unavailable_without_threshold(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """The next inexpensive 1h window sensor should be unavailable when no threshold is configured."""
+    """The next inexpensive sensor should be omitted when no threshold is configured."""
     with patch(
         "custom_components.electricity_pro.coordinator.dt_util.now",
         return_value=datetime(2026, 8, 13, 20, 1, tzinfo=UTC),
@@ -1914,5 +1914,4 @@ async def test_next_inexpensive_1h_window_sensor_unavailable_without_threshold(
         )
 
     state = hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID)
-    assert state is not None
-    assert state.state == "unavailable"
+    assert state is None

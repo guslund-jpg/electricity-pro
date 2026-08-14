@@ -101,6 +101,26 @@ def test_find_cheapest_continuous_window_tie_breaks_to_earliest_start() -> None:
     assert result.end == datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
 
 
+def test_find_cheapest_continuous_window_sorts_input() -> None:
+    """Window selection should not depend on provider payload ordering."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    intervals = [
+        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.10"),
+        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
+        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
+    ]
+
+    result = find_cheapest_continuous_window(
+        intervals,
+        now=now,
+        duration_minutes=120,
+    )
+
+    assert result is not None
+    assert result.start == datetime(2026, 8, 13, 11, 0, tzinfo=UTC)
+    assert result.average_market_price == Decimal("0.15")
+
+
 def test_find_cheapest_continuous_window_rejects_gap() -> None:
     """A gap should prevent forming a continuous window across it."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)

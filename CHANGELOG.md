@@ -24,9 +24,16 @@
 
 ### Changed
 
-- Coordinator now fetches and caches today's Nord Pool forecast intervals on
-  startup and recalculates all forecast insights whenever intervals or pricing
-  adjustments change.
+- Coordinator now caches native Nord Pool intervals for today and tomorrow,
+  retries tomorrow retrieval after publication, removes expired delivery dates,
+  and recalculates forecast insights every 15 minutes.
+- Native Nord Pool action failures now degrade forecast entities gracefully
+  without preventing the rest of Electricity Pro from loading.
+- Forecast normalization now accepts valid negative spot prices and sorts
+  intervals before scheduling calculations.
+- Forecast entities are created only when native Nord Pool forecast retrieval
+  is configured; the threshold-based entity additionally requires a Good Price
+  threshold.
 - Normalized injected forecast fixture data to `ForecastInterval` objects in the
   shared test setup and stabilized forecast sensor and coordinator tests with
   deterministic coordinator time handling.
@@ -37,6 +44,8 @@
 - Updated `README.md` to list the new forecast insight sensors, clarify the
   Nord Pool requirement for forecast features, and mark v1.1 as released.
 - Updated roadmap and implementation checklist to reflect delivered state.
+- Clarified native Nord Pool requirements and HACS custom-repository
+  installation, and documented the forecast modules in the architecture guide.
 
 ## [1.0.0] - 2026-08-08
 

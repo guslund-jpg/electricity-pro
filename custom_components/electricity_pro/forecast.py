@@ -26,8 +26,8 @@ class ForecastInterval:
         if self.start >= self.end:
             raise ValueError("Forecast interval start must be before end")
 
-        if self.market_price < Decimal("0"):
-            raise ValueError("Forecast interval market price cannot be negative")
+        if not self.market_price.is_finite():
+            raise ValueError("Forecast interval market price must be finite")
 
         if not self.currency:
             raise ValueError("Forecast interval currency is required")
