@@ -451,6 +451,10 @@ async def async_setup_entry(
                 coordinator=entry.runtime_data,
                 entry=entry,
             ),
+            ElectricityProNextInexpensive1hWindowSensor(
+                coordinator=entry.runtime_data,
+                entry=entry,
+            ),
         )
     )
 
@@ -684,6 +688,54 @@ class ElectricityProCheapestWindowAverageEffectivePriceSensor(
                 if insight.published_at is not None
                 else None
             ),
+        }
+
+
+class ElectricityProNextInexpensive1hWindowSensor(ElectricityProForecastInsightSensor):
+    """Represent the next inexpensive 1-hour forecast window sensor."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+    ) -> None:
+        """Initialize a next inexpensive 1h window sensor."""
+        super().__init__(
+            coordinator,
+            entry,
+            key="next_inexpensive_1h_window_start",
+            name="Next inexpensive 1h window start",
+        )
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return the next inexpensive window start time."""
+        insight = self.coordinator.next_inexpensive_1h_window
+        return None if insight is None else insight.start
+
+    @property
+    def available(self) -> bool:
+        """Return whether the next inexpensive window is available."""
+        return super().available and self.coordinator.next_inexpensive_1h_window is not None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return explanatory attributes for the next inexpensive 1h window."""
+        insight = self.coordinator.next_inexpensive_1h_window
+        if insight is None:
+            return None
+
+        return {
+            "window_end": insight.end.isoformat(),
+            "window_duration_minutes": insight.duration_minutes,
+            "interval_count": insight.interval_count,
+            "average_market_price": str(insight.average_market_price),
+            "average_effective_price": str(insight.average_effective_price),
+            "threshold": str(insight.threshold),
+            "currency": insight.currency,
+            "price_area": insight.area,
         }
 
 

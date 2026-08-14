@@ -1807,3 +1807,112 @@ async def test_forecast_insight_sensors_become_unavailable_without_forecast_data
     assert cheapest_3h_average_effective_price_state.state == "unavailable"
     assert direction_state is not None
     assert direction_state.state == "unavailable"
+
+
+NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID = f"sensor.{DOMAIN}_next_inexpensive_1h_window_start"
+
+
+async def test_next_inexpensive_1h_window_sensor_exposes_qualifying_window(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """The next inexpensive 1h window sensor should expose the first qualifying window."""
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 20, 1, tzinfo=UTC),
+    ):
+        await setup_electricity_pro(
+            good_price_threshold=0.65,
+            forecast_price_area="SE3",
+            forecast_currency="SEK",
+            forecast_nordpool_config_entry="nordpool-entry-id",
+            forecast_intervals=[
+                {
+                    "start": "2026-08-13T20:00:00+00:00",
+                    "end": "2026-08-13T21:00:00+00:00",
+                    "price": 900,
+                },
+                {
+                    "start": "2026-08-13T21:00:00+00:00",
+                    "end": "2026-08-13T22:00:00+00:00",
+                    "price": 600,
+                },
+                {
+                    "start": "2026-08-13T22:00:00+00:00",
+                    "end": "2026-08-13T23:00:00+00:00",
+                    "price": 400,
+                },
+            ],
+        )
+
+    state = hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID)
+    assert state is not None
+    assert state.attributes["device_class"] == "timestamp"
+    assert datetime.fromisoformat(state.state) == datetime(2026, 8, 13, 21, 0, tzinfo=UTC)
+    assert state.attributes["window_end"] == "2026-08-13T22:00:00+00:00"
+    assert state.attributes["window_duration_minutes"] == 60
+    assert state.attributes["interval_count"] == 1
+    assert state.attributes["average_effective_price"] == "0.6"
+    assert state.attributes["threshold"] == "0.65"
+    assert state.attributes["currency"] == "SEK"
+    assert state.attributes["price_area"] == "SE3"
+
+
+async def test_next_inexpensive_1h_window_sensor_unavailable_when_no_qualifying_window(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """The next inexpensive 1h window sensor should be unavailable when no window qualifies."""
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 20, 1, tzinfo=UTC),
+    ):
+        await setup_electricity_pro(
+            good_price_threshold=0.30,
+            forecast_price_area="SE3",
+            forecast_currency="SEK",
+            forecast_nordpool_config_entry="nordpool-entry-id",
+            forecast_intervals=[
+                {
+                    "start": "2026-08-13T20:00:00+00:00",
+                    "end": "2026-08-13T21:00:00+00:00",
+                    "price": 900,
+                },
+                {
+                    "start": "2026-08-13T21:00:00+00:00",
+                    "end": "2026-08-13T22:00:00+00:00",
+                    "price": 800,
+                },
+            ],
+        )
+
+    state = hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID)
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_next_inexpensive_1h_window_sensor_unavailable_without_threshold(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """The next inexpensive 1h window sensor should be unavailable when no threshold is configured."""
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 20, 1, tzinfo=UTC),
+    ):
+        await setup_electricity_pro(
+            forecast_price_area="SE3",
+            forecast_currency="SEK",
+            forecast_nordpool_config_entry="nordpool-entry-id",
+            forecast_intervals=[
+                {
+                    "start": "2026-08-13T20:00:00+00:00",
+                    "end": "2026-08-13T21:00:00+00:00",
+                    "price": 300,
+                },
+            ],
+        )
+
+    state = hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID)
+    assert state is not None
+    assert state.state == "unavailable"

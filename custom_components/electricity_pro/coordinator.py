@@ -32,7 +32,9 @@ from .forecast import ForecastInterval
 from .forecast_insights import (
     ForecastDirectionInsight,
     ForecastWindowInsight,
+    NextInexpensive1hWindowInsight,
     find_cheapest_continuous_window,
+    find_next_inexpensive_1h_window,
     find_price_direction,
 )
 from .nordpool import async_get_nordpool_forecast_intervals_for_date
@@ -84,6 +86,7 @@ class ElectricityProCoordinator(
         self._cheapest_1h_window: ForecastWindowInsight | None = None
         self._cheapest_2h_window: ForecastWindowInsight | None = None
         self._cheapest_3h_window: ForecastWindowInsight | None = None
+        self._next_inexpensive_1h_window: NextInexpensive1hWindowInsight | None = None
         self._price_direction: ForecastDirectionInsight | None = None
         self._store: Store[dict[str, Any]] = Store(
             hass,
@@ -133,6 +136,11 @@ class ElectricityProCoordinator(
     def cheapest_3h_window(self) -> ForecastWindowInsight | None:
         """Return the cheapest upcoming three-hour forecast window."""
         return self._cheapest_3h_window
+
+    @property
+    def next_inexpensive_1h_window(self) -> NextInexpensive1hWindowInsight | None:
+        """Return the next upcoming 1-hour window at or below the good price threshold."""
+        return self._next_inexpensive_1h_window
 
     @property
     def price_direction(self) -> ForecastDirectionInsight | None:
@@ -277,6 +285,18 @@ class ElectricityProCoordinator(
             duration_minutes=180,
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
             tax_per_kwh=provider_data.tax_per_kwh,
+        )
+        threshold = provider_data.good_price_threshold
+        self._next_inexpensive_1h_window = (
+            find_next_inexpensive_1h_window(
+                self._forecast_intervals,
+                now=now,
+                threshold=threshold,
+                grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
+                tax_per_kwh=provider_data.tax_per_kwh,
+            )
+            if threshold is not None
+            else None
         )
         self._price_direction = find_price_direction(
             self._forecast_intervals,
