@@ -43,6 +43,12 @@ REMAINING_COST_ENTITY_ID = f"sensor.{DOMAIN}_remaining_cost_today"
 CHEAPEST_1H_WINDOW_ENTITY_ID = f"sensor.{DOMAIN}_cheapest_1h_window_start"
 CHEAPEST_2H_WINDOW_ENTITY_ID = f"sensor.{DOMAIN}_cheapest_2h_window_start"
 CHEAPEST_3H_WINDOW_ENTITY_ID = f"sensor.{DOMAIN}_cheapest_3h_window_start"
+CHEAPEST_1H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID = (
+    f"sensor.{DOMAIN}_cheapest_1h_window_average_effective_price"
+)
+CHEAPEST_2H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID = (
+    f"sensor.{DOMAIN}_cheapest_2h_window_average_effective_price"
+)
 CHEAPEST_3H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID = (
     f"sensor.{DOMAIN}_cheapest_3h_window_average_effective_price"
 )
@@ -1636,6 +1642,12 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
     cheapest_1h_state = hass.states.get(CHEAPEST_1H_WINDOW_ENTITY_ID)
     cheapest_2h_state = hass.states.get(CHEAPEST_2H_WINDOW_ENTITY_ID)
     cheapest_3h_state = hass.states.get(CHEAPEST_3H_WINDOW_ENTITY_ID)
+    cheapest_1h_average_effective_price_state = hass.states.get(
+        CHEAPEST_1H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID
+    )
+    cheapest_2h_average_effective_price_state = hass.states.get(
+        CHEAPEST_2H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID
+    )
     cheapest_3h_average_effective_price_state = hass.states.get(
         CHEAPEST_3H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID
     )
@@ -1671,6 +1683,50 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
     assert cheapest_3h_state.attributes["window_end"] == "2026-08-13T23:15:00+00:00"
     assert cheapest_3h_state.attributes["window_duration_minutes"] == 180
     assert cheapest_3h_state.attributes["interval_count"] == 12
+
+    assert cheapest_1h_average_effective_price_state is not None
+    assert cheapest_1h_average_effective_price_state.state == "0.84104"
+    assert (
+        cheapest_1h_average_effective_price_state.attributes["window_start"]
+        == "2026-08-13T20:15:00+00:00"
+    )
+    assert (
+        cheapest_1h_average_effective_price_state.attributes["window_end"]
+        == "2026-08-13T21:15:00+00:00"
+    )
+    assert (
+        cheapest_1h_average_effective_price_state.attributes["window_duration_minutes"]
+        == 60
+    )
+    assert cheapest_1h_average_effective_price_state.attributes["interval_count"] == 4
+    assert (
+        cheapest_1h_average_effective_price_state.attributes["average_market_price"]
+        == "0.84104"
+    )
+    assert cheapest_1h_average_effective_price_state.attributes["currency"] == "SEK"
+    assert cheapest_1h_average_effective_price_state.attributes["price_area"] == "SE3"
+
+    assert cheapest_2h_average_effective_price_state is not None
+    assert cheapest_2h_average_effective_price_state.state == "1.04104"
+    assert (
+        cheapest_2h_average_effective_price_state.attributes["window_start"]
+        == "2026-08-13T20:15:00+00:00"
+    )
+    assert (
+        cheapest_2h_average_effective_price_state.attributes["window_end"]
+        == "2026-08-13T22:15:00+00:00"
+    )
+    assert (
+        cheapest_2h_average_effective_price_state.attributes["window_duration_minutes"]
+        == 120
+    )
+    assert cheapest_2h_average_effective_price_state.attributes["interval_count"] == 8
+    assert (
+        cheapest_2h_average_effective_price_state.attributes["average_market_price"]
+        == "1.04104"
+    )
+    assert cheapest_2h_average_effective_price_state.attributes["currency"] == "SEK"
+    assert cheapest_2h_average_effective_price_state.attributes["price_area"] == "SE3"
 
     assert cheapest_3h_average_effective_price_state is not None
     assert cheapest_3h_average_effective_price_state.state == "1.24104"
@@ -1726,6 +1782,12 @@ async def test_forecast_insight_sensors_become_unavailable_without_forecast_data
     cheapest_1h_state = hass.states.get(CHEAPEST_1H_WINDOW_ENTITY_ID)
     cheapest_2h_state = hass.states.get(CHEAPEST_2H_WINDOW_ENTITY_ID)
     cheapest_3h_state = hass.states.get(CHEAPEST_3H_WINDOW_ENTITY_ID)
+    cheapest_1h_average_effective_price_state = hass.states.get(
+        CHEAPEST_1H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID
+    )
+    cheapest_2h_average_effective_price_state = hass.states.get(
+        CHEAPEST_2H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID
+    )
     cheapest_3h_average_effective_price_state = hass.states.get(
         CHEAPEST_3H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID
     )
@@ -1737,6 +1799,10 @@ async def test_forecast_insight_sensors_become_unavailable_without_forecast_data
     assert cheapest_2h_state.state == "unavailable"
     assert cheapest_3h_state is not None
     assert cheapest_3h_state.state == "unavailable"
+    assert cheapest_1h_average_effective_price_state is not None
+    assert cheapest_1h_average_effective_price_state.state == "unavailable"
+    assert cheapest_2h_average_effective_price_state is not None
+    assert cheapest_2h_average_effective_price_state.state == "unavailable"
     assert cheapest_3h_average_effective_price_state is not None
     assert cheapest_3h_average_effective_price_state.state == "unavailable"
     assert direction_state is not None
