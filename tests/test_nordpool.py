@@ -50,6 +50,31 @@ def test_normalize_nordpool_forecast_intervals() -> None:
     assert forecast_intervals[0].resolution_minutes == 15
 
 
+def test_normalize_nordpool_forecast_intervals_sorts_and_accepts_negative_prices() -> None:
+    """Normalization should order intervals and preserve valid negative prices."""
+    intervals = [
+        {
+            "start": "2026-08-13T10:15:00+00:00",
+            "end": "2026-08-13T10:30:00+00:00",
+            "price": 100,
+        },
+        {
+            "start": "2026-08-13T10:00:00+00:00",
+            "end": "2026-08-13T10:15:00+00:00",
+            "price": -50,
+        },
+    ]
+
+    forecast_intervals = normalize_nordpool_forecast_intervals(
+        area="SE3",
+        intervals=intervals,
+        currency="SEK",
+    )
+
+    assert forecast_intervals[0].start == datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    assert forecast_intervals[0].market_price == Decimal("-0.050")
+
+
 @pytest.mark.parametrize(
     ("area", "currency", "intervals", "message"),
     [

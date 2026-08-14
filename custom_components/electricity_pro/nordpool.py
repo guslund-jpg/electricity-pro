@@ -58,7 +58,7 @@ def normalize_nordpool_forecast_intervals(
             )
         )
 
-    return normalized
+    return sorted(normalized, key=lambda interval: interval.start)
 
 async def async_get_nordpool_forecast_intervals_for_date(
     hass: HomeAssistant,
@@ -117,4 +117,3 @@ async def async_get_nordpool_forecast_intervals_for_date(
         currency=currency,
         published_at=published_at,
     )
-

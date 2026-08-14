@@ -69,7 +69,10 @@ custom_components/electricity_pro/
 ├── config_flow.py
 ├── const.py
 ├── coordinator.py
+├── forecast.py
+├── forecast_insights.py
 ├── manifest.json
+├── nordpool.py
 ├── provider.py
 ├── sensor.py
 ├── statistics.py
@@ -192,7 +195,7 @@ The coordinator:
 - reads fresh normalised data when one of those entities changes;
 - publishes the result through `DataUpdateCoordinator`.
 
-The update model is event-driven.
+The live-measurement update model is event-driven.
 
 ```text
 Source entity changes
@@ -207,11 +210,29 @@ Coordinator publishes ElectricityProData
 Coordinator entities update
 ```
 
-The coordinator does not poll external APIs.
+For optional v1.1 forecasts, the coordinator also calls the native Home
+Assistant Nord Pool action. It retrieves the current delivery date on startup,
+retrieves tomorrow after its normal publication time, retries unavailable
+tomorrow data, and recalculates cached insights every 15 minutes so expired
+windows are not exposed. Native-action failures affect forecast availability
+only; they do not prevent live measurements and statistics from loading.
 
-It only reacts to Home Assistant state-change events from the selected source entities.
+This keeps live measurements independent of Tibber, Nord Pool and other
+providers while isolating the initial forecast-specific lifecycle.
 
-This keeps Electricity Pro independent of the implementation details of Tibber, Nord Pool and other providers.
+## Forecast layer
+
+`nordpool.py` is the native Nord Pool adapter. It calls
+`nordpool.get_prices_for_date`, validates the response, converts prices from
+currency per MWh to currency per kWh, and returns ordered normalized intervals.
+
+`forecast.py` defines the provider-neutral `ForecastInterval` model. Negative
+market prices are valid, while timestamps must be timezone-aware and prices
+must be finite.
+
+`forecast_insights.py` contains deterministic scheduling calculations. It does
+not call Home Assistant or Nord Pool directly and operates only on normalized,
+ordered interval boundaries.
 
 ## Calculation layer
 

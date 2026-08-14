@@ -39,6 +39,8 @@ from .const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+    CONF_GOOD_PRICE_THRESHOLD,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_PRICE_ENTITY,
     CONF_VOLTAGE_L1_ENTITY,
@@ -409,54 +411,66 @@ async def async_setup_entry(
         )
     ]
 
-    entities.extend(
-        (
-            ElectricityProCheapestWindowSensor(
-                coordinator=entry.runtime_data,
-                entry=entry,
-                key="cheapest_1h_window_start",
-                name="Cheapest 1h window start",
-                duration_minutes=60,
-            ),
-            ElectricityProCheapestWindowSensor(
-                coordinator=entry.runtime_data,
-                entry=entry,
-                key="cheapest_2h_window_start",
-                name="Cheapest 2h window start",
-                duration_minutes=120,
-            ),
-            ElectricityProCheapestWindowSensor(
-                coordinator=entry.runtime_data,
-                entry=entry,
-                key="cheapest_3h_window_start",
-                name="Cheapest 3h window start",
-                duration_minutes=180,
-            ),
-            ElectricityProCheapestWindowAverageEffectivePriceSensor(
-                coordinator=entry.runtime_data,
-                entry=entry,
-                duration_minutes=60,
-            ),
-            ElectricityProCheapestWindowAverageEffectivePriceSensor(
-                coordinator=entry.runtime_data,
-                entry=entry,
-                duration_minutes=120,
-            ),
-            ElectricityProCheapestWindowAverageEffectivePriceSensor(
-                coordinator=entry.runtime_data,
-                entry=entry,
-                duration_minutes=180,
-            ),
-            ElectricityProPriceDirectionSensor(
-                coordinator=entry.runtime_data,
-                entry=entry,
-            ),
-            ElectricityProNextInexpensive1hWindowSensor(
-                coordinator=entry.runtime_data,
-                entry=entry,
-            ),
-        )
+    forecast_configured = (
+        CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in entry.options
+        or CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in entry.data
     )
+    if forecast_configured:
+        entities.extend(
+            (
+                ElectricityProCheapestWindowSensor(
+                    coordinator=entry.runtime_data,
+                    entry=entry,
+                    key="cheapest_1h_window_start",
+                    name="Cheapest 1h window start",
+                    duration_minutes=60,
+                ),
+                ElectricityProCheapestWindowSensor(
+                    coordinator=entry.runtime_data,
+                    entry=entry,
+                    key="cheapest_2h_window_start",
+                    name="Cheapest 2h window start",
+                    duration_minutes=120,
+                ),
+                ElectricityProCheapestWindowSensor(
+                    coordinator=entry.runtime_data,
+                    entry=entry,
+                    key="cheapest_3h_window_start",
+                    name="Cheapest 3h window start",
+                    duration_minutes=180,
+                ),
+                ElectricityProCheapestWindowAverageEffectivePriceSensor(
+                    coordinator=entry.runtime_data,
+                    entry=entry,
+                    duration_minutes=60,
+                ),
+                ElectricityProCheapestWindowAverageEffectivePriceSensor(
+                    coordinator=entry.runtime_data,
+                    entry=entry,
+                    duration_minutes=120,
+                ),
+                ElectricityProCheapestWindowAverageEffectivePriceSensor(
+                    coordinator=entry.runtime_data,
+                    entry=entry,
+                    duration_minutes=180,
+                ),
+                ElectricityProPriceDirectionSensor(
+                    coordinator=entry.runtime_data,
+                    entry=entry,
+                ),
+            )
+        )
+
+        if (
+            CONF_GOOD_PRICE_THRESHOLD in entry.options
+            or CONF_GOOD_PRICE_THRESHOLD in entry.data
+        ):
+            entities.append(
+                ElectricityProNextInexpensive1hWindowSensor(
+                    coordinator=entry.runtime_data,
+                    entry=entry,
+                )
+            )
 
     async_add_entities(entities)
 

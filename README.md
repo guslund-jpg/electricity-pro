@@ -29,7 +29,11 @@ Electricity Pro does **not** replace it.
 
 Instead, it builds an intelligence layer on top of your existing energy integrations, adding calculations, statistics, forecasting and insights that complement Home Assistant's native capabilities.
 
-Existing live measurements work with compatible Home Assistant entities from providers such as Tibber, Nord Pool and smart meters. v1.1 forecast insight sensors currently use Nord Pool future-price data for the first scheduling-oriented intelligence layer.
+Existing live measurements work with compatible Home Assistant entities from
+providers such as Tibber, Nord Pool and smart meters. v1.1 forecast insight
+sensors use the native Home Assistant Nord Pool integration and its future-price
+action for the first scheduling-oriented intelligence layer. The legacy HACS
+Nord Pool integration is not required or supported as a forecast source.
 
 ## Who is Electricity Pro for?
 
@@ -69,6 +73,9 @@ Monitor your home's energy usage in real time.
 - Good Time to Use Electricity based on an optional Effective Price threshold
 - Cheapest upcoming 1h window start (Nord Pool forecast)
 - Cheapest upcoming 2h window start (Nord Pool forecast)
+- Cheapest upcoming 3h window start (Nord Pool forecast)
+- Average Effective Price for each cheapest 1h, 2h and 3h window
+- Next inexpensive 1h window start when a Good Price threshold is configured
 - Price direction (Nord Pool forecast)
 
 ### Native Home Assistant Integration
@@ -125,11 +132,19 @@ standard dashboard as the dependency-free baseline.
 
 ### HACS installation (recommended)
 
+Electricity Pro currently supports installation as a HACS custom repository:
+
 1. Open HACS in your Home Assistant sidebar.
-2. Go to **Integrations** and click **+ Explore & download repositories**.
-3. Search for **Electricity Pro** and select it.
-4. Click **Download** and restart Home Assistant.
-5. Add **Electricity Pro** from **Settings → Devices & Services**.
+2. Open the menu and select **Custom repositories**.
+3. Add `https://github.com/guslund-jpg/electricity-pro` with category
+   **Integration**.
+4. Open **Integrations**, search for **Electricity Pro**, and download it.
+5. Restart Home Assistant.
+6. Add **Electricity Pro** from **Settings → Devices & Services**.
+
+Forecast insights additionally require Home Assistant's native Nord Pool
+integration to be configured. They do not use the older HACS Nord Pool custom
+integration.
 
 ### Manual installation
 

@@ -68,7 +68,7 @@ def test_forecast_interval_requires_timezone_aware_datetimes(
     [
         (datetime(2026, 8, 13, 10, 0, tzinfo=UTC), datetime(2026, 8, 13, 10, 0, tzinfo=UTC), Decimal("1.25"), "SEK", "SE3"),
         (datetime(2026, 8, 13, 10, 15, tzinfo=UTC), datetime(2026, 8, 13, 10, 0, tzinfo=UTC), Decimal("1.25"), "SEK", "SE3"),
-        (datetime(2026, 8, 13, 10, 0, tzinfo=UTC), datetime(2026, 8, 13, 10, 15, tzinfo=UTC), Decimal("-0.01"), "SEK", "SE3"),
+        (datetime(2026, 8, 13, 10, 0, tzinfo=UTC), datetime(2026, 8, 13, 10, 15, tzinfo=UTC), Decimal("NaN"), "SEK", "SE3"),
         (datetime(2026, 8, 13, 10, 0, tzinfo=UTC), datetime(2026, 8, 13, 10, 15, tzinfo=UTC), Decimal("1.25"), "", "SE3"),
         (datetime(2026, 8, 13, 10, 0, tzinfo=UTC), datetime(2026, 8, 13, 10, 15, tzinfo=UTC), Decimal("1.25"), "SEK", ""),
     ],
@@ -89,3 +89,16 @@ def test_forecast_interval_rejects_invalid_values(
             currency=currency,
             area=area,
         )
+
+
+def test_forecast_interval_accepts_negative_market_price() -> None:
+    """Negative Nord Pool spot prices are valid forecast data."""
+    interval = ForecastInterval(
+        start=datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+        end=datetime(2026, 8, 13, 10, 15, tzinfo=UTC),
+        market_price=Decimal("-0.01"),
+        currency="SEK",
+        area="SE3",
+    )
+
+    assert interval.market_price == Decimal("-0.01")
