@@ -2,23 +2,41 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-14
+
 ### Added
 
 - Added forecast insight sensors for the cheapest upcoming 1h window start, the
-  cheapest upcoming 2h window start, and near-term price direction, exposing the
-  first user-facing v1.1 scheduling insights from Nord Pool forecast data.
+  cheapest upcoming 2h window start, the cheapest upcoming 3h window start, and
+  near-term price direction, exposing the first user-facing v1.1 scheduling
+  insights from Nord Pool forecast data.
+- Added optional next inexpensive 1h window sensor, surfacing the earliest
+  upcoming 1-hour window at or below the configured good-price threshold.
+- Added companion average effective price sensors for the 1h, 2h and 3h cheapest
+  windows.
+- Added `ForecastInterval` normalized internal model with timezone-aware
+  validation and resolution derived from interval boundaries.
+- Added Nord Pool forecast ingestion helper that calls the native
+  `nordpool.get_prices_for_date` action and normalizes prices from MWh to kWh.
+- Added `forecast_insights` module with `find_cheapest_continuous_window`,
+  `find_price_direction` and `find_next_inexpensive_1h_window` pure calculations
+  that operate exclusively on normalized intervals.
 
 ### Changed
 
+- Coordinator now fetches and caches today's Nord Pool forecast intervals on
+  startup and recalculates all forecast insights whenever intervals or pricing
+  adjustments change.
 - Normalized injected forecast fixture data to `ForecastInterval` objects in the
   shared test setup and stabilized forecast sensor and coordinator tests with
   deterministic coordinator time handling.
+- Added missing `from typing import Any` import to `nordpool.py`.
 
 ### Documentation
 
 - Updated `README.md` to list the new forecast insight sensors, clarify the
-  current Nord Pool requirement for forecast intelligence, and mark v1.1 as in
-  progress.
+  Nord Pool requirement for forecast features, and mark v1.1 as released.
+- Updated roadmap and implementation checklist to reflect delivered state.
 
 ## [1.0.0] - 2026-08-08
 

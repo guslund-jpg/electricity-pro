@@ -210,7 +210,7 @@ Delivered:
 
 ---
 
-### v1.1 — Forecast Prices & Scheduling Insights
+### v1.1 — Forecast Prices & Scheduling Insights ✅
 
 #### Goal
 
@@ -218,26 +218,19 @@ Introduce Nord Pool-based future-price insights and scheduling windows while
 keeping the internal design clean enough to support broader forecast sources
 later.
 
-Focus areas:
+Delivered:
 
-- Timestamped future-price intervals with hourly and quarter-hour resolution
-- A normalized internal interval model for forecast calculations
-- Currency, price-area, publication-time and forecast-horizon metadata
-- Correct local-time, time-zone and daylight-saving handling
-- Explicit behavior for missing, delayed, overlapping or incomplete intervals
-- Persistence and refresh behavior across Home Assistant restarts
-- Nord Pool as the required initial source for forecast features
-- Effective future prices including configured variable fees and tax/markup
-- Cheapest upcoming interval and continuous multi-interval windows
-- Price direction and next inexpensive-window insights
-
-Forecast features in v1.1 require Nord Pool. Internally, forecast calculations
-should operate on normalized intervals rather than on Nord Pool-specific
-payloads. The model must not assume that prices always arrive at a fixed time,
-use one interval length or cover exactly 24 hours.
-
-Initial v1.1 features should inform users and automations without directly
-controlling appliances.
+- Normalized `ForecastInterval` internal model with timezone-aware validation
+  and resolution derived from interval boundaries (not assumed)
+- Nord Pool forecast ingestion via the native `nordpool.get_prices_for_date`
+  action with MWh → kWh normalization
+- Cheapest upcoming 1h, 2h and 3h continuous window sensors
+- Companion average effective price sensors for each window duration
+- Near-term price direction sensor (rising / falling / stable)
+- Optional next inexpensive 1h window sensor gated on the good-price threshold
+- Explicit gap, overlap and unavailable-data handling throughout
+- DST and timezone edge cases covered by dedicated tests
+- Forecast features require Nord Pool; insight calculations are provider-agnostic
 
 ---
 
