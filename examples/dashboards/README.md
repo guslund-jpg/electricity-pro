@@ -8,12 +8,14 @@ semantics. It is an optional presentation layer only.
 
 ## Standard dashboard
 
-`electricity-pro.yaml` contains four views:
+`electricity-pro.yaml` contains five views:
 
 - **Overview** — the most important live, daily, and monthly values
 - **Live** — current power, supplier price, Effective Price, and recent history
 - **Today** — daily energy, cost, achieved average price, and peak power
 - **Month** — monthly energy, cost, and peak-hour information
+- **Forecast** — cheapest upcoming 1h, 2h and 3h windows, their average
+  Effective Prices, next inexpensive hour, and near-term price direction
 
 The Overview and Live views present Current Power, Effective Price, and Current
 Cost Rate as green/yellow/red gauges. Their values are examples, not universal
@@ -36,6 +38,10 @@ The preview is illustrative. Values, language, and visible optional cards depend
 on the entities configured in your Home Assistant installation.
 
 ## Installation
+
+These examples are stored in the GitHub repository for copying. HACS installs
+the Electricity Pro integration but does not create or modify Home Assistant
+dashboards.
 
 1. In Home Assistant, open **Settings → Dashboards → Add dashboard**.
 2. Open the new dashboard, select **Edit dashboard**, and take control when
@@ -66,11 +72,12 @@ and history graph cards. No HACS frontend cards are required.
 
 ## Enhanced dashboard
 
-`electricity-pro-enhanced.yaml` contains three views:
+`electricity-pro-enhanced.yaml` contains four views:
 
 - **Overview** — insight, live values, and daily and monthly statistics
 - **Trends** — recorded power and price history with richer charts
 - **Details** — optional three-phase current and voltage measurements
+- **Forecast** — Mushroom presentation of the v1.1 scheduling insights
 
 ![Illustrative Electricity Pro enhanced dashboard](electricity-pro-enhanced-preview.svg)
 
@@ -99,10 +106,11 @@ until both dependencies are installed and their frontend resources are loaded.
 5. Exit edit mode and verify the **Overview**, **Trends**, and **Details**
    views.
 
-The enhanced example uses only recorded Electricity Pro entity history. It
-does not create forecasts, modify prices, or contain provider-specific
-calculations. Optional cards are wrapped in built-in conditional cards and are
-hidden when their entities are `unknown` or `unavailable`.
+The enhanced example displays recorded Electricity Pro entity history and the
+forecast insights calculated by the integration. It does not create forecasts,
+modify prices, or contain provider-specific calculations. Optional cards are
+wrapped in built-in conditional cards and are hidden when their entities are
+`unknown` or `unavailable`.
 
 Its Overview view uses the same editable Current Power, Effective Price, and
 Current Cost Rate gauges as the standard dashboard. These gauges use built-in

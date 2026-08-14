@@ -391,3 +391,135 @@ views:
               entity: sensor.electricity_pro_voltage_l3
               name: Voltage L3
               layout: vertical
+
+  - title: Forecast
+    path: forecast
+    icon: mdi:calendar-clock
+    cards:
+      - type: custom:mushroom-title-card
+        title: Upcoming price windows
+        subtitle: Scheduling insights from native Nord Pool forecasts
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_1h_window_start
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_cheapest_1h_window_start
+              name: Cheapest 1h window
+              icon: mdi:clock-fast
+              icon_color: green
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
+              name: Cheapest 1h average price
+              icon: mdi:cash-clock
+              icon_color: green
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_2h_window_start
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_cheapest_2h_window_start
+              name: Cheapest 2h window
+              icon: mdi:clock-fast
+              icon_color: blue
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
+              name: Cheapest 2h average price
+              icon: mdi:cash-clock
+              icon_color: blue
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_3h_window_start
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_cheapest_3h_window_start
+              name: Cheapest 3h window
+              icon: mdi:clock-fast
+              icon_color: purple
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
+              name: Cheapest 3h average price
+              icon: mdi:cash-clock
+              icon_color: purple
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_next_inexpensive_1h_window_start
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_next_inexpensive_1h_window_start
+              name: Next inexpensive hour
+              icon: mdi:clock-check-outline
+              icon_color: green
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_price_direction
+                state_not:
+                  - unavailable
+                  - unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_price_direction
+              name: Price direction
+              icon: mdi:trending-up
+              icon_color: amber
+              layout: vertical
