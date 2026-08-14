@@ -432,9 +432,20 @@ async def async_setup_entry(
                 name="Cheapest 3h window start",
                 duration_minutes=180,
             ),
-            ElectricityProCheapest3hWindowAverageEffectivePriceSensor(
+            ElectricityProCheapestWindowAverageEffectivePriceSensor(
                 coordinator=entry.runtime_data,
                 entry=entry,
+                duration_minutes=60,
+            ),
+            ElectricityProCheapestWindowAverageEffectivePriceSensor(
+                coordinator=entry.runtime_data,
+                entry=entry,
+                duration_minutes=120,
+            ),
+            ElectricityProCheapestWindowAverageEffectivePriceSensor(
+                coordinator=entry.runtime_data,
+                entry=entry,
+                duration_minutes=180,
             ),
             ElectricityProPriceDirectionSensor(
                 coordinator=entry.runtime_data,
@@ -603,10 +614,10 @@ class ElectricityProCheapestWindowSensor(ElectricityProForecastInsightSensor):
         return self.coordinator.cheapest_3h_window
 
 
-class ElectricityProCheapest3hWindowAverageEffectivePriceSensor(
+class ElectricityProCheapestWindowAverageEffectivePriceSensor(
     ElectricityProForecastInsightSensor
 ):
-    """Represent the average effective price for the cheapest upcoming 3h window."""
+    """Represent the average effective price for a cheapest upcoming window."""
 
     _attr_suggested_display_precision = 5
 
@@ -614,36 +625,49 @@ class ElectricityProCheapest3hWindowAverageEffectivePriceSensor(
         self,
         coordinator: ElectricityProCoordinator,
         entry: ElectricityProConfigEntry,
+        *,
+        duration_minutes: int,
     ) -> None:
-        """Initialize a cheapest 3h window price sensor."""
+        """Initialize a cheapest window average effective price sensor."""
+        hours = duration_minutes // 60
         super().__init__(
             coordinator,
             entry,
-            key="cheapest_3h_window_average_effective_price",
-            name="Cheapest 3h window average effective price",
+            key=f"cheapest_{hours}h_window_average_effective_price",
+            name=f"Cheapest {hours}h window average effective price",
         )
+        self._duration_minutes = duration_minutes
+
+    @property
+    def _insight(self) -> ForecastWindowInsight | None:
+        """Return the cached window insight for this duration."""
+        if self._duration_minutes == 60:
+            return self.coordinator.cheapest_1h_window
+        if self._duration_minutes == 120:
+            return self.coordinator.cheapest_2h_window
+        return self.coordinator.cheapest_3h_window
 
     @property
     def native_value(self) -> Decimal | None:
-        """Return the average effective price of the cheapest upcoming 3h window."""
-        insight = self.coordinator.cheapest_3h_window
+        """Return the average effective price of the cheapest upcoming window."""
+        insight = self._insight
         return None if insight is None else insight.average_effective_price
 
     @property
     def native_unit_of_measurement(self) -> str | None:
-        """Return the price unit for the cheapest upcoming 3h window."""
-        insight = self.coordinator.cheapest_3h_window
+        """Return the price unit for the cheapest upcoming window."""
+        insight = self._insight
         return None if insight is None else f"{insight.currency}/kWh"
 
     @property
     def available(self) -> bool:
-        """Return whether the 3h window average effective price is available."""
-        return super().available and self.coordinator.cheapest_3h_window is not None
+        """Return whether the window average effective price is available."""
+        return super().available and self._insight is not None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return explanatory attributes for the cheapest upcoming 3h window."""
-        insight = self.coordinator.cheapest_3h_window
+        """Return explanatory attributes for the cheapest upcoming window."""
+        insight = self._insight
         if insight is None:
             return None
 
