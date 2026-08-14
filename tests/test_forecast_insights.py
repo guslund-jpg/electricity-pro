@@ -515,3 +515,220 @@ def test_find_next_inexpensive_1h_window_gap_before_valid_window_returns_later_r
     assert result.start == datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
     assert result.end == datetime(2026, 8, 13, 13, 0, tzinfo=UTC)
     assert result.interval_count == 2
+
+
+# ---------------------------------------------------------------------------
+# Timezone-aware and DST edge-case coverage
+# ---------------------------------------------------------------------------
+
+
+def test_find_cheapest_continuous_window_with_stockholm_tz_aware_datetimes() -> None:
+    """Window selection works correctly when intervals carry a non-UTC local timezone."""
+    import zoneinfo
+
+    tz = zoneinfo.ZoneInfo("Europe/Stockholm")
+    # Four 15-minute intervals starting at 10:00 local time (UTC+2 in summer)
+    t0 = datetime(2026, 8, 13, 10, 0, tzinfo=tz)
+    intervals = [
+        _interval(t0, minutes=15, market_price="0.80"),
+        _interval(t0 + timedelta(minutes=15), minutes=15, market_price="0.70"),
+        _interval(t0 + timedelta(minutes=30), minutes=15, market_price="0.60"),
+        _interval(t0 + timedelta(minutes=45), minutes=15, market_price="0.50"),
+    ]
+
+    result = find_cheapest_continuous_window(
+        intervals,
+        now=t0,
+        duration_minutes=60,
+    )
+
+    assert result is not None
+    assert result.start == t0
+    assert result.duration_minutes == 60
+    assert result.interval_count == 4
+
+
+def test_find_cheapest_continuous_window_dst_spring_forward_adjacent_slots() -> None:
+    """On a DST spring-forward day two adjacent UTC slots still form a valid window.
+
+    In Europe/Stockholm, clocks spring forward at 02:00 → 03:00 on the last
+    Sunday of March (2025-03-30).  Nord Pool publishes UTC-based intervals, so
+    adjacent UTC hours are always contiguous regardless of local clock changes.
+    The slot 01:00–02:00 UTC+1 ends at the same UTC instant as 03:00+02:00
+    begins.  A 2-hour window that spans this DST boundary must form correctly
+    when the tzinfo objects carry explicit fixed offsets (as produced by
+    dt_util.parse_datetime from ISO strings with offsets).
+    """
+    from datetime import timezone
+
+    tz_plus1 = timezone(timedelta(hours=1))
+    tz_plus2 = timezone(timedelta(hours=2))
+    # 01:00+01:00 → 02:00+01:00 is 00:00–01:00 UTC
+    # 03:00+02:00 → 04:00+02:00 is 01:00–02:00 UTC — directly adjacent
+    slot_before = datetime(2025, 3, 30, 1, 0, tzinfo=tz_plus1)
+    slot_after  = datetime(2025, 3, 30, 3, 0, tzinfo=tz_plus2)
+    intervals = [
+        ForecastInterval(
+            start=slot_before,
+            end=slot_before + timedelta(hours=1),   # 02:00+01:00 = 01:00 UTC
+            market_price=Decimal("0.20"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2025, 3, 29, 11, 0, tzinfo=UTC),
+        ),
+        ForecastInterval(
+            start=slot_after,                        # 03:00+02:00 = 01:00 UTC
+            end=slot_after + timedelta(hours=1),
+            market_price=Decimal("0.30"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2025, 3, 29, 11, 0, tzinfo=UTC),
+        ),
+    ]
+
+    # The two 1-hour slots are UTC-adjacent and must form a valid 2h window.
+    result = find_cheapest_continuous_window(
+        intervals,
+        now=slot_before,
+        duration_minutes=120,
+    )
+
+    assert result is not None
+    assert result.interval_count == 2
+    assert result.duration_minutes == 120
+    assert result.start == slot_before
+
+
+def test_find_cheapest_continuous_window_dst_fall_back_extra_hour() -> None:
+    """On a DST fall-back day the extra hour produces 25 contiguous intervals.
+
+    In Europe/Stockholm, clocks fall back at 03:00 → 02:00 on the last Sunday
+    of October.  Nord Pool publishes an interval for each UTC hour, so the local
+    day has 25 hourly slots.  A 3-hour window request over those slots must work
+    correctly on actual interval boundaries without assuming 24 slots.
+    """
+    import zoneinfo
+    from datetime import UTC as _UTC
+
+    # 2025-10-26 is the fall-back day for Europe/Stockholm.
+    # Build 25 contiguous UTC-based hourly intervals covering the full day.
+    # Prices fall steadily — the cheapest 3h window is at the end (22:00–01:00 UTC).
+    published = datetime(2025, 10, 25, 11, 0, tzinfo=_UTC)
+    intervals = []
+    for hour in range(25):
+        start = datetime(2025, 10, 25, 23, 0, tzinfo=_UTC) + timedelta(hours=hour)
+        intervals.append(
+            ForecastInterval(
+                start=start,
+                end=start + timedelta(hours=1),
+                market_price=Decimal(str(round(1.00 - hour * 0.04, 2))),
+                currency="SEK",
+                area="SE3",
+                published_at=published,
+            )
+        )
+
+    # now = first interval start; cheapest 3h = last 3 intervals (hours 22–24)
+    now = intervals[0].start
+    result = find_cheapest_continuous_window(
+        intervals,
+        now=now,
+        duration_minutes=180,
+    )
+
+    assert result is not None
+    assert result.interval_count == 3
+    assert result.start == intervals[22].start
+    assert result.end == intervals[24].end
+    assert result.duration_minutes == 180
+
+
+def test_find_price_direction_across_dst_spring_forward_boundary() -> None:
+    """Price direction resolves correctly for intervals that straddle a DST transition.
+
+    Nord Pool uses ISO timestamps with explicit UTC offsets.  When intervals on a
+    spring-forward day are expressed with their respective local offsets (+01:00
+    before the transition, +02:00 after), 'now' inside the first interval should
+    correctly yield a rising direction comparing the pre-transition and
+    post-transition slots.
+    """
+    from datetime import timezone
+
+    tz_plus1 = timezone(timedelta(hours=1))
+    tz_plus2 = timezone(timedelta(hours=2))
+    slot_before = datetime(2025, 3, 30, 1, 0, tzinfo=tz_plus1)   # 00:00 UTC
+    slot_after  = datetime(2025, 3, 30, 3, 0, tzinfo=tz_plus2)   # 01:00 UTC
+
+    first = ForecastInterval(
+        start=slot_before,
+        end=slot_before + timedelta(hours=1),   # 02:00+01:00 = 01:00 UTC
+        market_price=Decimal("0.30"),
+        currency="SEK",
+        area="SE3",
+        published_at=datetime(2025, 3, 29, 11, 0, tzinfo=UTC),
+    )
+    second = ForecastInterval(
+        start=slot_after,                        # 03:00+02:00 = 01:00 UTC
+        end=slot_after + timedelta(hours=1),
+        market_price=Decimal("0.50"),
+        currency="SEK",
+        area="SE3",
+        published_at=datetime(2025, 3, 29, 11, 0, tzinfo=UTC),
+    )
+
+    now = slot_before + timedelta(minutes=15)
+    result = find_price_direction([first, second], now=now)
+
+    assert result is not None
+    assert result.direction == "rising"
+    assert result.current_start == slot_before
+    assert result.next_start == slot_after
+
+
+def test_find_next_inexpensive_1h_window_uses_interval_boundaries_not_fixed_indexes() -> None:
+    """The 1h window must be assembled from real interval end-to-start continuity.
+
+    A data set where intervals have heterogeneous durations (30 min then 15 min)
+    verifies that the 60-minute accumulation uses actual boundaries and minutes,
+    not positional slot assumptions.
+    """
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    # 30+15+15 = 60 minutes exactly — qualifies
+    intervals = [
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 10, 30, tzinfo=UTC),
+            market_price=Decimal("0.20"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 10, 30, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 10, 45, tzinfo=UTC),
+            market_price=Decimal("0.20"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 10, 45, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 11, 0, tzinfo=UTC),
+            market_price=Decimal("0.20"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
+    ]
+
+    result = find_next_inexpensive_1h_window(
+        intervals,
+        now=now,
+        threshold=Decimal("0.50"),
+    )
+
+    assert result is not None
+    assert result.start == datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    assert result.end == datetime(2026, 8, 13, 11, 0, tzinfo=UTC)
+    assert result.interval_count == 3
+    assert result.duration_minutes == 60

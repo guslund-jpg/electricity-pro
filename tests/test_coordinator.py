@@ -344,3 +344,64 @@ async def test_async_start_next_inexpensive_1h_window_none_without_threshold(
         await coordinator.async_start()
 
     assert coordinator.next_inexpensive_1h_window is None
+
+
+async def test_recalculate_forecast_insights_returns_none_when_now_is_past_all_intervals(
+    hass,
+    mock_entry: MockConfigEntry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Insights should all be None when 'now' has advanced past every stored interval.
+
+    This is the expected stale-data behavior: as time moves forward the coordinator
+    does not have a refresh mechanism that automatically fetches new intervals, so
+    if 'now' lands beyond the last stored interval end, every insight returns None
+    rather than exposing an expired window.
+    """
+    hass.states.async_set(
+        "sensor.test_power",
+        "1000",
+        {"unit_of_measurement": "W"},
+    )
+    mock_entry.add_to_hass(hass)
+
+    forecast_intervals = [
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 20, 0, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 21, 0, tzinfo=UTC),
+            market_price=Decimal("0.30"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
+        ForecastInterval(
+            start=datetime(2026, 8, 13, 21, 0, tzinfo=UTC),
+            end=datetime(2026, 8, 13, 22, 0, tzinfo=UTC),
+            market_price=Decimal("0.40"),
+            currency="SEK",
+            area="SE3",
+            published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
+        ),
+    ]
+
+    monkeypatch.setattr(
+        "custom_components.electricity_pro.coordinator.async_get_nordpool_forecast_intervals_for_date",
+        AsyncMock(return_value=forecast_intervals),
+    )
+
+    coordinator = ElectricityProCoordinator(hass, mock_entry)
+
+    # Start with 'now' well after the last interval end (22:00 UTC).
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 14, 6, 0, tzinfo=UTC),
+    ):
+        await coordinator.async_start()
+
+    # Intervals are stored but all are in the past relative to 'now'.
+    assert coordinator.forecast_intervals == forecast_intervals
+    assert coordinator.cheapest_1h_window is None
+    assert coordinator.cheapest_2h_window is None
+    assert coordinator.cheapest_3h_window is None
+    assert coordinator.next_inexpensive_1h_window is None
+    assert coordinator.price_direction is None
