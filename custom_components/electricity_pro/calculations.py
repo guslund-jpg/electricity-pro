@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from decimal import Decimal
 
 from homeassistant.const import UnitOfEnergy
+
+from .pricing import PriceComponent, PricingMetadata
 
 _KWH_PER_WH = Decimal("0.001")
 
@@ -46,6 +49,36 @@ def calculate_effective_price(
         (value for value in adjustments if value is not None),
         start=Decimal(0),
     )
+
+
+def calculate_normalized_effective_price(
+    base_price: Decimal | None,
+    metadata: PricingMetadata,
+    adjustments: Mapping[PriceComponent, Decimal] | None = None,
+) -> Decimal | None:
+    """Calculate an effective price without double-counting components.
+
+    This is the metadata-aware calculation path for the new pricing model. It
+    remains separate from the legacy calculation until configuration migration
+    can provide explicit component semantics.
+    """
+    if base_price is None or not base_price.is_finite() or base_price < 0:
+        return None
+
+    additions = adjustments or {}
+    if metadata.is_complete and additions:
+        return None
+
+    for component, value in additions.items():
+        if (
+            not isinstance(component, PriceComponent)
+            or metadata.scope.includes(component)
+            or not value.is_finite()
+            or value < 0
+        ):
+            return None
+
+    return base_price + sum(additions.values(), start=Decimal(0))
 
 
 def calculate_consumption_weighted_average_price(
