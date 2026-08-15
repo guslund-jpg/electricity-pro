@@ -16,6 +16,227 @@
 - Added a conservative pricing-metadata configuration contract. Explicit
   settings can now be serialized and resolved with options precedence, while
   existing entries without complete metadata remain on the legacy path.
+- Added price-source type, included-component, and VAT controls to setup and
+  options. New price configurations require an explicit declaration; existing
+  entries keep running until their options are saved and confirmed.
+
+### Documentation
+
+- Clarified that HACS installs Electricity Pro entities but does not import a
+  dashboard, added a post-installation path to the entity list and dashboard
+  guide, and extended both example dashboards with the v1.1 forecast sensors.
+
+## [1.1.0] - 2026-08-14
+
+### Added
+
+- Added forecast insight sensors for the cheapest upcoming 1h window start, the
+  cheapest upcoming 2h window start, the cheapest upcoming 3h window start, and
+  near-term price direction, exposing the first user-facing v1.1 scheduling
+  insights from Nord Pool forecast data.
+- Added optional next inexpensive 1h window sensor, surfacing the earliest
+  upcoming 1-hour window at or below the configured good-price threshold.
+- Added companion average effective price sensors for the 1h, 2h and 3h cheapest
+  windows.
+- Added `ForecastInterval` normalized internal model with timezone-aware
+  validation and resolution derived from interval boundaries.
+- Added Nord Pool forecast ingestion helper that calls the native
+  `nordpool.get_prices_for_date` action and normalizes prices from MWh to kWh.
+- Added `forecast_insights` module with `find_cheapest_continuous_window`,
+  `find_price_direction` and `find_next_inexpensive_1h_window` pure calculations
+  that operate exclusively on normalized intervals.
+
+### Changed
+
+- Electricity Pro now inherits forecast currency and single-area settings from
+  the selected native Nord Pool integration. A separate price-area selection is
+  shown only when that Nord Pool entry contains multiple areas.
+- Coordinator now caches native Nord Pool intervals for today and tomorrow,
+  retries tomorrow retrieval after publication, removes expired delivery dates,
+  and recalculates forecast insights every 15 minutes.
+- Native Nord Pool action failures now degrade forecast entities gracefully
+  without preventing the rest of Electricity Pro from loading.
+- Forecast normalization now accepts valid negative spot prices and sorts
+  intervals before scheduling calculations.
+- Forecast entities are created only when native Nord Pool forecast retrieval
+  is configured; the threshold-based entity additionally requires a Good Price
+  threshold.
+- Normalized injected forecast fixture data to `ForecastInterval` objects in the
+  shared test setup and stabilized forecast sensor and coordinator tests with
+  deterministic coordinator time handling.
+- Added missing `from typing import Any` import to `nordpool.py`.
+
+### Documentation
+
+- Updated `README.md` to list the new forecast insight sensors, clarify the
+  Nord Pool requirement for forecast features, and mark v1.1 as released.
+- Updated roadmap and implementation checklist to reflect delivered state.
+- Clarified native Nord Pool requirements and HACS custom-repository
+  installation, and documented the forecast modules in the architecture guide.
+
+## [1.0.0] - 2026-08-08
+
+### Added
+
+- Added `hacs.json` to make Electricity Pro installable as a HACS custom
+  repository.
+- Added `issue_tracker` field to `manifest.json`.
+- Added HACS validation and Hassfest CI workflows.
+- Added brand icon (blue circle with amber lightning bolt, 256×256 PNG).
+
+### Changed
+
+- Replaced six repeated L1/L2/L3 sensor descriptions with a `PHASES` tuple
+  and two small generator functions, reducing duplication in `sensor.py`.
+- Extracted a shared `_parse_state` helper in `provider.py` to consolidate
+  the repeated state-availability guard and Decimal-parsing logic that
+  appeared in every numeric normalizer.
+- Replaced truncated MIT licence text with the full canonical SPDX-recognised
+  version.
+
+### Documentation
+
+- Added the Electricity Pro blue-ring and lightning-bolt brand icon.
+- Added the metadata and integration brand asset required for HACS validation.
+- Replaced the Current Power and Effective Price dashboard tiles with
+  green/yellow/red gauges and documented their editable example thresholds.
+- Presented Current Cost Rate as an editable gauge combining live power and
+  Effective Price into current spending intensity.
+- Added planned v1.1 forecast-price and v1.2 recommendation-intelligence stages
+  to the roadmap, with Nord Pool as the first provider-independent forecast
+  adapter.
+- Updated architecture documentation to reflect current file structure and
+  the `_parse_state` normalization helper.
+
+## [0.9.0] - 2026-08-07
+
+### Added
+
+- Added a Consumption-Weighted Average Price Today sensor derived from Cost
+  Today, Energy Today, and configured VAT-inclusive per-kWh adjustments.
+- Added an optional Monthly Peak Hour Time sensor mirrored from a configured
+  Home Assistant timestamp source.
+
+### Changed
+
+- Clarified the existing mirrored Energy sensor as Energy Today while keeping
+  its stable unique ID and recorded history compatible with existing setups.
+
+### Documentation
+
+- Added an optional enhanced dashboard using Mushroom and ApexCharts Card for
+  compact status cards and recorded power and price visualizations.
+- Refreshed the standard built-in-card dashboard for v0.9 daily and monthly
+  statistics, Effective Price, and Good Time insight, with customization
+  guidance and an illustrative preview.
+- Consolidated release planning into the canonical root roadmap and aligned
+  the v0.9 scope with its Daily Statistics and Dashboard Experience milestone.
+
+## [0.8.0] - 2026-08-07
+
+### Added
+
+- Added an optional Good Time to Use Electricity insight based on a configured
+  Effective Price threshold.
+- Added an Effective Price sensor with optional fixed grid-fee and tax/markup
+  adjustments per kWh.
+- Added a Cost This Month sensor derived from the configured cumulative Cost
+  Today source.
+- Added an Energy This Month sensor derived from the configured cumulative
+  energy source.
+- Added persistent monthly accumulation with calendar-month and source-meter
+  reset handling.
+
+### Fixed
+
+- Seed Cost This Month with the available Cost Today value on first setup.
+
+### Changed
+
+- Clarified that Effective Price grid-fee and tax/markup inputs should include
+  VAT, with guidance for the standard Swedish 2026 energy tax.
+
+## [0.7.0] - 2026-08-02
+
+### Added
+
+- Cost Today
+- Remaining Cost Today
+- Peak Power Today
+- Monthly Peak Hour Consumption
+- Three-phase Current (L1/L2/L3)
+- Three-phase Voltage (L1/L2/L3)
+
+### Improved
+
+- Provider abstraction
+- Configuration flow
+- Documentation
+- Dashboard example
+
+### Quality
+
+- 144 automated tests
+- Home Assistant verification
+
+## [0.6.0] - Foundation Release 2026-07-26
+
+### Added
+
+- Initial public release of Electricity Pro.
+- Provider abstraction framework.
+- Home Assistant integration foundation.
+- Core electricity entities and sensors.
+- Project architecture documentation.
+- Continuous Integration (CI) workflows.
+- Comprehensive automated test suite.
+- Contributor documentation.
+- Initial project design templates.
+- Three-phase current sensors (L1, L2, L3)
+- Support for ampere and milliampere source sensors
+- Comprehensive provider and sensor tests
+- Added optional Voltage L1, Voltage L2 and Voltage L3 sensors.
+- Added normalization for volt and millivolt source sensors.
+- Added an optional Monthly Peak Hour Consumption sensor.
+- Added support for Wh and kWh source values.
+
+### Changed
+
+- Improved project structure and package organisation.
+- Standardised naming and coding conventions.
+- Improved documentation throughout the project.
+
+### Fixed
+
+- Various stability and reliability improvements prior to the public release.
+- Periodic refresh of remaining cost sensor.
+
+### Documentation
+
+- Added `README.md`
+- Added `CONTRIBUTING.md`
+- Added `CHANGELOG.md`
+- Added project design documentation.
+
+---
+# Changelog
+
+## [Unreleased]
+
+### Added
+
+- Added internal pricing-strategy, component-scope, and VAT-treatment models as
+  the first provider-independent pricing foundation. This does not change
+  existing configuration or sensor behavior.
+- Added internal price-completeness and cost-provenance metadata so later
+  calculations can distinguish declared coverage and authoritative costs from
+  local calculations.
+- Added a metadata-aware effective-price calculation path that rejects
+  overlapping components before they can be counted twice. The existing live
+  calculation remains unchanged until configuration migration is available.
+- Added a conservative pricing-metadata configuration contract. Explicit
+  settings can now be serialized and resolved with options precedence, while
+  existing entries without complete metadata remain on the legacy path.
 
 ### Documentation
 
