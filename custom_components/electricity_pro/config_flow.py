@@ -28,19 +28,63 @@ from .const import (
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
+    CONF_PRICE_COMPLETENESS,
     CONF_PRICE_ENTITY,
+    CONF_PRICE_INCLUDED_COMPONENTS,
+    CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICING_STRATEGY,
     CONF_TAX_PER_KWH,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
 )
+from .pricing import (
+    PriceComponent,
+    PriceCompleteness,
+    PricingStrategy,
+    VatTreatment,
+)
+
+_PRICING_STRATEGY_OPTIONS = [
+    {
+        "value": PricingStrategy.SUPPLIER_CONTRACTED_PRICE.value,
+        "label": "Supplier-contracted price",
+    },
+    {
+        "value": PricingStrategy.MARKET_PRICE_PLUS_TARIFF.value,
+        "label": "Market price plus configured tariffs",
+    },
+    {
+        "value": PricingStrategy.EXTERNAL_COMPLETE_PRICE.value,
+        "label": "Externally calculated complete price",
+    },
+]
+
+_PRICE_COMPONENT_OPTIONS = [
+    {"value": PriceComponent.MARKET_ENERGY.value, "label": "Market energy"},
+    {"value": PriceComponent.SUPPLIER_MARKUP.value, "label": "Supplier markup"},
+    {"value": PriceComponent.ENERGY_TAX.value, "label": "Energy tax"},
+    {
+        "value": PriceComponent.VARIABLE_GRID_FEE.value,
+        "label": "Variable grid fee",
+    },
+]
+
+_VAT_OPTIONS = [
+    {"value": VatTreatment.INCLUDED.value, "label": "VAT included"},
+    {"value": VatTreatment.EXCLUDED.value, "label": "VAT excluded"},
+    {"value": VatTreatment.UNKNOWN.value, "label": "Unknown"},
+]
 
 
 def _entity_schema(
     *,
     power_default: str | None = None,
     price_default: str | None = None,
+    pricing_strategy_default: str | None = None,
+    price_included_components_default: list[str] | None = None,
+    price_vat_treatment_default: str | None = None,
     energy_default: str | None = None,
     accumulated_cost_today_default: str | None = None,
     peak_power_today_default: str | None = None,
@@ -73,6 +117,28 @@ def _entity_schema(
         price_key = vol.Optional(
             CONF_PRICE_ENTITY,
             default=price_default,
+        )
+
+    if pricing_strategy_default is None:
+        pricing_strategy_key = vol.Optional(CONF_PRICING_STRATEGY)
+    else:
+        pricing_strategy_key = vol.Optional(
+            CONF_PRICING_STRATEGY,
+            default=pricing_strategy_default,
+        )
+    if price_included_components_default is None:
+        price_components_key = vol.Optional(CONF_PRICE_INCLUDED_COMPONENTS)
+    else:
+        price_components_key = vol.Optional(
+            CONF_PRICE_INCLUDED_COMPONENTS,
+            default=price_included_components_default,
+        )
+    if price_vat_treatment_default is None:
+        vat_treatment_key = vol.Optional(CONF_PRICE_VAT_TREATMENT)
+    else:
+        vat_treatment_key = vol.Optional(
+            CONF_PRICE_VAT_TREATMENT,
+            default=price_vat_treatment_default,
         )
 
     if energy_default is None:
@@ -203,6 +269,25 @@ def _entity_schema(
                     domain="sensor",
                 )
             ),
+            pricing_strategy_key: selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_PRICING_STRATEGY_OPTIONS,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            price_components_key: selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_PRICE_COMPONENT_OPTIONS,
+                    multiple=True,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vat_treatment_key: selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_VAT_OPTIONS,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
             energy_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
@@ -325,6 +410,12 @@ class ElectricityProConfigFlow(
     ) -> ConfigFlowResult:
         """Handle setup initiated by the user."""
         if user_input is not None:
+            if not _prepare_pricing_metadata(user_input):
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=_entity_schema(),
+                    errors={"base": "pricing_metadata_required"},
+                )
             nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
             if isinstance(nordpool_entry_id, str):
                 nordpool_entry = self.hass.config_entries.async_get_entry(
@@ -380,6 +471,12 @@ class ElectricityProOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Manage source entity options."""
         if user_input is not None:
+            if not _prepare_pricing_metadata(user_input):
+                return self.async_show_form(
+                    step_id="init",
+                    data_schema=_entity_schema(),
+                    errors={"base": "pricing_metadata_required"},
+                )
             nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
             if isinstance(nordpool_entry_id, str):
                 nordpool_entry = self.hass.config_entries.async_get_entry(
@@ -428,6 +525,18 @@ class ElectricityProOptionsFlow(OptionsFlow):
         current_price = self.config_entry.options.get(
             CONF_PRICE_ENTITY,
             self.config_entry.data.get(CONF_PRICE_ENTITY),
+        )
+        current_pricing_strategy = self.config_entry.options.get(
+            CONF_PRICING_STRATEGY,
+            self.config_entry.data.get(CONF_PRICING_STRATEGY),
+        )
+        current_price_components = self.config_entry.options.get(
+            CONF_PRICE_INCLUDED_COMPONENTS,
+            self.config_entry.data.get(CONF_PRICE_INCLUDED_COMPONENTS),
+        )
+        current_vat_treatment = self.config_entry.options.get(
+            CONF_PRICE_VAT_TREATMENT,
+            self.config_entry.data.get(CONF_PRICE_VAT_TREATMENT),
         )
 
         current_energy = self.config_entry.options.get(
@@ -505,6 +614,9 @@ class ElectricityProOptionsFlow(OptionsFlow):
             data_schema=_entity_schema(
                 power_default=current_power,
                 price_default=current_price,
+                pricing_strategy_default=current_pricing_strategy,
+                price_included_components_default=current_price_components,
+                price_vat_treatment_default=current_vat_treatment,
                 energy_default=current_energy,
                 accumulated_cost_today_default=current_accumulated_cost_today,
                 peak_power_today_default=current_peak_power_today,
@@ -550,3 +662,48 @@ def _forecast_area_schema(areas: list[str]) -> vol.Schema:
             )
         }
     )
+
+
+def _prepare_pricing_metadata(user_input: dict[str, Any]) -> bool:
+    """Validate and normalize explicit price semantics in submitted data."""
+    metadata_keys = (
+        CONF_PRICING_STRATEGY,
+        CONF_PRICE_INCLUDED_COMPONENTS,
+        CONF_PRICE_VAT_TREATMENT,
+        CONF_PRICE_COMPLETENESS,
+    )
+    if not user_input.get(CONF_PRICE_ENTITY):
+        for key in metadata_keys:
+            user_input.pop(key, None)
+        return True
+
+    raw_strategy = user_input.get(CONF_PRICING_STRATEGY)
+    raw_components = user_input.get(CONF_PRICE_INCLUDED_COMPONENTS)
+    raw_vat = user_input.get(CONF_PRICE_VAT_TREATMENT)
+    if not isinstance(raw_components, list):
+        return False
+
+    try:
+        strategy = PricingStrategy(raw_strategy)
+        components = frozenset(PriceComponent(value) for value in raw_components)
+        vat = VatTreatment(raw_vat)
+    except (TypeError, ValueError):
+        return False
+
+    if PriceComponent.MARKET_ENERGY not in components:
+        return False
+
+    all_components = frozenset(PriceComponent)
+    completeness = (
+        PriceCompleteness.COMPLETE
+        if strategy is PricingStrategy.EXTERNAL_COMPLETE_PRICE
+        or components == all_components
+        else PriceCompleteness.PARTIAL
+    )
+    user_input[CONF_PRICING_STRATEGY] = strategy.value
+    user_input[CONF_PRICE_INCLUDED_COMPONENTS] = sorted(
+        component.value for component in components
+    )
+    user_input[CONF_PRICE_VAT_TREATMENT] = vat.value
+    user_input[CONF_PRICE_COMPLETENESS] = completeness.value
+    return True
