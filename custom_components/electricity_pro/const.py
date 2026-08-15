@@ -23,5 +23,9 @@ CONF_GOOD_PRICE_THRESHOLD = "good_price_threshold"
 CONF_FORECAST_PRICE_AREA = "forecast_price_area"
 CONF_FORECAST_CURRENCY = "forecast_currency"
 CONF_FORECAST_NORDPOOL_CONFIG_ENTRY = "forecast_nordpool_config_entry"
+CONF_PRICING_STRATEGY = "pricing_strategy"
+CONF_PRICE_INCLUDED_COMPONENTS = "price_included_components"
+CONF_PRICE_VAT_TREATMENT = "price_vat_treatment"
+CONF_PRICE_COMPLETENESS = "price_completeness"
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]

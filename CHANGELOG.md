@@ -13,6 +13,9 @@
 - Added a metadata-aware effective-price calculation path that rejects
   overlapping components before they can be counted twice. The existing live
   calculation remains unchanged until configuration migration is available.
+- Added a conservative pricing-metadata configuration contract. Explicit
+  settings can now be serialized and resolved with options precedence, while
+  existing entries without complete metadata remain on the legacy path.
 
 ### Documentation
 
