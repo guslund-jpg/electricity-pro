@@ -11,8 +11,19 @@ from custom_components.electricity_pro.const import (
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_GRID_FEE_PER_KWH,
     CONF_POWER_ENTITY,
+    CONF_PRICE_COMPLETENESS,
+    CONF_PRICE_ENTITY,
+    CONF_PRICE_INCLUDED_COMPONENTS,
+    CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICING_STRATEGY,
     CONF_TAX_PER_KWH,
     DOMAIN,
+)
+from custom_components.electricity_pro.pricing import (
+    PriceComponent,
+    PriceCompleteness,
+    PricingStrategy,
+    VatTreatment,
 )
 
 
@@ -123,3 +134,81 @@ async def test_options_flow_updates_forecast_config(hass) -> None:
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert CONF_FORECAST_PRICE_AREA not in result["data"]
     assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == "other-nordpool-entry-id"
+
+
+async def test_user_step_requires_explicit_price_metadata(hass) -> None:
+    """A new entry with a price source must describe what the price includes."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_USER},
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_PRICE_ENTITY: "sensor.test_price",
+        },
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["errors"] == {"base": "pricing_metadata_required"}
+
+
+async def test_user_step_stores_explicit_price_metadata(hass) -> None:
+    """A complete price declaration should be normalized and persisted."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_USER},
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_PRICE_ENTITY: "sensor.test_price",
+            CONF_PRICING_STRATEGY: PricingStrategy.SUPPLIER_CONTRACTED_PRICE.value,
+            CONF_PRICE_INCLUDED_COMPONENTS: [
+                PriceComponent.SUPPLIER_MARKUP.value,
+                PriceComponent.MARKET_ENERGY.value,
+                PriceComponent.ENERGY_TAX.value,
+            ],
+            CONF_PRICE_VAT_TREATMENT: VatTreatment.INCLUDED.value,
+        },
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_PRICE_INCLUDED_COMPONENTS] == [
+        PriceComponent.ENERGY_TAX.value,
+        PriceComponent.MARKET_ENERGY.value,
+        PriceComponent.SUPPLIER_MARKUP.value,
+    ]
+    assert result["data"][CONF_PRICE_COMPLETENESS] == PriceCompleteness.PARTIAL.value
+
+
+async def test_legacy_options_require_confirmation_only_when_saved(hass) -> None:
+    """A legacy entry loads but cannot be saved with ambiguous price semantics."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_PRICE_ENTITY: "sensor.test_price",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_PRICE_ENTITY: "sensor.test_price",
+        },
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["errors"] == {"base": "pricing_metadata_required"}
