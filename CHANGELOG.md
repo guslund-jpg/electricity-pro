@@ -10,6 +10,9 @@
 - Added internal price-completeness and cost-provenance metadata so later
   calculations can distinguish declared coverage and authoritative costs from
   local calculations.
+- Added a metadata-aware effective-price calculation path that rejects
+  overlapping components before they can be counted twice. The existing live
+  calculation remains unchanged until configuration migration is available.
 
 ### Documentation
 
