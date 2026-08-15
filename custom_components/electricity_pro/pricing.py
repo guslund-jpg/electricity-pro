@@ -31,6 +31,21 @@ class VatTreatment(StrEnum):
     INCLUDED = "included"
 
 
+class CostProvenance(StrEnum):
+    """How an accumulated cost value was produced."""
+
+    AUTHORITATIVE_SOURCE = "authoritative_source"
+    LOCALLY_CALCULATED = "locally_calculated"
+
+
+class PriceCompleteness(StrEnum):
+    """How confidently a price covers its intended variable components."""
+
+    UNKNOWN = "unknown"
+    PARTIAL = "partial"
+    COMPLETE = "complete"
+
+
 @dataclass(frozen=True, slots=True)
 class PriceComponentScope:
     """Describe the variable components included in one price source."""
@@ -52,3 +67,17 @@ class PriceComponentScope:
     def overlaps(self, other: PriceComponentScope) -> bool:
         """Return whether two sources include any of the same components."""
         return not self.included.isdisjoint(other.included)
+
+
+@dataclass(frozen=True, slots=True)
+class PricingMetadata:
+    """Describe the semantics of a normalized price without changing its value."""
+
+    strategy: PricingStrategy
+    scope: PriceComponentScope
+    completeness: PriceCompleteness = PriceCompleteness.UNKNOWN
+
+    @property
+    def is_complete(self) -> bool:
+        """Return whether all intended variable components are known to be present."""
+        return self.completeness is PriceCompleteness.COMPLETE
