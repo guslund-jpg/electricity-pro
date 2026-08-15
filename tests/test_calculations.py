@@ -8,6 +8,14 @@ from custom_components.electricity_pro.calculations import (
     calculate_consumption_weighted_average_price,
     calculate_current_cost_rate,
     calculate_effective_price,
+    calculate_normalized_effective_price,
+)
+from custom_components.electricity_pro.pricing import (
+    PriceComponent,
+    PriceComponentScope,
+    PriceCompleteness,
+    PricingMetadata,
+    PricingStrategy,
 )
 
 
@@ -30,6 +38,101 @@ def test_calculate_effective_price_rejects_negative_adjustment() -> None:
     assert calculate_effective_price(
         Decimal("0.80"),
         Decimal("-0.10"),
+    ) is None
+
+
+def test_calculate_normalized_effective_price_adds_missing_components() -> None:
+    """The normalized path should add only declared missing components."""
+    metadata = PricingMetadata(
+        strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
+        scope=PriceComponentScope(frozenset({PriceComponent.MARKET_ENERGY})),
+        completeness=PriceCompleteness.PARTIAL,
+    )
+
+    assert calculate_normalized_effective_price(
+        Decimal("0.80"),
+        metadata,
+        {
+            PriceComponent.SUPPLIER_MARKUP: Decimal("0.05"),
+            PriceComponent.ENERGY_TAX: Decimal("0.45"),
+        },
+    ) == Decimal("1.30")
+
+
+def test_calculate_normalized_effective_price_rejects_overlap() -> None:
+    """A component already in the source must not be counted twice."""
+    metadata = PricingMetadata(
+        strategy=PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
+        scope=PriceComponentScope(
+            frozenset(
+                {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
+            )
+        ),
+        completeness=PriceCompleteness.PARTIAL,
+    )
+
+    assert (
+        calculate_normalized_effective_price(
+            Decimal("0.85"),
+            metadata,
+            {PriceComponent.SUPPLIER_MARKUP: Decimal("0.05")},
+        )
+        is None
+    )
+
+
+def test_calculate_normalized_effective_price_respects_complete_source() -> None:
+    """A complete external price must not receive extra components."""
+    metadata = PricingMetadata(
+        strategy=PricingStrategy.EXTERNAL_COMPLETE_PRICE,
+        scope=PriceComponentScope(
+            frozenset(
+                {
+                    PriceComponent.MARKET_ENERGY,
+                    PriceComponent.SUPPLIER_MARKUP,
+                    PriceComponent.ENERGY_TAX,
+                    PriceComponent.VARIABLE_GRID_FEE,
+                }
+            )
+        ),
+        completeness=PriceCompleteness.COMPLETE,
+    )
+
+    assert calculate_normalized_effective_price(Decimal("1.50"), metadata) == Decimal(
+        "1.50"
+    )
+    assert (
+        calculate_normalized_effective_price(
+            Decimal("1.50"),
+            metadata,
+            {PriceComponent.ENERGY_TAX: Decimal("0.45")},
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    ("base_price", "adjustments"),
+    [
+        (None, {}),
+        (Decimal("NaN"), {}),
+        (Decimal("-0.01"), {}),
+        (Decimal("0.80"), {PriceComponent.ENERGY_TAX: Decimal("NaN")}),
+        (Decimal("0.80"), {PriceComponent.ENERGY_TAX: Decimal("-0.01")}),
+    ],
+)
+def test_calculate_normalized_effective_price_rejects_invalid_values(
+    base_price: Decimal | None,
+    adjustments: dict[PriceComponent, Decimal],
+) -> None:
+    """Invalid prices and adjustments should produce no result."""
+    metadata = PricingMetadata(
+        strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
+        scope=PriceComponentScope(frozenset({PriceComponent.MARKET_ENERGY})),
+    )
+
+    assert calculate_normalized_effective_price(
+        base_price, metadata, adjustments
     ) is None
 
 
