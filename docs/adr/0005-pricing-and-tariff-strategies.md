@@ -70,6 +70,27 @@ does not expose a contracted-price API.
 Use an externally calculated price entity. Its included components must be
 declared explicitly before Electricity Pro adds anything to it.
 
+### Configuration experience
+
+The normalized pricing model is an internal contract, not a requirement that
+every user manually describes accounting components.
+
+The normal setup will offer provider-aware presets when Electricity Pro can
+state their semantics confidently. The first preset targets Tibber's
+contracted-price sensor. It records market energy, supplier-side additions,
+Swedish energy tax, and VAT as already included, while leaving grid-company
+charges outside the source price.
+
+Users of Nord Pool or another source can choose an advanced/manual path and
+declare the components and VAT treatment explicitly. Presets and manual setup
+must resolve to the same `PricingMetadata` model so downstream calculations do
+not depend on provider-specific branches.
+
+A preset must be visible and explainable: the configuration should show what
+Electricity Pro assumes and allow the user to choose the manual path when the
+source differs from the documented preset. Provider detection may improve the
+suggested default, but must not silently reinterpret a stored configuration.
+
 ### Canonical terminology
 
 - **Market price** is the unadjusted exchange price for a delivery interval.
@@ -145,11 +166,12 @@ semantics from migration defaults or user confirmation.
 1. Introduce pricing-strategy and component-inclusion models without changing
    public entities.
 2. Add provenance and completeness metadata.
-3. Migrate existing configurations conservatively.
-4. Implement market price plus supplier markup.
-5. Add grid tariff strategies.
-6. Add local interval cost accumulation where source resolution is sufficient.
-7. Build cost composition and recommendation features on the normalized model.
+3. Add a simplified Tibber preset and an advanced/manual configuration path.
+4. Migrate existing configurations conservatively.
+5. Implement market price plus supplier markup.
+6. Add grid tariff strategies.
+7. Add local interval cost accumulation where source resolution is sufficient.
+8. Build cost composition and recommendation features on the normalized model.
 
 ## Related issues
 
