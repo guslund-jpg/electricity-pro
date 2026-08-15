@@ -7,6 +7,9 @@
 - Added internal pricing-strategy, component-scope, and VAT-treatment models as
   the first provider-independent pricing foundation. This does not change
   existing configuration or sensor behavior.
+- Added internal price-completeness and cost-provenance metadata so later
+  calculations can distinguish declared coverage and authoritative costs from
+  local calculations.
 
 ### Documentation
 
