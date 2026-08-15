@@ -234,12 +234,39 @@ Delivered:
 
 ---
 
-### v1.2 — Recommendation Intelligence
+### v1.2 — Provider-Independent Pricing & Tariff Foundation
 
 #### Goal
 
-Turn reliable future-price data and household statistics into explainable,
-actionable recommendations.
+Make price and cost semantics explicit so Tibber users retain a simple setup
+while other users can combine Nord Pool, compatible meters, and configured
+supplier and grid tariffs without double counting.
+
+Planned capabilities:
+
+- Explicit supplier-price, market-price, and complete-price strategies
+- Component inclusion and VAT semantics
+- Cost provenance and tariff completeness metadata
+- Conservative migration of existing v1.1 configurations
+- Nord Pool plus configured supplier-markup pricing
+- Time-of-use grid fees ([#162](https://github.com/guslund-jpg/electricity-pro/issues/162))
+- Fixed supplier charges ([#163](https://github.com/guslund-jpg/electricity-pro/issues/163))
+- A normalized foundation for future cost composition
+
+The architecture is defined by
+[ADR-0005](docs/adr/0005-pricing-and-tariff-strategies.md) and tracked by
+[#166](https://github.com/guslund-jpg/electricity-pro/issues/166). Existing
+entity IDs remain stable. Automatic device control and broad regional tariff
+catalogues are outside this release.
+
+---
+
+### v1.3 — Recommendation Intelligence
+
+#### Goal
+
+Turn normalized price data, reliable forecasts, and household statistics into
+explainable, actionable recommendations.
 
 Potential capabilities:
 
@@ -258,7 +285,7 @@ separate, explicitly designed capability.
 
 ---
 
-## Beyond v1.2
+## Beyond v1.3
 
 Potential future capabilities include:
 
