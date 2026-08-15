@@ -5,6 +5,9 @@
         "data": {
           "power_entity": "Power sensor",
           "price_entity": "Electricity price sensor",
+          "pricing_strategy": "Price source type",
+          "price_included_components": "Components already included in the price",
+          "price_vat_treatment": "VAT treatment of the price",
           "energy_entity": "Today's accumulated energy sensor",
           "accumulated_cost_today_entity": "Today's accumulated cost sensor",
           "peak_power_today_entity": "Today's peak power sensor",
@@ -24,6 +27,9 @@
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
           "price_entity": "Optional sensor providing the current electricity price.",
+          "pricing_strategy": "Required when a price sensor is selected. Choose how that sensor's price is produced.",
+          "price_included_components": "Required when a price sensor is selected. Select every variable component already contained in the sensor value; Market energy must be included.",
+          "price_vat_treatment": "Required when a price sensor is selected. State whether its value includes VAT.",
           "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
           "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost.",
           "peak_power_today_entity": "Optional sensor providing today's maximum measured power.",
@@ -48,6 +54,9 @@
           "forecast_price_area": "Forecast price area"
         }
       }
+    },
+    "error": {
+      "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected."
     }
   },
   "options": {
@@ -56,6 +65,9 @@
         "data": {
           "power_entity": "Power sensor",
           "price_entity": "Electricity price sensor",
+          "pricing_strategy": "Price source type",
+          "price_included_components": "Components already included in the price",
+          "price_vat_treatment": "VAT treatment of the price",
           "energy_entity": "Today's accumulated energy sensor",
           "accumulated_cost_today_entity": "Today's accumulated cost sensor",
           "peak_power_today_entity": "Today's maximum power sensor",
@@ -75,6 +87,9 @@
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
           "price_entity": "Optional sensor providing the current electricity price.",
+          "pricing_strategy": "Required when a price sensor is selected. Saving an older configuration confirms and activates the normalized pricing model.",
+          "price_included_components": "Select every variable component already contained in the sensor value; Market energy must be included.",
+          "price_vat_treatment": "State whether the selected price sensor includes VAT.",
           "energy_entity": "Optional sensor providing today's accumulated energy consumption.",
           "accumulated_cost_today_entity": "Optional sensor providing today's accumulated electricity cost.",
           "peak_power_today_entity": "Optional sensor providing today's maximum measured power.",
@@ -99,6 +114,9 @@
           "forecast_price_area": "Forecast price area"
         }
       }
+    },
+    "error": {
+      "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected."
     }
   }
 }

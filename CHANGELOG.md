@@ -16,6 +16,9 @@
 - Added a conservative pricing-metadata configuration contract. Explicit
   settings can now be serialized and resolved with options precedence, while
   existing entries without complete metadata remain on the legacy path.
+- Added price-source type, included-component, and VAT controls to setup and
+  options. New price configurations require an explicit declaration; existing
+  entries keep running until their options are saved and confirmed.
 
 ### Documentation
 
