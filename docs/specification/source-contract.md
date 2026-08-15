@@ -2,219 +2,207 @@
 
 ## Purpose
 
-This document defines the public interface between source adapters and
-the rest of Electricity Pro.
-
-Dashboards, statistics, alerts, health logic, and derived calculations
-must consume canonical entities rather than provider-specific entities.
+This document defines the public interface between source adapters and the
+rest of Electricity Pro. Dashboards, statistics, alerts, health logic, and
+derived calculations consume canonical entities rather than provider-specific
+entities.
 
 ## Contract maturity
 
-This is the initial pre-release contract.
+The v1.1 contract remains compatible while the explicit pricing model in
+[ADR-0005](../adr/0005-pricing-and-tariff-strategies.md) is introduced.
+Existing entity IDs and unique IDs must remain stable during migration.
 
-The contract may evolve before version 1.0, but changes must be reviewed
-and documented.
+## Input roles
 
-## Entity categories
+Inputs describe capabilities, not brands. An installation may combine several
+integrations.
 
-### Required
+- **Metering source:** live power and accumulated energy.
+- **Market-price source:** an unadjusted exchange price, such as Nord Pool.
+- **Supplier-price source:** the customer's contracted variable price.
+- **Supplier tariff:** configured markup and fixed supplier charges.
+- **Grid tariff:** variable, time-of-use, fixed, and future capacity charges.
+- **Authoritative cost source:** provider-calculated accumulated cost.
 
-At least one real-time power source and one price source are expected for
-the complete Electricity Pro experience.
+Tibber may fulfil several roles at once. It is a convenient adapter path, not
+a requirement. A generic meter plus Nord Pool and configured tariff data is
+also a valid source combination.
 
-### Conditionally required
+## Pricing terminology
 
-Daily energy and daily cost are required only for modules that use those
-values.
+- **Market price** is the unadjusted exchange price for a delivery interval.
+- **Supplier price** is the contracted variable supplier price.
+- **Effective variable price** is the normalized per-kWh price used for live
+  rates and interval calculations after known variable components.
+- **Fixed charge** is time-based and must not be hidden in a per-kWh price
+  unless clearly presented as an estimate.
+- **Total cost** is accumulated cost for a defined period and component scope.
 
-### Optional
-
-Future entities may include forecasts, import and export measurements,
-tariff components, grid carbon intensity, and per-device consumption.
+Each price and cost input must eventually declare its included components and
+whether it is gross or net of VAT. A component may be added only when it is not
+already included.
 
 ## Canonical entities
 
 ### Current power
 
-```text
-sensor.electricity_pro_current_power
-Property  Contract
-Meaning  Current whole-home electricity import power
-Canonical unit  W
-Expected value  Numeric and greater than or equal to zero
-Update behavior  As frequently as the source provides
-Missing source  Entity becomes unavailable
-Required  Yes for live-power features
+| Property | Contract |
+| --- | --- |
+| Entity | `sensor.electricity_pro_current_power` |
+| Meaning | Current whole-home electricity import power |
+| Canonical unit | W |
+| Expected value | Numeric and greater than or equal to zero |
+| Update behavior | As frequently as the source provides |
+| Missing source | Entity becomes unavailable |
+| Required | Yes for live-power features |
 
-The source adapter must convert kilowatts to watts when required.
+The adapter converts kilowatts to watts when required. Export and signed
+bidirectional power may be introduced as separate capabilities later.
 
-The initial contract represents imported power. Export and signed
-bidirectional power may be introduced separately in a future contract.
+### Current price
 
-Current price
-sensor.electricity_pro_current_price
-Property  Contract
-Meaning  Current effective electricity price
-Canonical unit  Currency per kWh
-Expected value  Numeric
-Update behavior  When the active price period changes
-Missing source  Entity becomes unavailable
-Required  Yes for pricing features
+| Property | Contract |
+| --- | --- |
+| Entity | `sensor.electricity_pro_current_price` |
+| Meaning | Configured variable price source, retained for compatibility |
+| Canonical unit | Currency per kWh |
+| Expected value | Numeric |
+| Update behavior | When the active price period changes |
+| Missing source | Entity becomes unavailable |
+| Required | Yes for pricing features |
 
-The configured currency must be consistent throughout one installation.
+In v1.1 this input may represent market price, contracted supplier price, or a
+complete external variable price. That ambiguity is legacy behavior, not the
+target contract. The v1.2 migration must obtain explicit strategy and component
+inclusion semantics before adding new fees.
 
-The price may represent a spot price or a complete customer price,
-depending on adapter configuration. Adapters must document what their
-value includes.
+### Effective price
 
-Energy today
-sensor.electricity_pro_energy_today
-Property  Contract
-Meaning  Imported electrical energy accumulated today
-Canonical unit  kWh
-Expected value  Numeric and greater than or equal to zero
-Reset behavior  Resets at the installation's local day boundary
-Missing source  Entity becomes unavailable
-Required  For daily energy features
+| Property | Contract |
+| --- | --- |
+| Entity | `sensor.electricity_pro_effective_price` |
+| Meaning | Normalized effective variable price used by Electricity Pro |
+| Canonical unit | Currency per kWh |
+| Expected value | Numeric |
+| Missing inputs | Entity becomes unavailable |
+| Required | For effective-rate and recommendation features |
 
-A reset to zero at the beginning of a new local day is expected and is
-not considered an error.
+The calculation depends on the selected pricing strategy. It must add each
+variable component exactly once and expose sufficient provenance to explain
+the result. Fixed charges do not belong in this value.
 
-The internal entity key remains `current_energy` for compatibility with
-existing installations and recorded history.
+### Energy today
 
-Cost today
-sensor.electricity_pro_cost_today
-Property  Contract
-Meaning  Electricity cost accumulated today
-Canonical unit  Configured currency
-Expected value  Numeric and normally greater than or equal to zero
-Reset behavior  Resets at the installation's local day boundary
-Missing source  Entity becomes unavailable
-Required  For daily cost features
+| Property | Contract |
+| --- | --- |
+| Entity | `sensor.electricity_pro_energy_today` |
+| Meaning | Imported electrical energy accumulated today |
+| Canonical unit | kWh |
+| Expected value | Numeric and greater than or equal to zero |
+| Reset behavior | Resets at the installation's local day boundary |
+| Missing source | Entity becomes unavailable |
+| Required | For daily energy features |
 
-Adapters or core calculation modules must document whether taxes, grid
-fees, and fixed fees are included.
+A reset at the start of a new local day is expected. The internal entity key
+remains `current_energy` for compatibility with recorded history.
 
-Consumption-weighted average price today
-sensor.electricity_pro_consumption_weighted_average_price_today
-Property  Contract
-Meaning  Average effective price achieved by today's actual energy use
-Canonical unit  Configured currency per kWh
-Expected value  Numeric and greater than or equal to zero
-Update behavior  When Cost Today or Energy Today changes
-Missing source  Entity becomes unavailable
-Required  Cost Today and Energy Today sources
+### Cost today
 
-The calculation divides Cost Today by Energy Today normalized to kWh, then
-adds configured variable grid-fee and tax/markup adjustments exactly once.
-It is unavailable when Energy Today is zero and is retrospective rather than
-a recommendation about current consumption.
+| Property | Contract |
+| --- | --- |
+| Entity | `sensor.electricity_pro_cost_today` |
+| Meaning | Electricity cost accumulated today |
+| Canonical unit | Configured currency |
+| Expected value | Numeric and normally greater than or equal to zero |
+| Reset behavior | Resets at the installation's local day boundary |
+| Missing source | Entity becomes unavailable |
+| Required | For daily cost features |
 
-Monthly peak-hour time
-sensor.electricity_pro_monthly_peak_hour_time
-Property  Contract
-Meaning  Start time of the highest-consumption hour in the current month
-Canonical unit  Timestamp
-Expected value  ISO 8601 timestamp with a timezone offset
-Update behavior  Changes when a new monthly peak hour is reported
-Missing source  Entity is not created when unconfigured and becomes unavailable when invalid
-Required  No
+The value may be authoritative supplier cost or locally calculated cost. Its
+provenance and included components must be distinguishable. Local accounting
+requires time-aligned energy and price data; instantaneous power alone must not
+be presented as accounting-accurate accumulated cost.
 
-This optional source complements Monthly Peak Hour Consumption. The timestamp
-must remain timezone-aware so Home Assistant can display it in local time.
+### Consumption-weighted average price today
 
-Source-health entities
-Power source health
-binary_sensor.electricity_pro_power_source_healthy
+| Property | Contract |
+| --- | --- |
+| Entity | `sensor.electricity_pro_consumption_weighted_average_price_today` |
+| Meaning | Average price achieved by today's actual energy use |
+| Canonical unit | Configured currency per kWh |
+| Expected value | Numeric and greater than or equal to zero |
+| Update behavior | When cost or energy today changes |
+| Missing source | Entity becomes unavailable |
+| Required | Compatible cost-today and energy-today sources |
 
-The entity is on only when the configured power source:
+The current compatibility calculation uses Cost Today divided by Energy Today
+and applies configured adjustments once. Under the explicit pricing model it
+must instead use a normalized cost scope, so authoritative cost and configured
+components cannot overlap. It is unavailable when Energy Today is zero and is
+retrospective, not a recommendation.
 
-exists;
-is available;
-contains a valid numeric value;
-has updated within its accepted freshness interval.
-Price source health
-binary_sensor.electricity_pro_price_source_healthy
+### Monthly peak-hour time
 
-The entity is on only when the configured price source:
+| Property | Contract |
+| --- | --- |
+| Entity | `sensor.electricity_pro_monthly_peak_hour_time` |
+| Meaning | Start time of the highest-consumption hour in the current month |
+| Canonical unit | Timestamp |
+| Expected value | ISO 8601 timestamp with a timezone offset |
+| Missing source | Not created when unconfigured; unavailable when invalid |
+| Required | No |
 
-exists;
-is available;
-contains a valid numeric value;
-corresponds to the active pricing period;
-has updated within its accepted freshness interval.
-Missing and invalid data
+The timestamp remains timezone-aware so Home Assistant can display local time.
 
-Canonical entities must become unavailable when source data is missing
-or invalid.
+## Source-health entities
 
-The following values must not automatically be treated as zero:
+`binary_sensor.electricity_pro_power_source_healthy` is on only when the
+configured power source exists, is available, contains a valid numeric value,
+and is fresh enough for that source type.
 
-unknown
-unavailable
-none
-null
-empty string
-non-numeric text
+`binary_sensor.electricity_pro_price_source_healthy` is on only when the
+configured price source exists, is available, contains a valid numeric value,
+corresponds to the active price period, and is fresh enough.
 
-A valid numeric zero remains zero.
+## Missing and invalid data
 
-Precision
+Canonical entities become unavailable when source data is missing or invalid.
+`unknown`, `unavailable`, `none`, `null`, an empty string, and non-numeric text
+must not be treated as zero. A valid numeric zero remains zero.
 
-Adapters should preserve meaningful source precision.
+## Precision and freshness
 
-Display rounding belongs in the presentation layer unless storage or
-calculation requirements justify normalization.
+Adapters preserve meaningful source precision. Display rounding belongs in
+the presentation layer unless calculation requirements justify normalization.
 
-Initial recommended display precision:
+| Measurement | Recommended display precision |
+| --- | --- |
+| Power | 0 W |
+| Price | 3 currency/kWh decimals |
+| Energy today | 3 kWh decimals |
+| Cost today | 2 currency decimals |
 
-Measurement  Display precision
-Power  0 W
-Price  3 currency/kWh decimals
-Energy today  3 kWh decimals
-Cost today  2 currency decimals
+| Source type | Suggested freshness threshold |
+| --- | --- |
+| Live power | 5 minutes |
+| Period price | Current period plus 5 minutes |
+| Daily accumulated energy | 15 minutes |
+| Daily accumulated cost | 15 minutes |
 
-These are presentation recommendations and not storage requirements.
+Adapters may override thresholds when their source has a different documented
+update model.
 
-Freshness
+## Provider isolation
 
-The health layer must support source-specific freshness thresholds.
+Provider-specific entity IDs may appear only in source adapters. They must not
+leak into core calculations, statistics, health, alerts, or dashboards.
 
-Recommended initial defaults:
+Feature availability is capability-based. Missing optional inputs disable only
+the dependent capability.
 
-Source type  Suggested threshold
-Live power  5 minutes
-Period price  Current period plus 5 minutes
-Daily accumulated energy  15 minutes
-Daily accumulated cost  15 minutes
+## Future extensions
 
-Adapters may override these defaults when their provider has a different
-documented update model.
-
-Provider isolation
-
-Provider-specific entity IDs may appear only inside:
-
-packages/10_sources/
-
-They must not appear in:
-
-packages/20_core/
-packages/30_statistics/
-packages/40_health/
-packages/50_alerts/
-dashboards/
-Future extensions
-
-Potential future contract additions include:
-
-sensor.electricity_pro_power_export
-sensor.electricity_pro_energy_export_today
-sensor.electricity_pro_price_next_period
-sensor.electricity_pro_price_daily_average
-sensor.electricity_pro_cost_forecast_today
-sensor.electricity_pro_grid_fee_current
-sensor.electricity_pro_price_level
-
-These are proposals only and are not part of the current contract.
+Potential additions include export measurements, local interval cost
+accumulation, detailed cost provenance, tariff completeness, price forecasts,
+and regional tariff adapters. These are not part of the v1.1 contract.
