@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added internal pricing-strategy, component-scope, and VAT-treatment models as
+  the first provider-independent pricing foundation. This does not change
+  existing configuration or sensor behavior.
+
 ### Documentation
 
 - Clarified that HACS installs Electricity Pro entities but does not import a
