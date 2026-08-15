@@ -5,8 +5,11 @@ from dataclasses import FrozenInstanceError
 import pytest
 
 from custom_components.electricity_pro.pricing import (
+    CostProvenance,
     PriceComponent,
     PriceComponentScope,
+    PriceCompleteness,
+    PricingMetadata,
     PricingStrategy,
     VatTreatment,
 )
@@ -56,3 +59,44 @@ def test_price_component_scope_rejects_unknown_components() -> None:
     """Unrecognized component strings must not silently enter the model."""
     with pytest.raises(ValueError, match="unsupported component"):
         PriceComponentScope(frozenset({"market_energy"}))  # type: ignore[arg-type]
+
+
+def test_cost_provenance_values_are_storage_safe() -> None:
+    """Cost provenance should distinguish source and local calculation."""
+    assert CostProvenance.AUTHORITATIVE_SOURCE == "authoritative_source"
+    assert CostProvenance.LOCALLY_CALCULATED == "locally_calculated"
+
+
+def test_pricing_metadata_defaults_to_unknown_completeness() -> None:
+    """Completeness must remain unknown until an adapter or user declares it."""
+    metadata = PricingMetadata(
+        strategy=PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
+        scope=PriceComponentScope(frozenset({PriceComponent.MARKET_ENERGY})),
+    )
+
+    assert metadata.completeness is PriceCompleteness.UNKNOWN
+    assert not metadata.is_complete
+
+
+def test_pricing_metadata_exposes_declared_completeness() -> None:
+    """Complete metadata should be explicit and remain immutable."""
+    metadata = PricingMetadata(
+        strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
+        scope=PriceComponentScope(
+            frozenset(
+                {
+                    PriceComponent.MARKET_ENERGY,
+                    PriceComponent.SUPPLIER_MARKUP,
+                    PriceComponent.ENERGY_TAX,
+                    PriceComponent.VARIABLE_GRID_FEE,
+                }
+            ),
+            vat=VatTreatment.INCLUDED,
+        ),
+        completeness=PriceCompleteness.COMPLETE,
+    )
+
+    assert metadata.is_complete
+
+    with pytest.raises(FrozenInstanceError):
+        metadata.completeness = PriceCompleteness.PARTIAL  # type: ignore[misc]
