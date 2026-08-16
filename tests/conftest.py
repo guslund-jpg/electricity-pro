@@ -16,6 +16,7 @@ from custom_components.electricity_pro.const import (
     CONF_FORECAST_CURRENCY,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
+    CONF_FIXED_SUPPLIER_FEE_MONTHLY,
     CONF_GRID_FEE_PER_KWH,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
@@ -64,6 +65,7 @@ def setup_electricity_pro(hass):
         monthly_peak_hour_consumption_unit: str = "kWh",
         monthly_peak_hour_time_value: str | None = None,
         grid_fee_per_kwh: float | None = None,
+        fixed_supplier_fee_monthly: float | None = None,
         tax_per_kwh: float | None = None,
         good_price_threshold: float | None = None,
         forecast_price_area: str | None = None,
@@ -88,6 +90,11 @@ def setup_electricity_pro(hass):
 
         if grid_fee_per_kwh is not None:
             entry_data[CONF_GRID_FEE_PER_KWH] = grid_fee_per_kwh
+
+        if fixed_supplier_fee_monthly is not None:
+            entry_data[CONF_FIXED_SUPPLIER_FEE_MONTHLY] = (
+                fixed_supplier_fee_monthly
+            )
 
         if tax_per_kwh is not None:
             entry_data[CONF_TAX_PER_KWH] = tax_per_kwh

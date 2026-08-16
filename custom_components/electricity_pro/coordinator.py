@@ -335,6 +335,28 @@ class ElectricityProCoordinator(
             updates["cost_this_month_unit"] = cost_unit
             should_save = True
 
+        monthly_cost = updates.get("cost_this_month")
+        monthly_cost_unit = updates.get("cost_this_month_unit")
+        fixed_fee = data.fixed_supplier_fee_this_month
+        fixed_fee_unit = (
+            monthly_cost_unit
+            if isinstance(monthly_cost_unit, str)
+            else _currency_from_price_unit(data.current_price_unit)
+        )
+        updates["fixed_supplier_fee_this_month_unit"] = (
+            fixed_fee_unit if fixed_fee is not None else None
+        )
+        if (
+            isinstance(monthly_cost, Decimal)
+            and fixed_fee is not None
+            and fixed_fee_unit is not None
+        ):
+            updates["total_supplier_cost_this_month"] = monthly_cost + fixed_fee
+            updates["total_supplier_cost_this_month_unit"] = fixed_fee_unit
+        else:
+            updates["total_supplier_cost_this_month"] = None
+            updates["total_supplier_cost_this_month_unit"] = None
+
         if should_save:
             self._store.async_delay_save(self._statistics_data, delay=1)
 
@@ -415,4 +437,15 @@ def _energy_in_kwh(
         return value
     if unit == UnitOfEnergy.WATT_HOUR:
         return value * _KWH_PER_WH
+    return None
+
+
+def _currency_from_price_unit(unit: str | None) -> str | None:
+    """Return a currency from a currency-per-kWh unit."""
+    if unit is None:
+        return None
+    for suffix in ("/kWh", "/kwh"):
+        if unit.endswith(suffix):
+            currency = unit[: -len(suffix)].strip()
+            return currency or None
     return None

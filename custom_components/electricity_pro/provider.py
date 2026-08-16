@@ -30,6 +30,7 @@ from .const import (
     CONF_GRID_FEE_HIGH_SEASON_END,
     CONF_GRID_FEE_HIGH_SEASON_START,
     CONF_GRID_FEE_HIGH_START,
+    CONF_FIXED_SUPPLIER_FEE_MONTHLY,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
@@ -69,6 +70,10 @@ class ElectricityProData:
     energy_this_month_unit: str | None
     cost_this_month: Decimal | None
     cost_this_month_unit: str | None
+    fixed_supplier_fee_this_month: Decimal | None
+    fixed_supplier_fee_this_month_unit: str | None
+    total_supplier_cost_this_month: Decimal | None
+    total_supplier_cost_this_month_unit: str | None
     grid_fee_per_kwh: Decimal | None
     tax_per_kwh: Decimal | None
     good_price_threshold: Decimal | None
@@ -160,6 +165,12 @@ class ElectricityProEntityProvider:
             entry.options.get(
                 CONF_GOOD_PRICE_THRESHOLD,
                 entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
+            )
+        )
+        self._fixed_supplier_fee_monthly = self._normalize_adjustment(
+            entry.options.get(
+                CONF_FIXED_SUPPLIER_FEE_MONTHLY,
+                entry.data.get(CONF_FIXED_SUPPLIER_FEE_MONTHLY),
             )
         )
 
@@ -313,6 +324,10 @@ class ElectricityProEntityProvider:
             energy_this_month_unit=None,
             cost_this_month=None,
             cost_this_month_unit=None,
+            fixed_supplier_fee_this_month=self._fixed_supplier_fee_monthly,
+            fixed_supplier_fee_this_month_unit=None,
+            total_supplier_cost_this_month=None,
+            total_supplier_cost_this_month_unit=None,
             grid_fee_per_kwh=self.grid_fee_at(dt_util.now()),
             tax_per_kwh=self._tax_per_kwh,
             good_price_threshold=self._good_price_threshold,

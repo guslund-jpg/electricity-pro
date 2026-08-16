@@ -188,6 +188,15 @@ in these fields. Those costs do not vary directly with each consumed kWh and
 need separate models. Public-holiday exclusions are also not yet configured by
 the integration; they are tracked as a separate enhancement.
 
+An optional **fixed monthly electricity supplier fee** can be configured
+separately, including VAT. Electricity Pro exposes that amount as **Fixed
+supplier fee this month** and combines it with the consumption-based **Cost
+this month** in **Total supplier cost this month**. The full monthly fee is
+represented once; it is not prorated and does not affect Effective Price,
+Current Cost Rate, Good Time, or forecast scheduling. Do not use this field for
+grid-company fixed fees or capacity charges, and leave it empty when an
+authoritative monthly cost source already includes the same fee.
+
 Depending on the enabled capabilities, configuration may therefore include:
 
 - Current power sensor
