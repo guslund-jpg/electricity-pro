@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import time
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import voluptuous as vol
@@ -25,6 +27,11 @@ from .const import (
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
     CONF_GRID_FEE_PER_KWH,
+    CONF_GRID_FEE_HIGH_END,
+    CONF_GRID_FEE_HIGH_PER_KWH,
+    CONF_GRID_FEE_HIGH_SEASON_END,
+    CONF_GRID_FEE_HIGH_SEASON_START,
+    CONF_GRID_FEE_HIGH_START,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
@@ -50,6 +57,7 @@ from .pricing import (
     PricingStrategy,
     VatTreatment,
 )
+from .grid_tariff import HighLowGridTariff
 from .source_adapters import DiscoveredSource, discover_tibber_sources
 
 _SETUP_TIBBER = "tibber"
@@ -87,6 +95,43 @@ _VAT_OPTIONS = [
 ]
 
 
+def _time_of_use_tariff_fields(
+    *,
+    high_fee_default: float | None = None,
+    high_start_default: str = "06:00",
+    high_end_default: str = "22:00",
+    season_start_default: str = "11-01",
+    season_end_default: str = "03-31",
+) -> dict[vol.Marker, Any]:
+    """Return optional high/low tariff schedule fields."""
+    high_fee_key = (
+        vol.Optional(CONF_GRID_FEE_HIGH_PER_KWH)
+        if high_fee_default is None
+        else vol.Optional(CONF_GRID_FEE_HIGH_PER_KWH, default=high_fee_default)
+    )
+    return {
+        high_fee_key: selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0,
+                step=0.001,
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        ),
+        vol.Optional(
+            CONF_GRID_FEE_HIGH_START, default=high_start_default
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_GRID_FEE_HIGH_END, default=high_end_default
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_GRID_FEE_HIGH_SEASON_START, default=season_start_default
+        ): selector.TextSelector(),
+        vol.Optional(
+            CONF_GRID_FEE_HIGH_SEASON_END, default=season_end_default
+        ): selector.TextSelector(),
+    }
+
+
 def _setup_method_schema() -> vol.Schema:
     """Return the first guided setup choice."""
     return vol.Schema(
@@ -108,6 +153,11 @@ def _tibber_settings_schema(
     *,
     grid_fee_default: float | None = None,
     good_price_threshold_default: float | None = None,
+    high_fee_default: float | None = None,
+    high_start_default: str = "06:00",
+    high_end_default: str = "22:00",
+    season_start_default: str = "11-01",
+    season_end_default: str = "03-31",
 ) -> vol.Schema:
     """Return only the settings Tibber cannot determine."""
     grid_fee_key = (
@@ -131,6 +181,13 @@ def _tibber_settings_schema(
                     step=0.001,
                     mode=selector.NumberSelectorMode.BOX,
                 )
+            ),
+            **_time_of_use_tariff_fields(
+                high_fee_default=high_fee_default,
+                high_start_default=high_start_default,
+                high_end_default=high_end_default,
+                season_start_default=season_start_default,
+                season_end_default=season_end_default,
             ),
             threshold_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
@@ -165,6 +222,11 @@ def _entity_schema(
     tax_per_kwh_default: float | None = None,
     good_price_threshold_default: float | None = None,
     forecast_nordpool_config_entry_default: str | None = None,
+    grid_fee_high_per_kwh_default: float | None = None,
+    grid_fee_high_start_default: str = "06:00",
+    grid_fee_high_end_default: str = "22:00",
+    grid_fee_high_season_start_default: str = "11-01",
+    grid_fee_high_season_end_default: str = "03-31",
 ) -> vol.Schema:
     """Return the source entity selection schema."""
 
@@ -394,6 +456,13 @@ def _entity_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
+            **_time_of_use_tariff_fields(
+                high_fee_default=grid_fee_high_per_kwh_default,
+                high_start_default=grid_fee_high_start_default,
+                high_end_default=grid_fee_high_end_default,
+                season_start_default=grid_fee_high_season_start_default,
+                season_end_default=grid_fee_high_season_end_default,
+            ),
             tax_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
@@ -496,6 +565,12 @@ class ElectricityProConfigFlow(
     ) -> ConfigFlowResult:
         """Configure independent or mixed sources manually."""
         if user_input is not None:
+            if not _grid_tariff_input_valid(user_input):
+                return self.async_show_form(
+                    step_id="manual",
+                    data_schema=_entity_schema(),
+                    errors={"base": "invalid_grid_tariff"},
+                )
             if not _prepare_pricing_metadata(user_input):
                 return self.async_show_form(
                     step_id="manual",
@@ -588,6 +663,12 @@ class ElectricityProConfigFlow(
             return await self.async_step_tibber()
 
         if user_input is not None:
+            if not _grid_tariff_input_valid(user_input):
+                return self.async_show_form(
+                    step_id="tibber_settings",
+                    data_schema=_tibber_settings_schema(),
+                    errors={"base": "invalid_grid_tariff"},
+                )
             data = {**self._selected_tibber_source.data, **user_input}
             return self.async_create_entry(title="Electricity Pro", data=data)
 
@@ -636,6 +717,16 @@ class ElectricityProOptionsFlow(OptionsFlow):
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Manage source entity options."""
+        if user_input is not None and not _grid_tariff_input_valid(user_input):
+            return self.async_show_form(
+                step_id="init",
+                data_schema=(
+                    _tibber_settings_schema()
+                    if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
+                    else _entity_schema()
+                ),
+                errors={"base": "invalid_grid_tariff"},
+            )
         if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER:
             if user_input is not None:
                 return self.async_create_entry(title="", data=user_input)
@@ -647,11 +738,23 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 CONF_GOOD_PRICE_THRESHOLD,
                 self.config_entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
             )
+            values = {**self.config_entry.data, **self.config_entry.options}
             return self.async_show_form(
                 step_id="init",
                 data_schema=_tibber_settings_schema(
                     grid_fee_default=current_grid_fee,
                     good_price_threshold_default=current_threshold,
+                    high_fee_default=values.get(CONF_GRID_FEE_HIGH_PER_KWH),
+                    high_start_default=values.get(
+                        CONF_GRID_FEE_HIGH_START, "06:00"
+                    ),
+                    high_end_default=values.get(CONF_GRID_FEE_HIGH_END, "22:00"),
+                    season_start_default=values.get(
+                        CONF_GRID_FEE_HIGH_SEASON_START, "11-01"
+                    ),
+                    season_end_default=values.get(
+                        CONF_GRID_FEE_HIGH_SEASON_END, "03-31"
+                    ),
                 ),
                 description_placeholders={"source_profile": "Tibber fast track"},
             )
@@ -782,6 +885,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_GRID_FEE_PER_KWH,
             self.config_entry.data.get(CONF_GRID_FEE_PER_KWH),
         )
+        tariff_values = {**self.config_entry.data, **self.config_entry.options}
         current_tax = self.config_entry.options.get(
             CONF_TAX_PER_KWH,
             self.config_entry.data.get(CONF_TAX_PER_KWH),
@@ -818,6 +922,21 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 tax_per_kwh_default=current_tax,
                 good_price_threshold_default=current_good_price_threshold,
                 forecast_nordpool_config_entry_default=current_forecast_nordpool_config_entry,
+                grid_fee_high_per_kwh_default=tariff_values.get(
+                    CONF_GRID_FEE_HIGH_PER_KWH
+                ),
+                grid_fee_high_start_default=tariff_values.get(
+                    CONF_GRID_FEE_HIGH_START, "06:00"
+                ),
+                grid_fee_high_end_default=tariff_values.get(
+                    CONF_GRID_FEE_HIGH_END, "22:00"
+                ),
+                grid_fee_high_season_start_default=tariff_values.get(
+                    CONF_GRID_FEE_HIGH_SEASON_START, "11-01"
+                ),
+                grid_fee_high_season_end_default=tariff_values.get(
+                    CONF_GRID_FEE_HIGH_SEASON_END, "03-31"
+                ),
             ),
         )
 
@@ -848,6 +967,42 @@ def _forecast_area_schema(areas: list[str]) -> vol.Schema:
             )
         }
     )
+
+
+def _grid_tariff_input_valid(user_input: dict[str, Any]) -> bool:
+    """Validate an optional high/low grid-tariff submission."""
+    high_fee = user_input.get(CONF_GRID_FEE_HIGH_PER_KWH)
+    if high_fee is None:
+        return True
+    low_fee = user_input.get(CONF_GRID_FEE_PER_KWH)
+    if low_fee is None:
+        return False
+    try:
+        HighLowGridTariff(
+            low_fee_per_kwh=Decimal(str(low_fee)),
+            high_fee_per_kwh=Decimal(str(high_fee)),
+            high_start_time=time.fromisoformat(
+                str(user_input.get(CONF_GRID_FEE_HIGH_START, "06:00"))
+            ),
+            high_end_time=time.fromisoformat(
+                str(user_input.get(CONF_GRID_FEE_HIGH_END, "22:00"))
+            ),
+            high_season_start=_parse_month_day_input(
+                user_input.get(CONF_GRID_FEE_HIGH_SEASON_START, "11-01")
+            ),
+            high_season_end=_parse_month_day_input(
+                user_input.get(CONF_GRID_FEE_HIGH_SEASON_END, "03-31")
+            ),
+        )
+    except (InvalidOperation, TypeError, ValueError):
+        return False
+    return True
+
+
+def _parse_month_day_input(value: Any) -> tuple[int, int]:
+    """Parse a recurring MM-DD form value."""
+    month, day = str(value).split("-", maxsplit=1)
+    return int(month), int(day)
 
 
 def _prepare_pricing_metadata(user_input: dict[str, Any]) -> bool:

@@ -13,6 +13,11 @@ from custom_components.electricity_pro.const import (
     CONF_FORECAST_PRICE_AREA,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_GRID_FEE_PER_KWH,
+    CONF_GRID_FEE_HIGH_END,
+    CONF_GRID_FEE_HIGH_PER_KWH,
+    CONF_GRID_FEE_HIGH_SEASON_END,
+    CONF_GRID_FEE_HIGH_SEASON_START,
+    CONF_GRID_FEE_HIGH_START,
     CONF_POWER_ENTITY,
     CONF_PRICE_COMPLETENESS,
     CONF_PRICE_ENTITY,
@@ -60,6 +65,13 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
         CONF_VOLTAGE_L2_ENTITY,
         CONF_VOLTAGE_L3_ENTITY,
     ]
+    assert keys[keys.index(CONF_GRID_FEE_PER_KWH) + 1 : keys.index(CONF_TAX_PER_KWH)] == [
+        CONF_GRID_FEE_HIGH_PER_KWH,
+        CONF_GRID_FEE_HIGH_START,
+        CONF_GRID_FEE_HIGH_END,
+        CONF_GRID_FEE_HIGH_SEASON_START,
+        CONF_GRID_FEE_HIGH_SEASON_END,
+    ]
 
 
 async def test_user_step_creates_entry_with_forecast_config(hass) -> None:
@@ -87,6 +99,23 @@ async def test_user_step_creates_entry_with_forecast_config(hass) -> None:
     assert result["title"] == "Electricity Pro"
     assert CONF_FORECAST_PRICE_AREA not in result["data"]
     assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == "nordpool-entry-id"
+
+
+async def test_manual_flow_rejects_invalid_grid_tariff_schedule(hass) -> None:
+    """A high tariff should require a valid low fee and schedule."""
+    result = await _start_manual_flow(hass)
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_GRID_FEE_HIGH_PER_KWH: 0.25,
+            CONF_GRID_FEE_HIGH_START: "not-a-time",
+        },
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_grid_tariff"}
 
 
 async def test_user_step_asks_for_area_for_multi_area_nordpool_entry(hass) -> None:

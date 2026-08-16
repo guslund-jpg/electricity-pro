@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, time
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable
+from zoneinfo import ZoneInfo
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -24,6 +25,11 @@ from .const import (
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_GRID_FEE_PER_KWH,
+    CONF_GRID_FEE_HIGH_END,
+    CONF_GRID_FEE_HIGH_PER_KWH,
+    CONF_GRID_FEE_HIGH_SEASON_END,
+    CONF_GRID_FEE_HIGH_SEASON_START,
+    CONF_GRID_FEE_HIGH_START,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
@@ -35,6 +41,7 @@ from .const import (
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
 )
+from .grid_tariff import HighLowGridTariff
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,6 +85,7 @@ class ElectricityProEntityProvider:
     ) -> None:
         """Initialize the entity provider."""
         self._hass = hass
+        self._local_timezone = ZoneInfo(hass.config.time_zone)
         self._grid_fee_at = grid_fee_at
 
         self._power_entity_id: str = entry.options.get(
@@ -141,6 +149,7 @@ class ElectricityProEntityProvider:
                 entry.data.get(CONF_GRID_FEE_PER_KWH),
             )
         )
+        self._scheduled_grid_tariff = _scheduled_grid_tariff(entry)
         self._tax_per_kwh = self._normalize_adjustment(
             entry.options.get(
                 CONF_TAX_PER_KWH,
@@ -201,6 +210,10 @@ class ElectricityProEntityProvider:
         """Return the configured grid fee at a timestamp."""
         if self._grid_fee_at is not None:
             return self._grid_fee_at(at)
+        if self._scheduled_grid_tariff is not None:
+            return self._scheduled_grid_tariff.fee_at(
+                at.astimezone(self._local_timezone)
+            )
         return self._grid_fee_per_kwh
 
     @callback
@@ -480,3 +493,42 @@ class ElectricityProEntityProvider:
             return None
 
         return volts
+
+
+def _scheduled_grid_tariff(entry: ConfigEntry) -> HighLowGridTariff | None:
+    """Build an optional high/low grid tariff from entry settings."""
+    values = {**entry.data, **entry.options}
+    low_fee = ElectricityProEntityProvider._normalize_adjustment(
+        values.get(CONF_GRID_FEE_PER_KWH)
+    )
+    high_fee = ElectricityProEntityProvider._normalize_adjustment(
+        values.get(CONF_GRID_FEE_HIGH_PER_KWH)
+    )
+    if low_fee is None or high_fee is None:
+        return None
+
+    try:
+        return HighLowGridTariff(
+            low_fee_per_kwh=low_fee,
+            high_fee_per_kwh=high_fee,
+            high_start_time=time.fromisoformat(
+                str(values.get(CONF_GRID_FEE_HIGH_START, "06:00"))
+            ),
+            high_end_time=time.fromisoformat(
+                str(values.get(CONF_GRID_FEE_HIGH_END, "22:00"))
+            ),
+            high_season_start=_parse_month_day(
+                values.get(CONF_GRID_FEE_HIGH_SEASON_START, "11-01")
+            ),
+            high_season_end=_parse_month_day(
+                values.get(CONF_GRID_FEE_HIGH_SEASON_END, "03-31")
+            ),
+        )
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_month_day(value: Any) -> tuple[int, int]:
+    """Parse an MM-DD recurring date."""
+    month, day = str(value).split("-", maxsplit=1)
+    return int(month), int(day)

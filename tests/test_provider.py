@@ -12,6 +12,12 @@ from custom_components.electricity_pro.const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_GRID_FEE_HIGH_END,
+    CONF_GRID_FEE_HIGH_PER_KWH,
+    CONF_GRID_FEE_HIGH_SEASON_END,
+    CONF_GRID_FEE_HIGH_SEASON_START,
+    CONF_GRID_FEE_HIGH_START,
+    CONF_GRID_FEE_PER_KWH,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     CONF_PEAK_POWER_TODAY_ENTITY,
@@ -122,6 +128,32 @@ def test_grid_fee_at_uses_time_varying_resolver(hass: HomeAssistant) -> None:
 
     assert provider.grid_fee_at(high_start) == Decimal("0.25")
     assert provider.grid_fee_at(high_start.replace(hour=5)) == Decimal("0.125")
+
+
+def test_grid_fee_at_uses_configured_high_low_schedule(hass: HomeAssistant) -> None:
+    """Provider should build and apply a high/low schedule from config data."""
+    hass.config.time_zone = "UTC"
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_GRID_FEE_PER_KWH: 0.125,
+            CONF_GRID_FEE_HIGH_PER_KWH: 0.25,
+            CONF_GRID_FEE_HIGH_START: "06:00",
+            CONF_GRID_FEE_HIGH_END: "22:00",
+            CONF_GRID_FEE_HIGH_SEASON_START: "11-01",
+            CONF_GRID_FEE_HIGH_SEASON_END: "03-31",
+        },
+    )
+    provider = ElectricityProEntityProvider(hass, entry)
+
+    assert provider.grid_fee_at(
+        datetime(2026, 11, 2, 7, 0, tzinfo=UTC)
+    ) == Decimal("0.25")
+    assert provider.grid_fee_at(
+        datetime(2026, 11, 7, 7, 0, tzinfo=UTC)
+    ) == Decimal("0.125")
 
 
 def test_read_valid_sources(
