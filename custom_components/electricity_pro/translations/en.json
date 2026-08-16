@@ -75,8 +75,8 @@
           "good_price_threshold": "Good price threshold per kWh"
         },
         "data_description": {
-          "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the Tibber price, including VAT.",
-          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity."
+          "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the Tibber price, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity. For example, use 0.90 SEK/kWh for a Swedish setup."
         }
       },
       "forecast_area": {
