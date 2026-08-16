@@ -2,6 +2,16 @@
   "config": {
     "step": {
       "user": {
+        "title": "Choose setup method",
+        "description": "Use the Tibber fast track when Tibber supplies both your Pulse measurements and electricity contract. Choose custom or mixed sources for every other combination.",
+        "data": {
+          "setup_method": "Setup method"
+        },
+        "data_description": {
+          "setup_method": "The fast track discovers known Tibber entities automatically. The custom path keeps measurement and price sources independent."
+        }
+      },
+      "manual": {
         "data": {
           "power_entity": "Power sensor",
           "price_entity": "Electricity price sensor",
@@ -41,10 +51,29 @@
           "voltage_l3_entity": "Optional sensor providing instantaneous voltage for phase L3.",
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
-          "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor, including VAT.",
+          "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the selected price sensor, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
-          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
+        }
+      },
+      "tibber": {
+        "title": "Select Tibber home",
+        "description": "Select the Tibber home whose Pulse measurements and electricity contract Electricity Pro should use.",
+        "data": {
+          "tibber_device": "Tibber home"
+        }
+      },
+      "tibber_settings": {
+        "title": "Confirm Tibber fast track",
+        "description": "Electricity Pro found {entity_count} compatible entities. Current power: {power_entity}. Contracted price: {price_entity}. Tibber's contracted price includes market energy, Tibber markup, Swedish energy tax, and VAT. Add only costs that are not included, such as your variable grid fee.",
+        "data": {
+          "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
+          "good_price_threshold": "Good price threshold per kWh"
+        },
+        "data_description": {
+          "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the Tibber price, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity. For example, use 0.90 SEK/kWh for a Swedish setup."
         }
       },
       "forecast_area": {
@@ -56,7 +85,8 @@
       }
     },
     "error": {
-      "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected."
+      "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
+      "tibber_sources_not_found": "No enabled Tibber home with both a current-power entity and contracted-price entity was found. Return and use Custom or mixed sources, or enable the required Tibber entities first."
     }
   },
   "options": {
@@ -101,9 +131,9 @@
           "voltage_l3_entity": "Optional sensor providing instantaneous voltage for phase L3.",
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
-          "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor, including VAT.",
+          "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the selected price sensor, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
-          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
       },

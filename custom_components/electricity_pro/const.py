@@ -4,6 +4,9 @@ from homeassistant.const import Platform
 
 DOMAIN = "electricity_pro"
 
+CONF_SETUP_METHOD = "setup_method"
+CONF_SOURCE_PROFILE = "source_profile"
+CONF_TIBBER_DEVICE = "tibber_device"
 CONF_POWER_ENTITY = "power_entity"
 CONF_PRICE_ENTITY = "price_entity"
 CONF_ENERGY_ENTITY = "energy_entity"

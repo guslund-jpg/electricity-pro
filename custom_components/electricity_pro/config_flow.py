@@ -12,6 +12,8 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import callback
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 
 from .const import (
@@ -33,7 +35,10 @@ from .const import (
     CONF_PRICE_INCLUDED_COMPONENTS,
     CONF_PRICE_VAT_TREATMENT,
     CONF_PRICING_STRATEGY,
+    CONF_SETUP_METHOD,
+    CONF_SOURCE_PROFILE,
     CONF_TAX_PER_KWH,
+    CONF_TIBBER_DEVICE,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
@@ -45,6 +50,10 @@ from .pricing import (
     PricingStrategy,
     VatTreatment,
 )
+from .source_adapters import DiscoveredSource, discover_tibber_sources
+
+_SETUP_TIBBER = "tibber"
+_SETUP_CUSTOM = "custom"
 
 _PRICING_STRATEGY_OPTIONS = [
     {
@@ -76,6 +85,62 @@ _VAT_OPTIONS = [
     {"value": VatTreatment.EXCLUDED.value, "label": "VAT excluded"},
     {"value": VatTreatment.UNKNOWN.value, "label": "Unknown"},
 ]
+
+
+def _setup_method_schema() -> vol.Schema:
+    """Return the first guided setup choice."""
+    return vol.Schema(
+        {
+            vol.Required(CONF_SETUP_METHOD): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        {"value": _SETUP_TIBBER, "label": "Tibber fast track"},
+                        {"value": _SETUP_CUSTOM, "label": "Custom or mixed sources"},
+                    ],
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            )
+        }
+    )
+
+
+def _tibber_settings_schema(
+    *,
+    grid_fee_default: float | None = None,
+    good_price_threshold_default: float | None = None,
+) -> vol.Schema:
+    """Return only the settings Tibber cannot determine."""
+    grid_fee_key = (
+        vol.Optional(CONF_GRID_FEE_PER_KWH)
+        if grid_fee_default is None
+        else vol.Optional(CONF_GRID_FEE_PER_KWH, default=grid_fee_default)
+    )
+    threshold_key = (
+        vol.Optional(CONF_GOOD_PRICE_THRESHOLD)
+        if good_price_threshold_default is None
+        else vol.Optional(
+            CONF_GOOD_PRICE_THRESHOLD,
+            default=good_price_threshold_default,
+        )
+    )
+    return vol.Schema(
+        {
+            grid_fee_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            threshold_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+        }
+    )
 
 
 def _entity_schema(
@@ -258,6 +323,11 @@ def _entity_schema(
         )
     return vol.Schema(
         {
+            forecast_nordpool_config_entry_key: selector.ConfigEntrySelector(
+                selector.ConfigEntrySelectorConfig(
+                    integration="nordpool",
+                )
+            ),
             power_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
@@ -305,6 +375,39 @@ def _entity_schema(
                     device_class="power",
                 )
             ),
+            monthly_peak_hour_consumption_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="energy",
+                )
+            ),
+            monthly_peak_hour_time_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="timestamp",
+                )
+            ),
+            grid_fee_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            tax_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            good_price_threshold_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
             current_l1_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
@@ -341,44 +444,6 @@ def _entity_schema(
                     device_class="voltage",
                 )
             ),
-            monthly_peak_hour_consumption_key: selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    domain="sensor",
-                    device_class="energy",
-                )
-            ),
-            monthly_peak_hour_time_key: selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    domain="sensor",
-                    device_class="timestamp",
-                )
-            ),
-            grid_fee_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            tax_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            good_price_threshold_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            forecast_nordpool_config_entry_key: selector.ConfigEntrySelector(
-                selector.ConfigEntrySelectorConfig(
-                    integration="nordpool",
-                )
-            ),
         }
     )
 
@@ -395,6 +460,8 @@ class ElectricityProConfigFlow(
         """Initialize the config flow."""
         self._pending_user_input: dict[str, Any] | None = None
         self._forecast_areas: list[str] = []
+        self._tibber_sources: dict[str, DiscoveredSource] = {}
+        self._selected_tibber_source: DiscoveredSource | None = None
 
     @staticmethod
     @callback
@@ -408,11 +475,30 @@ class ElectricityProConfigFlow(
         self,
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
-        """Handle setup initiated by the user."""
+        """Choose a guided or custom setup path."""
+        if user_input is not None:
+            # Preserve compatibility with callers that submit the former first form.
+            if CONF_POWER_ENTITY in user_input:
+                return await self.async_step_manual(user_input)
+            if user_input.get(CONF_SETUP_METHOD) == _SETUP_TIBBER:
+                return await self.async_step_tibber()
+            if user_input.get(CONF_SETUP_METHOD) == _SETUP_CUSTOM:
+                return await self.async_step_manual()
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=_setup_method_schema(),
+        )
+
+    async def async_step_manual(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Configure independent or mixed sources manually."""
         if user_input is not None:
             if not _prepare_pricing_metadata(user_input):
                 return self.async_show_form(
-                    step_id="user",
+                    step_id="manual",
                     data_schema=_entity_schema(),
                     errors={"base": "pricing_metadata_required"},
                 )
@@ -437,9 +523,89 @@ class ElectricityProConfigFlow(
                 data=user_input,
             )
 
+        return self.async_show_form(step_id="manual", data_schema=_entity_schema())
+
+    async def async_step_tibber(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Discover and select a Tibber home."""
+        registry = er.async_get(self.hass)
+        sources = discover_tibber_sources(registry.entities.values())
+        self._tibber_sources = {
+            source.device_id: source
+            for source in sources
+            if source.is_complete_tibber_fast_track
+        }
+
+        if not self._tibber_sources:
+            return self.async_show_form(
+                step_id="tibber",
+                data_schema=vol.Schema({}),
+                errors={"base": "tibber_sources_not_found"},
+            )
+
+        if len(self._tibber_sources) == 1:
+            self._selected_tibber_source = next(iter(self._tibber_sources.values()))
+            return await self.async_step_tibber_settings()
+
+        if user_input is not None:
+            device_id = user_input[CONF_TIBBER_DEVICE]
+            self._selected_tibber_source = self._tibber_sources[device_id]
+            return await self.async_step_tibber_settings()
+
+        device_registry = dr.async_get(self.hass)
+        options = []
+        for device_id in self._tibber_sources:
+            device = device_registry.async_get(device_id)
+            label = (
+                device.name_by_user or device.name or device_id
+                if device
+                else device_id
+            )
+            options.append({"value": device_id, "label": label})
+
         return self.async_show_form(
-            step_id="user",
-            data_schema=_entity_schema(),
+            step_id="tibber",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_TIBBER_DEVICE): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=options,
+                            mode=selector.SelectSelectorMode.LIST,
+                        )
+                    )
+                }
+            ),
+        )
+
+    async def async_step_tibber_settings(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Confirm discovered Tibber sources and add unresolved settings."""
+        if self._selected_tibber_source is None:
+            return await self.async_step_tibber()
+
+        if user_input is not None:
+            data = {**self._selected_tibber_source.data, **user_input}
+            return self.async_create_entry(title="Electricity Pro", data=data)
+
+        data = self._selected_tibber_source.data
+        return self.async_show_form(
+            step_id="tibber_settings",
+            data_schema=_tibber_settings_schema(),
+            description_placeholders={
+                "power_entity": str(data[CONF_POWER_ENTITY]),
+                "price_entity": str(data[CONF_PRICE_ENTITY]),
+                "entity_count": str(
+                    sum(
+                        1
+                        for value in data.values()
+                        if str(value).startswith("sensor.")
+                    )
+                ),
+            },
         )
 
     async def async_step_forecast_area(
@@ -470,6 +636,26 @@ class ElectricityProOptionsFlow(OptionsFlow):
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Manage source entity options."""
+        if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER:
+            if user_input is not None:
+                return self.async_create_entry(title="", data=user_input)
+            current_grid_fee = self.config_entry.options.get(
+                CONF_GRID_FEE_PER_KWH,
+                self.config_entry.data.get(CONF_GRID_FEE_PER_KWH),
+            )
+            current_threshold = self.config_entry.options.get(
+                CONF_GOOD_PRICE_THRESHOLD,
+                self.config_entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
+            )
+            return self.async_show_form(
+                step_id="init",
+                data_schema=_tibber_settings_schema(
+                    grid_fee_default=current_grid_fee,
+                    good_price_threshold_default=current_threshold,
+                ),
+                description_placeholders={"source_profile": "Tibber fast track"},
+            )
+
         if user_input is not None:
             if not _prepare_pricing_metadata(user_input):
                 return self.async_show_form(

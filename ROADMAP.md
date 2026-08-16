@@ -244,10 +244,11 @@ supplier and grid tariffs without double counting.
 
 Planned capabilities:
 
-- A simplified Tibber contracted-price preset that records known included
-  components and VAT treatment without requiring manual accounting setup
-- An advanced/manual path for Nord Pool and other price sources, resolving to
-  the same normalized pricing model as provider presets
+- Guided setup with independent measurement-source and price-source choices
+- Automatic, reviewable discovery for a Tibber home using Tibber Pulse and a
+  Tibber electricity contract
+- A custom/mixed path for other dongles, suppliers, Nord Pool, and manually
+  selected entities, resolving to the same normalized source contracts
 - Explicit supplier-price, market-price, and complete-price strategies
 - Component inclusion and VAT semantics
 - Cost provenance and tariff completeness metadata
@@ -261,8 +262,8 @@ The architecture is defined by
 [ADR-0005](docs/adr/0005-pricing-and-tariff-strategies.md) and tracked by
 [#166](https://github.com/guslund-jpg/electricity-pro/issues/166). Existing
 entity IDs remain stable. Automatic device control and broad regional tariff
-catalogues are outside this release. Provider presets simplify configuration;
-they do not introduce provider-specific calculation branches.
+catalogues are outside this release. Source adapters simplify discovery and
+configuration; they do not introduce provider-specific calculation branches.
 
 ---
 
