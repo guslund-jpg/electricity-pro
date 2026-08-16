@@ -156,6 +156,35 @@ def test_grid_fee_at_uses_configured_high_low_schedule(hass: HomeAssistant) -> N
     ) == Decimal("0.125")
 
 
+def test_grid_fee_schedule_uses_home_assistant_timezone_across_dst(
+    hass: HomeAssistant,
+) -> None:
+    """Tariff wall-clock hours should follow the configured timezone after DST."""
+    hass.config.time_zone = "Europe/Stockholm"
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_GRID_FEE_PER_KWH: 0.125,
+            CONF_GRID_FEE_HIGH_PER_KWH: 0.25,
+            CONF_GRID_FEE_HIGH_START: "06:00",
+            CONF_GRID_FEE_HIGH_END: "22:00",
+            CONF_GRID_FEE_HIGH_SEASON_START: "11-01",
+            CONF_GRID_FEE_HIGH_SEASON_END: "03-31",
+        },
+    )
+    provider = ElectricityProEntityProvider(hass, entry)
+
+    # Monday after the 2026 DST transition: 04:30 UTC is 06:30 locally.
+    assert provider.grid_fee_at(
+        datetime(2026, 3, 30, 4, 30, tzinfo=UTC)
+    ) == Decimal("0.25")
+    assert provider.grid_fee_at(
+        datetime(2026, 3, 30, 3, 30, tzinfo=UTC)
+    ) == Decimal("0.125")
+
+
 def test_read_valid_sources(
     hass: HomeAssistant,
 ) -> None:

@@ -176,6 +176,18 @@ a price entity is selected, declare its source type, included components, and
 VAT treatment to prevent double counting. Phase-current and phase-voltage
 sensors are optional diagnostics and appear at the bottom of the form.
 
+### Grid-tariff fees
+
+The grid-fee fields model variable charges per consumed kWh, including VAT.
+Use the single grid fee when the rate is constant. If the grid operator uses a
+weekday high/low tariff, use the ordinary grid fee as the low-period rate and
+add the high-period rate, local hours, and recurring seasonal dates.
+
+Do not enter fixed monthly subscription fees or capacity/peak-demand charges
+in these fields. Those costs do not vary directly with each consumed kWh and
+need separate models. Public-holiday exclusions are also not yet configured by
+the integration; they are tracked as a separate enhancement.
+
 Depending on the enabled capabilities, configuration may therefore include:
 
 - Current power sensor
