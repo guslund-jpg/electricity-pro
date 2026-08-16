@@ -33,6 +33,11 @@
           "monthly_peak_hour_consumption_entity": "Monthly peak hour consumption sensor",
           "monthly_peak_hour_time_entity": "Monthly peak hour time sensor",
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
+          "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
+          "grid_fee_high_start": "High period starts (HH:MM)",
+          "grid_fee_high_end": "High period ends (HH:MM)",
+          "grid_fee_high_season_start": "High season starts (MM-DD)",
+          "grid_fee_high_season_end": "High season ends (MM-DD)",
           "tax_per_kwh": "Additional tax or markup per kWh (including VAT)",
           "good_price_threshold": "Good price threshold per kWh",
           "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
@@ -55,6 +60,11 @@
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the selected price sensor, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
+          "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
+          "grid_fee_high_start": "Local start time for the high fee on Monday–Friday, for example 06:00.",
+          "grid_fee_high_end": "Local end time for the high fee on Monday–Friday, for example 22:00.",
+          "grid_fee_high_season_start": "First date of the recurring high season, written MM-DD; for example 11-01.",
+          "grid_fee_high_season_end": "Last date of the recurring high season, written MM-DD; for example 03-31.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
           "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
@@ -72,10 +82,20 @@
         "description": "Electricity Pro found {entity_count} compatible entities. Current power: {power_entity}. Contracted price: {price_entity}. Tibber's contracted price includes market energy, Tibber markup, Swedish energy tax, and VAT. Add only costs that are not included, such as your variable grid fee.",
         "data": {
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
+          "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
+          "grid_fee_high_start": "High period starts (HH:MM)",
+          "grid_fee_high_end": "High period ends (HH:MM)",
+          "grid_fee_high_season_start": "High season starts (MM-DD)",
+          "grid_fee_high_season_end": "High season ends (MM-DD)",
           "good_price_threshold": "Good price threshold per kWh"
         },
         "data_description": {
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the Tibber price, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
+          "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
+          "grid_fee_high_start": "Local start time for the high fee on Monday–Friday, for example 06:00.",
+          "grid_fee_high_end": "Local end time for the high fee on Monday–Friday, for example 22:00.",
+          "grid_fee_high_season_start": "First date of the recurring high season, written MM-DD; for example 11-01.",
+          "grid_fee_high_season_end": "Last date of the recurring high season, written MM-DD; for example 03-31.",
           "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity. For example, use 0.90 SEK/kWh for a Swedish setup."
         }
       },
@@ -88,6 +108,7 @@
       }
     },
     "error": {
+      "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
       "tibber_sources_not_found": "No enabled Tibber home with both a current-power entity and contracted-price entity was found. Return and use Custom or mixed sources, or enable the required Tibber entities first."
     }
@@ -115,6 +136,11 @@
           "monthly_peak_hour_consumption_entity": "Monthly peak hour consumption sensor",
           "monthly_peak_hour_time_entity": "Monthly peak hour time sensor",
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
+          "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
+          "grid_fee_high_start": "High period starts (HH:MM)",
+          "grid_fee_high_end": "High period ends (HH:MM)",
+          "grid_fee_high_season_start": "High season starts (MM-DD)",
+          "grid_fee_high_season_end": "High season ends (MM-DD)",
           "tax_per_kwh": "Additional tax or markup per kWh (including VAT)",
           "good_price_threshold": "Good price threshold per kWh",
           "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
@@ -137,6 +163,11 @@
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the selected price sensor, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
+          "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
+          "grid_fee_high_start": "Local start time for the high fee on Monday–Friday, for example 06:00.",
+          "grid_fee_high_end": "Local end time for the high fee on Monday–Friday, for example 22:00.",
+          "grid_fee_high_season_start": "First date of the recurring high season, written MM-DD; for example 11-01.",
+          "grid_fee_high_season_end": "Last date of the recurring high season, written MM-DD; for example 03-31.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
           "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
@@ -151,6 +182,7 @@
       }
     },
     "error": {
+      "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected."
     }
   }

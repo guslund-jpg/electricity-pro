@@ -19,6 +19,9 @@
 - Added price-source type, included-component, and VAT controls to setup and
   options. New price configurations require an explicit declaration; existing
   entries keep running until their options are saved and confirmed.
+- Added optional weekday high/low grid-tariff configuration with local daily
+  hours and recurring seasonal dates. Forecast and live effective-price
+  calculations now use the applicable fee for each timestamp.
 
 ### Documentation
 
