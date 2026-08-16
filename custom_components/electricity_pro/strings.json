@@ -51,9 +51,9 @@
           "voltage_l3_entity": "Optional sensor providing instantaneous voltage for phase L3.",
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
-          "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor, including VAT.",
+          "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the selected price sensor, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
-          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
       },
@@ -131,9 +131,9 @@
           "voltage_l3_entity": "Optional sensor providing instantaneous voltage for phase L3.",
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
-          "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the price sensor, including VAT.",
+          "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the selected price sensor, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
-          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity, in the same currency per kWh.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
       },
