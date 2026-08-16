@@ -323,6 +323,11 @@ def _entity_schema(
         )
     return vol.Schema(
         {
+            forecast_nordpool_config_entry_key: selector.ConfigEntrySelector(
+                selector.ConfigEntrySelectorConfig(
+                    integration="nordpool",
+                )
+            ),
             power_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
@@ -370,6 +375,39 @@ def _entity_schema(
                     device_class="power",
                 )
             ),
+            monthly_peak_hour_consumption_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="energy",
+                )
+            ),
+            monthly_peak_hour_time_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="timestamp",
+                )
+            ),
+            grid_fee_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            tax_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            good_price_threshold_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
             current_l1_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
@@ -404,44 +442,6 @@ def _entity_schema(
                 selector.EntitySelectorConfig(
                     domain="sensor",
                     device_class="voltage",
-                )
-            ),
-            monthly_peak_hour_consumption_key: selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    domain="sensor",
-                    device_class="energy",
-                )
-            ),
-            monthly_peak_hour_time_key: selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    domain="sensor",
-                    device_class="timestamp",
-                )
-            ),
-            grid_fee_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            tax_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            good_price_threshold_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            forecast_nordpool_config_entry_key: selector.ConfigEntrySelector(
-                selector.ConfigEntrySelectorConfig(
-                    integration="nordpool",
                 )
             ),
         }

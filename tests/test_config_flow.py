@@ -6,6 +6,9 @@ from homeassistant import config_entries, data_entry_flow
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import (
+    CONF_CURRENT_L1_ENTITY,
+    CONF_CURRENT_L2_ENTITY,
+    CONF_CURRENT_L3_ENTITY,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
     CONF_GOOD_PRICE_THRESHOLD,
@@ -18,6 +21,9 @@ from custom_components.electricity_pro.const import (
     CONF_PRICING_STRATEGY,
     CONF_SETUP_METHOD,
     CONF_TAX_PER_KWH,
+    CONF_VOLTAGE_L1_ENTITY,
+    CONF_VOLTAGE_L2_ENTITY,
+    CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
 )
 from custom_components.electricity_pro.pricing import (
@@ -38,6 +44,22 @@ async def _start_manual_flow(hass):
         result["flow_id"],
         {CONF_SETUP_METHOD: "custom"},
     )
+
+
+async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None:
+    """Source selection should lead and phase diagnostics should come last."""
+    result = await _start_manual_flow(hass)
+    keys = [key.schema for key in result["data_schema"].schema]
+
+    assert keys[0] == CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+    assert keys[-6:] == [
+        CONF_CURRENT_L1_ENTITY,
+        CONF_CURRENT_L2_ENTITY,
+        CONF_CURRENT_L3_ENTITY,
+        CONF_VOLTAGE_L1_ENTITY,
+        CONF_VOLTAGE_L2_ENTITY,
+        CONF_VOLTAGE_L3_ENTITY,
+    ]
 
 
 async def test_user_step_creates_entry_with_forecast_config(hass) -> None:
