@@ -48,6 +48,40 @@ One installation may combine sources from different integrations. A generic
 HAN/P1 meter, Nord Pool, and a configured tariff is a valid combination.
 Tibber remains a convenient source combination, not a dependency.
 
+### Source adapters and guided setup
+
+Electricity Pro will keep measurement-source discovery separate from
+price-source discovery. A user may therefore combine a recognised meter or
+dongle with any supported supplier, market source, or manually selected price
+entity.
+
+A small source-adapter contract may provide:
+
+- a stable way to recognise compatible Home Assistant config entries and
+  devices;
+- discovered entity IDs for capabilities such as power, energy, current,
+  voltage, price, and accumulated cost;
+- declared price-component and VAT semantics;
+- authoritative-versus-local cost provenance; and
+- remaining questions that the user must answer.
+
+Adapters must use Home Assistant config-entry, device-registry, entity-registry,
+unique-ID, and capability information. They must not depend on user-editable
+entity IDs or display names. Discovery must be presented for confirmation and
+must always offer a manual fallback.
+
+The first guided path supports a Tibber home with Tibber Pulse and a Tibber
+electricity contract. When one compatible home is unambiguous, Electricity Pro
+can prepopulate its known measurement and price entities. When several homes
+or devices are available, the user selects the intended home before discovery.
+Only unresolved settings, initially grid-company tariffs and optional insight
+thresholds, remain visible in the normal path.
+
+The custom/mixed path asks independently how electricity is measured and how
+the electricity price is supplied. This preserves combinations such as Tibber
+Pulse with Nord Pool, another HAN/P1 meter with Tibber pricing, or entirely
+manual sources.
+
 ### Pricing strategies
 
 Configuration will eventually select an explicit strategy instead of inferring
@@ -166,12 +200,14 @@ semantics from migration defaults or user confirmation.
 1. Introduce pricing-strategy and component-inclusion models without changing
    public entities.
 2. Add provenance and completeness metadata.
-3. Add a simplified Tibber preset and an advanced/manual configuration path.
-4. Migrate existing configurations conservatively.
-5. Implement market price plus supplier markup.
-6. Add grid tariff strategies.
-7. Add local interval cost accumulation where source resolution is sufficient.
-8. Build cost composition and recommendation features on the normalized model.
+3. Define separate measurement-source and price-source adapter contracts.
+4. Add a guided Tibber price and Tibber Pulse path with manual confirmation.
+5. Add a custom/mixed path with independent meter and price choices.
+6. Migrate existing configurations conservatively.
+7. Implement market price plus supplier markup.
+8. Add grid tariff strategies.
+9. Add local interval cost accumulation where source resolution is sufficient.
+10. Build cost composition and recommendation features on the normalized model.
 
 ## Related issues
 

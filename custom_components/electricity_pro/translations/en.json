@@ -3,8 +3,18 @@
   "config": {
     "step": {
       "user": {
-        "title": "Set up Electricity Pro",
-        "description": "Select the sensors used by Electricity Pro.",
+        "title": "Choose setup method",
+        "description": "Use the Tibber fast track when Tibber supplies both your Pulse measurements and electricity contract. Choose custom or mixed sources for every other combination.",
+        "data": {
+          "setup_method": "Setup method"
+        },
+        "data_description": {
+          "setup_method": "The fast track discovers known Tibber entities automatically. The custom path keeps measurement and price sources independent."
+        }
+      },
+      "manual": {
+        "title": "Set up custom or mixed sources",
+        "description": "Select measurement and price sources independently.",
         "data": {
           "power_entity": "Power sensor",
           "price_entity": "Electricity price sensor",
@@ -50,6 +60,25 @@
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
       },
+      "tibber": {
+        "title": "Select Tibber home",
+        "description": "Select the Tibber home whose Pulse measurements and electricity contract Electricity Pro should use.",
+        "data": {
+          "tibber_device": "Tibber home"
+        }
+      },
+      "tibber_settings": {
+        "title": "Confirm Tibber fast track",
+        "description": "Electricity Pro found {entity_count} compatible entities. Current power: {power_entity}. Contracted price: {price_entity}. Tibber's contracted price includes market energy, Tibber markup, Swedish energy tax, and VAT. Add only costs that are not included, such as your variable grid fee.",
+        "data": {
+          "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
+          "good_price_threshold": "Good price threshold per kWh"
+        },
+        "data_description": {
+          "grid_fee_per_kwh": "Optional non-negative grid fee in the same currency per kWh as the Tibber price, including VAT.",
+          "good_price_threshold": "Optional maximum Effective Price considered a good time to use electricity."
+        }
+      },
       "forecast_area": {
         "title": "Select forecast price area",
         "description": "The selected Nord Pool integration contains several price areas. Select the one Electricity Pro should use.",
@@ -59,7 +88,8 @@
       }
     },
     "error": {
-      "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected."
+      "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
+      "tibber_sources_not_found": "No enabled Tibber home with both a current-power entity and contracted-price entity was found. Return and use Custom or mixed sources, or enable the required Tibber entities first."
     }
   },
   "options": {

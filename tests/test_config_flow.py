@@ -16,6 +16,7 @@ from custom_components.electricity_pro.const import (
     CONF_PRICE_INCLUDED_COMPONENTS,
     CONF_PRICE_VAT_TREATMENT,
     CONF_PRICING_STRATEGY,
+    CONF_SETUP_METHOD,
     CONF_TAX_PER_KWH,
     DOMAIN,
 )
@@ -27,6 +28,18 @@ from custom_components.electricity_pro.pricing import (
 )
 
 
+async def _start_manual_flow(hass):
+    """Start setup and enter the custom or mixed source path."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_USER},
+    )
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_SETUP_METHOD: "custom"},
+    )
+
+
 async def test_user_step_creates_entry_with_forecast_config(hass) -> None:
     """A single-area Nord Pool entry should need no duplicate settings."""
     nordpool_entry = MockConfigEntry(
@@ -36,10 +49,7 @@ async def test_user_step_creates_entry_with_forecast_config(hass) -> None:
         entry_id="nordpool-entry-id",
     )
     nordpool_entry.add_to_hass(hass)
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN,
-        context={"source": config_entries.SOURCE_USER},
-    )
+    result = await _start_manual_flow(hass)
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
 
@@ -67,10 +77,7 @@ async def test_user_step_asks_for_area_for_multi_area_nordpool_entry(hass) -> No
     )
     nordpool_entry.add_to_hass(hass)
 
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN,
-        context={"source": config_entries.SOURCE_USER},
-    )
+    result = await _start_manual_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {
@@ -138,10 +145,7 @@ async def test_options_flow_updates_forecast_config(hass) -> None:
 
 async def test_user_step_requires_explicit_price_metadata(hass) -> None:
     """A new entry with a price source must describe what the price includes."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN,
-        context={"source": config_entries.SOURCE_USER},
-    )
+    result = await _start_manual_flow(hass)
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -157,10 +161,7 @@ async def test_user_step_requires_explicit_price_metadata(hass) -> None:
 
 async def test_user_step_stores_explicit_price_metadata(hass) -> None:
     """A complete price declaration should be normalized and persisted."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN,
-        context={"source": config_entries.SOURCE_USER},
-    )
+    result = await _start_manual_flow(hass)
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
