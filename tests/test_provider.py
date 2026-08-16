@@ -104,6 +104,26 @@ def test_optional_source_entity_ids(
     assert provider.source_entity_ids == ("sensor.test_power",)
 
 
+def test_grid_fee_at_uses_time_varying_resolver(hass: HomeAssistant) -> None:
+    """Provider should resolve the grid fee for the requested timestamp."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={CONF_POWER_ENTITY: "sensor.test_power"},
+    )
+    high_start = datetime(2026, 11, 2, 6, 0, tzinfo=UTC)
+    provider = ElectricityProEntityProvider(
+        hass,
+        entry,
+        grid_fee_at=lambda at: (
+            Decimal("0.25") if at >= high_start else Decimal("0.125")
+        ),
+    )
+
+    assert provider.grid_fee_at(high_start) == Decimal("0.25")
+    assert provider.grid_fee_at(high_start.replace(hour=5)) == Decimal("0.125")
+
+
 def test_read_valid_sources(
     hass: HomeAssistant,
 ) -> None:

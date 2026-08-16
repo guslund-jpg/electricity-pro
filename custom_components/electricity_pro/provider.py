@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Callable
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -74,9 +74,11 @@ class ElectricityProEntityProvider:
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
+        grid_fee_at: Callable[[datetime], Decimal | None] | None = None,
     ) -> None:
         """Initialize the entity provider."""
         self._hass = hass
+        self._grid_fee_at = grid_fee_at
 
         self._power_entity_id: str = entry.options.get(
             CONF_POWER_ENTITY,
@@ -195,6 +197,12 @@ class ElectricityProEntityProvider:
 
         return tuple(entity_ids)
 
+    def grid_fee_at(self, at: datetime) -> Decimal | None:
+        """Return the configured grid fee at a timestamp."""
+        if self._grid_fee_at is not None:
+            return self._grid_fee_at(at)
+        return self._grid_fee_per_kwh
+
     @callback
     def read(self) -> ElectricityProData:
         """Read and normalize all configured source entities."""
@@ -292,7 +300,7 @@ class ElectricityProEntityProvider:
             energy_this_month_unit=None,
             cost_this_month=None,
             cost_this_month_unit=None,
-            grid_fee_per_kwh=self._grid_fee_per_kwh,
+            grid_fee_per_kwh=self.grid_fee_at(dt_util.now()),
             tax_per_kwh=self._tax_per_kwh,
             good_price_threshold=self._good_price_threshold,
         )
