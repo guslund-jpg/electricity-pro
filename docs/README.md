@@ -119,7 +119,64 @@ dashboards, notifications, and automations.
 
 Electricity Pro uses existing Home Assistant sensor entities as data sources.
 
-Depending on the enabled capabilities, configuration may include:
+### Guided Tibber setup
+
+Choose **Tibber fast track** when the official Home Assistant Tibber integration
+provides both the electricity contract price and Tibber Pulse measurements.
+Electricity Pro discovers compatible entities from Home Assistant's entity and
+device registries. Renaming an entity does not prevent discovery. Review the
+detected home and add only values Tibber cannot provide, such as the variable
+grid fee.
+
+### Custom or mixed sources
+
+Choose **Custom or mixed sources** to combine a meter, price provider, and
+forecast source independently. Typical fields are:
+
+| Electricity Pro field | Expected source | Expected unit or class |
+| --- | --- | --- |
+| Nord Pool forecast | Native Nord Pool config entry | Configured area and currency are inherited |
+| Current power | Instantaneous whole-home import power | Power, normally W |
+| Electricity price | Current variable electricity price | Currency/kWh |
+| Energy today | Consumption accumulated since local midnight | Energy, Wh or kWh |
+| Cost today | Cost accumulated since local midnight | Monetary |
+| Peak power today | Highest instantaneous power today | Power, normally W |
+| Monthly peak hour consumption | Highest hourly energy value this month | Energy, normally kWh |
+| Monthly peak hour time | Time of that monthly peak | Timestamp |
+| Current L1–L3 | Instantaneous phase currents | Current, normally A |
+| Voltage L1–L3 | Instantaneous phase voltages | Voltage, normally V |
+
+For Tibber Pulse, representative source names include **Power**,
+**Accumulated consumption**, **Accumulated cost**, **Max power**,
+**Current L1–L3**, and **Voltage phase 1–3**. Names can differ with language,
+Home Assistant version, device capabilities, or user customisation. Treat these
+as examples rather than fixed entity IDs.
+
+### Verify a source before selecting it
+
+In Home Assistant, open **Developer Tools → States**, select the candidate
+entity, and verify:
+
+- the current value is plausible;
+- `unit_of_measurement` matches the expected unit;
+- `device_class` matches power, energy, monetary, current, voltage, or
+  timestamp where applicable; and
+- the value has the required meaning, especially *instantaneous*, *today*, or
+  *this month*.
+
+The entity details under **Settings → Devices & services → Entities** also show
+its integration and device. Entity IDs and display names alone are not reliable
+evidence of a sensor's meaning.
+
+### Required and optional inputs
+
+Current power is required by the custom path. Price and accumulated values are
+optional, but features that depend on missing inputs remain unavailable. When
+a price entity is selected, declare its source type, included components, and
+VAT treatment to prevent double counting. Phase-current and phase-voltage
+sensors are optional diagnostics and appear at the bottom of the form.
+
+Depending on the enabled capabilities, configuration may therefore include:
 
 - Current power sensor
 - Current electricity price sensor
@@ -127,9 +184,6 @@ Depending on the enabled capabilities, configuration may include:
 - Accumulated cost today sensor
 
 Optional sources may be added or changed through the integration options flow.
-
-Detailed installation and configuration instructions will be added before the
-first public release.
 
 ## Project direction
 

@@ -179,10 +179,11 @@ create a manual dashboard, copy an example, and verify its entity IDs.
 
 ## Documentation
 
-- 📖 ROADMAP.md
-- 🏗️ docs/architecture.md
-- 🤝 CONTRIBUTING.md
-- 📝 CHANGELOG.md
+- [Configuration and project guide](docs/README.md#configuration)
+- [Roadmap](ROADMAP.md)
+- [Architecture](docs/architecture.md)
+- [Contributing](CONTRIBUTING.md)
+- [Changelog](CHANGELOG.md)
 
 ---
 
