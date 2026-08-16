@@ -176,6 +176,27 @@ def test_find_cheapest_continuous_window_uses_weighted_average() -> None:
     assert result.average_effective_price == Decimal("0.65")
 
 
+def test_find_cheapest_window_applies_grid_fee_for_each_interval() -> None:
+    """A time-varying grid fee should affect which forecast window is cheapest."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    intervals = [
+        _interval(now, minutes=60, market_price="0.10"),
+        _interval(now + timedelta(hours=1), minutes=60, market_price="0.20"),
+    ]
+
+    result = find_cheapest_continuous_window(
+        intervals,
+        now=now,
+        duration_minutes=60,
+        grid_fee_at=lambda at: Decimal("0.30") if at == now else Decimal("0.05"),
+    )
+
+    assert result is not None
+    assert result.start == now + timedelta(hours=1)
+    assert result.average_market_price == Decimal("0.20")
+    assert result.average_effective_price == Decimal("0.25")
+
+
 def test_find_cheapest_continuous_window_excludes_currently_started_interval() -> None:
     """Upcoming windows should not start from a partially elapsed interval."""
     now = datetime(2026, 8, 13, 10, 10, tzinfo=UTC)
@@ -210,6 +231,26 @@ def test_find_price_direction_rising_for_active_and_next_interval() -> None:
     assert result is not None
     assert result.direction == "rising"
     assert result.delta == Decimal("0.10")
+
+
+def test_find_price_direction_includes_grid_fee_transition() -> None:
+    """Price direction should include a tariff change between intervals."""
+    now = datetime(2026, 8, 13, 10, 10, tzinfo=UTC)
+    start = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    intervals = [
+        _interval(start, minutes=15, market_price="0.30"),
+        _interval(start + timedelta(minutes=15), minutes=15, market_price="0.30"),
+    ]
+
+    result = find_price_direction(
+        intervals,
+        now=now,
+        grid_fee_at=lambda at: Decimal("0.10") if at == start else Decimal("0.25"),
+    )
+
+    assert result is not None
+    assert result.direction == "rising"
+    assert result.delta == Decimal("0.15")
 
 
 def test_find_price_direction_falling_for_active_and_next_interval() -> None:
