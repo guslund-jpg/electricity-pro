@@ -972,27 +972,29 @@ def _forecast_area_schema(areas: list[str]) -> vol.Schema:
 def _grid_tariff_input_valid(user_input: dict[str, Any]) -> bool:
     """Validate an optional high/low grid-tariff submission."""
     high_fee = user_input.get(CONF_GRID_FEE_HIGH_PER_KWH)
-    if high_fee is None:
-        return True
     low_fee = user_input.get(CONF_GRID_FEE_PER_KWH)
-    if low_fee is None:
-        return False
     try:
+        high_start = time.fromisoformat(
+            str(user_input.get(CONF_GRID_FEE_HIGH_START, "06:00"))
+        )
+        high_end = time.fromisoformat(
+            str(user_input.get(CONF_GRID_FEE_HIGH_END, "22:00"))
+        )
+        season_start = _parse_month_day_input(
+            user_input.get(CONF_GRID_FEE_HIGH_SEASON_START, "11-01")
+        )
+        season_end = _parse_month_day_input(
+            user_input.get(CONF_GRID_FEE_HIGH_SEASON_END, "03-31")
+        )
+        if high_fee is not None and low_fee is None:
+            return False
         HighLowGridTariff(
-            low_fee_per_kwh=Decimal(str(low_fee)),
-            high_fee_per_kwh=Decimal(str(high_fee)),
-            high_start_time=time.fromisoformat(
-                str(user_input.get(CONF_GRID_FEE_HIGH_START, "06:00"))
-            ),
-            high_end_time=time.fromisoformat(
-                str(user_input.get(CONF_GRID_FEE_HIGH_END, "22:00"))
-            ),
-            high_season_start=_parse_month_day_input(
-                user_input.get(CONF_GRID_FEE_HIGH_SEASON_START, "11-01")
-            ),
-            high_season_end=_parse_month_day_input(
-                user_input.get(CONF_GRID_FEE_HIGH_SEASON_END, "03-31")
-            ),
+            low_fee_per_kwh=Decimal(str(low_fee or 0)),
+            high_fee_per_kwh=Decimal(str(high_fee or 0)),
+            high_start_time=high_start,
+            high_end_time=high_end,
+            high_season_start=season_start,
+            high_season_end=season_end,
         )
     except (InvalidOperation, TypeError, ValueError):
         return False

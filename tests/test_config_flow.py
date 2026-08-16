@@ -25,6 +25,7 @@ from custom_components.electricity_pro.const import (
     CONF_PRICE_VAT_TREATMENT,
     CONF_PRICING_STRATEGY,
     CONF_SETUP_METHOD,
+    CONF_SOURCE_PROFILE,
     CONF_TAX_PER_KWH,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
@@ -192,6 +193,67 @@ async def test_options_flow_updates_forecast_config(hass) -> None:
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert CONF_FORECAST_PRICE_AREA not in result["data"]
     assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == "other-nordpool-entry-id"
+
+
+async def test_tibber_options_reject_invalid_grid_tariff_time(hass) -> None:
+    """Tibber options must reject an invalid saved schedule time."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_SOURCE_PROFILE: "tibber",
+        },
+        options={
+            CONF_GRID_FEE_PER_KWH: 0.125,
+            CONF_GRID_FEE_HIGH_PER_KWH: 0.25,
+        },
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_GRID_FEE_PER_KWH: 0.125,
+            CONF_GRID_FEE_HIGH_PER_KWH: 0.25,
+            CONF_GRID_FEE_HIGH_START: "abc",
+            CONF_GRID_FEE_HIGH_END: "22:00",
+            CONF_GRID_FEE_HIGH_SEASON_START: "11-01",
+            CONF_GRID_FEE_HIGH_SEASON_END: "03-31",
+            CONF_GOOD_PRICE_THRESHOLD: 0.9,
+        },
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_grid_tariff"}
+
+
+async def test_tibber_options_reject_invalid_time_without_high_fee(hass) -> None:
+    """Visible schedule fields must be valid even before a high fee is enabled."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_SOURCE_PROFILE: "tibber",
+        },
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_GRID_FEE_HIGH_START: "abc",
+            CONF_GRID_FEE_HIGH_END: "22:00",
+            CONF_GRID_FEE_HIGH_SEASON_START: "11-01",
+            CONF_GRID_FEE_HIGH_SEASON_END: "03-31",
+        },
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_grid_tariff"}
 
 
 async def test_user_step_requires_explicit_price_metadata(hass) -> None:
