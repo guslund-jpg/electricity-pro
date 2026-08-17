@@ -41,6 +41,9 @@
 
 ### Documentation
 
+- Accepted the provider-independent pricing and tariff ADR and aligned the
+  source contract with implemented live-price, forecast, completeness, and
+  graceful-degradation semantics.
 - Clarified that HACS installs Electricity Pro entities but does not import a
   dashboard, added a post-installation path to the entity list and dashboard
   guide, and extended both example dashboards with the v1.1 forecast sensors.

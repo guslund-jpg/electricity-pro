@@ -9,9 +9,10 @@ entities.
 
 ## Contract maturity
 
-The v1.1 contract remains compatible while the explicit pricing model in
-[ADR-0005](../adr/0005-pricing-and-tariff-strategies.md) is introduced.
-Existing entity IDs and unique IDs must remain stable during migration.
+This is the accepted v1.2 source contract defined by
+[ADR-0005](../adr/0005-pricing-and-tariff-strategies.md). Existing entity IDs
+and unique IDs remain stable. Price-dependent features require explicit source
+semantics rather than inferring them from entity names.
 
 ## Input roles
 
@@ -39,9 +40,21 @@ also a valid source combination.
   unless clearly presented as an estimate.
 - **Total cost** is accumulated cost for a defined period and component scope.
 
-Each price and cost input must eventually declare its included components and
-whether it is gross or net of VAT. A component may be added only when it is not
-already included.
+Each price input declares its strategy, included components, VAT treatment, and
+completeness. A component may be added only when it is not already included.
+Unknown or partial semantics disable calculations that require a complete
+price while leaving independent measurement capabilities available.
+
+### Pricing metadata
+
+| Field | Meaning |
+| --- | --- |
+| Strategy | Supplier contracted price, market price plus tariff, or external complete price |
+| Components | Market energy, supplier markup, energy tax, and variable grid fee when included |
+| VAT treatment | Included, excluded, or unknown |
+| Completeness | Complete, partial, or unknown for the intended calculation |
+
+Fixed supplier and grid charges remain separate from all per-kWh prices.
 
 ## Canonical entities
 
@@ -72,10 +85,9 @@ bidirectional power may be introduced as separate capabilities later.
 | Missing source | Entity becomes unavailable |
 | Required | Yes for pricing features |
 
-In v1.1 this input may represent market price, contracted supplier price, or a
-complete external variable price. That ambiguity is legacy behavior, not the
-target contract. The v1.2 migration must obtain explicit strategy and component
-inclusion semantics before adding new fees.
+The source may represent market price, contracted supplier price, or a complete
+external variable price, but its metadata makes that meaning explicit. Entries
+without confirmed metadata do not feed normalized live price calculations.
 
 ### Effective price
 
@@ -91,6 +103,22 @@ inclusion semantics before adding new fees.
 The calculation depends on the selected pricing strategy. It must add each
 variable component exactly once and expose sufficient provenance to explain
 the result. Fixed charges do not belong in this value.
+
+### Forecast scheduling price
+
+| Property | Contract |
+| --- | --- |
+| Meaning | Forecast comparison value used for relative scheduling |
+| Initial source | Native Home Assistant Nord Pool action |
+| Canonical unit | Currency per kWh |
+| Included components | Market energy plus a configured variable grid fee when applicable |
+| Completeness | Partial for native Nord Pool |
+| VAT treatment | Unknown unless the source contract declares it |
+
+A partial forecast scheduling price can select cheapest windows and show price
+direction because all compared intervals share the same scope. It must not be
+called Effective Price or compared with the live Good Price threshold. Absolute
+threshold advice requires matching, complete live and forecast price scopes.
 
 ### Energy today
 
@@ -204,5 +232,5 @@ the dependent capability.
 ## Future extensions
 
 Potential additions include export measurements, local interval cost
-accumulation, detailed cost provenance, tariff completeness, price forecasts,
-and regional tariff adapters. These are not part of the v1.1 contract.
+accumulation, detailed monthly cost composition, capacity tariffs, complete
+supplier forecast adapters, and regional tariff adapters.

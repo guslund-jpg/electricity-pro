@@ -2,11 +2,14 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Date
 
 2026-08-15
+
+Accepted 2026-08-17 after the live and forecast pricing paths adopted explicit
+component scope, VAT treatment, and completeness metadata.
 
 ## Context
 
@@ -84,8 +87,8 @@ manual sources.
 
 ### Pricing strategies
 
-Configuration will eventually select an explicit strategy instead of inferring
-semantics from an entity name.
+Configuration selects an explicit strategy instead of inferring semantics from
+an entity name.
 
 #### Supplier-provided contracted price
 
@@ -143,9 +146,9 @@ suggested default, but must not silently reinterpret a stored configuration.
 Every price or cost value must have a known component scope. Components may be
 added only when they are not already included.
 
-Inputs must eventually declare whether they are gross or net of VAT. Until the
-configuration and regional behavior are explicit, Electricity Pro must not
-extract or add a separate VAT component automatically.
+Inputs declare whether they are gross or net of VAT. Electricity Pro does not
+extract or add a separate VAT component automatically because regional tax
+behavior is outside the provider-independent core.
 
 ### Cost provenance
 
@@ -175,15 +178,12 @@ forecasts may still drive relative cheapest-window and direction insights.
 
 ## Compatibility and migration
 
-This ADR does not change v1.1 behavior by itself.
-
-Existing entity IDs and unique IDs remain stable. Existing config entries must
-continue to load while a later implementation introduces an explicit strategy
-and migration. No stored option may silently change meaning.
-
-The legacy `current_price` input remains accepted during migration. Before new
-fees are applied to it, the implementation must obtain explicit inclusion
-semantics from migration defaults or user confirmation.
+Existing entity IDs and unique IDs remain stable. Entries created or confirmed
+through the v1.2 configuration flow store explicit pricing metadata. A
+temporary compatibility path lets an older entry load without guessing its
+semantics, but normalized price-dependent features remain unavailable until
+the user confirms the price source. That compatibility path is removed by
+issue #173 before the final v1.2 release.
 
 ## Consequences
 
@@ -202,19 +202,21 @@ semantics from migration defaults or user confirmation.
 - Regional taxes and tariffs cannot be generalized without explicit models.
 - Some installations will expose fewer capabilities than others.
 
-## Implementation sequence
+## Implementation status
 
-1. Introduce pricing-strategy and component-inclusion models without changing
-   public entities.
-2. Add provenance and completeness metadata.
-3. Define separate measurement-source and price-source adapter contracts.
-4. Add a guided Tibber price and Tibber Pulse path with manual confirmation.
-5. Add a custom/mixed path with independent meter and price choices.
-6. Migrate existing configurations conservatively.
-7. Implement market price plus supplier markup.
-8. Add grid tariff strategies.
-9. Add local interval cost accumulation where source resolution is sufficient.
-10. Build cost composition and recommendation features on the normalized model.
+Delivered in the v1.2 foundation:
+
+1. Pricing-strategy, component-inclusion, VAT, provenance, and completeness
+   models.
+2. Separate measurement-source and price-source adapter contracts.
+3. Guided Tibber price and Tibber Pulse setup with a custom/mixed fallback.
+4. Metadata-aware Effective Price, Current Cost Rate, and Good Time behavior.
+5. Fixed, variable, and weekday/seasonal grid-tariff foundations.
+6. Explicit partial-price semantics for native Nord Pool forecasts.
+
+Deferred capabilities remain separate follow-up work: configurable supplier
+markup, local interval cost accumulation, capacity tariffs, holiday calendars,
+and monthly cost composition.
 
 ## Related issues
 
@@ -222,3 +224,5 @@ semantics from migration defaults or user confirmation.
 - #162 covers time-of-use grid fees.
 - #163 covers fixed supplier fees.
 - #165 covers monthly cost composition and presentation.
+- #173 removes the temporary legacy pricing compatibility path.
+- #187 normalizes forecast price semantics and completeness.
