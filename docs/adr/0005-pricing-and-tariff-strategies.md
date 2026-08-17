@@ -183,7 +183,7 @@ through the v1.2 configuration flow store explicit pricing metadata. A
 temporary compatibility path lets an older entry load without guessing its
 semantics, but normalized price-dependent features remain unavailable until
 the user confirms the price source. That compatibility path is removed by
-#173 before the final v1.2 release.
+issue #173 before the final v1.2 release.
 
 ## Consequences
 
