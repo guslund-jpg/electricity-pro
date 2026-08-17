@@ -25,7 +25,6 @@ from custom_components.electricity_pro.const import (
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
-    CONF_TAX_PER_KWH,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
@@ -68,7 +67,6 @@ def setup_electricity_pro(hass):
         grid_fee_per_kwh: float | None = None,
         fixed_supplier_fee_monthly: float | None = None,
         fixed_grid_fee_monthly: float | None = None,
-        tax_per_kwh: float | None = None,
         good_price_threshold: float | None = None,
         forecast_price_area: str | None = None,
         forecast_currency: str | None = None,
@@ -100,9 +98,6 @@ def setup_electricity_pro(hass):
 
         if fixed_grid_fee_monthly is not None:
             entry_data[CONF_FIXED_GRID_FEE_MONTHLY] = fixed_grid_fee_monthly
-
-        if tax_per_kwh is not None:
-            entry_data[CONF_TAX_PER_KWH] = tax_per_kwh
 
         if good_price_threshold is not None:
             entry_data[CONF_GOOD_PRICE_THRESHOLD] = good_price_threshold

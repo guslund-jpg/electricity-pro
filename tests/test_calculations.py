@@ -19,13 +19,12 @@ from custom_components.electricity_pro.pricing import (
 )
 
 
-def test_calculate_effective_price_with_adjustments() -> None:
-    """Effective price should include both variable adjustments."""
+def test_calculate_effective_price_with_grid_fee() -> None:
+    """Effective price should include the variable grid fee."""
     assert calculate_effective_price(
         Decimal("0.80"),
         Decimal("0.25"),
-        Decimal("0.15"),
-    ) == Decimal("1.20")
+    ) == Decimal("1.05")
 
 
 def test_calculate_effective_price_without_adjustments() -> None:
@@ -143,8 +142,7 @@ def test_calculate_consumption_weighted_average_price() -> None:
         Decimal("10"),
         "kWh",
         Decimal("0.25"),
-        Decimal("0.15"),
-    ) == Decimal("1.60")
+    ) == Decimal("1.45")
 
 
 def test_calculate_consumption_weighted_average_price_accepts_wh() -> None:
@@ -157,14 +155,14 @@ def test_calculate_consumption_weighted_average_price_accepts_wh() -> None:
 
 
 @pytest.mark.parametrize(
-    ("cost", "energy", "unit", "grid_fee", "tax"),
+    ("cost", "energy", "unit", "grid_fee"),
     [
-        (None, Decimal("1"), "kWh", None, None),
-        (Decimal("1"), None, "kWh", None, None),
-        (Decimal("1"), Decimal("0"), "kWh", None, None),
-        (Decimal("1"), Decimal("1"), "J", None, None),
-        (Decimal("-1"), Decimal("1"), "kWh", None, None),
-        (Decimal("1"), Decimal("1"), "kWh", Decimal("-1"), None),
+        (None, Decimal("1"), "kWh", None),
+        (Decimal("1"), None, "kWh", None),
+        (Decimal("1"), Decimal("0"), "kWh", None),
+        (Decimal("1"), Decimal("1"), "J", None),
+        (Decimal("-1"), Decimal("1"), "kWh", None),
+        (Decimal("1"), Decimal("1"), "kWh", Decimal("-1")),
     ],
 )
 def test_calculate_consumption_weighted_average_price_rejects_invalid_inputs(
@@ -172,7 +170,6 @@ def test_calculate_consumption_weighted_average_price_rejects_invalid_inputs(
     energy: Decimal | None,
     unit: str,
     grid_fee: Decimal | None,
-    tax: Decimal | None,
 ) -> None:
     """Return unavailable for incomplete or incompatible daily inputs."""
     assert (
@@ -181,7 +178,6 @@ def test_calculate_consumption_weighted_average_price_rejects_invalid_inputs(
             energy,
             unit,
             grid_fee,
-            tax,
         )
         is None
     )

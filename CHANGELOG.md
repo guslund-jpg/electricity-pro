@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Removed the ambiguous combined tax-or-markup configuration. Supplier markup
+  and energy tax remain explicit internal component types and will only return
+  as user settings when their source and accounting semantics are unambiguous.
+
 ### Added
 
 - Added internal pricing-strategy, component-scope, and VAT-treatment models as

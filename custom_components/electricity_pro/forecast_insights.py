@@ -67,7 +67,6 @@ def find_cheapest_continuous_window(
     duration_minutes: int,
     grid_fee_per_kwh: Decimal | None = None,
     grid_fee_at: GridFeeAt | None = None,
-    tax_per_kwh: Decimal | None = None,
 ) -> ForecastWindowInsight | None:
     """Return the cheapest upcoming continuous window with the exact duration."""
     upcoming = sorted(
@@ -103,7 +102,6 @@ def find_cheapest_continuous_window(
             window,
             grid_fee_per_kwh=grid_fee_per_kwh,
             grid_fee_at=grid_fee_at,
-            tax_per_kwh=tax_per_kwh,
         )
         candidate = ForecastWindowInsight(
             start=window[0].start,
@@ -132,7 +130,6 @@ def find_price_direction(
     now: datetime,
     grid_fee_per_kwh: Decimal | None = None,
     grid_fee_at: GridFeeAt | None = None,
-    tax_per_kwh: Decimal | None = None,
 ) -> ForecastDirectionInsight | None:
     """Return the near-term price direction from the normalized forecast."""
     sorted_intervals = sorted(intervals, key=lambda interval: interval.start)
@@ -150,14 +147,12 @@ def find_price_direction(
                 at=current.start,
                 grid_fee_per_kwh=grid_fee_per_kwh,
                 grid_fee_at=grid_fee_at,
-                tax_per_kwh=tax_per_kwh,
             )
             next_effective_price = _effective_price(
                 following.market_price,
                 at=following.start,
                 grid_fee_per_kwh=grid_fee_per_kwh,
                 grid_fee_at=grid_fee_at,
-                tax_per_kwh=tax_per_kwh,
             )
             delta = next_effective_price - current_effective_price
             direction = "stable" if delta == 0 else "rising" if delta > 0 else "falling"
@@ -184,11 +179,10 @@ def _effective_price(
     at: datetime,
     grid_fee_per_kwh: Decimal | None,
     grid_fee_at: GridFeeAt | None,
-    tax_per_kwh: Decimal | None,
 ) -> Decimal:
     """Return the effective price including configured adjustments."""
     grid_fee = grid_fee_at(at) if grid_fee_at is not None else grid_fee_per_kwh
-    return market_price + (grid_fee or Decimal("0")) + (tax_per_kwh or Decimal("0"))
+    return market_price + (grid_fee or Decimal("0"))
 
 
 def _average_market_price(window: list[ForecastInterval]) -> Decimal:
@@ -205,7 +199,6 @@ def _average_effective_price(
     *,
     grid_fee_per_kwh: Decimal | None,
     grid_fee_at: GridFeeAt | None,
-    tax_per_kwh: Decimal | None,
 ) -> Decimal:
     """Return the duration-weighted average effective price for a window."""
     total_minutes = sum(interval.resolution_minutes for interval in window)
@@ -215,7 +208,6 @@ def _average_effective_price(
             at=interval.start,
             grid_fee_per_kwh=grid_fee_per_kwh,
             grid_fee_at=grid_fee_at,
-            tax_per_kwh=tax_per_kwh,
         )
         * interval.resolution_minutes
         for interval in window
@@ -230,7 +222,6 @@ def find_next_inexpensive_1h_window(
     threshold: Decimal,
     grid_fee_per_kwh: Decimal | None = None,
     grid_fee_at: GridFeeAt | None = None,
-    tax_per_kwh: Decimal | None = None,
 ) -> NextInexpensive1hWindowInsight | None:
     """Return the earliest upcoming 1-hour window whose average effective price is at or below threshold."""
     upcoming = sorted(
@@ -264,7 +255,6 @@ def find_next_inexpensive_1h_window(
             window,
             grid_fee_per_kwh=grid_fee_per_kwh,
             grid_fee_at=grid_fee_at,
-            tax_per_kwh=tax_per_kwh,
         )
         if average_effective_price > threshold:
             continue

@@ -46,7 +46,6 @@ from .const import (
     CONF_PRICING_STRATEGY,
     CONF_SETUP_METHOD,
     CONF_SOURCE_PROFILE,
-    CONF_TAX_PER_KWH,
     CONF_TIBBER_DEVICE,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
@@ -253,7 +252,6 @@ def _entity_schema(
     monthly_peak_hour_consumption_default: str | None = None,
     monthly_peak_hour_time_default: str | None = None,
     grid_fee_per_kwh_default: float | None = None,
-    tax_per_kwh_default: float | None = None,
     good_price_threshold_default: float | None = None,
     forecast_nordpool_config_entry_default: str | None = None,
     grid_fee_high_per_kwh_default: float | None = None,
@@ -396,13 +394,6 @@ def _entity_schema(
             CONF_GRID_FEE_PER_KWH,
             default=grid_fee_per_kwh_default,
         )
-    if tax_per_kwh_default is None:
-        tax_key = vol.Optional(CONF_TAX_PER_KWH)
-    else:
-        tax_key = vol.Optional(
-            CONF_TAX_PER_KWH,
-            default=tax_per_kwh_default,
-        )
     fixed_supplier_fee_key = (
         vol.Optional(CONF_FIXED_SUPPLIER_FEE_MONTHLY)
         if fixed_supplier_fee_monthly_default is None
@@ -519,13 +510,6 @@ def _entity_schema(
                 selector.NumberSelectorConfig(
                     min=0,
                     step=0.01,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            tax_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
@@ -958,10 +942,6 @@ class ElectricityProOptionsFlow(OptionsFlow):
             self.config_entry.data.get(CONF_GRID_FEE_PER_KWH),
         )
         tariff_values = {**self.config_entry.data, **self.config_entry.options}
-        current_tax = self.config_entry.options.get(
-            CONF_TAX_PER_KWH,
-            self.config_entry.data.get(CONF_TAX_PER_KWH),
-        )
         current_fixed_supplier_fee = self.config_entry.options.get(
             CONF_FIXED_SUPPLIER_FEE_MONTHLY,
             self.config_entry.data.get(CONF_FIXED_SUPPLIER_FEE_MONTHLY),
@@ -999,7 +979,6 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 monthly_peak_hour_consumption_default=current_monthly_peak_hour_consumption,
                 monthly_peak_hour_time_default=current_monthly_peak_hour_time,
                 grid_fee_per_kwh_default=current_grid_fee,
-                tax_per_kwh_default=current_tax,
                 good_price_threshold_default=current_good_price_threshold,
                 forecast_nordpool_config_entry_default=current_forecast_nordpool_config_entry,
                 grid_fee_high_per_kwh_default=tariff_values.get(

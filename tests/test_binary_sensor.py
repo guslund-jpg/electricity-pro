@@ -20,7 +20,6 @@ async def test_good_time_is_on_at_or_below_threshold(
     await setup_electricity_pro(
         price_value="0.80",
         grid_fee_per_kwh=0.25,
-        tax_per_kwh=0.15,
         good_price_threshold=1.20,
     )
 

@@ -157,7 +157,7 @@ Delivered:
 - Persistent monthly statistics foundation
 - Energy This Month
 - Cost This Month
-- Effective Price with optional variable grid-fee and tax/markup adjustments
+- Effective Price with optional variable grid-fee adjustments
 - Good Time to Use Electricity insight
 
 ---

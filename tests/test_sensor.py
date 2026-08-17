@@ -436,18 +436,17 @@ async def test_effective_price_includes_configured_adjustments(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """Effective price should add grid fee and tax to current price."""
+    """Effective price should add the configured grid fee to current price."""
     await setup_electricity_pro(
         price_value="0.80",
         price_unit="SEK/kWh",
         grid_fee_per_kwh=0.25,
-        tax_per_kwh=0.15,
     )
 
     state = hass.states.get(EFFECTIVE_PRICE_ENTITY_ID)
 
     assert state is not None
-    assert Decimal(state.state) == Decimal("1.20")
+    assert Decimal(state.state) == Decimal("1.05")
     assert state.attributes["unit_of_measurement"] == "SEK/kWh"
     assert state.attributes["state_class"] == "measurement"
 
@@ -463,13 +462,12 @@ async def test_consumption_weighted_average_price_today(
         accumulated_cost_today_value="12",
         accumulated_cost_today_unit="SEK",
         grid_fee_per_kwh=0.25,
-        tax_per_kwh=0.15,
     )
 
     state = hass.states.get(WEIGHTED_AVERAGE_PRICE_ENTITY_ID)
 
     assert state is not None
-    assert Decimal(state.state) == Decimal("1.60")
+    assert Decimal(state.state) == Decimal("1.45")
     assert state.attributes["unit_of_measurement"] == "SEK/kWh"
     assert state.attributes["state_class"] == "measurement"
 
