@@ -43,6 +43,8 @@ from .const import (
     CONF_VOLTAGE_L3_ENTITY,
 )
 from .grid_tariff import HighLowGridTariff
+from .pricing import PricingMetadata
+from .pricing_config import resolve_pricing_metadata
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +54,7 @@ class ElectricityProData:
     current_power: Decimal | None
     current_price: Decimal | None
     current_price_unit: str | None
+    pricing_metadata: PricingMetadata | None
     current_energy: Decimal | None
     current_energy_unit: str | None
     accumulated_cost_today: Decimal | None
@@ -93,6 +96,7 @@ class ElectricityProEntityProvider:
         self._hass = hass
         self._local_timezone = ZoneInfo(hass.config.time_zone)
         self._grid_fee_at = grid_fee_at
+        self._pricing_metadata = resolve_pricing_metadata(entry.data, entry.options)
 
         self._power_entity_id: str = entry.options.get(
             CONF_POWER_ENTITY,
@@ -305,6 +309,7 @@ class ElectricityProEntityProvider:
             ),
             current_price=current_price,
             current_price_unit=current_price_unit,
+            pricing_metadata=self._pricing_metadata,
             current_energy=current_energy,
             current_energy_unit=current_energy_unit,
             accumulated_cost_today=accumulated_cost_today,

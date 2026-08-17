@@ -141,6 +141,12 @@ Cost Today and Energy Today must cover the same local calendar-day period. On
 the first day, the result is only as complete as those source values; no
 historical values are reconstructed by Electricity Pro.
 
+Live Effective Price, Current Cost Rate, and Good Time require explicit pricing
+metadata. Electricity Pro adds a configured variable grid fee only when that
+component is not already declared as part of the selected source price. An
+ambiguous older price configuration leaves these derived values unavailable
+until its source type, included components, and VAT treatment are confirmed.
+
 ### Monthly peak-hour consumption
 
 This sensor is relevant for demand-based grid tariffs.

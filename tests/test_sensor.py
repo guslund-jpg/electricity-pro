@@ -451,6 +451,40 @@ async def test_effective_price_includes_configured_adjustments(
     assert state.attributes["state_class"] == "measurement"
 
 
+async def test_effective_price_requires_declared_price_semantics(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """An ambiguous legacy price must not enter normalized live calculations."""
+    await setup_electricity_pro(
+        price_value="0.80",
+        price_unit="SEK/kWh",
+        include_pricing_metadata=False,
+    )
+
+    state = hass.states.get(EFFECTIVE_PRICE_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_current_cost_rate_uses_normalized_effective_price(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Current cost rate should include the permitted variable grid fee."""
+    await setup_electricity_pro(
+        power_value="1000",
+        price_value="0.80",
+        grid_fee_per_kwh=0.25,
+    )
+
+    state = hass.states.get(COST_RATE_ENTITY_ID)
+
+    assert state is not None
+    assert Decimal(state.state) == Decimal("1.05")
+
+
 async def test_consumption_weighted_average_price_today(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],

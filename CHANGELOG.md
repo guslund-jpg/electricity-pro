@@ -7,21 +7,22 @@
 - Removed the ambiguous combined tax-or-markup configuration. Supplier markup
   and energy tax remain explicit internal component types and will only return
   as user settings when their source and accounting semantics are unambiguous.
+- Wired declared pricing metadata into Effective Price, Current Cost Rate, and
+  Good Time so configured grid fees are added only when the selected source
+  does not already include them. Ambiguous price entries leave these derived
+  values unavailable until their price semantics are confirmed.
 
 ### Added
 
-- Added internal pricing-strategy, component-scope, and VAT-treatment models as
-  the first provider-independent pricing foundation. This does not change
-  existing configuration or sensor behavior.
+- Added pricing-strategy, component-scope, and VAT-treatment models as the first
+  provider-independent pricing foundation.
 - Added internal price-completeness and cost-provenance metadata so later
   calculations can distinguish declared coverage and authoritative costs from
   local calculations.
 - Added a metadata-aware effective-price calculation path that rejects
-  overlapping components before they can be counted twice. The existing live
-  calculation remains unchanged until configuration migration is available.
+  overlapping components before they can be counted twice.
 - Added a conservative pricing-metadata configuration contract. Explicit
-  settings can now be serialized and resolved with options precedence, while
-  existing entries without complete metadata remain on the legacy path.
+  settings can be serialized and resolved with options precedence.
 - Added price-source type, included-component, and VAT controls to setup and
   options. New price configurations require an explicit declaration; existing
   entries keep running until their options are saved and confirmed.
