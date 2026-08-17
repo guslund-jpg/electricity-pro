@@ -31,7 +31,7 @@ from . import ElectricityProConfigEntry
 from .calculations import (
     calculate_consumption_weighted_average_price,
     calculate_current_cost_rate,
-    calculate_effective_price,
+    calculate_declared_effective_price,
 )
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
@@ -104,14 +104,15 @@ def current_cost_rate(data: ElectricityProData) -> Decimal | None:
     """Return the current electricity cost per hour."""
     return calculate_current_cost_rate(
         data.current_power,
-        data.current_price,
+        effective_price(data),
     )
 
 
 def effective_price(data: ElectricityProData) -> Decimal | None:
     """Return electricity price including configured variable adjustments."""
-    return calculate_effective_price(
+    return calculate_declared_effective_price(
         data.current_price,
+        data.pricing_metadata,
         data.grid_fee_per_kwh,
     )
 

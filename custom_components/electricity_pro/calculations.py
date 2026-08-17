@@ -80,6 +80,26 @@ def calculate_normalized_effective_price(
     return base_price + sum(additions.values(), start=Decimal(0))
 
 
+def calculate_declared_effective_price(
+    base_price: Decimal | None,
+    metadata: PricingMetadata | None,
+    grid_fee_per_kwh: Decimal | None = None,
+) -> Decimal | None:
+    """Calculate live Effective Price from explicitly declared semantics."""
+    if metadata is None:
+        return None
+    adjustments = (
+        {PriceComponent.VARIABLE_GRID_FEE: grid_fee_per_kwh}
+        if grid_fee_per_kwh is not None
+        else None
+    )
+    return calculate_normalized_effective_price(
+        base_price,
+        metadata,
+        adjustments,
+    )
+
+
 def calculate_consumption_weighted_average_price(
     cost_today: Decimal | None,
     energy_today: Decimal | None,
