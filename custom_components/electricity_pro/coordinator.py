@@ -346,6 +346,9 @@ class ElectricityProCoordinator(
         updates["fixed_supplier_fee_this_month_unit"] = (
             fixed_fee_unit if fixed_fee is not None else None
         )
+        updates["fixed_grid_fee_this_month_unit"] = (
+            fixed_fee_unit if data.fixed_grid_fee_this_month is not None else None
+        )
         if (
             isinstance(monthly_cost, Decimal)
             and fixed_fee is not None

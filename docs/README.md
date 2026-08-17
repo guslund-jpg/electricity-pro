@@ -197,6 +197,13 @@ Current Cost Rate, Good Time, or forecast scheduling. Do not use this field for
 grid-company fixed fees or capacity charges, and leave it empty when an
 authoritative monthly cost source already includes the same fee.
 
+The optional **fixed monthly grid-provider fee** is configured and exposed as
+a separate component. It is intentionally not added to **Total supplier cost
+this month**, because that sensor covers the electricity supplier only. An
+overall bill total is not exposed yet: Electricity Pro cannot currently
+reconcile historical variable grid charges and future capacity charges well
+enough to claim that total is complete.
+
 Depending on the enabled capabilities, configuration may therefore include:
 
 - Current power sensor

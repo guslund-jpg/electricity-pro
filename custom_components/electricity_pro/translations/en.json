@@ -40,6 +40,7 @@
           "grid_fee_high_season_end": "High season ends (MM-DD)",
           "tax_per_kwh": "Additional tax or markup per kWh (including VAT)",
           "fixed_supplier_fee_monthly": "Fixed monthly electricity supplier fee (including VAT)",
+          "fixed_grid_fee_monthly": "Fixed monthly grid-provider fee (including VAT)",
           "good_price_threshold": "Good price threshold per kWh",
           "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
         },
@@ -68,6 +69,7 @@
           "grid_fee_high_season_end": "Last date of the recurring high season, written MM-DD; for example 03-31.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
           "fixed_supplier_fee_monthly": "Optional fixed monthly fee charged by the electricity supplier, including VAT. Do not enter grid-company fixed fees or capacity charges.",
+          "fixed_grid_fee_monthly": "Optional fixed monthly fee charged by the grid provider, including VAT. Do not enter variable grid fees or capacity charges.",
           "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
@@ -90,7 +92,8 @@
           "grid_fee_high_season_start": "High season starts (MM-DD)",
           "grid_fee_high_season_end": "High season ends (MM-DD)",
           "good_price_threshold": "Good price threshold per kWh",
-          "fixed_supplier_fee_monthly": "Fixed monthly electricity supplier fee (including VAT)"
+          "fixed_supplier_fee_monthly": "Fixed monthly electricity supplier fee (including VAT)",
+          "fixed_grid_fee_monthly": "Fixed monthly grid-provider fee (including VAT)"
         },
         "data_description": {
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the Tibber price, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
@@ -100,7 +103,8 @@
           "grid_fee_high_season_start": "First date of the recurring high season, written MM-DD; for example 11-01.",
           "grid_fee_high_season_end": "Last date of the recurring high season, written MM-DD; for example 03-31.",
           "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity. For example, use 0.90 SEK/kWh for a Swedish setup.",
-          "fixed_supplier_fee_monthly": "Optional fixed monthly fee charged by Tibber or another electricity supplier, including VAT. It does not affect Effective Price or scheduling insights."
+          "fixed_supplier_fee_monthly": "Optional fixed monthly fee charged by Tibber or another electricity supplier, including VAT. It does not affect Effective Price or scheduling insights.",
+          "fixed_grid_fee_monthly": "Optional fixed monthly fee charged by your grid provider, including VAT. It does not affect Effective Price or scheduling insights."
         }
       },
       "forecast_area": {
@@ -147,6 +151,7 @@
           "grid_fee_high_season_end": "High season ends (MM-DD)",
           "tax_per_kwh": "Additional tax or markup per kWh (including VAT)",
           "fixed_supplier_fee_monthly": "Fixed monthly electricity supplier fee (including VAT)",
+          "fixed_grid_fee_monthly": "Fixed monthly grid-provider fee (including VAT)",
           "good_price_threshold": "Good price threshold per kWh",
           "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
         },
@@ -175,6 +180,7 @@
           "grid_fee_high_season_end": "Last date of the recurring high season, written MM-DD; for example 03-31.",
           "tax_per_kwh": "Optional non-negative additional tax or markup in the same currency per kWh as the price sensor, including VAT. For most Swedish households, the 2026 energy tax is 0.45 SEK/kWh.",
           "fixed_supplier_fee_monthly": "Optional fixed monthly fee charged by the electricity supplier, including VAT. Do not enter grid-company fixed fees or capacity charges.",
+          "fixed_grid_fee_monthly": "Optional fixed monthly fee charged by the grid provider, including VAT. Do not enter variable grid fees or capacity charges.",
           "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }

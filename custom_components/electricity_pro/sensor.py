@@ -41,6 +41,7 @@ from .const import (
     CONF_ENERGY_ENTITY,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FIXED_SUPPLIER_FEE_MONTHLY,
+    CONF_FIXED_GRID_FEE_MONTHLY,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_PRICE_ENTITY,
@@ -357,6 +358,21 @@ SENSOR_DESCRIPTIONS: tuple[
             and data.fixed_supplier_fee_this_month_unit is not None
         ),
         required_config_key=CONF_FIXED_SUPPLIER_FEE_MONTHLY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="fixed_grid_fee_this_month",
+        name="Fixed grid fee this month",
+        icon="mdi:transmission-tower",
+        device_class=SensorDeviceClass.MONETARY,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=2,
+        value_fn=lambda data: data.fixed_grid_fee_this_month,
+        unit_fn=lambda data: data.fixed_grid_fee_this_month_unit,
+        available_fn=lambda data: (
+            data.fixed_grid_fee_this_month is not None
+            and data.fixed_grid_fee_this_month_unit is not None
+        ),
+        required_config_key=CONF_FIXED_GRID_FEE_MONTHLY,
     ),
     ElectricityProSensorEntityDescription(
         key="total_supplier_cost_this_month",
