@@ -38,7 +38,6 @@ from .const import (
     CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
-    CONF_TAX_PER_KWH,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
@@ -78,7 +77,6 @@ class ElectricityProData:
     total_supplier_cost_this_month: Decimal | None
     total_supplier_cost_this_month_unit: str | None
     grid_fee_per_kwh: Decimal | None
-    tax_per_kwh: Decimal | None
     good_price_threshold: Decimal | None
 
 
@@ -158,12 +156,6 @@ class ElectricityProEntityProvider:
             )
         )
         self._scheduled_grid_tariff = _scheduled_grid_tariff(entry)
-        self._tax_per_kwh = self._normalize_adjustment(
-            entry.options.get(
-                CONF_TAX_PER_KWH,
-                entry.data.get(CONF_TAX_PER_KWH),
-            )
-        )
         self._good_price_threshold = self._normalize_adjustment(
             entry.options.get(
                 CONF_GOOD_PRICE_THRESHOLD,
@@ -340,7 +332,6 @@ class ElectricityProEntityProvider:
             total_supplier_cost_this_month=None,
             total_supplier_cost_this_month_unit=None,
             grid_fee_per_kwh=self.grid_fee_at(dt_util.now()),
-            tax_per_kwh=self._tax_per_kwh,
             good_price_threshold=self._good_price_threshold,
         )
 

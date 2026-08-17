@@ -168,12 +168,11 @@ def test_find_cheapest_continuous_window_uses_weighted_average() -> None:
         now=now,
         duration_minutes=60,
         grid_fee_per_kwh=Decimal("0.10"),
-        tax_per_kwh=Decimal("0.05"),
     )
 
     assert result is not None
     assert result.average_market_price == Decimal("0.50")
-    assert result.average_effective_price == Decimal("0.65")
+    assert result.average_effective_price == Decimal("0.60")
 
 
 def test_find_cheapest_window_applies_grid_fee_for_each_interval() -> None:

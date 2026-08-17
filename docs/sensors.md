@@ -126,7 +126,7 @@ or a percentage.
 This calculated sensor shows the average effective price achieved by the
 household's actual consumption pattern today:
 
-> Cost Today / Energy Today + configured variable grid fee and tax/markup
+> Cost Today / Energy Today + configured variable grid fee
 
 Energy is normalized to kWh before division. The configured VAT-inclusive
 per-kWh adjustments are then applied exactly once. The sensor is unavailable
