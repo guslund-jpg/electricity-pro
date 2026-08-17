@@ -1767,7 +1767,10 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
     assert cheapest_1h_state.attributes["window_duration_minutes"] == 60
     assert cheapest_1h_state.attributes["interval_count"] == 4
     assert cheapest_1h_state.attributes["average_market_price"] == "0.84104"
-    assert cheapest_1h_state.attributes["average_effective_price"] == "0.84104"
+    assert cheapest_1h_state.attributes["average_scheduling_price"] == "0.84104"
+    assert cheapest_1h_state.attributes["price_components"] == ["market_energy"]
+    assert cheapest_1h_state.attributes["vat_treatment"] == "unknown"
+    assert cheapest_1h_state.attributes["price_completeness"] == "partial"
     assert cheapest_1h_state.attributes["currency"] == "SEK"
     assert cheapest_1h_state.attributes["price_area"] == "SE3"
 
@@ -1861,8 +1864,8 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
     assert direction_state.state == "rising"
     assert direction_state.attributes["current_interval_start"] == "2026-08-13T20:00:00+00:00"
     assert direction_state.attributes["next_interval_start"] == "2026-08-13T20:15:00+00:00"
-    assert direction_state.attributes["current_effective_price"] == "0.59104"
-    assert direction_state.attributes["next_effective_price"] == "0.69104"
+    assert direction_state.attributes["current_scheduling_price"] == "0.59104"
+    assert direction_state.attributes["next_scheduling_price"] == "0.69104"
     assert direction_state.attributes["delta"] == "0.10000"
     assert direction_state.attributes["currency"] == "SEK"
     assert direction_state.attributes["price_area"] == "SE3"
@@ -1953,14 +1956,7 @@ async def test_next_inexpensive_1h_window_sensor_exposes_qualifying_window(
     state = hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID)
     assert state is not None
     assert state.attributes["device_class"] == "timestamp"
-    assert datetime.fromisoformat(state.state) == datetime(2026, 8, 13, 21, 0, tzinfo=UTC)
-    assert state.attributes["window_end"] == "2026-08-13T22:00:00+00:00"
-    assert state.attributes["window_duration_minutes"] == 60
-    assert state.attributes["interval_count"] == 1
-    assert state.attributes["average_effective_price"] == "0.6"
-    assert state.attributes["threshold"] == "0.65"
-    assert state.attributes["currency"] == "SEK"
-    assert state.attributes["price_area"] == "SE3"
+    assert state.state == "unavailable"
 
 
 async def test_next_inexpensive_1h_window_sensor_unavailable_when_no_qualifying_window(

@@ -11,6 +11,9 @@
   Good Time so configured grid fees are added only when the selected source
   does not already include them. Ambiguous price entries leave these derived
   values unavailable until their price semantics are confirmed.
+- Renamed partial Nord Pool-derived forecast values to scheduling prices,
+  exposed their component and completeness metadata, and withheld absolute
+  threshold advice when forecast and live price scopes are not comparable.
 
 ### Added
 

@@ -391,6 +391,18 @@ class ElectricityProCoordinator(
             grid_fee_at=self._provider.grid_fee_at,
         )
         threshold = provider_data.good_price_threshold
+        forecast_metadata = (
+            self._forecast_intervals[0].pricing_metadata
+            if self._forecast_intervals
+            else None
+        )
+        prices_are_comparable = bool(
+            forecast_metadata is not None
+            and forecast_metadata.is_complete
+            and provider_data.pricing_metadata is not None
+            and provider_data.pricing_metadata.is_complete
+            and forecast_metadata.scope == provider_data.pricing_metadata.scope
+        )
         self._next_inexpensive_1h_window = (
             find_next_inexpensive_1h_window(
                 self._forecast_intervals,
@@ -398,6 +410,7 @@ class ElectricityProCoordinator(
                 threshold=threshold,
                 grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
                 grid_fee_at=self._provider.grid_fee_at,
+                price_is_comparable=prices_are_comparable,
             )
             if threshold is not None
             else None
