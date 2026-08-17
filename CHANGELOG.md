@@ -22,6 +22,12 @@
 - Added optional weekday high/low grid-tariff configuration with local daily
   hours and recurring seasonal dates. Forecast and live effective-price
   calculations now use the applicable fee for each timestamp.
+- Added an optional VAT-inclusive fixed monthly electricity supplier fee with
+  separate fixed-fee and total-supplier-cost monthly sensors. The existing
+  consumption-based monthly cost and all price insights remain unchanged.
+- Added a separate optional VAT-inclusive fixed monthly grid-provider fee and
+  sensor. It remains outside the supplier total and all variable-price
+  calculations so incomplete bill totals are not presented as authoritative.
 
 ### Documentation
 

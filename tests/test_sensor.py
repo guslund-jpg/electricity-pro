@@ -27,6 +27,13 @@ ENERGY_THIS_MONTH_ENTITY_ID = f"sensor.{DOMAIN}_energy_this_month"
 COST_RATE_ENTITY_ID = f"sensor.{DOMAIN}_current_cost_rate"
 COST_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_cost_today"
 COST_THIS_MONTH_ENTITY_ID = f"sensor.{DOMAIN}_cost_this_month"
+FIXED_SUPPLIER_FEE_THIS_MONTH_ENTITY_ID = (
+    f"sensor.{DOMAIN}_fixed_supplier_fee_this_month"
+)
+FIXED_GRID_FEE_THIS_MONTH_ENTITY_ID = f"sensor.{DOMAIN}_fixed_grid_fee_this_month"
+TOTAL_SUPPLIER_COST_THIS_MONTH_ENTITY_ID = (
+    f"sensor.{DOMAIN}_total_supplier_cost_this_month"
+)
 PEAK_POWER_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_peak_power_today"
 CURRENT_L1_ENTITY_ID = f"sensor.{DOMAIN}_current_l1"
 CURRENT_L2_ENTITY_ID = f"sensor.{DOMAIN}_current_l2"
@@ -1338,6 +1345,72 @@ async def test_cost_this_month_starts_with_cost_today(
     assert state.attributes["unit_of_measurement"] == "SEK"
     assert state.attributes["device_class"] == "monetary"
     assert state.attributes["state_class"] == "total"
+
+
+async def test_fixed_supplier_fee_is_separate_from_variable_monthly_cost(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A monthly supplier fee should be exposed once without changing variable cost."""
+    await setup_electricity_pro(
+        accumulated_cost_today_value="12.34",
+        accumulated_cost_today_unit="SEK",
+        fixed_supplier_fee_monthly=49.0,
+    )
+
+    variable = hass.states.get(COST_THIS_MONTH_ENTITY_ID)
+    fixed = hass.states.get(FIXED_SUPPLIER_FEE_THIS_MONTH_ENTITY_ID)
+    total = hass.states.get(TOTAL_SUPPLIER_COST_THIS_MONTH_ENTITY_ID)
+
+    assert variable is not None
+    assert fixed is not None
+    assert total is not None
+    assert Decimal(variable.state) == Decimal("12.34")
+    assert Decimal(fixed.state) == Decimal("49.0")
+    assert Decimal(total.state) == Decimal("61.34")
+    assert fixed.attributes["unit_of_measurement"] == "SEK"
+    assert total.attributes["unit_of_measurement"] == "SEK"
+
+
+async def test_fixed_supplier_fee_uses_price_currency_without_cost_source(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """The fixed component can use a declared price currency by itself."""
+    await setup_electricity_pro(
+        price_value="0.80",
+        price_unit="SEK/kWh",
+        fixed_supplier_fee_monthly=49.0,
+    )
+
+    fixed = hass.states.get(FIXED_SUPPLIER_FEE_THIS_MONTH_ENTITY_ID)
+
+    assert fixed is not None
+    assert Decimal(fixed.state) == Decimal("49.0")
+    assert fixed.attributes["unit_of_measurement"] == "SEK"
+    assert hass.states.get(TOTAL_SUPPLIER_COST_THIS_MONTH_ENTITY_ID) is None
+
+
+async def test_fixed_grid_fee_is_exposed_as_separate_component(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """The grid-provider fixed fee must remain separate from supplier totals."""
+    await setup_electricity_pro(
+        accumulated_cost_today_value="12.34",
+        accumulated_cost_today_unit="SEK",
+        fixed_supplier_fee_monthly=49.0,
+        fixed_grid_fee_monthly=630.0,
+    )
+
+    grid = hass.states.get(FIXED_GRID_FEE_THIS_MONTH_ENTITY_ID)
+    supplier_total = hass.states.get(TOTAL_SUPPLIER_COST_THIS_MONTH_ENTITY_ID)
+
+    assert grid is not None
+    assert Decimal(grid.state) == Decimal("630.0")
+    assert grid.attributes["unit_of_measurement"] == "SEK"
+    assert supplier_total is not None
+    assert Decimal(supplier_total.state) == Decimal("61.34")
 
 
 async def test_cost_this_month_accumulates_and_handles_daily_reset(

@@ -25,6 +25,8 @@ from .const import (
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+    CONF_FIXED_SUPPLIER_FEE_MONTHLY,
+    CONF_FIXED_GRID_FEE_MONTHLY,
     CONF_FORECAST_PRICE_AREA,
     CONF_GRID_FEE_PER_KWH,
     CONF_GRID_FEE_HIGH_END,
@@ -158,6 +160,8 @@ def _tibber_settings_schema(
     high_end_default: str = "22:00",
     season_start_default: str = "11-01",
     season_end_default: str = "03-31",
+    fixed_supplier_fee_default: float | None = None,
+    fixed_grid_fee_default: float | None = None,
 ) -> vol.Schema:
     """Return only the settings Tibber cannot determine."""
     grid_fee_key = (
@@ -171,6 +175,22 @@ def _tibber_settings_schema(
         else vol.Optional(
             CONF_GOOD_PRICE_THRESHOLD,
             default=good_price_threshold_default,
+        )
+    )
+    fixed_supplier_fee_key = (
+        vol.Optional(CONF_FIXED_SUPPLIER_FEE_MONTHLY)
+        if fixed_supplier_fee_default is None
+        else vol.Optional(
+            CONF_FIXED_SUPPLIER_FEE_MONTHLY,
+            default=fixed_supplier_fee_default,
+        )
+    )
+    fixed_grid_fee_key = (
+        vol.Optional(CONF_FIXED_GRID_FEE_MONTHLY)
+        if fixed_grid_fee_default is None
+        else vol.Optional(
+            CONF_FIXED_GRID_FEE_MONTHLY,
+            default=fixed_grid_fee_default,
         )
     )
     return vol.Schema(
@@ -188,6 +208,20 @@ def _tibber_settings_schema(
                 high_end_default=high_end_default,
                 season_start_default=season_start_default,
                 season_end_default=season_end_default,
+            ),
+            fixed_grid_fee_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.01,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            fixed_supplier_fee_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.01,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
             ),
             threshold_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
@@ -227,6 +261,8 @@ def _entity_schema(
     grid_fee_high_end_default: str = "22:00",
     grid_fee_high_season_start_default: str = "11-01",
     grid_fee_high_season_end_default: str = "03-31",
+    fixed_supplier_fee_monthly_default: float | None = None,
+    fixed_grid_fee_monthly_default: float | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
 
@@ -367,6 +403,22 @@ def _entity_schema(
             CONF_TAX_PER_KWH,
             default=tax_per_kwh_default,
         )
+    fixed_supplier_fee_key = (
+        vol.Optional(CONF_FIXED_SUPPLIER_FEE_MONTHLY)
+        if fixed_supplier_fee_monthly_default is None
+        else vol.Optional(
+            CONF_FIXED_SUPPLIER_FEE_MONTHLY,
+            default=fixed_supplier_fee_monthly_default,
+        )
+    )
+    fixed_grid_fee_key = (
+        vol.Optional(CONF_FIXED_GRID_FEE_MONTHLY)
+        if fixed_grid_fee_monthly_default is None
+        else vol.Optional(
+            CONF_FIXED_GRID_FEE_MONTHLY,
+            default=fixed_grid_fee_monthly_default,
+        )
+    )
     if good_price_threshold_default is None:
         good_price_threshold_key = vol.Optional(CONF_GOOD_PRICE_THRESHOLD)
     else:
@@ -463,10 +515,24 @@ def _entity_schema(
                 season_start_default=grid_fee_high_season_start_default,
                 season_end_default=grid_fee_high_season_end_default,
             ),
+            fixed_grid_fee_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.01,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
             tax_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
                     step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            fixed_supplier_fee_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.01,
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
@@ -755,6 +821,12 @@ class ElectricityProOptionsFlow(OptionsFlow):
                     season_end_default=values.get(
                         CONF_GRID_FEE_HIGH_SEASON_END, "03-31"
                     ),
+                    fixed_supplier_fee_default=values.get(
+                        CONF_FIXED_SUPPLIER_FEE_MONTHLY
+                    ),
+                    fixed_grid_fee_default=values.get(
+                        CONF_FIXED_GRID_FEE_MONTHLY
+                    ),
                 ),
                 description_placeholders={"source_profile": "Tibber fast track"},
             )
@@ -890,6 +962,14 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_TAX_PER_KWH,
             self.config_entry.data.get(CONF_TAX_PER_KWH),
         )
+        current_fixed_supplier_fee = self.config_entry.options.get(
+            CONF_FIXED_SUPPLIER_FEE_MONTHLY,
+            self.config_entry.data.get(CONF_FIXED_SUPPLIER_FEE_MONTHLY),
+        )
+        current_fixed_grid_fee = self.config_entry.options.get(
+            CONF_FIXED_GRID_FEE_MONTHLY,
+            self.config_entry.data.get(CONF_FIXED_GRID_FEE_MONTHLY),
+        )
         current_good_price_threshold = self.config_entry.options.get(
             CONF_GOOD_PRICE_THRESHOLD,
             self.config_entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
@@ -937,6 +1017,8 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 grid_fee_high_season_end_default=tariff_values.get(
                     CONF_GRID_FEE_HIGH_SEASON_END, "03-31"
                 ),
+                fixed_supplier_fee_monthly_default=current_fixed_supplier_fee,
+                fixed_grid_fee_monthly_default=current_fixed_grid_fee,
             ),
         )
 
