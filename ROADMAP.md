@@ -225,9 +225,10 @@ Delivered:
 - Nord Pool forecast ingestion via the native `nordpool.get_prices_for_date`
   action with MWh → kWh normalization
 - Cheapest upcoming 1h, 2h and 3h continuous window sensors
-- Companion average effective price sensors for each window duration
+- Companion average scheduling-price sensors for each window duration
 - Near-term price direction sensor (rising / falling / stable)
-- Optional next inexpensive 1h window sensor gated on the good-price threshold
+- Optional next inexpensive 1h window sensor gated on both the good-price
+  threshold and comparable complete live/forecast price semantics
 - Explicit gap, overlap and unavailable-data handling throughout
 - DST and timezone edge cases covered by dedicated tests
 - Forecast features require Nord Pool; insight calculations are provider-agnostic

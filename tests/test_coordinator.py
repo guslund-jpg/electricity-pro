@@ -401,8 +401,6 @@ async def test_async_start_caches_next_inexpensive_1h_window_when_threshold_conf
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Coordinator should cache the next inexpensive 1h window when a good price threshold is set."""
-    from custom_components.electricity_pro.forecast_insights import NextInexpensive1hWindowInsight
-
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Electricity Pro",
@@ -458,10 +456,7 @@ async def test_async_start_caches_next_inexpensive_1h_window_when_threshold_conf
     ):
         await coordinator.async_start()
 
-    assert isinstance(coordinator.next_inexpensive_1h_window, NextInexpensive1hWindowInsight)
-    assert coordinator.next_inexpensive_1h_window.start == datetime(2026, 8, 13, 21, 0, tzinfo=UTC)
-    assert coordinator.next_inexpensive_1h_window.end == datetime(2026, 8, 13, 22, 0, tzinfo=UTC)
-    assert coordinator.next_inexpensive_1h_window.threshold == Decimal("0.70")
+    assert coordinator.next_inexpensive_1h_window is None
 
 
 async def test_async_start_next_inexpensive_1h_window_none_without_threshold(

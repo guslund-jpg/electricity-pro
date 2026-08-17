@@ -54,6 +54,7 @@ from .const import (
 )
 from .coordinator import ElectricityProCoordinator
 from .forecast_insights import ForecastDirectionInsight, ForecastWindowInsight
+from .pricing import PricingMetadata
 from .provider import ElectricityProData
 from .statistics import remaining_cost_today
 
@@ -115,6 +116,15 @@ def effective_price(data: ElectricityProData) -> Decimal | None:
         data.pricing_metadata,
         data.grid_fee_per_kwh,
     )
+
+
+def _forecast_price_attributes(metadata: PricingMetadata) -> dict[str, Any]:
+    """Return transparent component metadata for a forecast-derived price."""
+    return {
+        "price_components": sorted(component.value for component in metadata.scope.included),
+        "vat_treatment": metadata.scope.vat.value,
+        "price_completeness": metadata.completeness.value,
+    }
 
 
 def consumption_weighted_average_price(
@@ -661,7 +671,7 @@ class ElectricityProCheapestWindowSensor(ElectricityProForecastInsightSensor):
             "window_duration_minutes": insight.duration_minutes,
             "interval_count": insight.interval_count,
             "average_market_price": str(insight.average_market_price),
-            "average_effective_price": str(insight.average_effective_price),
+            "average_scheduling_price": str(insight.average_scheduling_price),
             "currency": insight.currency,
             "price_area": insight.area,
             "published_at": (
@@ -669,6 +679,7 @@ class ElectricityProCheapestWindowSensor(ElectricityProForecastInsightSensor):
                 if insight.published_at is not None
                 else None
             ),
+            **_forecast_price_attributes(insight.pricing_metadata),
         }
 
     @property
@@ -684,7 +695,7 @@ class ElectricityProCheapestWindowSensor(ElectricityProForecastInsightSensor):
 class ElectricityProCheapestWindowAverageEffectivePriceSensor(
     ElectricityProForecastInsightSensor
 ):
-    """Represent the average effective price for a cheapest upcoming window."""
+    """Represent the average scheduling price for a cheapest upcoming window."""
 
     _attr_suggested_display_precision = 5
 
@@ -695,13 +706,16 @@ class ElectricityProCheapestWindowAverageEffectivePriceSensor(
         *,
         duration_minutes: int,
     ) -> None:
-        """Initialize a cheapest window average effective price sensor."""
+        """Initialize a cheapest-window average scheduling-price sensor."""
         hours = duration_minutes // 60
         super().__init__(
             coordinator,
             entry,
             key=f"cheapest_{hours}h_window_average_effective_price",
-            name=f"Cheapest {hours}h window average effective price",
+            name=f"Cheapest {hours}h window average scheduling price",
+        )
+        self.internal_integration_suggested_object_id = (
+            f"{DOMAIN}_cheapest_{hours}h_window_average_effective_price"
         )
         self._duration_minutes = duration_minutes
 
@@ -716,9 +730,9 @@ class ElectricityProCheapestWindowAverageEffectivePriceSensor(
 
     @property
     def native_value(self) -> Decimal | None:
-        """Return the average effective price of the cheapest upcoming window."""
+        """Return the average scheduling price of the cheapest upcoming window."""
         insight = self._insight
-        return None if insight is None else insight.average_effective_price
+        return None if insight is None else insight.average_scheduling_price
 
     @property
     def native_unit_of_measurement(self) -> str | None:
@@ -728,7 +742,7 @@ class ElectricityProCheapestWindowAverageEffectivePriceSensor(
 
     @property
     def available(self) -> bool:
-        """Return whether the window average effective price is available."""
+        """Return whether the window average scheduling price is available."""
         return super().available and self._insight is not None
 
     @property
@@ -751,6 +765,7 @@ class ElectricityProCheapestWindowAverageEffectivePriceSensor(
                 if insight.published_at is not None
                 else None
             ),
+            **_forecast_price_attributes(insight.pricing_metadata),
         }
 
 
@@ -795,10 +810,11 @@ class ElectricityProNextInexpensive1hWindowSensor(ElectricityProForecastInsightS
             "window_duration_minutes": insight.duration_minutes,
             "interval_count": insight.interval_count,
             "average_market_price": str(insight.average_market_price),
-            "average_effective_price": str(insight.average_effective_price),
+            "average_scheduling_price": str(insight.average_scheduling_price),
             "threshold": str(insight.threshold),
             "currency": insight.currency,
             "price_area": insight.area,
+            **_forecast_price_attributes(insight.pricing_metadata),
         }
 
 
@@ -841,8 +857,8 @@ class ElectricityProPriceDirectionSensor(ElectricityProForecastInsightSensor):
             "current_interval_end": insight.current_end.isoformat(),
             "next_interval_start": insight.next_start.isoformat(),
             "next_interval_end": insight.next_end.isoformat(),
-            "current_effective_price": str(insight.current_effective_price),
-            "next_effective_price": str(insight.next_effective_price),
+            "current_scheduling_price": str(insight.current_scheduling_price),
+            "next_scheduling_price": str(insight.next_scheduling_price),
             "delta": str(insight.delta),
             "currency": insight.currency,
             "price_area": insight.area,
@@ -851,4 +867,5 @@ class ElectricityProPriceDirectionSensor(ElectricityProForecastInsightSensor):
                 if insight.published_at is not None
                 else None
             ),
+            **_forecast_price_attributes(insight.pricing_metadata),
         }

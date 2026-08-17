@@ -74,8 +74,11 @@ Monitor your home's energy usage in real time.
 - Cheapest upcoming 1h window start (Nord Pool forecast)
 - Cheapest upcoming 2h window start (Nord Pool forecast)
 - Cheapest upcoming 3h window start (Nord Pool forecast)
-- Average Effective Price for each cheapest 1h, 2h and 3h window
-- Next inexpensive 1h window start when a Good Price threshold is configured
+- Average scheduling price for each cheapest 1h, 2h and 3h window. This is the
+  Nord Pool market price plus the configured variable grid fee, not a complete
+  household Effective Price.
+- Next inexpensive 1h window start only when the forecast and live Effective
+  Price have comparable, complete component scopes
 - Price direction (Nord Pool forecast)
 
 ### Native Home Assistant Integration

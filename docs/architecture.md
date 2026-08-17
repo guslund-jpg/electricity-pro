@@ -228,11 +228,15 @@ currency per MWh to currency per kWh, and returns ordered normalized intervals.
 
 `forecast.py` defines the provider-neutral `ForecastInterval` model. Negative
 market prices are valid, while timestamps must be timezone-aware and prices
-must be finite.
+must be finite. Each interval also carries pricing metadata. Native Nord Pool
+intervals declare market energy only, unknown consumer-VAT treatment, and
+partial completeness.
 
 `forecast_insights.py` contains deterministic scheduling calculations. It does
 not call Home Assistant or Nord Pool directly and operates only on normalized,
-ordered interval boundaries.
+ordered interval boundaries. Its scheduling price is the market forecast plus
+the configured variable grid fee. It remains distinct from live Effective
+Price until a forecast source declares a comparable complete component scope.
 
 ## Calculation layer
 

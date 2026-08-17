@@ -131,6 +131,9 @@ suggested default, but must not silently reinterpret a stored configuration.
 - **Supplier price** is the customer's contracted variable supplier price.
 - **Effective variable price** is the per-kWh price Electricity Pro uses for
   live rates and interval calculations after known variable components.
+- **Forecast scheduling price** is a forecast-derived comparison value. For
+  native Nord Pool it contains market energy plus any configured variable grid
+  fee and must not be presented as a complete Effective Price.
 - **Fixed charge** is a time-based amount and is never hidden inside a per-kWh
   price without an explicitly documented estimate.
 - **Total cost** is accumulated cost for a defined period and component scope.
@@ -165,6 +168,10 @@ Useful partial configurations are supported:
 - detailed cost components when a complete tariff is configured.
 
 Missing optional inputs disable only the dependent capability.
+
+Absolute forecast thresholds require the forecast and live price to have
+matching, complete component scopes and VAT treatment. Partial market
+forecasts may still drive relative cheapest-window and direction insights.
 
 ## Compatibility and migration
 

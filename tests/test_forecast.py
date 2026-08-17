@@ -6,6 +6,11 @@ from decimal import Decimal
 import pytest
 
 from custom_components.electricity_pro.forecast import ForecastInterval
+from custom_components.electricity_pro.pricing import (
+    PriceCompleteness,
+    PriceComponent,
+    VatTreatment,
+)
 
 
 def test_forecast_interval_valid() -> None:
@@ -24,6 +29,11 @@ def test_forecast_interval_valid() -> None:
     assert interval.area == "SE3"
     assert interval.duration == timedelta(minutes=15)
     assert interval.resolution_minutes == 15
+    assert interval.pricing_metadata.scope.included == frozenset(
+        {PriceComponent.MARKET_ENERGY}
+    )
+    assert interval.pricing_metadata.scope.vat is VatTreatment.UNKNOWN
+    assert interval.pricing_metadata.completeness is PriceCompleteness.PARTIAL
 
 
 @pytest.mark.parametrize(

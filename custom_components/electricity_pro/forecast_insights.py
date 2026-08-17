@@ -8,24 +8,35 @@ from decimal import Decimal
 from typing import Callable
 
 from .forecast import ForecastInterval
+from .pricing import (
+    PriceComponent,
+    PriceComponentScope,
+    PricingMetadata,
+)
 
 GridFeeAt = Callable[[datetime], Decimal | None]
 
 
 @dataclass(frozen=True, slots=True)
 class NextInexpensive1hWindowInsight:
-    """The earliest upcoming 1-hour window whose average effective price is at or below threshold."""
+    """The earliest comparable 1-hour window at or below the threshold."""
 
     start: datetime
     end: datetime
     duration_minutes: int
     interval_count: int
     average_market_price: Decimal
-    average_effective_price: Decimal
+    average_scheduling_price: Decimal
     threshold: Decimal
     currency: str
     area: str
     published_at: datetime | None
+    pricing_metadata: PricingMetadata
+
+    @property
+    def average_effective_price(self) -> Decimal:
+        """Return the legacy internal alias for compatibility."""
+        return self.average_scheduling_price
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,10 +48,16 @@ class ForecastWindowInsight:
     duration_minutes: int
     interval_count: int
     average_market_price: Decimal
-    average_effective_price: Decimal
+    average_scheduling_price: Decimal
     currency: str
     area: str
     published_at: datetime | None
+    pricing_metadata: PricingMetadata
+
+    @property
+    def average_effective_price(self) -> Decimal:
+        """Return the legacy internal alias for compatibility."""
+        return self.average_scheduling_price
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,12 +69,23 @@ class ForecastDirectionInsight:
     current_end: datetime
     next_start: datetime
     next_end: datetime
-    current_effective_price: Decimal
-    next_effective_price: Decimal
+    current_scheduling_price: Decimal
+    next_scheduling_price: Decimal
     delta: Decimal
     currency: str
     area: str
     published_at: datetime | None
+    pricing_metadata: PricingMetadata
+
+    @property
+    def current_effective_price(self) -> Decimal:
+        """Return the legacy internal alias for compatibility."""
+        return self.current_scheduling_price
+
+    @property
+    def next_effective_price(self) -> Decimal:
+        """Return the legacy internal alias for compatibility."""
+        return self.next_scheduling_price
 
 
 def find_cheapest_continuous_window(
@@ -98,7 +126,7 @@ def find_cheapest_continuous_window(
             continue
 
         average_market_price = _average_market_price(window)
-        average_effective_price = _average_effective_price(
+        average_scheduling_price = _average_scheduling_price(
             window,
             grid_fee_per_kwh=grid_fee_per_kwh,
             grid_fee_at=grid_fee_at,
@@ -109,13 +137,21 @@ def find_cheapest_continuous_window(
             duration_minutes=duration_minutes,
             interval_count=len(window),
             average_market_price=average_market_price,
-            average_effective_price=average_effective_price,
+            average_scheduling_price=average_scheduling_price,
             currency=window[0].currency,
             area=window[0].area,
             published_at=window[0].published_at,
+            pricing_metadata=_scheduling_price_metadata(
+                window[0],
+                _has_grid_fee(
+                    window[0].start,
+                    grid_fee_per_kwh=grid_fee_per_kwh,
+                    grid_fee_at=grid_fee_at,
+                ),
+            ),
         )
-        if best_window is None or (candidate.average_effective_price, candidate.start, candidate.average_market_price) < (
-            best_window.average_effective_price,
+        if best_window is None or (candidate.average_scheduling_price, candidate.start, candidate.average_market_price) < (
+            best_window.average_scheduling_price,
             best_window.start,
             best_window.average_market_price,
         ):
@@ -142,19 +178,19 @@ def find_price_direction(
         if current.start <= now < current.end or current.start >= now:
             if current.currency != following.currency or current.area != following.area:
                 return None
-            current_effective_price = _effective_price(
+            current_scheduling_price = _scheduling_price(
                 current.market_price,
                 at=current.start,
                 grid_fee_per_kwh=grid_fee_per_kwh,
                 grid_fee_at=grid_fee_at,
             )
-            next_effective_price = _effective_price(
+            next_scheduling_price = _scheduling_price(
                 following.market_price,
                 at=following.start,
                 grid_fee_per_kwh=grid_fee_per_kwh,
                 grid_fee_at=grid_fee_at,
             )
-            delta = next_effective_price - current_effective_price
+            delta = next_scheduling_price - current_scheduling_price
             direction = "stable" if delta == 0 else "rising" if delta > 0 else "falling"
             return ForecastDirectionInsight(
                 direction=direction,
@@ -162,25 +198,33 @@ def find_price_direction(
                 current_end=current.end,
                 next_start=following.start,
                 next_end=following.end,
-                current_effective_price=current_effective_price,
-                next_effective_price=next_effective_price,
+                current_scheduling_price=current_scheduling_price,
+                next_scheduling_price=next_scheduling_price,
                 delta=delta,
                 currency=current.currency,
                 area=current.area,
                 published_at=current.published_at,
+                pricing_metadata=_scheduling_price_metadata(
+                    current,
+                    _has_grid_fee(
+                        current.start,
+                        grid_fee_per_kwh=grid_fee_per_kwh,
+                        grid_fee_at=grid_fee_at,
+                    ),
+                ),
             )
 
     return None
 
 
-def _effective_price(
+def _scheduling_price(
     market_price: Decimal,
     *,
     at: datetime,
     grid_fee_per_kwh: Decimal | None,
     grid_fee_at: GridFeeAt | None,
 ) -> Decimal:
-    """Return the effective price including configured adjustments."""
+    """Return the market-derived scheduling price including grid adjustments."""
     grid_fee = grid_fee_at(at) if grid_fee_at is not None else grid_fee_per_kwh
     return market_price + (grid_fee or Decimal("0"))
 
@@ -194,16 +238,16 @@ def _average_market_price(window: list[ForecastInterval]) -> Decimal:
     return weighted_sum / Decimal(total_minutes)
 
 
-def _average_effective_price(
+def _average_scheduling_price(
     window: list[ForecastInterval],
     *,
     grid_fee_per_kwh: Decimal | None,
     grid_fee_at: GridFeeAt | None,
 ) -> Decimal:
-    """Return the duration-weighted average effective price for a window."""
+    """Return the duration-weighted average scheduling price for a window."""
     total_minutes = sum(interval.resolution_minutes for interval in window)
     weighted_sum = sum(
-        _effective_price(
+        _scheduling_price(
             interval.market_price,
             at=interval.start,
             grid_fee_per_kwh=grid_fee_per_kwh,
@@ -222,8 +266,11 @@ def find_next_inexpensive_1h_window(
     threshold: Decimal,
     grid_fee_per_kwh: Decimal | None = None,
     grid_fee_at: GridFeeAt | None = None,
+    price_is_comparable: bool = True,
 ) -> NextInexpensive1hWindowInsight | None:
-    """Return the earliest upcoming 1-hour window whose average effective price is at or below threshold."""
+    """Return the earliest comparable 1-hour window at or below threshold."""
+    if not price_is_comparable:
+        return None
     upcoming = sorted(
         (interval for interval in intervals if interval.start >= now),
         key=lambda interval: interval.start,
@@ -251,12 +298,12 @@ def find_next_inexpensive_1h_window(
         ):
             continue
 
-        average_effective_price = _average_effective_price(
+        average_scheduling_price = _average_scheduling_price(
             window,
             grid_fee_per_kwh=grid_fee_per_kwh,
             grid_fee_at=grid_fee_at,
         )
-        if average_effective_price > threshold:
+        if average_scheduling_price > threshold:
             continue
 
         return NextInexpensive1hWindowInsight(
@@ -265,11 +312,48 @@ def find_next_inexpensive_1h_window(
             duration_minutes=60,
             interval_count=len(window),
             average_market_price=_average_market_price(window),
-            average_effective_price=average_effective_price,
+            average_scheduling_price=average_scheduling_price,
             threshold=threshold,
             currency=window[0].currency,
             area=window[0].area,
             published_at=window[0].published_at,
+            pricing_metadata=_scheduling_price_metadata(
+                window[0],
+                _has_grid_fee(
+                    window[0].start,
+                    grid_fee_per_kwh=grid_fee_per_kwh,
+                    grid_fee_at=grid_fee_at,
+                ),
+            ),
         )
 
     return None
+
+
+def _has_grid_fee(
+    at: datetime,
+    *,
+    grid_fee_per_kwh: Decimal | None,
+    grid_fee_at: GridFeeAt | None,
+) -> bool:
+    """Return whether the scheduling price includes a grid fee."""
+    return (
+        grid_fee_at(at) if grid_fee_at is not None else grid_fee_per_kwh
+    ) is not None
+
+
+def _scheduling_price_metadata(
+    interval: ForecastInterval, includes_grid_fee: bool
+) -> PricingMetadata:
+    """Return component metadata for a derived forecast scheduling price."""
+    included = set(interval.pricing_metadata.scope.included)
+    if includes_grid_fee:
+        included.add(PriceComponent.VARIABLE_GRID_FEE)
+    return PricingMetadata(
+        strategy=interval.pricing_metadata.strategy,
+        scope=PriceComponentScope(
+            included=frozenset(included),
+            vat=interval.pricing_metadata.scope.vat,
+        ),
+        completeness=interval.pricing_metadata.completeness,
+    )

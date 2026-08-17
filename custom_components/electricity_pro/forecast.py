@@ -6,6 +6,25 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 
+from .pricing import (
+    PriceCompleteness,
+    PriceComponent,
+    PriceComponentScope,
+    PricingMetadata,
+    PricingStrategy,
+    VatTreatment,
+)
+
+
+NORDPOOL_MARKET_PRICE_METADATA = PricingMetadata(
+    strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
+    scope=PriceComponentScope(
+        included=frozenset({PriceComponent.MARKET_ENERGY}),
+        vat=VatTreatment.UNKNOWN,
+    ),
+    completeness=PriceCompleteness.PARTIAL,
+)
+
 
 @dataclass(frozen=True, slots=True)
 class ForecastInterval:
@@ -17,6 +36,7 @@ class ForecastInterval:
     currency: str
     area: str
     published_at: datetime | None = None
+    pricing_metadata: PricingMetadata = NORDPOOL_MARKET_PRICE_METADATA
 
     def __post_init__(self) -> None:
         """Validate the normalized interval."""
