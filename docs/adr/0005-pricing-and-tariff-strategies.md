@@ -179,11 +179,10 @@ forecasts may still drive relative cheapest-window and direction insights.
 ## Compatibility and migration
 
 Existing entity IDs and unique IDs remain stable. Entries created or confirmed
-through the v1.2 configuration flow store explicit pricing metadata. A
-temporary compatibility path lets an older entry load without guessing its
-semantics, but normalized price-dependent features remain unavailable until
-the user confirms the price source. That compatibility path is removed by
-issue #173 before the final v1.2 release.
+through the v1.2 configuration flow store explicit pricing metadata. An entry
+with a configured price source and missing or invalid metadata fails setup with
+a clear instruction to confirm its price source in integration options. Price
+semantics are never inferred during setup or calculation.
 
 ## Consequences
 
@@ -224,5 +223,5 @@ and monthly cost composition.
 - #162 covers time-of-use grid fees.
 - #163 covers fixed supplier fees.
 - #165 covers monthly cost composition and presentation.
-- #173 removes the temporary legacy pricing compatibility path.
+- #173 removed the temporary legacy pricing compatibility path.
 - #187 normalizes forecast price semantics and completeness.

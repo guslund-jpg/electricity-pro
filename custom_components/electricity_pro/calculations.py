@@ -32,24 +32,6 @@ def calculate_current_cost_rate(
     return power_kw * price_per_kwh
 
 
-def calculate_effective_price(
-    current_price: Decimal | None,
-    grid_fee_per_kwh: Decimal | None = None,
-) -> Decimal | None:
-    """Calculate price including optional variable per-kWh adjustments."""
-    if current_price is None or current_price < 0:
-        return None
-
-    adjustments = (grid_fee_per_kwh,)
-    if any(value is not None and value < 0 for value in adjustments):
-        return None
-
-    return current_price + sum(
-        (value for value in adjustments if value is not None),
-        start=Decimal(0),
-    )
-
-
 def calculate_normalized_effective_price(
     base_price: Decimal | None,
     metadata: PricingMetadata,
@@ -57,9 +39,8 @@ def calculate_normalized_effective_price(
 ) -> Decimal | None:
     """Calculate an effective price without double-counting components.
 
-    This is the metadata-aware calculation path for the new pricing model. It
-    remains separate from the legacy calculation until configuration migration
-    can provide explicit component semantics.
+    Every configured live price source reaches this calculation with explicit
+    component semantics.
     """
     if base_price is None or not base_price.is_finite() or base_price < 0:
         return None
@@ -126,7 +107,9 @@ def calculate_consumption_weighted_average_price(
     if energy_kwh <= 0:
         return None
 
-    return calculate_effective_price(
-        cost_today / energy_kwh,
-        grid_fee_per_kwh,
-    )
+    if grid_fee_per_kwh is not None and (
+        not grid_fee_per_kwh.is_finite() or grid_fee_per_kwh < 0
+    ):
+        return None
+
+    return (cost_today / energy_kwh) + (grid_fee_per_kwh or Decimal(0))

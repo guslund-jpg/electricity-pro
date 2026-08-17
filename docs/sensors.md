@@ -144,8 +144,8 @@ historical values are reconstructed by Electricity Pro.
 Live Effective Price, Current Cost Rate, and Good Time require explicit pricing
 metadata. Electricity Pro adds a configured variable grid fee only when that
 component is not already declared as part of the selected source price. An
-ambiguous older price configuration leaves these derived values unavailable
-until its source type, included components, and VAT treatment are confirmed.
+entry with a configured price source cannot load until its source type,
+included components, and VAT treatment are confirmed in integration options.
 
 ### Monthly peak-hour consumption
 

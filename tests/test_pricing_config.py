@@ -39,8 +39,8 @@ def test_pricing_metadata_from_mapping_deserializes_explicit_settings() -> None:
     assert metadata.completeness is PriceCompleteness.PARTIAL
 
 
-def test_pricing_metadata_from_mapping_preserves_legacy_entries() -> None:
-    """An entry without explicit metadata must remain on the legacy path."""
+def test_pricing_metadata_from_mapping_rejects_missing_metadata() -> None:
+    """An entry without explicit metadata must not acquire guessed semantics."""
     assert pricing_metadata_from_mapping({"price_entity": "sensor.price"}) is None
 
 
@@ -53,7 +53,7 @@ def test_pricing_metadata_from_mapping_rejects_partial_metadata() -> None:
 
 
 def test_pricing_metadata_from_mapping_rejects_invalid_values() -> None:
-    """Unknown serialized values should safely fall back to the legacy path."""
+    """Unknown serialized values should be rejected."""
     settings = _complete_settings()
     settings[CONF_PRICE_INCLUDED_COMPONENTS] = ["unsupported"]
 
@@ -61,7 +61,7 @@ def test_pricing_metadata_from_mapping_rejects_invalid_values() -> None:
 
 
 def test_resolve_pricing_metadata_prefers_options() -> None:
-    """Options should override data during a future user-confirmed migration."""
+    """User-confirmed options should override entry data."""
     data = _complete_settings()
     options = {
         CONF_PRICE_VAT_TREATMENT: VatTreatment.INCLUDED.value,

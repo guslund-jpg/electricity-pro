@@ -1,15 +1,37 @@
 """Tests for Electricity Pro integration setup."""
 
+import pytest
+
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.electricity_pro import async_setup_entry
 from custom_components.electricity_pro.const import (
     CONF_POWER_ENTITY,
+    CONF_PRICE_ENTITY,
     DOMAIN,
 )
 
 ENTITY_ID = "sensor.electricity_pro_current_power"
+
+
+async def test_setup_rejects_price_source_without_metadata(
+    hass: HomeAssistant,
+) -> None:
+    """A configured price source must have explicit component semantics."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_PRICE_ENTITY: "sensor.test_price",
+        },
+    )
+
+    with pytest.raises(ConfigEntryError, match="explicit pricing metadata"):
+        await async_setup_entry(hass, entry)
 
 
 async def test_setup_and_unload_entry(
