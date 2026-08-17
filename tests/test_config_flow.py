@@ -74,11 +74,10 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
         CONF_GRID_FEE_HIGH_END,
         CONF_GRID_FEE_HIGH_SEASON_START,
         CONF_GRID_FEE_HIGH_SEASON_END,
+        CONF_FIXED_GRID_FEE_MONTHLY,
     ]
+    assert keys.index(CONF_FIXED_GRID_FEE_MONTHLY) < keys.index(CONF_TAX_PER_KWH)
     assert keys.index(CONF_FIXED_SUPPLIER_FEE_MONTHLY) > keys.index(CONF_TAX_PER_KWH)
-    assert keys.index(CONF_FIXED_GRID_FEE_MONTHLY) > keys.index(
-        CONF_FIXED_SUPPLIER_FEE_MONTHLY
-    )
 
 
 async def test_user_step_creates_entry_with_forecast_config(hass) -> None:

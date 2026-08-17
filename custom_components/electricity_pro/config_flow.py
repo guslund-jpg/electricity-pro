@@ -209,14 +209,14 @@ def _tibber_settings_schema(
                 season_start_default=season_start_default,
                 season_end_default=season_end_default,
             ),
-            fixed_supplier_fee_key: selector.NumberSelector(
+            fixed_grid_fee_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
                     step=0.01,
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
-            fixed_grid_fee_key: selector.NumberSelector(
+            fixed_supplier_fee_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
                     step=0.01,
@@ -515,6 +515,13 @@ def _entity_schema(
                 season_start_default=grid_fee_high_season_start_default,
                 season_end_default=grid_fee_high_season_end_default,
             ),
+            fixed_grid_fee_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.01,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
             tax_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
@@ -523,13 +530,6 @@ def _entity_schema(
                 )
             ),
             fixed_supplier_fee_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.01,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            fixed_grid_fee_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
                     step=0.01,
