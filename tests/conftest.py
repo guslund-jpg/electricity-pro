@@ -59,7 +59,6 @@ def setup_electricity_pro(hass):
         power_unit: str = "W",
         price_value: str | None = None,
         price_unit: str = "SEK/kWh",
-        include_pricing_metadata: bool = True,
         energy_value: str | None = None,
         energy_unit: str = "kWh",
         accumulated_cost_today_value: str | None = None,
@@ -134,17 +133,14 @@ def setup_electricity_pro(hass):
                 },
             )
             entry_data[CONF_PRICE_ENTITY] = "sensor.test_price"
-            if include_pricing_metadata:
-                entry_data[CONF_PRICING_STRATEGY] = (
-                    PricingStrategy.SUPPLIER_CONTRACTED_PRICE.value
-                )
-                entry_data[CONF_PRICE_INCLUDED_COMPONENTS] = [
-                    PriceComponent.MARKET_ENERGY.value,
-                ]
-                entry_data[CONF_PRICE_VAT_TREATMENT] = VatTreatment.INCLUDED.value
-                entry_data[CONF_PRICE_COMPLETENESS] = (
-                    PriceCompleteness.PARTIAL.value
-                )
+            entry_data[CONF_PRICING_STRATEGY] = (
+                PricingStrategy.SUPPLIER_CONTRACTED_PRICE.value
+            )
+            entry_data[CONF_PRICE_INCLUDED_COMPONENTS] = [
+                PriceComponent.MARKET_ENERGY.value,
+            ]
+            entry_data[CONF_PRICE_VAT_TREATMENT] = VatTreatment.INCLUDED.value
+            entry_data[CONF_PRICE_COMPLETENESS] = PriceCompleteness.PARTIAL.value
 
         if energy_value is not None:
             hass.states.async_set(

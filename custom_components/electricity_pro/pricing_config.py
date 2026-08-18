@@ -26,9 +26,9 @@ def pricing_metadata_from_mapping(
 ) -> PricingMetadata | None:
     """Deserialize explicitly configured pricing metadata.
 
-    Existing entries without all metadata fields intentionally return ``None``
-    so callers can preserve the legacy calculation path. No provider semantics
-    are inferred during migration.
+    Missing, partial, or invalid metadata returns ``None``. Integration setup
+    rejects that result when a price source is configured; provider semantics
+    are never inferred.
     """
     required = (
         CONF_PRICING_STRATEGY,

@@ -304,8 +304,8 @@ async def test_user_step_stores_explicit_price_metadata(hass) -> None:
     assert result["data"][CONF_PRICE_COMPLETENESS] == PriceCompleteness.PARTIAL.value
 
 
-async def test_legacy_options_require_confirmation_only_when_saved(hass) -> None:
-    """A legacy entry loads but cannot be saved with ambiguous price semantics."""
+async def test_incomplete_entry_options_require_price_confirmation(hass) -> None:
+    """An incomplete entry cannot save options with ambiguous price semantics."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Electricity Pro",

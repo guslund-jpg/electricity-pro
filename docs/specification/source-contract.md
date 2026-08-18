@@ -78,7 +78,7 @@ bidirectional power may be introduced as separate capabilities later.
 | Property | Contract |
 | --- | --- |
 | Entity | `sensor.electricity_pro_current_price` |
-| Meaning | Configured variable price source, retained for compatibility |
+| Meaning | Configured variable price source with declared semantics |
 | Canonical unit | Currency per kWh |
 | Expected value | Numeric |
 | Update behavior | When the active price period changes |
@@ -87,7 +87,8 @@ bidirectional power may be introduced as separate capabilities later.
 
 The source may represent market price, contracted supplier price, or a complete
 external variable price, but its metadata makes that meaning explicit. Entries
-without confirmed metadata do not feed normalized live price calculations.
+with a configured price source and missing or invalid metadata fail setup and
+must be corrected through integration options.
 
 ### Effective price
 

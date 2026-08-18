@@ -14,6 +14,9 @@
 - Renamed partial Nord Pool-derived forecast values to scheduling prices,
   exposed their component and completeness metadata, and withheld absolute
   threshold advice when forecast and live price scopes are not comparable.
+- Removed the temporary metadata-free price calculation and setup path. Every
+  configured price source now requires explicit strategy, component, VAT, and
+  completeness metadata; measurement-only entries remain supported.
 
 ### Added
 

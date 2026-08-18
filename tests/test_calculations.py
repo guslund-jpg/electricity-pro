@@ -7,7 +7,6 @@ import pytest
 from custom_components.electricity_pro.calculations import (
     calculate_consumption_weighted_average_price,
     calculate_current_cost_rate,
-    calculate_effective_price,
     calculate_normalized_effective_price,
 )
 from custom_components.electricity_pro.pricing import (
@@ -17,27 +16,6 @@ from custom_components.electricity_pro.pricing import (
     PricingMetadata,
     PricingStrategy,
 )
-
-
-def test_calculate_effective_price_with_grid_fee() -> None:
-    """Effective price should include the variable grid fee."""
-    assert calculate_effective_price(
-        Decimal("0.80"),
-        Decimal("0.25"),
-    ) == Decimal("1.05")
-
-
-def test_calculate_effective_price_without_adjustments() -> None:
-    """Omitted adjustments should behave as zero."""
-    assert calculate_effective_price(Decimal("0.80")) == Decimal("0.80")
-
-
-def test_calculate_effective_price_rejects_negative_adjustment() -> None:
-    """Negative adjustments should not produce an effective price."""
-    assert calculate_effective_price(
-        Decimal("0.80"),
-        Decimal("-0.10"),
-    ) is None
 
 
 def test_calculate_normalized_effective_price_adds_missing_components() -> None:
