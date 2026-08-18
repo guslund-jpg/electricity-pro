@@ -238,6 +238,12 @@ ordered interval boundaries. Its scheduling price is the market forecast plus
 the configured variable grid fee. It remains distinct from live Effective
 Price until a forecast source declares a comparable complete component scope.
 
+`holiday_calendar.py` adapts the optional Home Assistant calendar action into
+a provider-neutral set of excluded local dates. The coordinator refreshes a
+short rolling horizon and injects it into the grid-tariff schedule used by both
+live and forecast calculations. Calendar failures retain the ordinary weekday
+schedule rather than silently assuming a holiday.
+
 ## Calculation layer
 
 `calculations.py` contains deterministic electricity calculations.

@@ -183,10 +183,15 @@ Use the single grid fee when the rate is constant. If the grid operator uses a
 weekday high/low tariff, use the ordinary grid fee as the low-period rate and
 add the high-period rate, local hours, and recurring seasonal dates.
 
+If high rates apply only on non-holiday weekdays, optionally select a Home
+Assistant calendar whose events represent public holidays or other excluded
+dates. Electricity Pro refreshes upcoming events and uses the low fee on every
+matching local date. If that calendar is temporarily unavailable, the ordinary
+weekday schedule remains active as a conservative fallback.
+
 Do not enter fixed monthly subscription fees or capacity/peak-demand charges
 in these fields. Those costs do not vary directly with each consumed kWh and
-need separate models. Public-holiday exclusions are also not yet configured by
-the integration; they are tracked as a separate enhancement.
+need separate models.
 
 An optional **fixed monthly electricity supplier fee** can be configured
 separately, including VAT. Electricity Pro exposes that amount as **Fixed

@@ -1,6 +1,6 @@
 """Tests for the Electricity Pro entity provider."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
@@ -153,6 +153,11 @@ def test_grid_fee_at_uses_configured_high_low_schedule(hass: HomeAssistant) -> N
     ) == Decimal("0.25")
     assert provider.grid_fee_at(
         datetime(2026, 11, 7, 7, 0, tzinfo=UTC)
+    ) == Decimal("0.125")
+
+    provider.set_grid_tariff_excluded_dates(frozenset({date(2026, 11, 2)}))
+    assert provider.grid_fee_at(
+        datetime(2026, 11, 2, 7, 0, tzinfo=UTC)
     ) == Decimal("0.125")
 
 

@@ -212,10 +212,11 @@ Delivered in the v1.2 foundation:
 4. Metadata-aware Effective Price, Current Cost Rate, and Good Time behavior.
 5. Fixed, variable, and weekday/seasonal grid-tariff foundations.
 6. Explicit partial-price semantics for native Nord Pool forecasts.
+7. Optional calendar-supplied holiday exclusions for high grid tariffs.
 
 Deferred capabilities remain separate follow-up work: configurable supplier
-markup, local interval cost accumulation, capacity tariffs, holiday calendars,
-and monthly cost composition.
+markup, local interval cost accumulation, capacity tariffs, and monthly cost
+composition.
 
 ## Related issues
 

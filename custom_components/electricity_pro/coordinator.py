@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfEnergy
@@ -26,6 +27,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
+    CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY,
     DOMAIN,
 )
 from .forecast import ForecastInterval
@@ -37,6 +39,7 @@ from .forecast_insights import (
     find_next_inexpensive_1h_window,
     find_price_direction,
 )
+from .holiday_calendar import async_get_excluded_dates
 from .nordpool import async_get_nordpool_forecast_intervals_for_date
 from .provider import (
     ElectricityProData,
@@ -56,6 +59,8 @@ _COST_THIS_MONTH = "cost_this_month"
 _COST_THIS_MONTH_UNIT = "cost_this_month_unit"
 _KWH_PER_WH = Decimal("0.001")
 _FORECAST_REFRESH_INTERVAL = timedelta(minutes=15)
+_HOLIDAY_REFRESH_INTERVAL = timedelta(minutes=15)
+_HOLIDAY_LOOKAHEAD_DAYS = 32
 _TOMORROW_PUBLICATION_HOUR = 13
 
 
@@ -77,6 +82,7 @@ class ElectricityProCoordinator(
         )
 
         self._entry = entry
+        self._local_timezone = ZoneInfo(hass.config.time_zone)
         self._provider = ElectricityProEntityProvider(
             hass=hass,
             entry=entry,
@@ -100,6 +106,16 @@ class ElectricityProCoordinator(
     async def async_start(self) -> None:
         """Start listening for provider source changes."""
         await self._async_restore_statistics()
+        if self._holiday_calendar_entity_id is not None:
+            await self._async_refresh_holiday_dates(dt_util.now())
+            self._entry.async_on_unload(
+                async_track_time_interval(
+                    self.hass,
+                    self._async_holiday_tick,
+                    _HOLIDAY_REFRESH_INTERVAL,
+                    cancel_on_shutdown=True,
+                )
+            )
         if self._forecast_configured:
             now = dt_util.now()
             await self._async_refresh_forecast_intervals(now.date())
@@ -173,6 +189,60 @@ class ElectricityProCoordinator(
             self._entry.data.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY),
         )
         return isinstance(config_entry_id, str) and bool(config_entry_id)
+
+    @property
+    def _holiday_calendar_entity_id(self) -> str | None:
+        """Return the configured holiday calendar entity ID."""
+        entity_id = self._entry.options.get(
+            CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY,
+            self._entry.data.get(CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY),
+        )
+        return entity_id if isinstance(entity_id, str) and entity_id else None
+
+    async def _async_holiday_tick(self, now: datetime) -> None:
+        """Refresh holiday exclusions and dependent live/forecast values."""
+        await self._async_refresh_holiday_dates(now)
+        self._recalculate_forecast_insights()
+        self.async_set_updated_data(self._read())
+
+    async def _async_refresh_holiday_dates(self, now: datetime) -> bool:
+        """Refresh the cached local dates excluded from high grid tariffs."""
+        entity_id = self._holiday_calendar_entity_id
+        if entity_id is None:
+            self._provider.set_grid_tariff_excluded_dates(frozenset())
+            return True
+
+        local_today = now.astimezone(self._local_timezone).date()
+        start = datetime.combine(
+            local_today - timedelta(days=1),
+            time.min,
+            tzinfo=self._local_timezone,
+        )
+        end = datetime.combine(
+            local_today + timedelta(days=_HOLIDAY_LOOKAHEAD_DAYS),
+            time.min,
+            tzinfo=self._local_timezone,
+        )
+        try:
+            excluded_dates = await async_get_excluded_dates(
+                self.hass,
+                entity_id=entity_id,
+                start=start,
+                end=end,
+                timezone=self._local_timezone,
+            )
+        except (HomeAssistantError, TimeoutError, ValueError) as err:
+            _LOGGER.warning(
+                "Unable to refresh grid-tariff holiday calendar %s; "
+                "using the ordinary weekday schedule: %s",
+                entity_id,
+                err,
+            )
+            self._provider.set_grid_tariff_excluded_dates(frozenset())
+            return False
+
+        self._provider.set_grid_tariff_excluded_dates(excluded_dates)
+        return True
 
     async def _async_forecast_tick(self, now: datetime) -> None:
         """Refresh published dates and expire cached insights as time advances."""

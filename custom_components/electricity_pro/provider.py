@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, time
+from dataclasses import dataclass, replace
+from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
@@ -231,6 +231,14 @@ class ElectricityProEntityProvider:
                 at.astimezone(self._local_timezone)
             )
         return self._grid_fee_per_kwh
+
+    def set_grid_tariff_excluded_dates(self, excluded_dates: frozenset[date]) -> None:
+        """Replace the calendar exclusions used by the scheduled grid tariff."""
+        if self._scheduled_grid_tariff is not None:
+            self._scheduled_grid_tariff = replace(
+                self._scheduled_grid_tariff,
+                excluded_dates=excluded_dates,
+            )
 
     @callback
     def read(self) -> ElectricityProData:
