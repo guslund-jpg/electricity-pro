@@ -29,9 +29,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_effective_price
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_effective_price
+                state_not: unknown
             card:
               # Example thresholds in the sensor's currency/kWh unit.
               type: gauge
@@ -49,9 +50,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_current_cost_rate
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_cost_rate
+                state_not: unknown
             card:
               # Example thresholds in the sensor's currency/hour unit.
               type: gauge
@@ -69,9 +71,10 @@ views:
         conditions:
           - condition: state
             entity: binary_sensor.electricity_pro_good_time_to_use_electricity
-            state_not:
-              - unavailable
-              - unknown
+            state_not: unavailable
+          - condition: state
+            entity: binary_sensor.electricity_pro_good_time_to_use_electricity
+            state_not: unknown
         card:
           type: custom:mushroom-template-card
           entity: binary_sensor.electricity_pro_good_time_to_use_electricity
@@ -106,9 +109,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_energy_today
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_energy_today
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_energy_today
@@ -121,9 +125,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_cost_today
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cost_today
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_cost_today
@@ -136,9 +141,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_consumption_weighted_average_price_today
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_consumption_weighted_average_price_today
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_consumption_weighted_average_price_today
@@ -151,9 +157,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_peak_power_today
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_today
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_peak_power_today
@@ -173,9 +180,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_energy_this_month
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_energy_this_month
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_energy_this_month
@@ -188,9 +196,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_cost_this_month
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cost_this_month
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_cost_this_month
@@ -203,9 +212,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_monthly_peak_hour_consumption
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_consumption
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_monthly_peak_hour_consumption
@@ -218,9 +228,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_monthly_peak_hour_time
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_time
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_monthly_peak_hour_time
@@ -261,9 +272,10 @@ views:
         conditions:
           - condition: state
             entity: sensor.electricity_pro_effective_price
-            state_not:
-              - unavailable
-              - unknown
+            state_not: unavailable
+          - condition: state
+            entity: sensor.electricity_pro_effective_price
+            state_not: unknown
         card:
           type: custom:apexcharts-card
           graph_span: 24h
@@ -297,9 +309,10 @@ views:
         conditions:
           - condition: state
             entity: sensor.electricity_pro_consumption_weighted_average_price_today
-            state_not:
-              - unavailable
-              - unknown
+            state_not: unavailable
+          - condition: state
+            entity: sensor.electricity_pro_consumption_weighted_average_price_today
+            state_not: unknown
         card:
           type: custom:mushroom-entity-card
           entity: sensor.electricity_pro_consumption_weighted_average_price_today
@@ -323,9 +336,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_current_l1
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l1
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_current_l1
@@ -335,9 +349,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_current_l2
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l2
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_current_l2
@@ -347,9 +362,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_current_l3
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l3
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_current_l3
@@ -359,9 +375,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_voltage_l1
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l1
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_voltage_l1
@@ -371,9 +388,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_voltage_l2
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l2
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_voltage_l2
@@ -383,9 +401,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_voltage_l3
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l3
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_voltage_l3
@@ -408,9 +427,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_cheapest_1h_window_start
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_1h_window_start
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_cheapest_1h_window_start
@@ -423,9 +443,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
@@ -438,9 +459,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_cheapest_2h_window_start
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_2h_window_start
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_cheapest_2h_window_start
@@ -453,9 +475,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
@@ -468,9 +491,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_cheapest_3h_window_start
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_3h_window_start
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_cheapest_3h_window_start
@@ -483,9 +507,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
@@ -498,9 +523,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_next_inexpensive_1h_window_start
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_next_inexpensive_1h_window_start
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_next_inexpensive_1h_window_start
@@ -513,9 +539,10 @@ views:
             conditions:
               - condition: state
                 entity: sensor.electricity_pro_price_direction
-                state_not:
-                  - unavailable
-                  - unknown
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_price_direction
+                state_not: unknown
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_price_direction
