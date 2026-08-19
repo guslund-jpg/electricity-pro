@@ -35,6 +35,9 @@
 - Added optional weekday high/low grid-tariff configuration with local daily
   hours and recurring seasonal dates. Forecast and live effective-price
   calculations now use the applicable fee for each timestamp.
+- Added an optional Home Assistant Workday source for weekday grid tariffs.
+  Dates it marks as non-working use the low fee in both live and forecast
+  calculations, with the ordinary weekday schedule as the safe fallback.
 - Added an optional VAT-inclusive fixed monthly electricity supplier fee with
   separate fixed-fee and total-supplier-cost monthly sensors. The existing
   consumption-based monthly cost and all price insights remain unchanged.

@@ -152,6 +152,12 @@ integration. Electricity Pro inherits the native integration's currency and,
 for single-area entries, its price area automatically. It asks for an area only
 when the selected Nord Pool entry contains several.
 
+Holiday-aware high/low grid tariffs optionally require Home Assistant's
+**Workday** integration. Configure Workday for your country and exclude
+holidays, then select its binary sensor in the Electricity Pro options. Workday
+is not required when you use a constant grid fee or do not need holiday
+exceptions.
+
 ### After installation: find your data
 
 Electricity Pro creates Home Assistant entities; it does not replace or modify

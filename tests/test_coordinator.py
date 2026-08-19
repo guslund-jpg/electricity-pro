@@ -12,6 +12,13 @@ from custom_components.electricity_pro.const import (
     CONF_FORECAST_CURRENCY,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
+    CONF_GRID_FEE_HIGH_END,
+    CONF_GRID_FEE_HIGH_PER_KWH,
+    CONF_GRID_FEE_HIGH_SEASON_END,
+    CONF_GRID_FEE_HIGH_SEASON_START,
+    CONF_GRID_FEE_HIGH_START,
+    CONF_GRID_FEE_WORKDAY_ENTITY,
+    CONF_GRID_FEE_PER_KWH,
     CONF_POWER_ENTITY,
     DOMAIN,
 )
@@ -21,6 +28,43 @@ from custom_components.electricity_pro.forecast_insights import (
     ForecastDirectionInsight,
     ForecastWindowInsight,
 )
+
+
+async def test_unavailable_workday_source_uses_ordinary_weekday_schedule(
+    hass,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Workday failure should conservatively retain the ordinary high fee."""
+    hass.config.time_zone = "Europe/Stockholm"
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_GRID_FEE_PER_KWH: 0.125,
+            CONF_GRID_FEE_HIGH_PER_KWH: 0.25,
+            CONF_GRID_FEE_HIGH_START: "06:00",
+            CONF_GRID_FEE_HIGH_END: "22:00",
+            CONF_GRID_FEE_HIGH_SEASON_START: "11-01",
+            CONF_GRID_FEE_HIGH_SEASON_END: "03-31",
+            CONF_GRID_FEE_WORKDAY_ENTITY: "binary_sensor.workday",
+        },
+    )
+    async_get = AsyncMock(side_effect=HomeAssistantError("workday unavailable"))
+    monkeypatch.setattr(
+        "custom_components.electricity_pro.coordinator.async_get_non_working_dates",
+        async_get,
+    )
+    coordinator = ElectricityProCoordinator(hass, entry)
+
+    refreshed = await coordinator._async_refresh_non_working_dates(  # noqa: SLF001
+        datetime(2026, 12, 25, 10, 0, tzinfo=UTC)
+    )
+
+    assert not refreshed
+    assert coordinator._provider.grid_fee_at(  # noqa: SLF001
+        datetime(2026, 12, 25, 10, 0, tzinfo=UTC)
+    ) == Decimal("0.25")
 
 
 @pytest.fixture

@@ -183,10 +183,19 @@ Use the single grid fee when the rate is constant. If the grid operator uses a
 weekday high/low tariff, use the ordinary grid fee as the low-period rate and
 add the high-period rate, local hours, and recurring seasonal dates.
 
+If high rates apply only on working weekdays, first add Home Assistant's
+**Workday** integration under **Settings → Devices & services → Add
+integration**. Configure the relevant country (for example Sweden), include the
+applicable working weekdays, and exclude **Holidays**. You can then select its
+binary sensor under **Public holidays (Home Assistant Workday)** in Electricity
+Pro. Dates reported as non-working use the low fee. If the Workday source is
+temporarily unavailable, the ordinary weekday schedule remains active as a
+conservative fallback. Workday is optional and is not needed for a constant
+grid fee or a tariff without holiday exceptions.
+
 Do not enter fixed monthly subscription fees or capacity/peak-demand charges
 in these fields. Those costs do not vary directly with each consumed kWh and
-need separate models. Public-holiday exclusions are also not yet configured by
-the integration; they are tracked as a separate enhancement.
+need separate models.
 
 An optional **fixed monthly electricity supplier fee** can be configured
 separately, including VAT. Electricity Pro exposes that amount as **Fixed
