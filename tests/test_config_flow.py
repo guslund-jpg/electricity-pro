@@ -16,7 +16,7 @@ from custom_components.electricity_pro.const import (
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_GRID_FEE_PER_KWH,
     CONF_GRID_FEE_HIGH_END,
-    CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY,
+    CONF_GRID_FEE_WORKDAY_ENTITY,
     CONF_GRID_FEE_HIGH_PER_KWH,
     CONF_GRID_FEE_HIGH_SEASON_END,
     CONF_GRID_FEE_HIGH_SEASON_START,
@@ -78,7 +78,7 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
         CONF_GRID_FEE_HIGH_END,
         CONF_GRID_FEE_HIGH_SEASON_START,
             CONF_GRID_FEE_HIGH_SEASON_END,
-            CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY,
+            CONF_GRID_FEE_WORKDAY_ENTITY,
             CONF_FIXED_GRID_FEE_MONTHLY,
     ]
 

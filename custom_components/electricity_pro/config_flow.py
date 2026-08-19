@@ -30,7 +30,7 @@ from .const import (
     CONF_FORECAST_PRICE_AREA,
     CONF_GRID_FEE_PER_KWH,
     CONF_GRID_FEE_HIGH_END,
-    CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY,
+    CONF_GRID_FEE_WORKDAY_ENTITY,
     CONF_GRID_FEE_HIGH_PER_KWH,
     CONF_GRID_FEE_HIGH_SEASON_END,
     CONF_GRID_FEE_HIGH_SEASON_START,
@@ -104,7 +104,7 @@ def _time_of_use_tariff_fields(
     high_end_default: str = "22:00",
     season_start_default: str = "11-01",
     season_end_default: str = "03-31",
-    holiday_calendar_default: str | None = None,
+    workday_entity_default: str | None = None,
 ) -> dict[vol.Marker, Any]:
     """Return optional high/low tariff schedule fields."""
     high_fee_key = (
@@ -112,12 +112,12 @@ def _time_of_use_tariff_fields(
         if high_fee_default is None
         else vol.Optional(CONF_GRID_FEE_HIGH_PER_KWH, default=high_fee_default)
     )
-    holiday_calendar_key = (
-        vol.Optional(CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY)
-        if holiday_calendar_default is None
+    workday_entity_key = (
+        vol.Optional(CONF_GRID_FEE_WORKDAY_ENTITY)
+        if workday_entity_default is None
         else vol.Optional(
-            CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY,
-            default=holiday_calendar_default,
+            CONF_GRID_FEE_WORKDAY_ENTITY,
+            default=workday_entity_default,
         )
     )
     return {
@@ -140,8 +140,10 @@ def _time_of_use_tariff_fields(
         vol.Optional(
             CONF_GRID_FEE_HIGH_SEASON_END, default=season_end_default
         ): selector.TextSelector(),
-        holiday_calendar_key: selector.EntitySelector(
-            selector.EntitySelectorConfig(domain="calendar")
+        workday_entity_key: selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                filter={"domain": "binary_sensor", "integration": "workday"}
+            )
         ),
     }
 
@@ -172,7 +174,7 @@ def _tibber_settings_schema(
     high_end_default: str = "22:00",
     season_start_default: str = "11-01",
     season_end_default: str = "03-31",
-    holiday_calendar_default: str | None = None,
+    workday_entity_default: str | None = None,
     fixed_supplier_fee_default: float | None = None,
     fixed_grid_fee_default: float | None = None,
 ) -> vol.Schema:
@@ -221,7 +223,7 @@ def _tibber_settings_schema(
                 high_end_default=high_end_default,
                 season_start_default=season_start_default,
                 season_end_default=season_end_default,
-                holiday_calendar_default=holiday_calendar_default,
+                workday_entity_default=workday_entity_default,
             ),
             fixed_grid_fee_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
@@ -274,7 +276,7 @@ def _entity_schema(
     grid_fee_high_end_default: str = "22:00",
     grid_fee_high_season_start_default: str = "11-01",
     grid_fee_high_season_end_default: str = "03-31",
-    grid_fee_holiday_calendar_default: str | None = None,
+    grid_fee_workday_entity_default: str | None = None,
     fixed_supplier_fee_monthly_default: float | None = None,
     fixed_grid_fee_monthly_default: float | None = None,
 ) -> vol.Schema:
@@ -521,7 +523,7 @@ def _entity_schema(
                 high_end_default=grid_fee_high_end_default,
                 season_start_default=grid_fee_high_season_start_default,
                 season_end_default=grid_fee_high_season_end_default,
-                holiday_calendar_default=grid_fee_holiday_calendar_default,
+                workday_entity_default=grid_fee_workday_entity_default,
             ),
             fixed_grid_fee_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
@@ -822,8 +824,8 @@ class ElectricityProOptionsFlow(OptionsFlow):
                     season_end_default=values.get(
                         CONF_GRID_FEE_HIGH_SEASON_END, "03-31"
                     ),
-                    holiday_calendar_default=values.get(
-                        CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY
+                    workday_entity_default=values.get(
+                        CONF_GRID_FEE_WORKDAY_ENTITY
                     ),
                     fixed_supplier_fee_default=values.get(
                         CONF_FIXED_SUPPLIER_FEE_MONTHLY
@@ -1016,8 +1018,8 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 grid_fee_high_season_end_default=tariff_values.get(
                     CONF_GRID_FEE_HIGH_SEASON_END, "03-31"
                 ),
-                grid_fee_holiday_calendar_default=tariff_values.get(
-                    CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY
+                grid_fee_workday_entity_default=tariff_values.get(
+                    CONF_GRID_FEE_WORKDAY_ENTITY
                 ),
                 fixed_supplier_fee_monthly_default=current_fixed_supplier_fee,
                 fixed_grid_fee_monthly_default=current_fixed_grid_fee,

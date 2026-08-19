@@ -17,7 +17,7 @@ from custom_components.electricity_pro.const import (
     CONF_GRID_FEE_HIGH_SEASON_END,
     CONF_GRID_FEE_HIGH_SEASON_START,
     CONF_GRID_FEE_HIGH_START,
-    CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY,
+    CONF_GRID_FEE_WORKDAY_ENTITY,
     CONF_GRID_FEE_PER_KWH,
     CONF_POWER_ENTITY,
     DOMAIN,
@@ -30,11 +30,11 @@ from custom_components.electricity_pro.forecast_insights import (
 )
 
 
-async def test_unavailable_holiday_calendar_uses_ordinary_weekday_schedule(
+async def test_unavailable_workday_source_uses_ordinary_weekday_schedule(
     hass,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Calendar failure should conservatively retain the ordinary high fee."""
+    """Workday failure should conservatively retain the ordinary high fee."""
     hass.config.time_zone = "Europe/Stockholm"
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -47,17 +47,17 @@ async def test_unavailable_holiday_calendar_uses_ordinary_weekday_schedule(
             CONF_GRID_FEE_HIGH_END: "22:00",
             CONF_GRID_FEE_HIGH_SEASON_START: "11-01",
             CONF_GRID_FEE_HIGH_SEASON_END: "03-31",
-            CONF_GRID_FEE_HOLIDAY_CALENDAR_ENTITY: "calendar.holidays",
+            CONF_GRID_FEE_WORKDAY_ENTITY: "binary_sensor.workday",
         },
     )
-    async_get = AsyncMock(side_effect=HomeAssistantError("calendar unavailable"))
+    async_get = AsyncMock(side_effect=HomeAssistantError("workday unavailable"))
     monkeypatch.setattr(
-        "custom_components.electricity_pro.coordinator.async_get_excluded_dates",
+        "custom_components.electricity_pro.coordinator.async_get_non_working_dates",
         async_get,
     )
     coordinator = ElectricityProCoordinator(hass, entry)
 
-    refreshed = await coordinator._async_refresh_holiday_dates(  # noqa: SLF001
+    refreshed = await coordinator._async_refresh_non_working_dates(  # noqa: SLF001
         datetime(2026, 12, 25, 10, 0, tzinfo=UTC)
     )
 
