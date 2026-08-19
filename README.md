@@ -184,7 +184,13 @@ create a manual dashboard, copy an example, and verify its entity IDs.
 1. Copy the `custom_components/electricity_pro` folder into your Home Assistant configuration.
 2. Restart Home Assistant.
 3. Add **Electricity Pro** from **Settings → Devices & Services**.
-4. Select your existing energy sensors (for example Tibber, Nord Pool or other compatible providers).
+4. Choose **Tibber fast track** when Tibber provides both the contract price and
+   Pulse measurements. Otherwise choose **Custom or mixed sources**, select the
+   compatible Home Assistant entities, and declare the selected price source's
+   included components and VAT treatment.
+
+See the [configuration guide](docs/README.md#configuration) for source examples,
+grid-tariff settings, and optional Nord Pool and Workday features.
 
 ---
 
