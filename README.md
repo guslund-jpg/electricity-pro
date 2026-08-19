@@ -30,10 +30,12 @@ Electricity Pro does **not** replace it.
 Instead, it builds an intelligence layer on top of your existing energy integrations, adding calculations, statistics, forecasting and insights that complement Home Assistant's native capabilities.
 
 Existing live measurements work with compatible Home Assistant entities from
-providers such as Tibber, Nord Pool and smart meters. v1.1 forecast insight
-sensors use the native Home Assistant Nord Pool integration and its future-price
-action for the first scheduling-oriented intelligence layer. The legacy HACS
-Nord Pool integration is not required or supported as a forecast source.
+providers such as Tibber, Nord Pool and smart meters. Forecast insight sensors
+use the native Home Assistant Nord Pool integration and its future-price action.
+The v1.2 pricing and tariff foundation adds explicit price semantics and
+configurable grid and fixed-fee models without provider-specific calculation
+branches. The legacy HACS Nord Pool integration is not required or supported as
+a forecast source.
 
 ## Who is Electricity Pro for?
 
@@ -111,7 +113,7 @@ Electricity Pro is evolving in carefully planned stages.
 | **v0.9** | Daily Statistics & Dashboards    | ✅ Released                      |
 | **v1.0** | Stable Release                   | ✅ Released                      |
 | **v1.1** | Forecast Prices & Scheduling     | ✅ Released                      |
-| **v1.2** | Pricing & Tariff Foundation      | 🔭 Planned                       |
+| **v1.2** | Pricing & Tariff Foundation      | ✅ Released                      |
 | **v1.3** | Recommendation Intelligence      | 🔭 Planned                       |
 
 See [ROADMAP.md](ROADMAP.md) for more details.
@@ -200,11 +202,11 @@ create a manual dashboard, copy an example, and verify its entity IDs.
 
 ### Current release
 
-v1.1.0 – Forecast Prices & Scheduling Insights
+v1.2.0 – Provider-Independent Pricing & Tariff Foundation
 
 Electricity Pro is actively developed with a clear public roadmap.
 
-The current focus is v1.2 provider-independent pricing and tariff foundations.
+The current focus is v1.3 recommendation intelligence.
 
 ---
 

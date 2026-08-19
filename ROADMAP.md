@@ -235,7 +235,7 @@ Delivered:
 
 ---
 
-### v1.2 — Provider-Independent Pricing & Tariff Foundation
+### v1.2 — Provider-Independent Pricing & Tariff Foundation ✅
 
 #### Goal
 
@@ -243,7 +243,7 @@ Make price and cost semantics explicit so Tibber users retain a simple setup
 while other users can combine Nord Pool, compatible meters, and configured
 supplier and grid tariffs without double counting.
 
-Planned capabilities:
+Delivered:
 
 - Guided setup with independent measurement-source and price-source choices
 - Automatic, reviewable discovery for a Tibber home using Tibber Pulse and a
@@ -253,10 +253,11 @@ Planned capabilities:
 - Explicit supplier-price, market-price, and complete-price strategies
 - Component inclusion and VAT semantics
 - Cost provenance and tariff completeness metadata
-- Conservative migration of existing v1.1 configurations
-- Nord Pool plus configured supplier-markup pricing
-- Time-of-use grid fees ([#162](https://github.com/guslund-jpg/electricity-pro/issues/162))
-- Fixed supplier charges ([#163](https://github.com/guslund-jpg/electricity-pro/issues/163))
+- Metadata-aware Effective Price, Current Cost Rate, and Good Time calculations
+- Time-of-use grid fees with weekday, seasonal, and optional Workday holiday
+  rules ([#162](https://github.com/guslund-jpg/electricity-pro/issues/162))
+- Separate fixed grid-provider and electricity-supplier fees
+  ([#163](https://github.com/guslund-jpg/electricity-pro/issues/163))
 - A normalized foundation for future cost composition
 
 The architecture is defined by
