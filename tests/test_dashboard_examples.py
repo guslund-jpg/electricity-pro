@@ -33,3 +33,29 @@ def test_dashboard_condition_state_not_is_scalar() -> None:
             and not isinstance(item["state_not"], str)
         ]
         assert not invalid, f"{dashboard_path.name} contains invalid state_not values"
+
+
+def test_enhanced_dashboard_live_header_precision() -> None:
+    """Enhanced live charts use readable power and price precision."""
+    dashboard = yaml.safe_load(
+        (DASHBOARD_EXAMPLES / "electricity-pro-enhanced.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    series_by_entity = {
+        series["entity"]: series
+        for item in _walk(dashboard)
+        if isinstance(item, dict) and isinstance(item.get("series"), list)
+        for series in item["series"]
+        if isinstance(series, dict) and "entity" in series
+    }
+
+    assert (
+        series_by_entity["sensor.electricity_pro_current_power"]["float_precision"]
+        == 0
+    )
+    for entity_id in (
+        "sensor.electricity_pro_current_price",
+        "sensor.electricity_pro_effective_price",
+    ):
+        assert series_by_entity[entity_id]["float_precision"] == 2

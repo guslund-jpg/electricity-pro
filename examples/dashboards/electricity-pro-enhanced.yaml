@@ -264,6 +264,9 @@ views:
             type: area
             color: "#ffb300"
             stroke_width: 2
+            float_precision: 0
+            show:
+              in_header: true
             group_by:
               duration: 5min
               func: avg
@@ -293,8 +296,9 @@ views:
               type: line
               color: "#42a5f5"
               stroke_width: 2
+              float_precision: 2
               show:
-                in_header: raw
+                in_header: true
               group_by:
                 duration: 15min
                 func: avg
@@ -303,8 +307,9 @@ views:
               type: line
               color: "#66bb6a"
               stroke_width: 3
+              float_precision: 2
               show:
-                in_header: raw
+                in_header: true
               group_by:
                 duration: 15min
                 func: avg

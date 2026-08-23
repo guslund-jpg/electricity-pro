@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Display live power as whole watts and live supplier and Effective Price values
+  with two decimals in Home Assistant and the enhanced dashboard example.
+
 ## [1.2.0] - 2026-08-23
 
 ### Changed
