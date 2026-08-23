@@ -1,6 +1,9 @@
 {
   "domain": "electricity_pro",
   "name": "Electricity Pro",
+  "after_dependencies": [
+    "workday"
+  ],
   "codeowners": [
     "@guslund-jpg"
   ],
