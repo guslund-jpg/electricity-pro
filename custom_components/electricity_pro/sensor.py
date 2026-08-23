@@ -229,6 +229,7 @@ SENSOR_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.WATT,
+        suggested_display_precision=0,
         value_fn=lambda data: data.current_power,
         available_fn=lambda data: data.current_power is not None,
     ),
@@ -237,6 +238,7 @@ SENSOR_DESCRIPTIONS: tuple[
         name="Current price",
         icon="mdi:currency-usd",
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
         value_fn=lambda data: data.current_price,
         unit_fn=lambda data: data.current_price_unit,
         available_fn=lambda data: (
@@ -249,7 +251,7 @@ SENSOR_DESCRIPTIONS: tuple[
         name="Current cost rate",
         icon="mdi:cash-clock",
         state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=3,
+        suggested_display_precision=2,
         value_fn=current_cost_rate,
         unit_fn=cost_rate_unit,
         available_fn=lambda data: (
