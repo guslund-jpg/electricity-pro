@@ -69,7 +69,7 @@
           "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider.",
-          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 1.00 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
       },
@@ -105,7 +105,7 @@
           "grid_fee_high_season_start": "First date of the recurring high season, written MM-DD; for example 11-01.",
           "grid_fee_high_season_end": "Last date of the recurring high season, written MM-DD; for example 03-31.",
           "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
-          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity. For example, use 0.90 SEK/kWh for a Swedish setup.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity. For example, use 1.00 SEK/kWh for a Swedish setup.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider."
         }
@@ -184,7 +184,7 @@
           "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider.",
-          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 1.00 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
       },
