@@ -62,6 +62,8 @@
 
 ### Fixed
 
+- Ensured Home Assistant finishes setting up the optional Workday integration
+  before Electricity Pro queries its `check_date` action during startup.
 - Made the enhanced dashboard's ApexCharts headers show the raw current price
   values while retaining 15-minute averaging in the plotted history.
 - Updated both dashboard examples to use scalar conditional-card `state_not`
