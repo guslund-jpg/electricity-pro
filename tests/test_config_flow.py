@@ -9,6 +9,7 @@ from custom_components.electricity_pro.const import (
     CONF_CURRENT_L1_ENTITY,
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
+    CONF_ENERGY_TAX_PER_KWH,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
     CONF_FIXED_SUPPLIER_FEE_MONTHLY,
@@ -78,8 +79,9 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
         CONF_GRID_FEE_HIGH_END,
         CONF_GRID_FEE_HIGH_SEASON_START,
             CONF_GRID_FEE_HIGH_SEASON_END,
-            CONF_GRID_FEE_WORKDAY_ENTITY,
-            CONF_FIXED_GRID_FEE_MONTHLY,
+        CONF_GRID_FEE_WORKDAY_ENTITY,
+        CONF_ENERGY_TAX_PER_KWH,
+        CONF_FIXED_GRID_FEE_MONTHLY,
     ]
 
 

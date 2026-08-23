@@ -115,8 +115,8 @@ every user manually describes accounting components.
 The normal setup will offer provider-aware presets when Electricity Pro can
 state their semantics confidently. The first preset targets Tibber's
 contracted-price sensor. It records market energy, supplier-side additions,
-Swedish energy tax, and VAT as already included, while leaving grid-company
-charges outside the source price.
+and VAT as already included. Swedish energy tax and grid fees are grid-company
+charges and remain explicit configuration outside the Tibber source price.
 
 Users of Nord Pool or another source can choose an advanced/manual path and
 declare the components and VAT treatment explicitly. Presets and manual setup

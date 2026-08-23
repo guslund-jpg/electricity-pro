@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Corrected the Tibber price contract: Tibber's supplier price includes market
+  energy, supplier markup, and VAT, but Swedish energy tax is charged by the
+  grid provider. Added an explicit optional VAT-inclusive energy-tax setting
+  and applied it to live, achieved-average, and forecast-derived prices.
 - Removed the ambiguous combined tax-or-markup configuration. Supplier markup
   and energy tax remain explicit internal component types and will only return
   as user settings when their source and accounting semantics are unambiguous.

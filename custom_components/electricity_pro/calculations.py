@@ -65,19 +65,20 @@ def calculate_declared_effective_price(
     base_price: Decimal | None,
     metadata: PricingMetadata | None,
     grid_fee_per_kwh: Decimal | None = None,
+    energy_tax_per_kwh: Decimal | None = None,
 ) -> Decimal | None:
     """Calculate live Effective Price from explicitly declared semantics."""
     if metadata is None:
         return None
-    adjustments = (
-        {PriceComponent.VARIABLE_GRID_FEE: grid_fee_per_kwh}
-        if grid_fee_per_kwh is not None
-        else None
-    )
+    adjustments = {}
+    if grid_fee_per_kwh is not None:
+        adjustments[PriceComponent.VARIABLE_GRID_FEE] = grid_fee_per_kwh
+    if energy_tax_per_kwh is not None:
+        adjustments[PriceComponent.ENERGY_TAX] = energy_tax_per_kwh
     return calculate_normalized_effective_price(
         base_price,
         metadata,
-        adjustments,
+        adjustments or None,
     )
 
 
@@ -86,6 +87,7 @@ def calculate_consumption_weighted_average_price(
     energy_today: Decimal | None,
     energy_unit: str | None,
     grid_fee_per_kwh: Decimal | None = None,
+    energy_tax_per_kwh: Decimal | None = None,
 ) -> Decimal | None:
     """Calculate today's achieved average effective price per kWh."""
     if (
@@ -107,9 +109,14 @@ def calculate_consumption_weighted_average_price(
     if energy_kwh <= 0:
         return None
 
-    if grid_fee_per_kwh is not None and (
-        not grid_fee_per_kwh.is_finite() or grid_fee_per_kwh < 0
-    ):
-        return None
+    for adjustment in (grid_fee_per_kwh, energy_tax_per_kwh):
+        if adjustment is not None and (
+            not adjustment.is_finite() or adjustment < 0
+        ):
+            return None
 
-    return (cost_today / energy_kwh) + (grid_fee_per_kwh or Decimal(0))
+    return (
+        (cost_today / energy_kwh)
+        + (grid_fee_per_kwh or Decimal(0))
+        + (energy_tax_per_kwh or Decimal(0))
+    )

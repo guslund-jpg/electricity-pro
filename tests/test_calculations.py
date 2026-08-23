@@ -7,6 +7,7 @@ import pytest
 from custom_components.electricity_pro.calculations import (
     calculate_consumption_weighted_average_price,
     calculate_current_cost_rate,
+    calculate_declared_effective_price,
     calculate_normalized_effective_price,
 )
 from custom_components.electricity_pro.pricing import (
@@ -121,6 +122,25 @@ def test_calculate_consumption_weighted_average_price() -> None:
         "kWh",
         Decimal("0.25"),
     ) == Decimal("1.45")
+
+
+def test_explicit_energy_tax_is_added_to_effective_prices() -> None:
+    """Grid-side energy tax should be added exactly once."""
+    metadata = PricingMetadata(
+        strategy=PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
+        scope=PriceComponentScope(
+            frozenset(
+                {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
+            )
+        ),
+        completeness=PriceCompleteness.PARTIAL,
+    )
+    assert calculate_declared_effective_price(
+        Decimal("1.00"), metadata, Decimal("0.10"), Decimal("0.45")
+    ) == Decimal("1.55")
+    assert calculate_consumption_weighted_average_price(
+        Decimal("10"), Decimal("10"), "kWh", Decimal("0.10"), Decimal("0.45")
+    ) == Decimal("1.55")
 
 
 def test_calculate_consumption_weighted_average_price_accepts_wh() -> None:

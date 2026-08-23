@@ -9,6 +9,7 @@ from custom_components.electricity_pro.forecast_insights import (
     find_next_inexpensive_1h_window,
     find_price_direction,
 )
+from custom_components.electricity_pro.pricing import PriceComponent
 
 
 def _interval(
@@ -168,11 +169,13 @@ def test_find_cheapest_continuous_window_uses_weighted_average() -> None:
         now=now,
         duration_minutes=60,
         grid_fee_per_kwh=Decimal("0.10"),
+        energy_tax_per_kwh=Decimal("0.45"),
     )
 
     assert result is not None
     assert result.average_market_price == Decimal("0.50")
-    assert result.average_effective_price == Decimal("0.60")
+    assert result.average_effective_price == Decimal("1.05")
+    assert PriceComponent.ENERGY_TAX in result.pricing_metadata.scope.included
 
 
 def test_find_cheapest_window_applies_grid_fee_for_each_interval() -> None:
