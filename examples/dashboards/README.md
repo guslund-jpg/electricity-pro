@@ -24,7 +24,9 @@ limits:
 - Current Power uses a 10,000 W scale, with yellow at 4,000 W and red at
   7,000 W.
 - Effective Price uses a 0–3 scale in the price sensor's currency per kWh,
-  with yellow at 1 and red at 1.5.
+  with yellow at 1 and red at 1.5. Set the yellow boundary to the same value as
+  the **Good price threshold** configured in Electricity Pro. These examples
+  use 1.00 in the local currency per kWh.
 - Current Cost Rate combines Current Power and Effective Price into the rate at
   which money is currently being spent. It uses a 0–20 scale in the price
   sensor's currency per hour, with yellow at 5 and red at 10.
