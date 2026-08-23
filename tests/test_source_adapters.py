@@ -60,7 +60,6 @@ def test_discovers_tibber_capabilities_without_entity_name_assumptions() -> None
         PricingStrategy.SUPPLIER_CONTRACTED_PRICE.value
     )
     assert source.data[CONF_PRICE_INCLUDED_COMPONENTS] == [
-        PriceComponent.ENERGY_TAX.value,
         PriceComponent.MARKET_ENERGY.value,
         PriceComponent.SUPPLIER_MARKUP.value,
     ]

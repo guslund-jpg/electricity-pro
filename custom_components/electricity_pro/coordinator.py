@@ -436,6 +436,7 @@ class ElectricityProCoordinator(
             duration_minutes=60,
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
+            energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
         )
         self._cheapest_2h_window = find_cheapest_continuous_window(
             self._forecast_intervals,
@@ -443,6 +444,7 @@ class ElectricityProCoordinator(
             duration_minutes=120,
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
+            energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
         )
         self._cheapest_3h_window = find_cheapest_continuous_window(
             self._forecast_intervals,
@@ -450,6 +452,7 @@ class ElectricityProCoordinator(
             duration_minutes=180,
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
+            energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
         )
         threshold = provider_data.good_price_threshold
         forecast_metadata = (
@@ -471,6 +474,7 @@ class ElectricityProCoordinator(
                 threshold=threshold,
                 grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
                 grid_fee_at=self._provider.grid_fee_at,
+                energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
                 price_is_comparable=prices_are_comparable,
             )
             if threshold is not None
@@ -481,6 +485,7 @@ class ElectricityProCoordinator(
             now=now,
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
+            energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
         )
 
     @callback

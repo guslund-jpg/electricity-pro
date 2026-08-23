@@ -77,7 +77,6 @@ _TIBBER_PRICE_METADATA: dict[str, object] = {
     CONF_SOURCE_PROFILE: "tibber",
     CONF_PRICING_STRATEGY: PricingStrategy.SUPPLIER_CONTRACTED_PRICE.value,
     CONF_PRICE_INCLUDED_COMPONENTS: [
-        PriceComponent.ENERGY_TAX.value,
         PriceComponent.MARKET_ENERGY.value,
         PriceComponent.SUPPLIER_MARKUP.value,
     ],

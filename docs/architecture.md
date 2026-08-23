@@ -235,8 +235,9 @@ partial completeness.
 `forecast_insights.py` contains deterministic scheduling calculations. It does
 not call Home Assistant or Nord Pool directly and operates only on normalized,
 ordered interval boundaries. Its scheduling price is the market forecast plus
-the configured variable grid fee. It remains distinct from live Effective
-Price until a forecast source declares a comparable complete component scope.
+the configured variable grid fee and Energy Tax. It remains distinct from live
+Effective Price until a forecast source declares a comparable complete
+component scope.
 
 `workday.py` adapts Home Assistant's optional `workday.check_date` action into
 a provider-neutral set of excluded local dates. The coordinator refreshes a

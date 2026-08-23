@@ -33,6 +33,7 @@
           "monthly_peak_hour_consumption_entity": "Monthly peak hour consumption sensor",
           "monthly_peak_hour_time_entity": "Monthly peak hour time sensor",
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
+          "energy_tax_per_kwh": "Energy tax per kWh (including VAT)",
           "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
           "grid_fee_high_start": "High period starts (HH:MM)",
           "grid_fee_high_end": "High period ends (HH:MM)",
@@ -62,6 +63,7 @@
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the selected price sensor, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
+          "energy_tax_per_kwh": "Optional: Energy tax per kWh in the local currency, including VAT. For example, 0.45 SEK/kWh in Sweden. Check your grid agreement or bill because rates can change and reduced regional rates may apply.",
           "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
           "grid_fee_high_start": "Local start time for the high fee on Monday–Friday, for example 06:00.",
           "grid_fee_high_end": "Local end time for the high fee on Monday–Friday, for example 22:00.",
@@ -70,7 +72,7 @@
           "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider.",
-          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 1.00 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
       },
@@ -83,9 +85,10 @@
       },
       "tibber_settings": {
         "title": "Confirm Tibber fast track",
-        "description": "Electricity Pro found {entity_count} compatible entities. Current power: {power_entity}. Contracted price: {price_entity}. Tibber's contracted price includes market energy, Tibber markup, Swedish energy tax, and VAT. Add only costs that are not included, such as your variable grid fee.",
+        "description": "Electricity Pro found {entity_count} compatible entities. Current power: {power_entity}. Contracted price: {price_entity}. Tibber's contracted price includes market energy, Tibber markup, and VAT, but not grid fees or Swedish energy tax. Add those grid-side costs below when applicable.",
         "data": {
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
+          "energy_tax_per_kwh": "Energy tax per kWh (including VAT)",
           "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
           "grid_fee_high_start": "High period starts (HH:MM)",
           "grid_fee_high_end": "High period ends (HH:MM)",
@@ -98,13 +101,14 @@
         },
         "data_description": {
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the Tibber price, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
+          "energy_tax_per_kwh": "Optional: Energy tax per kWh in the local currency, including VAT. For example, 0.45 SEK/kWh in Sweden. Check your grid agreement or bill because rates can change and reduced regional rates may apply.",
           "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
           "grid_fee_high_start": "Local start time for the high fee on Monday–Friday, for example 06:00.",
           "grid_fee_high_end": "Local end time for the high fee on Monday–Friday, for example 22:00.",
           "grid_fee_high_season_start": "First date of the recurring high season, written MM-DD; for example 11-01.",
           "grid_fee_high_season_end": "Last date of the recurring high season, written MM-DD; for example 03-31.",
           "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
-          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity. For example, use 0.90 SEK/kWh for a Swedish setup.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity. For example, use 1.00 SEK/kWh for a Swedish setup.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider."
         }
@@ -146,6 +150,7 @@
           "monthly_peak_hour_consumption_entity": "Monthly peak hour consumption sensor",
           "monthly_peak_hour_time_entity": "Monthly peak hour time sensor",
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
+          "energy_tax_per_kwh": "Energy tax per kWh (including VAT)",
           "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
           "grid_fee_high_start": "High period starts (HH:MM)",
           "grid_fee_high_end": "High period ends (HH:MM)",
@@ -175,6 +180,7 @@
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the selected price sensor, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
+          "energy_tax_per_kwh": "Optional: Energy tax per kWh in the local currency, including VAT. For example, 0.45 SEK/kWh in Sweden. Check your grid agreement or bill because rates can change and reduced regional rates may apply.",
           "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
           "grid_fee_high_start": "Local start time for the high fee on Monday–Friday, for example 06:00.",
           "grid_fee_high_end": "Local end time for the high fee on Monday–Friday, for example 22:00.",
@@ -183,7 +189,7 @@
           "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider.",
-          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 0.90 SEK/kWh for a Swedish setup.",
+          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 1.00 SEK/kWh for a Swedish setup.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
       },

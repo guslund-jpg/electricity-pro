@@ -115,6 +115,7 @@ def effective_price(data: ElectricityProData) -> Decimal | None:
         data.current_price,
         data.pricing_metadata,
         data.grid_fee_per_kwh,
+        data.energy_tax_per_kwh,
     )
 
 
@@ -136,6 +137,7 @@ def consumption_weighted_average_price(
         data.current_energy,
         data.current_energy_unit,
         data.grid_fee_per_kwh,
+        data.energy_tax_per_kwh,
     )
 
 

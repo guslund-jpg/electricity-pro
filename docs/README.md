@@ -125,8 +125,10 @@ Choose **Tibber fast track** when the official Home Assistant Tibber integration
 provides both the electricity contract price and Tibber Pulse measurements.
 Electricity Pro discovers compatible entities from Home Assistant's entity and
 device registries. Renaming an entity does not prevent discovery. Review the
-detected home and add only values Tibber cannot provide, such as the variable
-grid fee.
+detected home and add only grid-side values Tibber cannot provide: the variable
+grid fee and Swedish energy tax. Enter both including VAT, using the rates from
+your grid agreement or bill. Energy-tax rates can change and reduced regional
+rates may apply, so Electricity Pro does not prefill a national default.
 
 ### Custom or mixed sources
 
