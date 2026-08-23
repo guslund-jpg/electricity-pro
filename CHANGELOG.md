@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.0] - 2026-08-23
 
 ### Changed
 
@@ -34,8 +34,8 @@
 - Added a conservative pricing-metadata configuration contract. Explicit
   settings can be serialized and resolved with options precedence.
 - Added price-source type, included-component, and VAT controls to setup and
-  options. New price configurations require an explicit declaration; existing
-  entries keep running until their options are saved and confirmed.
+  options. Price configurations require an explicit declaration, while
+  measurement-only entries remain supported.
 - Added optional weekday high/low grid-tariff configuration with local daily
   hours and recurring seasonal dates. Forecast and live effective-price
   calculations now use the applicable fee for each timestamp.
@@ -57,6 +57,15 @@
 - Clarified that HACS installs Electricity Pro entities but does not import a
   dashboard, added a post-installation path to the entity list and dashboard
   guide, and extended both example dashboards with the v1.1 forecast sensors.
+- Documented Home Assistant Workday as an optional prerequisite for
+  holiday-aware high/low grid tariffs.
+
+### Fixed
+
+- Made the enhanced dashboard's ApexCharts headers show the raw current price
+  values while retaining 15-minute averaging in the plotted history.
+- Updated both dashboard examples to use scalar conditional-card `state_not`
+  values supported by current Home Assistant releases.
 
 ## [1.1.0] - 2026-08-14
 
