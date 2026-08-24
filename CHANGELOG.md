@@ -6,6 +6,9 @@
 
 - Display live power as whole watts and live supplier and Effective Price values
   with two decimals in Home Assistant and the enhanced dashboard example.
+- Defined the provider-independent daily peak-power statistics architecture,
+  including local-day rollover, persistence, restart restoration, tie handling,
+  and the boundary against broader v1.3 intelligence.
 
 ## [1.2.0] - 2026-08-23
 
