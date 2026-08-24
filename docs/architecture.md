@@ -292,6 +292,19 @@ The statistics layer should remain deterministic. Current time should be passed 
 
 This makes time-dependent behaviour easier to test.
 
+### Daily power statistics
+
+The provider-independent daily-power design is defined by
+[ADR-0006](adr/0006-provider-independent-daily-power-statistics.md). It keeps a
+small pure daily-peak state machine in the statistics engine while assigning
+Home Assistant event handling, local-midnight rollover, and persistence to the
+coordinator.
+
+The first implementation is deliberately limited to Peak Power Today and its
+observation time. It does not query Recorder or establish a generic statistics
+plugin framework. Broader history should be added only when a concrete v1.3
+intelligence feature defines its data requirements.
+
 ## Sensor layer
 
 `sensor.py` exposes Electricity Pro data through Home Assistant sensor entities.

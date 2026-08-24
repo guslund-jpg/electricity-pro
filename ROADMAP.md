@@ -276,6 +276,14 @@ configuration; they do not introduce provider-specific calculation branches.
 Turn normalized price data, reliable forecasts, and household statistics into
 explainable, actionable recommendations.
 
+Foundation:
+
+- Provider-independent Peak Power Today and peak-time statistics defined by
+  [ADR-0006](docs/adr/0006-provider-independent-daily-power-statistics.md) and
+  tracked by [#64](https://github.com/guslund-jpg/electricity-pro/issues/64)
+- Minimal persisted history primitives introduced only as required by the first
+  recommendation designs
+
 Potential capabilities:
 
 - Best start time for a flexible appliance or charging session
