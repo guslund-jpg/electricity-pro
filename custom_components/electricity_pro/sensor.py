@@ -43,7 +43,6 @@ from .const import (
     CONF_FIXED_SUPPLIER_FEE_MONTHLY,
     CONF_FIXED_GRID_FEE_MONTHLY,
     CONF_GOOD_PRICE_THRESHOLD,
-    CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_PRICE_ENTITY,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
@@ -415,7 +414,14 @@ SENSOR_DESCRIPTIONS: tuple[
         suggested_display_precision=0,
         value_fn=lambda data: data.peak_power_today,
         available_fn=lambda data: data.peak_power_today is not None,
-        required_config_key=CONF_PEAK_POWER_TODAY_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="peak_power_time_today",
+        name="Peak power time today",
+        icon="mdi:clock-outline",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda data: data.peak_power_time_today,
+        available_fn=lambda data: data.peak_power_time_today is not None,
     ),
     ElectricityProSensorEntityDescription(
         key="current_energy",

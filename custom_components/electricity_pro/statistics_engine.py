@@ -67,6 +67,80 @@ class StatisticsSnapshot:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class DailyPeakSnapshot:
+    """Persisted state for the highest observed power in one local day."""
+
+    period_start: date
+    peak_power_w: Decimal
+    peak_time: datetime
+
+    def as_dict(self) -> dict[str, str]:
+        """Return a storage-safe representation of the snapshot."""
+        return {
+            "period_start": self.period_start.isoformat(),
+            "peak_power_w": str(self.peak_power_w),
+            "peak_time": self.peak_time.isoformat(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> DailyPeakSnapshot:
+        """Restore a snapshot from storage."""
+        try:
+            period_start = date.fromisoformat(data["period_start"])
+            peak_power_w = Decimal(data["peak_power_w"])
+            peak_time = datetime.fromisoformat(data["peak_time"])
+        except (InvalidOperation, TypeError, ValueError, KeyError) as err:
+            raise ValueError("invalid daily peak snapshot") from err
+
+        if (
+            not peak_power_w.is_finite()
+            or peak_power_w < 0
+            or peak_time.tzinfo is None
+            or peak_time.utcoffset() is None
+            or peak_time.date() != period_start
+        ):
+            raise ValueError("invalid daily peak snapshot")
+
+        return cls(period_start, peak_power_w, peak_time)
+
+
+class DailyPeakStatistic:
+    """Track the highest valid power measurement observed in a local day."""
+
+    def __init__(self, snapshot: DailyPeakSnapshot | None = None) -> None:
+        """Initialize the statistic, optionally from persisted state."""
+        self._snapshot = snapshot
+
+    @property
+    def snapshot(self) -> DailyPeakSnapshot | None:
+        """Return the current persistable state."""
+        return self._snapshot
+
+    def clear(self) -> bool:
+        """Clear the current snapshot and report whether it changed."""
+        if self._snapshot is None:
+            return False
+        self._snapshot = None
+        return True
+
+    def update(self, measurement: Decimal, now: datetime) -> bool:
+        """Apply a power measurement and report whether the peak changed."""
+        if not measurement.is_finite() or measurement < 0:
+            raise ValueError("measurement must be a non-negative finite value")
+        period_start = CalendarPeriod.DAY.start(now)
+        previous = self._snapshot
+        if (
+            previous is not None
+            and previous.period_start == period_start
+            and measurement <= previous.peak_power_w
+        ):
+            return False
+
+        self._snapshot = DailyPeakSnapshot(period_start, measurement, now)
+        return True
+
+
 class CumulativeStatistic:
     """Accumulate deltas from a non-negative cumulative measurement."""
 

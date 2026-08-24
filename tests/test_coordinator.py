@@ -30,6 +30,101 @@ from custom_components.electricity_pro.forecast_insights import (
 )
 
 
+def _daily_peak_entry() -> MockConfigEntry:
+    """Create a minimal entry for daily peak tests."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={CONF_POWER_ENTITY: "sensor.test_power"},
+        entry_id="daily-peak-entry",
+    )
+
+
+def test_daily_peak_is_calculated_from_current_power(hass) -> None:
+    """Coordinator should retain only the highest observed power and its time."""
+    hass.config.time_zone = "Europe/Stockholm"
+    hass.states.async_set("sensor.test_power", "1000", {"unit_of_measurement": "W"})
+    coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
+    first = datetime(2026, 8, 24, 8, 0, tzinfo=UTC)
+
+    with (
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=first,
+        ),
+        patch.object(coordinator._store, "async_delay_save"),  # noqa: SLF001
+    ):
+        data = coordinator._read()  # noqa: SLF001
+    assert data.peak_power_today == Decimal("1000")
+    assert data.peak_power_time_today == first.astimezone(coordinator._local_timezone)  # noqa: SLF001
+
+    hass.states.async_set("sensor.test_power", "900", {"unit_of_measurement": "W"})
+    with (
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=first.replace(hour=9),
+        ),
+        patch.object(coordinator._store, "async_delay_save"),  # noqa: SLF001
+    ):
+        data = coordinator._read()  # noqa: SLF001
+    assert data.peak_power_today == Decimal("1000")
+
+
+async def test_daily_peak_restores_current_day_snapshot(hass) -> None:
+    """A restart should preserve a valid peak from the current local day."""
+    hass.config.time_zone = "Europe/Stockholm"
+    hass.states.async_set("sensor.test_power", "900", {"unit_of_measurement": "W"})
+    coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
+    now = datetime(2026, 8, 24, 10, 0, tzinfo=UTC)
+    peak_time = datetime(2026, 8, 24, 9, 0, tzinfo=UTC)
+    stored = {
+        "peak_power_today": {
+            "period_start": "2026-08-24",
+            "peak_power_w": "1200",
+            "peak_time": peak_time.astimezone(coordinator._local_timezone).isoformat(),  # noqa: SLF001
+        }
+    }
+
+    with (
+        patch.object(coordinator._store, "async_load", AsyncMock(return_value=stored)),  # noqa: SLF001
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=now,
+        ),
+    ):
+        await coordinator._async_restore_statistics()  # noqa: SLF001
+        with patch.object(coordinator._store, "async_delay_save"):  # noqa: SLF001
+            data = coordinator._read()  # noqa: SLF001
+
+    assert data.peak_power_today == Decimal("1200")
+    assert data.peak_power_time_today == peak_time.astimezone(
+        coordinator._local_timezone  # noqa: SLF001
+    )
+
+
+def test_daily_peak_midnight_rollover_publishes_unavailable(hass) -> None:
+    """Local midnight should clear both daily peak entities until a new sample."""
+    hass.config.time_zone = "Europe/Stockholm"
+    hass.states.async_set("sensor.test_power", "1000", {"unit_of_measurement": "W"})
+    coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
+    with (
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=datetime(2026, 8, 24, 21, 0, tzinfo=UTC),
+        ),
+        patch.object(coordinator._store, "async_delay_save"),  # noqa: SLF001
+    ):
+        coordinator.async_set_updated_data(coordinator._read())  # noqa: SLF001
+        coordinator._async_daily_rollover(  # noqa: SLF001
+            datetime(2026, 8, 25, 0, 0, tzinfo=coordinator._local_timezone)  # noqa: SLF001
+        )
+
+    assert coordinator.data is not None
+    assert coordinator.data.peak_power_today is None
+    assert coordinator.data.peak_power_time_today is None
+    assert "peak_power_today" not in coordinator._statistics_data()  # noqa: SLF001
+
+
 async def test_unavailable_workday_source_uses_ordinary_weekday_schedule(
     hass,
     monkeypatch: pytest.MonkeyPatch,

@@ -80,8 +80,8 @@ clear and broadly useful.
 | Daily | Consumption-weighted average price today | `consumption_weighted_average_price_today` | Calculated | Currency/kWh | None | Measurement | Available |
 | Monthly | Cost this month | `cost_this_month` | Calculated | Currency | Monetary | Total | Available |
 | Daily | Remaining cost today | `remaining_cost_today` | Calculated | Currency | None | Measurement | Available |
-| Daily | Peak power today | `peak_power_today` | Calculated | W | Power | Measurement | Planned provider-independent calculation |
-| Daily | Peak power time today | `peak_power_time_today` | Calculated | Timestamp | Timestamp | None | Planned |
+| Daily | Peak power today | `peak_power_today` | Calculated | W | Power | Measurement | Available |
+| Daily | Peak power time today | `peak_power_time_today` | Calculated | Timestamp | Timestamp | None | Available |
 | Monthly | Monthly peak-hour time | `monthly_peak_hour_time` | Mirrored | Timestamp | Timestamp | None | Available |
 
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
@@ -235,9 +235,8 @@ Future configuration may be divided into sections such as:
 - Voltage L1, L2, and L3
 - Power factor
 
-### Statistics
+### Provider-supplied statistics
 
-- Peak power today
 - Monthly peak-hour consumption
 - Monthly cost
 - Monthly energy

@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Replaced the provider-specific Peak Power Today source with a persisted,
+  provider-independent statistic calculated from current power observations.
+  Added Peak Power Time Today and local-midnight rollover behavior.
 - Display live power as whole watts and live supplier and Effective Price values
   with two decimals in Home Assistant and the enhanced dashboard example.
 - Defined the provider-independent daily peak-power statistics architecture,

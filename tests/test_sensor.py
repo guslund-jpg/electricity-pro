@@ -35,6 +35,7 @@ TOTAL_SUPPLIER_COST_THIS_MONTH_ENTITY_ID = (
     f"sensor.{DOMAIN}_total_supplier_cost_this_month"
 )
 PEAK_POWER_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_peak_power_today"
+PEAK_POWER_TIME_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_peak_power_time_today"
 CURRENT_L1_ENTITY_ID = f"sensor.{DOMAIN}_current_l1"
 CURRENT_L2_ENTITY_ID = f"sensor.{DOMAIN}_current_l2"
 CURRENT_L3_ENTITY_ID = f"sensor.{DOMAIN}_current_l3"
@@ -974,53 +975,32 @@ async def test_peak_power_today_initial_value(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """Peak power today should use the configured source."""
+    """Peak power today should start from the current power observation."""
 
-    await setup_electricity_pro(
-        peak_power_today_value="4200",
-        peak_power_today_unit="W",
-    )
+    await setup_electricity_pro()
 
     state = hass.states.get(PEAK_POWER_TODAY_ENTITY_ID)
 
     assert state is not None
-    assert Decimal(state.state) == Decimal(4200)
+    assert Decimal(state.state) == Decimal(1234)
     assert state.attributes["unit_of_measurement"] == "W"
     assert state.attributes["device_class"] == "power"
     assert state.attributes["state_class"] == "measurement"
-
-
-async def test_peak_power_today_converts_kw_to_w(
-    hass: HomeAssistant,
-    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
-) -> None:
-    """Peak power today should convert kilowatts to watts."""
-
-    await setup_electricity_pro(
-        peak_power_today_value="4.2",
-        peak_power_today_unit="kW",
-    )
-
-    state = hass.states.get(PEAK_POWER_TODAY_ENTITY_ID)
-
-    assert state is not None
-    assert Decimal(state.state) == Decimal(4200)
-    assert state.attributes["unit_of_measurement"] == "W"
+    peak_time = hass.states.get(PEAK_POWER_TIME_TODAY_ENTITY_ID)
+    assert peak_time is not None
+    assert peak_time.attributes["device_class"] == "timestamp"
 
 
 async def test_peak_power_today_updates_when_source_changes(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """Peak power today should update when the source changes."""
+    """Peak power today should update from a higher current-power sample."""
 
-    await setup_electricity_pro(
-        peak_power_today_value="4200",
-        peak_power_today_unit="W",
-    )
+    await setup_electricity_pro()
 
     hass.states.async_set(
-        "sensor.test_peak_power_today",
+        "sensor.test_power",
         "5100",
         {
             "unit_of_measurement": "W",
@@ -1035,19 +1015,16 @@ async def test_peak_power_today_updates_when_source_changes(
     assert Decimal(state.state) == Decimal(5100)
 
 
-async def test_peak_power_today_becomes_unavailable(
+async def test_peak_power_today_survives_invalid_current_power(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """Peak power today should become unavailable for an unknown source."""
+    """An invalid sample should not erase the last valid daily peak."""
 
-    await setup_electricity_pro(
-        peak_power_today_value="4200",
-        peak_power_today_unit="W",
-    )
+    await setup_electricity_pro()
 
     hass.states.async_set(
-        "sensor.test_peak_power_today",
+        "sensor.test_power",
         "unknown",
         {
             "unit_of_measurement": "W",
@@ -1059,18 +1036,7 @@ async def test_peak_power_today_becomes_unavailable(
     state = hass.states.get(PEAK_POWER_TODAY_ENTITY_ID)
 
     assert state is not None
-    assert state.state == "unavailable"
-
-
-async def test_peak_power_today_not_created_without_source(
-    hass: HomeAssistant,
-    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
-) -> None:
-    """Peak power today should not exist when no source is configured."""
-
-    await setup_electricity_pro()
-
-    assert hass.states.get(PEAK_POWER_TODAY_ENTITY_ID) is None
+    assert Decimal(state.state) == Decimal(1234)
 
 
 async def test_phase_current_initial_values(

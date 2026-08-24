@@ -142,14 +142,13 @@ forecast source independently. Typical fields are:
 | Electricity price | Current variable electricity price | Currency/kWh |
 | Energy today | Consumption accumulated since local midnight | Energy, Wh or kWh |
 | Cost today | Cost accumulated since local midnight | Monetary |
-| Peak power today | Highest instantaneous power today | Power, normally W |
 | Monthly peak hour consumption | Highest hourly energy value this month | Energy, normally kWh |
 | Monthly peak hour time | Time of that monthly peak | Timestamp |
 | Current L1–L3 | Instantaneous phase currents | Current, normally A |
 | Voltage L1–L3 | Instantaneous phase voltages | Voltage, normally V |
 
 For Tibber Pulse, representative source names include **Power**,
-**Accumulated consumption**, **Accumulated cost**, **Max power**,
+**Accumulated consumption**, **Accumulated cost**,
 **Current L1–L3**, and **Voltage phase 1–3**. Names can differ with language,
 Home Assistant version, device capabilities, or user customisation. Treat these
 as examples rather than fixed entity IDs.

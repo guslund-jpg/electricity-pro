@@ -36,7 +36,6 @@ from .const import (
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
-    CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
     CONF_VOLTAGE_L1_ENTITY,
@@ -61,6 +60,7 @@ class ElectricityProData:
     accumulated_cost_today: Decimal | None
     accumulated_cost_today_unit: str | None
     peak_power_today: Decimal | None
+    peak_power_time_today: datetime | None
     current_l1: Decimal | None
     current_l2: Decimal | None
     current_l3: Decimal | None
@@ -118,10 +118,6 @@ class ElectricityProEntityProvider:
         self._accumulated_cost_today_entity_id: str | None = entry.options.get(
             CONF_ACCUMULATED_COST_TODAY_ENTITY,
             entry.data.get(CONF_ACCUMULATED_COST_TODAY_ENTITY),
-        )
-        self._peak_power_today_entity_id: str | None = entry.options.get(
-            CONF_PEAK_POWER_TODAY_ENTITY,
-            entry.data.get(CONF_PEAK_POWER_TODAY_ENTITY),
         )
         self._current_l1_entity_id: str | None = entry.options.get(
             CONF_CURRENT_L1_ENTITY,
@@ -201,9 +197,6 @@ class ElectricityProEntityProvider:
         if self._accumulated_cost_today_entity_id is not None:
             entity_ids.append(self._accumulated_cost_today_entity_id)
 
-        if self._peak_power_today_entity_id is not None:
-            entity_ids.append(self._peak_power_today_entity_id)
-
         if self._current_l1_entity_id is not None:
             entity_ids.append(self._current_l1_entity_id)
 
@@ -268,11 +261,6 @@ class ElectricityProEntityProvider:
             if self._accumulated_cost_today_entity_id is not None
             else None
         )
-        peak_power_today = self._normalize_power(
-            self._hass.states.get(self._peak_power_today_entity_id)
-            if self._peak_power_today_entity_id is not None
-            else None
-        )
         current_l1 = self._normalize_current(
             self._hass.states.get(self._current_l1_entity_id)
             if self._current_l1_entity_id is not None
@@ -330,7 +318,8 @@ class ElectricityProEntityProvider:
             current_energy_unit=current_energy_unit,
             accumulated_cost_today=accumulated_cost_today,
             accumulated_cost_today_unit=accumulated_cost_today_unit,
-            peak_power_today=peak_power_today,
+            peak_power_today=None,
+            peak_power_time_today=None,
             current_l1=current_l1,
             current_l2=current_l2,
             current_l3=current_l3,
