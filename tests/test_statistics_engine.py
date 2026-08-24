@@ -8,6 +8,8 @@ import pytest
 from custom_components.electricity_pro.statistics_engine import (
     CalendarPeriod,
     CumulativeStatistic,
+    DailyPeakSnapshot,
+    DailyPeakStatistic,
     StatisticsSnapshot,
 )
 
@@ -119,3 +121,52 @@ def test_cumulative_statistic_rejects_invalid_measurement(
 
     with pytest.raises(ValueError, match="non-negative finite"):
         statistic.update(measurement, dt(2026, 8, 1))
+
+
+def test_daily_peak_tracks_highest_measurement_and_earliest_tie() -> None:
+    """Track only a strictly higher measurement during the local day."""
+    statistic = DailyPeakStatistic()
+    first = dt(2026, 8, 3)
+    later = first.replace(hour=13)
+
+    assert statistic.update(Decimal("1000"), first)
+    assert not statistic.update(Decimal("900"), later)
+    assert not statistic.update(Decimal("1000"), later)
+    assert statistic.snapshot == DailyPeakSnapshot(
+        date(2026, 8, 3), Decimal("1000"), first
+    )
+
+
+def test_daily_peak_starts_new_local_day() -> None:
+    """Replace the old peak with the first valid sample of a new day."""
+    statistic = DailyPeakStatistic()
+    statistic.update(Decimal("4000"), dt(2026, 8, 3))
+    next_day = dt(2026, 8, 4)
+
+    assert statistic.update(Decimal("300"), next_day)
+    assert statistic.snapshot == DailyPeakSnapshot(
+        date(2026, 8, 4), Decimal("300"), next_day
+    )
+
+
+def test_daily_peak_snapshot_round_trip() -> None:
+    """Persist and restore an aware peak timestamp losslessly."""
+    snapshot = DailyPeakSnapshot(
+        date(2026, 8, 3), Decimal("1234.5"), dt(2026, 8, 3)
+    )
+    assert DailyPeakSnapshot.from_dict(snapshot.as_dict()) == snapshot
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {},
+        {"period_start": "2026-08-03", "peak_power_w": "NaN", "peak_time": "2026-08-03T12:00:00+00:00"},
+        {"period_start": "2026-08-03", "peak_power_w": "1", "peak_time": "2026-08-04T12:00:00+00:00"},
+        {"period_start": "2026-08-03", "peak_power_w": "1", "peak_time": "2026-08-03T12:00:00"},
+    ],
+)
+def test_daily_peak_snapshot_rejects_invalid_storage(data: dict[str, str]) -> None:
+    """Reject corrupt, naive, and mismatched persisted peak snapshots."""
+    with pytest.raises(ValueError, match="invalid daily peak snapshot"):
+        DailyPeakSnapshot.from_dict(data)

@@ -39,7 +39,6 @@ from .const import (
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
-    CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_COMPLETENESS,
     CONF_PRICE_ENTITY,
@@ -273,7 +272,6 @@ def _entity_schema(
     price_vat_treatment_default: str | None = None,
     energy_default: str | None = None,
     accumulated_cost_today_default: str | None = None,
-    peak_power_today_default: str | None = None,
     current_l1_default: str | None = None,
     current_l2_default: str | None = None,
     current_l3_default: str | None = None,
@@ -351,13 +349,6 @@ def _entity_schema(
             default=accumulated_cost_today_default,
         )
 
-    if peak_power_today_default is None:
-        peak_power_today_key = vol.Optional(CONF_PEAK_POWER_TODAY_ENTITY)
-    else:
-        peak_power_today_key = vol.Optional(
-            CONF_PEAK_POWER_TODAY_ENTITY,
-            default=peak_power_today_default,
-        )
     if current_l1_default is None:
         current_l1_key = vol.Optional(CONF_CURRENT_L1_ENTITY)
     else:
@@ -513,12 +504,6 @@ def _entity_schema(
                 selector.EntitySelectorConfig(
                     domain="sensor",
                     device_class="monetary",
-                )
-            ),
-            peak_power_today_key: selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    domain="sensor",
-                    device_class="power",
                 )
             ),
             monthly_peak_hour_consumption_key: selector.EntitySelector(
@@ -952,12 +937,6 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 CONF_ACCUMULATED_COST_TODAY_ENTITY,
             ),
         )
-        current_peak_power_today = self.config_entry.options.get(
-            CONF_PEAK_POWER_TODAY_ENTITY,
-            self.config_entry.data.get(
-                CONF_PEAK_POWER_TODAY_ENTITY,
-            ),
-        )
         current_l1 = self.config_entry.options.get(
             CONF_CURRENT_L1_ENTITY,
             self.config_entry.data.get(CONF_CURRENT_L1_ENTITY),
@@ -1030,7 +1009,6 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 price_vat_treatment_default=current_vat_treatment,
                 energy_default=current_energy,
                 accumulated_cost_today_default=current_accumulated_cost_today,
-                peak_power_today_default=current_peak_power_today,
                 current_l1_default=current_l1,
                 current_l2_default=current_l2,
                 current_l3_default=current_l3,

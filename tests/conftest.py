@@ -22,7 +22,6 @@ from custom_components.electricity_pro.const import (
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
-    CONF_PEAK_POWER_TODAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
     CONF_PRICE_COMPLETENESS,
@@ -63,8 +62,6 @@ def setup_electricity_pro(hass):
         energy_unit: str = "kWh",
         accumulated_cost_today_value: str | None = None,
         accumulated_cost_today_unit: str = "SEK",
-        peak_power_today_value: str | None = None,
-        peak_power_today_unit: str = "W",
         current_l1_value: str | None = None,
         current_l2_value: str | None = None,
         current_l3_value: str | None = None,
@@ -168,16 +165,6 @@ def setup_electricity_pro(hass):
                 "sensor.test_accumulated_cost_today"
             )
 
-        if peak_power_today_value is not None:
-            hass.states.async_set(
-                "sensor.test_peak_power_today",
-                peak_power_today_value,
-                {
-                    "unit_of_measurement": peak_power_today_unit,
-                    "device_class": "power",
-                },
-            )
-            entry_data[CONF_PEAK_POWER_TODAY_ENTITY] = "sensor.test_peak_power_today"
 
         if current_l1_value is not None:
             hass.states.async_set(

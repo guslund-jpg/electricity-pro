@@ -10,7 +10,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfEnergy
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, UnitOfEnergy
 from homeassistant.core import (
     Event,
     EventStateChangedData,
@@ -18,8 +18,11 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.event import async_track_state_change_event
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import (
+    async_track_state_change_event,
+    async_track_time_change,
+    async_track_time_interval,
+)
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
@@ -48,6 +51,8 @@ from .provider import (
 from .statistics_engine import (
     CalendarPeriod,
     CumulativeStatistic,
+    DailyPeakSnapshot,
+    DailyPeakStatistic,
     StatisticsSnapshot,
 )
 
@@ -57,6 +62,7 @@ _STORAGE_VERSION = 1
 _ENERGY_THIS_MONTH = "energy_this_month"
 _COST_THIS_MONTH = "cost_this_month"
 _COST_THIS_MONTH_UNIT = "cost_this_month_unit"
+_PEAK_POWER_TODAY = "peak_power_today"
 _KWH_PER_WH = Decimal("0.001")
 _FORECAST_REFRESH_INTERVAL = timedelta(minutes=15)
 _WORKDAY_REFRESH_INTERVAL = timedelta(hours=6)
@@ -89,6 +95,7 @@ class ElectricityProCoordinator(
         )
         self._energy_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
+        self._peak_power_today = DailyPeakStatistic()
         self._cost_this_month_unit: str | None = None
         self._forecast_intervals_by_date: dict[date, list[ForecastInterval]] = {}
         self._forecast_intervals: list[ForecastInterval] = []
@@ -106,6 +113,18 @@ class ElectricityProCoordinator(
     async def async_start(self) -> None:
         """Start listening for provider source changes."""
         await self._async_restore_statistics()
+        cancel_daily_rollover = async_track_time_change(
+            self.hass,
+            self._async_daily_rollover,
+            hour=0,
+            minute=0,
+            second=0,
+        )
+        self._entry.async_on_unload(cancel_daily_rollover)
+        self.hass.bus.async_listen_once(
+            EVENT_HOMEASSISTANT_STOP,
+            lambda event: cancel_daily_rollover(),
+        )
         if self._workday_entity_id is not None:
             await self._async_refresh_non_working_dates(dt_util.now())
             self._entry.async_on_unload(
@@ -142,6 +161,21 @@ class ElectricityProCoordinator(
         )
 
         self.async_set_updated_data(self._read())
+
+    @callback
+    def _async_daily_rollover(self, now: datetime) -> None:
+        """Clear the old daily peak at local midnight."""
+        if not self._peak_power_today.clear():
+            return
+        self._store.async_delay_save(self._statistics_data, delay=1)
+        if self.data is not None:
+            self.async_set_updated_data(
+                replace(
+                    self.data,
+                    peak_power_today=None,
+                    peak_power_time_today=None,
+                )
+            )
 
     @callback
     def _async_source_changed(
@@ -347,6 +381,16 @@ class ElectricityProCoordinator(
                 )
                 self._cost_this_month_unit = cost_unit
 
+        if _PEAK_POWER_TODAY in stored:
+            try:
+                snapshot = DailyPeakSnapshot.from_dict(stored[_PEAK_POWER_TODAY])
+            except ValueError:
+                _LOGGER.warning("Ignoring invalid persisted daily peak state")
+            else:
+                local_today = dt_util.now().astimezone(self._local_timezone).date()
+                if snapshot.period_start == local_today:
+                    self._peak_power_today = DailyPeakStatistic(snapshot)
+
     @callback
     def _read(self) -> ElectricityProData:
         """Read provider data and update derived statistics."""
@@ -356,9 +400,19 @@ class ElectricityProCoordinator(
             data.current_energy_unit,
         )
 
-        now = dt_util.now()
-        updates: dict[str, Decimal | str | None] = {}
+        now = dt_util.now().astimezone(self._local_timezone)
+        updates: dict[str, Decimal | datetime | str | None] = {}
         should_save = False
+
+        if data.current_power is not None:
+            should_save = self._peak_power_today.update(data.current_power, now)
+        peak_snapshot = self._peak_power_today.snapshot
+        updates["peak_power_today"] = (
+            peak_snapshot.peak_power_w if peak_snapshot is not None else None
+        )
+        updates["peak_power_time_today"] = (
+            peak_snapshot.peak_time if peak_snapshot is not None else None
+        )
 
         if energy_kwh is None:
             updates["energy_this_month"] = None
@@ -500,6 +554,8 @@ class ElectricityProCoordinator(
         ):
             data[_COST_THIS_MONTH] = snapshot.as_dict()
             data[_COST_THIS_MONTH_UNIT] = self._cost_this_month_unit
+        if (snapshot := self._peak_power_today.snapshot) is not None:
+            data[_PEAK_POWER_TODAY] = snapshot.as_dict()
         return data
 
 

@@ -278,9 +278,9 @@ explainable, actionable recommendations.
 
 Foundation:
 
-- Provider-independent Peak Power Today and peak-time statistics defined by
-  [ADR-0006](docs/adr/0006-provider-independent-daily-power-statistics.md) and
-  tracked by [#64](https://github.com/guslund-jpg/electricity-pro/issues/64)
+- Provider-independent Peak Power Today and peak-time statistics implemented
+  from [ADR-0006](docs/adr/0006-provider-independent-daily-power-statistics.md)
+  under [#64](https://github.com/guslund-jpg/electricity-pro/issues/64)
 - Minimal persisted history primitives introduced only as required by the first
   recommendation designs
 
