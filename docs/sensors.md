@@ -190,6 +190,21 @@ historical interval data and configurable tariff rules.
 
 ## Current insights
 
+### Consumption Timing Score Yesterday
+
+`consumption_timing_score_yesterday` is a retrospective score from 0 through
+100. A high score means more of yesterday's electricity was consumed during
+that day's relatively inexpensive Effective Price periods. It is not a
+forecast and does not measure total energy efficiency.
+
+The sensor becomes available after a completed local day only when Electricity
+Pro observed at least 90% of the day, no data gap exceeded one hour, energy was
+consumed, and prices varied enough for timing to be meaningful. Its attributes
+include the date, coverage, energy, achieved and time-weighted prices, price
+variation, and a plain-language rating. When a completed day fails these
+quality rules, the entity is unavailable; Home Assistant does not expose
+custom attributes while an entity is unavailable.
+
 ### Good time to use electricity
 
 The optional `good_time_to_use_electricity` binary sensor compares Effective

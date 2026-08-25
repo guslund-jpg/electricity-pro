@@ -1,7 +1,7 @@
 """Tests for Electricity Pro sensors."""
 
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from types import CoroutineType
 from typing import Any
@@ -15,6 +15,11 @@ from custom_components.electricity_pro.const import (
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
     DOMAIN,
+)
+from custom_components.electricity_pro.timing_score import (
+    TimingScoreRating,
+    TimingScoreResult,
+    TimingScoreUnavailableReason,
 )
 
 ENTITY_ID = f"sensor.{DOMAIN}_current_power"
@@ -61,6 +66,65 @@ CHEAPEST_3H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID = (
     f"sensor.{DOMAIN}_cheapest_3h_window_average_effective_price"
 )
 PRICE_DIRECTION_ENTITY_ID = f"sensor.{DOMAIN}_price_direction"
+TIMING_SCORE_ENTITY_ID = f"sensor.{DOMAIN}_consumption_timing_score_yesterday"
+
+
+async def test_consumption_timing_score_publishes_completed_result(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A quality-approved completed day should publish score and metadata."""
+    entry = await setup_electricity_pro(price_value="1.5")
+    coordinator = entry.runtime_data
+    coordinator._timing_result_date = date(2026, 8, 24)  # noqa: SLF001
+    coordinator._timing_result = TimingScoreResult(  # noqa: SLF001
+        score=Decimal(88),
+        unavailable_reason=None,
+        coverage_percent=Decimal("98.5"),
+        energy_kwh=Decimal("12.3"),
+        consumption_weighted_price=Decimal("0.75"),
+        time_weighted_price=Decimal("1.25"),
+        price_variation_percent=Decimal(40),
+        rating=TimingScoreRating.WELL_TIMED,
+    )
+    coordinator.async_set_updated_data(coordinator.data)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(TIMING_SCORE_ENTITY_ID)
+    assert state is not None
+    assert state.state == "88"
+    assert state.attributes["unit_of_measurement"] == "%"
+    assert state.attributes["period_start"] == "2026-08-24"
+    assert state.attributes["coverage_percent"] == "98.5"
+    assert state.attributes["rating"] == "well_timed"
+
+
+async def test_consumption_timing_score_explains_unavailable_result(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A rejected completed day should remain unavailable but explain why."""
+    entry = await setup_electricity_pro(price_value="1.5")
+    coordinator = entry.runtime_data
+    coordinator._timing_result_date = date(2026, 8, 24)  # noqa: SLF001
+    coordinator._timing_result = TimingScoreResult(  # noqa: SLF001
+        score=None,
+        unavailable_reason=TimingScoreUnavailableReason.INSUFFICIENT_COVERAGE,
+        coverage_percent=Decimal(72),
+        energy_kwh=Decimal("8.5"),
+        consumption_weighted_price=None,
+        time_weighted_price=None,
+        price_variation_percent=None,
+        rating=None,
+    )
+    coordinator.async_set_updated_data(coordinator.data)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(TIMING_SCORE_ENTITY_ID)
+    assert state is not None
+    assert state.state == "unavailable"
+    assert "period_start" not in state.attributes
+    assert "unavailable_reason" not in state.attributes
 
 
 async def test_energy_today_initial_value(

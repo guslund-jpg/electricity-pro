@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -15,6 +15,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    PERCENTAGE,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
@@ -56,6 +57,7 @@ from .forecast_insights import ForecastDirectionInsight, ForecastWindowInsight
 from .pricing import PricingMetadata
 from .provider import ElectricityProData
 from .statistics import remaining_cost_today
+from .timing_score import TimingScoreResult
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -125,6 +127,11 @@ def _forecast_price_attributes(metadata: PricingMetadata) -> dict[str, Any]:
         "vat_treatment": metadata.scope.vat.value,
         "price_completeness": metadata.completeness.value,
     }
+
+
+def _decimal_string(value: Decimal | None) -> str | None:
+    """Return a storage- and attribute-safe decimal representation."""
+    return None if value is None else str(value)
 
 
 def consumption_weighted_average_price(
@@ -541,6 +548,14 @@ async def async_setup_entry(
                 )
             )
 
+    if CONF_PRICE_ENTITY in entry.options or CONF_PRICE_ENTITY in entry.data:
+        entities.append(
+            ElectricityProConsumptionTimingScoreSensor(
+                coordinator=entry.runtime_data,
+                entry=entry,
+            )
+        )
+
     async_add_entities(entities)
 
 
@@ -638,6 +653,72 @@ class ElectricityProForecastInsightSensor(
             manufacturer="Electricity Pro",
             model="Electricity monitor",
         )
+
+
+class ElectricityProConsumptionTimingScoreSensor(
+    CoordinatorEntity[ElectricityProCoordinator],
+    SensorEntity,
+):
+    """Represent the retrospective Consumption Timing Score."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Consumption timing score yesterday"
+    _attr_icon = "mdi:meter-electric-outline"
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
+
+    def __init__(
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+    ) -> None:
+        """Initialize the timing-score sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_consumption_timing_score_yesterday"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name="Electricity Pro",
+            manufacturer="Electricity Pro",
+            model="Electricity monitor",
+        )
+
+    @property
+    def _result(self) -> tuple[date, TimingScoreResult] | None:
+        """Return the last completed timing result."""
+        return self.coordinator.timing_score_yesterday
+
+    @property
+    def native_value(self) -> Decimal | None:
+        """Return the score for the last completed local day."""
+        result = self._result
+        return None if result is None else result[1].score
+
+    @property
+    def available(self) -> bool:
+        """Return whether a quality-approved score is available."""
+        return super().available and self.native_value is not None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return compact metadata explaining the result and availability."""
+        stored = self._result
+        if stored is None:
+            return None
+        period_start, result = stored
+        return {
+            "period_start": period_start.isoformat(),
+            "coverage_percent": str(result.coverage_percent),
+            "energy_kwh": str(result.energy_kwh),
+            "consumption_weighted_price": _decimal_string(
+                result.consumption_weighted_price
+            ),
+            "time_weighted_price": _decimal_string(result.time_weighted_price),
+            "price_variation_percent": _decimal_string(
+                result.price_variation_percent
+            ),
+            "rating": result.rating.value if result.rating is not None else None,
+        }
 
 
 class ElectricityProCheapestWindowSensor(ElectricityProForecastInsightSensor):
