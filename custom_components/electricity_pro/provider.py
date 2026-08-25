@@ -184,6 +184,11 @@ class ElectricityProEntityProvider:
         )
 
     @property
+    def power_entity_id(self) -> str:
+        """Return the normalized current-power source entity ID."""
+        return self._power_entity_id
+
+    @property
     def source_entity_ids(self) -> tuple[str, ...]:
         """Return all configured source entity IDs."""
         entity_ids = [self._power_entity_id]

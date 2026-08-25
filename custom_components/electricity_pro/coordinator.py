@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -33,6 +33,7 @@ from .const import (
     CONF_GRID_FEE_WORKDAY_ENTITY,
     DOMAIN,
 )
+from .calculations import calculate_declared_effective_price
 from .forecast import ForecastInterval
 from .forecast_insights import (
     ForecastDirectionInsight,
@@ -55,6 +56,11 @@ from .statistics_engine import (
     DailyPeakStatistic,
     StatisticsSnapshot,
 )
+from .timing_score import (
+    TimingBucketAccumulator,
+    TimingScoreResult,
+    calculate_timing_score,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,11 +69,15 @@ _ENERGY_THIS_MONTH = "energy_this_month"
 _COST_THIS_MONTH = "cost_this_month"
 _COST_THIS_MONTH_UNIT = "cost_this_month_unit"
 _PEAK_POWER_TODAY = "peak_power_today"
+_TIMING_BUCKETS = "consumption_timing_buckets"
+_TIMING_RESULT = "consumption_timing_score_yesterday"
 _KWH_PER_WH = Decimal("0.001")
 _FORECAST_REFRESH_INTERVAL = timedelta(minutes=15)
 _WORKDAY_REFRESH_INTERVAL = timedelta(hours=6)
 _HOLIDAY_LOOKAHEAD_DAYS = 32
 _TOMORROW_PUBLICATION_HOUR = 13
+_TIMING_TICK_INTERVAL = timedelta(minutes=5)
+_TIMING_POWER_MAX_HOLD = timedelta(minutes=10)
 
 
 class ElectricityProCoordinator(
@@ -96,6 +106,13 @@ class ElectricityProCoordinator(
         self._energy_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._peak_power_today = DailyPeakStatistic()
+        self._timing_buckets = TimingBucketAccumulator(self._local_timezone)
+        self._timing_result_date: date | None = None
+        self._timing_result: TimingScoreResult | None = None
+        self._timing_last_time: datetime | None = None
+        self._timing_power: Decimal | None = None
+        self._timing_power_observed_at: datetime | None = None
+        self._timing_effective_price: Decimal | None = None
         self._cost_this_month_unit: str | None = None
         self._forecast_intervals_by_date: dict[date, list[ForecastInterval]] = {}
         self._forecast_intervals: list[ForecastInterval] = []
@@ -113,6 +130,8 @@ class ElectricityProCoordinator(
     async def async_start(self) -> None:
         """Start listening for provider source changes."""
         await self._async_restore_statistics()
+        local_today = dt_util.now().astimezone(self._local_timezone).date()
+        self._finalize_restored_timing_days(local_today)
         cancel_daily_rollover = async_track_time_change(
             self.hass,
             self._async_daily_rollover,
@@ -124,6 +143,14 @@ class ElectricityProCoordinator(
         self.hass.bus.async_listen_once(
             EVENT_HOMEASSISTANT_STOP,
             lambda event: cancel_daily_rollover(),
+        )
+        self._entry.async_on_unload(
+            async_track_time_interval(
+                self.hass,
+                self._async_timing_tick,
+                _TIMING_TICK_INTERVAL,
+                cancel_on_shutdown=True,
+            )
         )
         if self._workday_entity_id is not None:
             await self._async_refresh_non_working_dates(dt_util.now())
@@ -160,15 +187,30 @@ class ElectricityProCoordinator(
             )
         )
 
+        self.async_set_updated_data(self._read(power_observed=True))
+
+    @property
+    def timing_score_yesterday(self) -> tuple[date, TimingScoreResult] | None:
+        """Return the most recently finalized timing score."""
+        if self._timing_result_date is None or self._timing_result is None:
+            return None
+        return self._timing_result_date, self._timing_result
+
+    async def _async_timing_tick(self, now: datetime) -> None:
+        """Close timing-history segments while source states remain quiet."""
         self.async_set_updated_data(self._read())
 
     @callback
     def _async_daily_rollover(self, now: datetime) -> None:
-        """Clear the old daily peak at local midnight."""
-        if not self._peak_power_today.clear():
-            return
+        """Finalize timing history and clear daily state at local midnight."""
+        local_now = now.astimezone(self._local_timezone)
+        data = self._provider.read()
+        self._update_timing_history(data, local_now, power_observed=False)
+        self._finalize_timing_day(local_now.date() - timedelta(days=1))
+        self._timing_buckets.retain_dates({local_now.date()})
+        peak_cleared = self._peak_power_today.clear()
         self._store.async_delay_save(self._statistics_data, delay=1)
-        if self.data is not None:
+        if peak_cleared and self.data is not None:
             self.async_set_updated_data(
                 replace(
                     self.data,
@@ -183,7 +225,13 @@ class ElectricityProCoordinator(
         event: Event[EventStateChangedData],
     ) -> None:
         """Handle a configured source entity change."""
-        self.async_set_updated_data(self._read())
+        self.async_set_updated_data(
+            self._read(
+                power_observed=(
+                    event.data["entity_id"] == self._provider.power_entity_id
+                )
+            )
+        )
 
     @property
     def forecast_intervals(self) -> list[ForecastInterval]:
@@ -391,8 +439,31 @@ class ElectricityProCoordinator(
                 if snapshot.period_start == local_today:
                     self._peak_power_today = DailyPeakStatistic(snapshot)
 
+        if _TIMING_BUCKETS in stored:
+            try:
+                self._timing_buckets = TimingBucketAccumulator.from_dict(
+                    self._local_timezone,
+                    stored[_TIMING_BUCKETS],
+                )
+            except ValueError:
+                _LOGGER.warning("Ignoring invalid persisted timing bucket history")
+
+        timing_result = stored.get(_TIMING_RESULT)
+        if isinstance(timing_result, dict):
+            try:
+                self._timing_result_date = date.fromisoformat(
+                    timing_result["period_start"]
+                )
+                self._timing_result = TimingScoreResult.from_dict(
+                    timing_result["result"]
+                )
+            except (KeyError, TypeError, ValueError):
+                self._timing_result_date = None
+                self._timing_result = None
+                _LOGGER.warning("Ignoring invalid persisted timing score result")
+
     @callback
-    def _read(self) -> ElectricityProData:
+    def _read(self, *, power_observed: bool = False) -> ElectricityProData:
         """Read provider data and update derived statistics."""
         data = self._provider.read()
         energy_kwh = _energy_in_kwh(
@@ -403,6 +474,12 @@ class ElectricityProCoordinator(
         now = dt_util.now().astimezone(self._local_timezone)
         updates: dict[str, Decimal | datetime | str | None] = {}
         should_save = False
+
+        should_save = self._update_timing_history(
+            data,
+            now,
+            power_observed=power_observed,
+        )
 
         if data.current_power is not None:
             should_save = self._peak_power_today.update(data.current_power, now)
@@ -480,6 +557,80 @@ class ElectricityProCoordinator(
 
         return replace(data, **updates)
 
+    def _update_timing_history(
+        self,
+        data: ElectricityProData,
+        now: datetime,
+        *,
+        power_observed: bool,
+    ) -> bool:
+        """Integrate the previous valid observation up to the current time."""
+        bucket_closed = False
+        if (
+            self._timing_last_time is not None
+            and self._timing_power is not None
+            and self._timing_power_observed_at is not None
+            and self._timing_effective_price is not None
+        ):
+            valid_end = min(
+                now,
+                self._timing_power_observed_at + _TIMING_POWER_MAX_HOLD,
+            )
+            if valid_end > self._timing_last_time:
+                bucket_closed = (
+                    int(self._timing_last_time.timestamp()) // (15 * 60)
+                    != int(valid_end.timestamp()) // (15 * 60)
+                )
+                self._timing_buckets.add_segment(
+                    start=self._timing_last_time,
+                    end=valid_end,
+                    power_w=self._timing_power,
+                    effective_price=self._timing_effective_price,
+                )
+
+        self._timing_last_time = now
+        if power_observed:
+            self._timing_power = data.current_power
+            self._timing_power_observed_at = now if data.current_power is not None else None
+        self._timing_effective_price = calculate_declared_effective_price(
+            data.current_price,
+            data.pricing_metadata,
+            data.grid_fee_per_kwh,
+            data.energy_tax_per_kwh,
+        )
+        return bucket_closed
+
+    def _finalize_restored_timing_days(self, local_today: date) -> None:
+        """Finalize a retained previous day after a restart across midnight."""
+        previous_day = local_today - timedelta(days=1)
+        if self._timing_buckets.intervals_for_date(previous_day):
+            self._finalize_timing_day(previous_day)
+        self._timing_buckets.retain_dates({local_today})
+
+    def _finalize_timing_day(self, period_start: date) -> None:
+        """Calculate and retain one completed local-day timing result."""
+        day_start = datetime.combine(
+            period_start,
+            datetime.min.time(),
+            tzinfo=self._local_timezone,
+        )
+        day_end = datetime.combine(
+            period_start + timedelta(days=1),
+            datetime.min.time(),
+            tzinfo=self._local_timezone,
+        )
+        period_duration = day_end.astimezone(UTC) - day_start.astimezone(UTC)
+        self._timing_result = calculate_timing_score(
+            self._timing_buckets.intervals_for_date(period_start),
+            period_duration=period_duration,
+            longest_uncovered_gap=self._timing_buckets.longest_uncovered_gap(
+                period_start,
+                day_start=day_start,
+                day_end=day_end,
+            ),
+        )
+        self._timing_result_date = period_start
+
     def _recalculate_forecast_insights(self) -> None:
         """Recalculate cached forecast insight results from current intervals."""
         now = dt_util.now()
@@ -556,6 +707,12 @@ class ElectricityProCoordinator(
             data[_COST_THIS_MONTH_UNIT] = self._cost_this_month_unit
         if (snapshot := self._peak_power_today.snapshot) is not None:
             data[_PEAK_POWER_TODAY] = snapshot.as_dict()
+        data[_TIMING_BUCKETS] = self._timing_buckets.as_dict()
+        if self._timing_result_date is not None and self._timing_result is not None:
+            data[_TIMING_RESULT] = {
+                "period_start": self._timing_result_date.isoformat(),
+                "result": self._timing_result.as_dict(),
+            }
         return data
 
 
