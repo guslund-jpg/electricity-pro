@@ -170,6 +170,43 @@ def test_bucket_accumulator_averages_price_by_duration() -> None:
     assert interval.effective_price == Decimal(5) / Decimal(3)
 
 
+def test_bucket_history_and_result_round_trip() -> None:
+    """Persisted aggregate history and a valid result should restore losslessly."""
+    accumulator = TimingBucketAccumulator(UTC)
+    start = datetime(2026, 8, 25, 10, 0, tzinfo=UTC)
+    accumulator.add_segment(
+        start=start,
+        end=start + timedelta(minutes=15),
+        power_w=Decimal("1000"),
+        effective_price=Decimal("1.5"),
+    )
+    restored = TimingBucketAccumulator.from_dict(UTC, accumulator.as_dict())
+    assert restored.intervals_for_date(date(2026, 8, 25)) == (
+        _interval("0.25", "1.5"),
+    )
+    assert restored.longest_uncovered_gap(
+        date(2026, 8, 25),
+        day_start=start,
+        day_end=start + timedelta(minutes=15),
+    ) == timedelta(0)
+
+    result = calculate_timing_score(
+        (_interval("1", "1", 720), _interval("1", "2", 720)),
+        period_duration=timedelta(hours=24),
+        longest_uncovered_gap=timedelta(0),
+    )
+    assert type(result).from_dict(result.as_dict()) == result
+
+
+def test_bucket_history_rejects_invalid_storage() -> None:
+    """Corrupt aggregate history must not enter the runtime accumulator."""
+    with pytest.raises(ValueError, match="invalid timing bucket history"):
+        TimingBucketAccumulator.from_dict(
+            UTC,
+            {"buckets": [{"period_start": "bad"}], "covered_ranges": []},
+        )
+
+
 @pytest.mark.parametrize(
     ("power", "price"),
     [(Decimal("-1"), Decimal("1")), (Decimal("1"), Decimal("NaN"))],

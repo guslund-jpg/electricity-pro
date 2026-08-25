@@ -1,6 +1,6 @@
 """Tests for coordinator forecast runtime behavior."""
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
@@ -20,6 +20,11 @@ from custom_components.electricity_pro.const import (
     CONF_GRID_FEE_WORKDAY_ENTITY,
     CONF_GRID_FEE_PER_KWH,
     CONF_POWER_ENTITY,
+    CONF_PRICE_COMPLETENESS,
+    CONF_PRICE_ENTITY,
+    CONF_PRICE_INCLUDED_COMPONENTS,
+    CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICING_STRATEGY,
     DOMAIN,
 )
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
@@ -28,6 +33,13 @@ from custom_components.electricity_pro.forecast_insights import (
     ForecastDirectionInsight,
     ForecastWindowInsight,
 )
+from custom_components.electricity_pro.pricing import (
+    PriceCompleteness,
+    PriceComponent,
+    PricingStrategy,
+    VatTreatment,
+)
+from custom_components.electricity_pro.timing_score import TimingBucketAccumulator
 
 
 def _daily_peak_entry() -> MockConfigEntry:
@@ -38,6 +50,117 @@ def _daily_peak_entry() -> MockConfigEntry:
         data={CONF_POWER_ENTITY: "sensor.test_power"},
         entry_id="daily-peak-entry",
     )
+
+
+def _timing_entry() -> MockConfigEntry:
+    """Create a complete entry for consumption-timing runtime tests."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_PRICE_ENTITY: "sensor.test_price",
+            CONF_PRICING_STRATEGY: PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
+            CONF_PRICE_INCLUDED_COMPONENTS: [
+                PriceComponent.MARKET_ENERGY,
+                PriceComponent.SUPPLIER_MARKUP,
+            ],
+            CONF_PRICE_VAT_TREATMENT: VatTreatment.INCLUDED,
+            CONF_PRICE_COMPLETENESS: PriceCompleteness.PARTIAL,
+        },
+        entry_id="timing-entry",
+    )
+
+
+def test_timing_runtime_expires_stale_power_after_ten_minutes(hass) -> None:
+    """A quiet source must not turn stale power into fabricated coverage."""
+    hass.config.time_zone = "Europe/Stockholm"
+    hass.states.async_set("sensor.test_power", "1000", {"unit_of_measurement": "W"})
+    hass.states.async_set(
+        "sensor.test_price",
+        "1.5",
+        {"unit_of_measurement": "SEK/kWh"},
+    )
+    coordinator = ElectricityProCoordinator(hass, _timing_entry())
+    start = datetime(2026, 8, 25, 0, 0, tzinfo=UTC)
+
+    with patch.object(coordinator._store, "async_delay_save"):  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start,
+        ):
+            coordinator._read(power_observed=True)  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start + timedelta(minutes=5),
+        ):
+            coordinator._read()  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start + timedelta(minutes=20),
+        ):
+            coordinator._read()  # noqa: SLF001
+
+    intervals = coordinator._timing_buckets.intervals_for_date(  # noqa: SLF001
+        start.astimezone(coordinator._local_timezone).date()  # noqa: SLF001
+    )
+    assert sum(
+        (interval.covered_duration for interval in intervals),
+        timedelta(0),
+    ) == timedelta(minutes=10)
+    assert sum(
+        (interval.energy_kwh for interval in intervals),
+        Decimal(0),
+    ) == Decimal(1) / Decimal(6)
+
+
+def test_timing_runtime_finalizes_a_complete_local_day(hass) -> None:
+    """A completed day should produce the agreed retrospective score."""
+    hass.config.time_zone = "Europe/Stockholm"
+    coordinator = ElectricityProCoordinator(hass, _timing_entry())
+    period_start = date(2026, 8, 24)
+    day_start = datetime(2026, 8, 24, tzinfo=coordinator._local_timezone)  # noqa: SLF001
+    for index, price in enumerate(("1", "2", "3", "4")):
+        coordinator._timing_buckets.add_segment(  # noqa: SLF001
+            start=day_start + timedelta(hours=6 * index),
+            end=day_start + timedelta(hours=6 * (index + 1)),
+            power_w=Decimal("4000") if index == 0 else Decimal(0),
+            effective_price=Decimal(price),
+        )
+
+    coordinator._finalize_timing_day(period_start)  # noqa: SLF001
+
+    assert coordinator.timing_score_yesterday is not None
+    result_date, result = coordinator.timing_score_yesterday
+    assert result_date == period_start
+    assert result.score == Decimal(88)
+
+
+async def test_timing_runtime_restores_buckets_and_completed_result(hass) -> None:
+    """Restart restoration should preserve aggregate history and the last result."""
+    hass.config.time_zone = "Europe/Stockholm"
+    original = ElectricityProCoordinator(hass, _timing_entry())
+    period_start = date(2026, 8, 24)
+    day_start = datetime(2026, 8, 24, tzinfo=original._local_timezone)  # noqa: SLF001
+    original._timing_buckets.add_segment(  # noqa: SLF001
+        start=day_start,
+        end=day_start + timedelta(minutes=15),
+        power_w=Decimal("1000"),
+        effective_price=Decimal("1.5"),
+    )
+    original._finalize_timing_day(period_start)  # noqa: SLF001
+    stored = original._statistics_data()  # noqa: SLF001
+    restored = ElectricityProCoordinator(hass, _timing_entry())
+
+    with patch.object(
+        restored._store,  # noqa: SLF001
+        "async_load",
+        AsyncMock(return_value=stored),
+    ):
+        await restored._async_restore_statistics()  # noqa: SLF001
+
+    assert restored._timing_buckets.as_dict() == original._timing_buckets.as_dict()  # noqa: SLF001
+    assert restored.timing_score_yesterday == original.timing_score_yesterday
 
 
 def test_daily_peak_is_calculated_from_current_power(hass) -> None:

@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Added the internal Consumption Timing Score runtime: bounded 15-minute
+  history, restart-safe persistence, local-midnight finalization, and explicit
+  stale-power coverage handling. The public sensor remains a separate stage.
 - Added the pure Consumption Timing Score and 15-minute bucket-accumulator
   models as the first implementation stage of ADR-0007. No Home Assistant
   entity is exposed yet.

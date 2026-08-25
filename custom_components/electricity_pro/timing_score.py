@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta, tzinfo
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from enum import StrEnum
+from typing import Any
 
 _SECONDS_PER_HOUR = Decimal(3600)
 _WATTS_PER_KILOWATT = Decimal(1000)
@@ -64,6 +65,86 @@ class TimingScoreResult:
     time_weighted_price: Decimal | None
     price_variation_percent: Decimal | None
     rating: TimingScoreRating | None
+
+    def as_dict(self) -> dict[str, str | None]:
+        """Return a storage-safe representation."""
+        return {
+            "score": str(self.score) if self.score is not None else None,
+            "unavailable_reason": self.unavailable_reason,
+            "coverage_percent": str(self.coverage_percent),
+            "energy_kwh": str(self.energy_kwh),
+            "consumption_weighted_price": (
+                str(self.consumption_weighted_price)
+                if self.consumption_weighted_price is not None
+                else None
+            ),
+            "time_weighted_price": (
+                str(self.time_weighted_price)
+                if self.time_weighted_price is not None
+                else None
+            ),
+            "price_variation_percent": (
+                str(self.price_variation_percent)
+                if self.price_variation_percent is not None
+                else None
+            ),
+            "rating": self.rating,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> TimingScoreResult:
+        """Restore a result from storage."""
+        try:
+            score = _optional_decimal(data.get("score"))
+            reason_value = data.get("unavailable_reason")
+            reason = (
+                TimingScoreUnavailableReason(reason_value)
+                if reason_value is not None
+                else None
+            )
+            rating_value = data.get("rating")
+            rating = (
+                TimingScoreRating(rating_value)
+                if rating_value is not None
+                else None
+            )
+            result = cls(
+                score=score,
+                unavailable_reason=reason,
+                coverage_percent=Decimal(data["coverage_percent"]),
+                energy_kwh=Decimal(data["energy_kwh"]),
+                consumption_weighted_price=_optional_decimal(
+                    data.get("consumption_weighted_price")
+                ),
+                time_weighted_price=_optional_decimal(
+                    data.get("time_weighted_price")
+                ),
+                price_variation_percent=_optional_decimal(
+                    data.get("price_variation_percent")
+                ),
+                rating=rating,
+            )
+        except (InvalidOperation, KeyError, TypeError, ValueError) as err:
+            raise ValueError("invalid timing score result") from err
+        decimal_values = (
+            result.score,
+            result.coverage_percent,
+            result.energy_kwh,
+            result.consumption_weighted_price,
+            result.time_weighted_price,
+            result.price_variation_percent,
+        )
+        if any(value is not None and not value.is_finite() for value in decimal_values):
+            raise ValueError("invalid timing score result")
+        if (
+            result.coverage_percent < 0
+            or result.coverage_percent > 100
+            or result.energy_kwh < 0
+            or (result.score is not None and not Decimal(0) <= result.score <= 100)
+            or (result.score is None) == (result.unavailable_reason is None)
+        ):
+            raise ValueError("invalid timing score result")
+        return result
 
 
 def calculate_timing_score(
@@ -235,6 +316,11 @@ def _seconds(duration: timedelta) -> Decimal:
     return Decimal(str(duration.total_seconds()))
 
 
+def _optional_decimal(value: Any) -> Decimal | None:
+    """Parse an optional persisted decimal."""
+    return Decimal(value) if value is not None else None
+
+
 @dataclass(slots=True)
 class _MutableBucket:
     """Mutable aggregate used internally while building timing intervals."""
@@ -251,6 +337,7 @@ class TimingBucketAccumulator:
         """Initialize an empty accumulator."""
         self._local_timezone = local_timezone
         self._buckets: dict[tuple[date, datetime], _MutableBucket] = {}
+        self._covered_ranges: dict[date, list[tuple[datetime, datetime]]] = {}
 
     def add_segment(
         self,
@@ -275,6 +362,7 @@ class TimingBucketAccumulator:
 
         cursor = start.astimezone(UTC)
         utc_end = end.astimezone(UTC)
+        self._add_covered_range(cursor, utc_end)
         while cursor < utc_end:
             timestamp = int(cursor.timestamp())
             bucket_timestamp = timestamp - timestamp % _BUCKET_SECONDS
@@ -292,6 +380,22 @@ class TimingBucketAccumulator:
             )
             bucket.price_seconds += effective_price * seconds
             bucket.covered_seconds += seconds
+            cursor = segment_end
+
+    def _add_covered_range(self, start: datetime, end: datetime) -> None:
+        """Split and retain covered ranges by local date."""
+        cursor = start
+        while cursor < end:
+            local = cursor.astimezone(self._local_timezone)
+            next_local_midnight = datetime.combine(
+                local.date() + timedelta(days=1),
+                datetime.min.time(),
+                tzinfo=self._local_timezone,
+            ).astimezone(UTC)
+            segment_end = min(end, next_local_midnight)
+            self._covered_ranges.setdefault(local.date(), []).append(
+                (cursor, segment_end)
+            )
             cursor = segment_end
 
     def intervals_for_date(self, period_start: date) -> tuple[TimingInterval, ...]:
@@ -312,3 +416,110 @@ class TimingBucketAccumulator:
             )
             for _, bucket in matching
         )
+
+    def longest_uncovered_gap(
+        self,
+        period_start: date,
+        *,
+        day_start: datetime,
+        day_end: datetime,
+    ) -> timedelta:
+        """Return the longest gap between merged covered ranges in one day."""
+        ranges = sorted(self._covered_ranges.get(period_start, ()))
+        cursor = day_start.astimezone(UTC)
+        utc_end = day_end.astimezone(UTC)
+        longest = timedelta(0)
+        for start, end in ranges:
+            start = max(start, cursor)
+            end = min(end, utc_end)
+            if end <= cursor:
+                continue
+            longest = max(longest, start - cursor)
+            cursor = max(cursor, end)
+        return max(longest, utc_end - cursor)
+
+    def retain_dates(self, dates: set[date]) -> None:
+        """Discard aggregate history outside the requested local dates."""
+        self._buckets = {
+            key: bucket
+            for key, bucket in self._buckets.items()
+            if key[0] in dates
+        }
+        self._covered_ranges = {
+            stored_date: ranges
+            for stored_date, ranges in self._covered_ranges.items()
+            if stored_date in dates
+        }
+
+    def as_dict(self) -> dict[str, list[dict[str, str]]]:
+        """Return bounded aggregate history in a storage-safe form."""
+        return {
+            "buckets": [
+                {
+                    "period_start": stored_date.isoformat(),
+                    "bucket_start": bucket_start.isoformat(),
+                    "energy_kwh": str(bucket.energy_kwh),
+                    "price_seconds": str(bucket.price_seconds),
+                    "covered_seconds": str(bucket.covered_seconds),
+                }
+                for (stored_date, bucket_start), bucket in sorted(
+                    self._buckets.items()
+                )
+            ],
+            "covered_ranges": [
+                {
+                    "period_start": stored_date.isoformat(),
+                    "start": start.isoformat(),
+                    "end": end.isoformat(),
+                }
+                for stored_date, ranges in sorted(self._covered_ranges.items())
+                for start, end in ranges
+            ],
+        }
+
+    @classmethod
+    def from_dict(
+        cls,
+        local_timezone: tzinfo,
+        data: dict[str, Any],
+    ) -> TimingBucketAccumulator:
+        """Restore aggregate timing history from storage."""
+        accumulator = cls(local_timezone)
+        try:
+            for item in data["buckets"]:
+                stored_date = date.fromisoformat(item["period_start"])
+                bucket_start = datetime.fromisoformat(item["bucket_start"])
+                bucket = _MutableBucket(
+                    energy_kwh=Decimal(item["energy_kwh"]),
+                    price_seconds=Decimal(item["price_seconds"]),
+                    covered_seconds=Decimal(item["covered_seconds"]),
+                )
+                if (
+                    bucket_start.tzinfo is None
+                    or bucket_start.utcoffset() is None
+                    or not bucket.energy_kwh.is_finite()
+                    or bucket.energy_kwh < 0
+                    or not bucket.price_seconds.is_finite()
+                    or not bucket.covered_seconds.is_finite()
+                    or bucket.covered_seconds <= 0
+                ):
+                    raise ValueError
+                accumulator._buckets[(stored_date, bucket_start)] = bucket
+            for item in data["covered_ranges"]:
+                stored_date = date.fromisoformat(item["period_start"])
+                start = datetime.fromisoformat(item["start"])
+                end = datetime.fromisoformat(item["end"])
+                if (
+                    start.tzinfo is None
+                    or start.utcoffset() is None
+                    or end.tzinfo is None
+                    or end.utcoffset() is None
+                    or end <= start
+                ):
+                    raise ValueError
+                accumulator._covered_ranges.setdefault(stored_date, []).append(
+                    (start.astimezone(UTC), end.astimezone(UTC))
+                )
+        except (InvalidOperation, KeyError, TypeError, ValueError) as err:
+            raise ValueError("invalid timing bucket history") from err
+        return accumulator
