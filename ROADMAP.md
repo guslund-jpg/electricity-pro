@@ -295,6 +295,11 @@ Potential capabilities:
 - Recommendation entities suitable for dashboards and Home Assistant
   automations
 
+The first v1.3 recommendation design is the retrospective Consumption Timing
+Score defined by
+[ADR-0007](docs/adr/0007-consumption-timing-score.md) and tracked by
+[#115](https://github.com/guslund-jpg/electricity-pro/issues/115).
+
 Recommendations should explain the price window, duration, assumptions and
 estimated benefit behind their advice. Automatic device control remains a
 separate, explicitly designed capability.

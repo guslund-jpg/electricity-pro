@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Defined the first v1.3 Consumption Timing Score design, including its
+  provider-independent percentile model, data-coverage rules, flat-price
+  behavior, persistence boundary, and retrospective Home Assistant entity.
 - Replaced the provider-specific Peak Power Today source with a persisted,
   provider-independent statistic calculated from current power observations.
   Added Peak Power Time Today and local-midnight rollover behavior.
