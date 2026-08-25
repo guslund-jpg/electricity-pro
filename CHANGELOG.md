@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Added the pure Consumption Timing Score and 15-minute bucket-accumulator
+  models as the first implementation stage of ADR-0007. No Home Assistant
+  entity is exposed yet.
 - Defined the first v1.3 Consumption Timing Score design, including its
   provider-independent percentile model, data-coverage rules, flat-price
   behavior, persistence boundary, and retrospective Home Assistant entity.
