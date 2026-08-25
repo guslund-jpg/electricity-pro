@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Exposed Consumption Timing Score Yesterday as a retrospective Home Assistant
+  sensor with data-quality availability and explanatory result attributes.
 - Added the internal Consumption Timing Score runtime: bounded 15-minute
   history, restart-safe persistence, local-midnight finalization, and explicit
   stale-power coverage handling. The public sensor remains a separate stage.
