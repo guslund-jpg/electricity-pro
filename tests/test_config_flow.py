@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from homeassistant import config_entries, data_entry_flow
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.electricity_pro.config_flow import _tibber_settings_schema
 from custom_components.electricity_pro.const import (
     CONF_CURRENT_L1_ENTITY,
     CONF_CURRENT_L2_ENTITY,
@@ -53,6 +55,195 @@ async def _start_manual_flow(hass):
         result["flow_id"],
         {CONF_SETUP_METHOD: "custom"},
     )
+
+
+def test_tibber_settings_offer_optional_nordpool_forecast() -> None:
+    """The fast-track form should expose forecast intelligence explicitly."""
+    keys = [key.schema for key in _tibber_settings_schema().schema]
+
+    assert keys[0] == CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+
+
+async def test_tibber_initial_setup_stores_nordpool_forecast(hass) -> None:
+    """The guided fast track should save its optional forecast source."""
+    tibber_entry = MockConfigEntry(
+        domain="tibber",
+        title="Tibber",
+        entry_id="tibber-entry-id",
+    )
+    tibber_entry.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=tibber_entry.entry_id,
+        identifiers={("tibber", "test-home")},
+        name="Test home",
+    )
+    registry = er.async_get(hass)
+    registry.async_get_or_create(
+        domain="sensor",
+        platform="tibber",
+        unique_id="test-power",
+        device_id=device.id,
+        translation_key="power",
+    )
+    registry.async_get_or_create(
+        domain="sensor",
+        platform="tibber",
+        unique_id="test-price",
+        device_id=device.id,
+        translation_key="electricity_price",
+    )
+    nordpool_entry = MockConfigEntry(
+        domain="nordpool",
+        title="Nord Pool",
+        data={"areas": ["SE3"], "currency": "SEK"},
+        entry_id="nordpool-entry-id",
+    )
+    nordpool_entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_USER},
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_SETUP_METHOD: "tibber"},
+    )
+    assert result["step_id"] == "tibber_settings"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id"},
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_SOURCE_PROFILE] == "tibber"
+    assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == (
+        "nordpool-entry-id"
+    )
+
+
+async def test_tibber_options_add_single_area_nordpool_entry(hass) -> None:
+    """An existing fast-track entry should be able to enable forecasts later."""
+    nordpool_entry = MockConfigEntry(
+        domain="nordpool",
+        title="Nord Pool",
+        data={"areas": ["SE3"], "currency": "SEK"},
+        entry_id="nordpool-entry-id",
+    )
+    nordpool_entry.add_to_hass(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_SOURCE_PROFILE: "tibber",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    keys = [key.schema for key in result["data_schema"].schema]
+    assert keys[0] == CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id"},
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == (
+        "nordpool-entry-id"
+    )
+    assert CONF_FORECAST_PRICE_AREA not in result["data"]
+
+
+async def test_tibber_options_select_multi_area_nordpool_entry(hass) -> None:
+    """Fast-track options should request an area only when Nord Pool has several."""
+    nordpool_entry = MockConfigEntry(
+        domain="nordpool",
+        title="Nord Pool",
+        data={"areas": ["SE3", "SE4"], "currency": "SEK"},
+        entry_id="nordpool-entry-id",
+    )
+    nordpool_entry.add_to_hass(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_SOURCE_PROFILE: "tibber",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id"},
+    )
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["step_id"] == "forecast_area"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_FORECAST_PRICE_AREA: "SE4"},
+    )
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_FORECAST_PRICE_AREA] == "SE4"
+
+
+async def test_tibber_options_preserve_existing_nordpool_area(hass) -> None:
+    """Saving unchanged fast-track options must retain the selected area."""
+    nordpool_entry = MockConfigEntry(
+        domain="nordpool",
+        title="Nord Pool",
+        data={"areas": ["SE3", "SE4"], "currency": "SEK"},
+        entry_id="nordpool-entry-id",
+    )
+    nordpool_entry.add_to_hass(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_SOURCE_PROFILE: "tibber",
+            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id",
+            CONF_FORECAST_PRICE_AREA: "SE3",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id"},
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_FORECAST_PRICE_AREA] == "SE3"
+
+
+async def test_tibber_options_can_disable_initial_nordpool_forecast(hass) -> None:
+    """Clearing a forecast selected during setup must override entry data."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_SOURCE_PROFILE: "tibber",
+            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {},
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] is None
 
 
 async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None:

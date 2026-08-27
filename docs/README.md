@@ -128,7 +128,10 @@ device registries. Renaming an entity does not prevent discovery. Review the
 detected home and add only grid-side values Tibber cannot provide: the variable
 grid fee and Swedish energy tax. Enter both including VAT, using the rates from
 your grid agreement or bill. Energy-tax rates can change and reduced regional
-rates may apply, so Electricity Pro does not prefill a national default.
+rates may apply, so Electricity Pro does not prefill a national default. The
+optional native Nord Pool selection enables future-price insights such as the
+cheapest 1h, 2h, and 3h windows; it is not required for live measurements or
+retrospective statistics.
 
 ### Custom or mixed sources
 

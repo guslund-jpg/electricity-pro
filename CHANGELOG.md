@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Added the optional native Nord Pool forecast selector to Tibber fast-track
+  setup and options, enabling forecast-window insights without switching to
+  the custom-source path.
 - Exposed Consumption Timing Score Yesterday as a retrospective Home Assistant
   sensor with data-quality availability and explanatory result attributes.
 - Added the internal Consumption Timing Score runtime: bounded 15-minute
