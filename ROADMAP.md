@@ -302,6 +302,13 @@ Score defined by
 Its first retrospective sensor and quality metadata are implemented; any
 forward-looking coaching remains future work.
 
+The next proposed historical-intelligence design is provider-independent
+Estimated Base Load, defined by
+[ADR-0008](docs/adr/0008-base-load-estimation.md) and tracked by
+[#34](https://github.com/guslund-jpg/electricity-pro/issues/34). Its first
+version uses bounded Current Power history only and does not estimate appliance
+identity, annual cost, or whether a household's base load is excessive.
+
 Recommendations should explain the price window, duration, assumptions and
 estimated benefit behind their advice. Automatic device control remains a
 separate, explicitly designed capability.

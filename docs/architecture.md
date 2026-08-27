@@ -249,6 +249,12 @@ schedule rather than silently assuming a holiday.
 
 `calculations.py` contains deterministic electricity calculations.
 
+Proposed historical analytics remain pure and provider-independent. Base-load
+estimation is defined by
+[ADR-0008](adr/0008-base-load-estimation.md) as a bounded power-only history
+pipeline. It deliberately does not depend on price availability, Recorder, or
+provider-specific history APIs.
+
 The current calculation is:
 
 ```text

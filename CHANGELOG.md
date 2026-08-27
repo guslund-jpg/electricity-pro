@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Defined the proposed provider-independent Estimated Base Load architecture,
+  including its multi-day robust estimator, coverage contract, bounded
+  persistence, and boundaries against appliance identification and projections.
 - Added the optional native Nord Pool forecast selector to Tibber fast-track
   setup and options, enabling forecast-window insights without switching to
   the custom-source path.
