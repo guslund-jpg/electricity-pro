@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Defined the proposed provider-independent Average Power Today architecture,
+  including duration weighting, elapsed-day coverage, restart behavior, and
+  reuse of the bounded base-load power aggregates.
 - Added the provider-independent Estimated Base Load sensor, using bounded
   power-only history, five eligible days in a rolling seven-day window, and
   restart-safe daily summaries as defined by ADR-0008.

@@ -309,6 +309,12 @@ Estimated Base Load, defined by
 version uses bounded Current Power history only and does not estimate appliance
 identity, annual cost, or whether a household's base load is excessive.
 
+The next daily-statistics candidate is provider-independent Average Power
+Today, defined by
+[ADR-0009](docs/adr/0009-average-power-today.md) and tracked by
+[#82](https://github.com/guslund-jpg/electricity-pro/issues/82). It reuses the
+bounded Current Power aggregates while requiring explicit elapsed-day coverage.
+
 Recommendations should explain the price window, duration, assumptions and
 estimated benefit behind their advice. Automatic device control remains a
 separate, explicitly designed capability.
