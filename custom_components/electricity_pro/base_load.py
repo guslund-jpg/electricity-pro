@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta, tzinfo
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from typing import Any
@@ -14,6 +14,7 @@ _DEFAULT_MINIMUM_COVERAGE = Decimal("0.90")
 _DEFAULT_MAXIMUM_GAP = timedelta(hours=1)
 _DEFAULT_WINDOW_DAYS = 7
 _DEFAULT_REQUIRED_DAYS = 5
+_BUCKET_SECONDS = 15 * 60
 
 
 class DailyBaseLoadUnavailableReason(StrEnum):
@@ -323,3 +324,228 @@ def _timedelta_from_decimal_seconds(value: Decimal) -> timedelta:
     if not microseconds.is_finite() or microseconds != microseconds.to_integral_value():
         raise ValueError("invalid timedelta seconds")
     return timedelta(microseconds=int(microseconds))
+
+
+@dataclass(slots=True)
+class _MutablePowerBucket:
+    """Mutable duration-weighted power aggregate."""
+
+    power_seconds: Decimal = Decimal(0)
+    covered_seconds: Decimal = Decimal(0)
+
+
+class BaseLoadBucketAccumulator:
+    """Aggregate power-only history into bounded 15-minute buckets."""
+
+    def __init__(self, local_timezone: tzinfo) -> None:
+        """Initialize an empty accumulator."""
+        self._local_timezone = local_timezone
+        self._buckets: dict[tuple[date, datetime], _MutablePowerBucket] = {}
+        self._covered_ranges: dict[date, list[tuple[datetime, datetime]]] = {}
+        self._bidirectional_dates: set[date] = set()
+
+    def add_segment(
+        self,
+        *,
+        start: datetime,
+        end: datetime,
+        power_w: Decimal,
+    ) -> None:
+        """Add one constant-power segment, splitting boundaries as needed."""
+        if (
+            start.tzinfo is None
+            or start.utcoffset() is None
+            or end.tzinfo is None
+            or end.utcoffset() is None
+            or end <= start
+            or not power_w.is_finite()
+        ):
+            raise ValueError("invalid base-load segment")
+
+        cursor = start.astimezone(UTC)
+        utc_end = end.astimezone(UTC)
+        if power_w < 0:
+            self._mark_bidirectional_dates(cursor, utc_end)
+            return
+
+        self._add_covered_range(cursor, utc_end)
+        while cursor < utc_end:
+            timestamp = int(cursor.timestamp())
+            bucket_timestamp = timestamp - timestamp % _BUCKET_SECONDS
+            bucket_start = datetime.fromtimestamp(bucket_timestamp, tz=UTC)
+            segment_end = min(
+                bucket_start + timedelta(seconds=_BUCKET_SECONDS),
+                utc_end,
+            )
+            seconds = _seconds(segment_end - cursor)
+            local_date = cursor.astimezone(self._local_timezone).date()
+            bucket = self._buckets.setdefault(
+                (local_date, bucket_start),
+                _MutablePowerBucket(),
+            )
+            bucket.power_seconds += power_w * seconds
+            bucket.covered_seconds += seconds
+            cursor = segment_end
+
+    def _mark_bidirectional_dates(self, start: datetime, end: datetime) -> None:
+        """Mark each local date touched by a negative-power segment."""
+        cursor = start
+        while cursor < end:
+            local = cursor.astimezone(self._local_timezone)
+            self._bidirectional_dates.add(local.date())
+            next_midnight = datetime.combine(
+                local.date() + timedelta(days=1),
+                datetime.min.time(),
+                tzinfo=self._local_timezone,
+            ).astimezone(UTC)
+            cursor = min(end, next_midnight)
+
+    def _add_covered_range(self, start: datetime, end: datetime) -> None:
+        """Split and retain covered ranges by local date."""
+        cursor = start
+        while cursor < end:
+            local = cursor.astimezone(self._local_timezone)
+            next_midnight = datetime.combine(
+                local.date() + timedelta(days=1),
+                datetime.min.time(),
+                tzinfo=self._local_timezone,
+            ).astimezone(UTC)
+            segment_end = min(end, next_midnight)
+            self._covered_ranges.setdefault(local.date(), []).append(
+                (cursor, segment_end)
+            )
+            cursor = segment_end
+
+    def intervals_for_date(self, period_start: date) -> tuple[PowerInterval, ...]:
+        """Return ordered immutable aggregates for one local date."""
+        matching = sorted(
+            (
+                (bucket_start, bucket)
+                for (stored_date, bucket_start), bucket in self._buckets.items()
+                if stored_date == period_start
+            ),
+            key=lambda item: item[0],
+        )
+        return tuple(
+            PowerInterval(
+                mean_power_w=bucket.power_seconds / bucket.covered_seconds,
+                covered_duration=_timedelta_from_decimal_seconds(
+                    bucket.covered_seconds
+                ),
+            )
+            for _, bucket in matching
+        )
+
+    def longest_uncovered_gap(
+        self,
+        period_start: date,
+        *,
+        day_start: datetime,
+        day_end: datetime,
+    ) -> timedelta:
+        """Return the longest gap between merged covered ranges in one day."""
+        ranges = sorted(self._covered_ranges.get(period_start, ()))
+        cursor = day_start.astimezone(UTC)
+        utc_end = day_end.astimezone(UTC)
+        longest = timedelta(0)
+        for start, end in ranges:
+            start = max(start, cursor)
+            end = min(end, utc_end)
+            if end <= cursor:
+                continue
+            longest = max(longest, start - cursor)
+            cursor = max(cursor, end)
+        return max(longest, utc_end - cursor)
+
+    def bidirectional_observed(self, period_start: date) -> bool:
+        """Return whether negative power was seen during the local date."""
+        return period_start in self._bidirectional_dates
+
+    def retain_dates(self, dates: set[date]) -> None:
+        """Discard aggregate history outside the requested local dates."""
+        self._buckets = {
+            key: bucket for key, bucket in self._buckets.items() if key[0] in dates
+        }
+        self._covered_ranges = {
+            stored_date: ranges
+            for stored_date, ranges in self._covered_ranges.items()
+            if stored_date in dates
+        }
+        self._bidirectional_dates &= dates
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return bounded aggregate history in a storage-safe form."""
+        return {
+            "buckets": [
+                {
+                    "period_start": stored_date.isoformat(),
+                    "bucket_start": bucket_start.isoformat(),
+                    "power_seconds": str(bucket.power_seconds),
+                    "covered_seconds": str(bucket.covered_seconds),
+                }
+                for (stored_date, bucket_start), bucket in sorted(
+                    self._buckets.items()
+                )
+            ],
+            "covered_ranges": [
+                {
+                    "period_start": stored_date.isoformat(),
+                    "start": start.isoformat(),
+                    "end": end.isoformat(),
+                }
+                for stored_date, ranges in sorted(self._covered_ranges.items())
+                for start, end in ranges
+            ],
+            "bidirectional_dates": [
+                stored_date.isoformat()
+                for stored_date in sorted(self._bidirectional_dates)
+            ],
+        }
+
+    @classmethod
+    def from_dict(
+        cls,
+        local_timezone: tzinfo,
+        data: dict[str, Any],
+    ) -> BaseLoadBucketAccumulator:
+        """Restore and validate aggregate power history."""
+        accumulator = cls(local_timezone)
+        try:
+            for item in data["buckets"]:
+                stored_date = date.fromisoformat(item["period_start"])
+                bucket_start = datetime.fromisoformat(item["bucket_start"])
+                bucket = _MutablePowerBucket(
+                    power_seconds=Decimal(item["power_seconds"]),
+                    covered_seconds=Decimal(item["covered_seconds"]),
+                )
+                if (
+                    bucket_start.tzinfo is None
+                    or bucket_start.utcoffset() is None
+                    or not bucket.power_seconds.is_finite()
+                    or bucket.power_seconds < 0
+                    or not bucket.covered_seconds.is_finite()
+                    or bucket.covered_seconds <= 0
+                ):
+                    raise ValueError
+                accumulator._buckets[(stored_date, bucket_start)] = bucket
+            for item in data["covered_ranges"]:
+                stored_date = date.fromisoformat(item["period_start"])
+                start = datetime.fromisoformat(item["start"])
+                end = datetime.fromisoformat(item["end"])
+                if (
+                    start.tzinfo is None
+                    or start.utcoffset() is None
+                    or end.tzinfo is None
+                    or end.utcoffset() is None
+                    or end <= start
+                ):
+                    raise ValueError
+                accumulator._covered_ranges.setdefault(stored_date, []).append(
+                    (start.astimezone(UTC), end.astimezone(UTC))
+                )
+            accumulator._bidirectional_dates = {
+                date.fromisoformat(value) for value in data["bidirectional_dates"]
+            }
+        except (InvalidOperation, KeyError, TypeError, ValueError) as err:
+            raise ValueError("invalid base-load bucket history") from err
+        return accumulator

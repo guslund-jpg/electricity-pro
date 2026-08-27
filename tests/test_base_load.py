@@ -1,12 +1,14 @@
 """Tests for pure provider-independent base-load calculations."""
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
+from zoneinfo import ZoneInfo
 
 from custom_components.electricity_pro.base_load import (
     BaseLoadUnavailableReason,
+    BaseLoadBucketAccumulator,
     DailyBaseLoadSummary,
     DailyBaseLoadUnavailableReason,
     PowerInterval,
@@ -187,3 +189,50 @@ def test_power_interval_rejects_invalid_values(
     """Invalid normalized power must not enter the estimator."""
     with pytest.raises(ValueError, match="invalid power interval"):
         PowerInterval(power, duration)
+
+
+def test_accumulator_splits_local_days_and_round_trips() -> None:
+    """Aggregates should survive storage and split exactly at local midnight."""
+    timezone = ZoneInfo("Europe/Stockholm")
+    accumulator = BaseLoadBucketAccumulator(timezone)
+    start = datetime(2026, 8, 24, 23, 55, tzinfo=timezone)
+    accumulator.add_segment(
+        start=start,
+        end=start + timedelta(minutes=10),
+        power_w=Decimal(600),
+    )
+
+    assert sum(
+        (
+            interval.covered_duration
+            for interval in accumulator.intervals_for_date(date(2026, 8, 24))
+        ),
+        timedelta(0),
+    ) == timedelta(minutes=5)
+    assert sum(
+        (
+            interval.covered_duration
+            for interval in accumulator.intervals_for_date(date(2026, 8, 25))
+        ),
+        timedelta(0),
+    ) == timedelta(minutes=5)
+    assert (
+        BaseLoadBucketAccumulator.from_dict(timezone, accumulator.as_dict()).as_dict()
+        == accumulator.as_dict()
+    )
+
+
+def test_accumulator_marks_negative_power_without_fabricating_coverage() -> None:
+    """Export-like negative power should reject its day rather than be clamped."""
+    timezone = ZoneInfo("Europe/Stockholm")
+    accumulator = BaseLoadBucketAccumulator(timezone)
+    start = datetime(2026, 8, 24, 10, tzinfo=UTC)
+    accumulator.add_segment(
+        start=start,
+        end=start + timedelta(minutes=5),
+        power_w=Decimal(-100),
+    )
+    local_date = start.astimezone(timezone).date()
+
+    assert accumulator.bidirectional_observed(local_date)
+    assert accumulator.intervals_for_date(local_date) == ()

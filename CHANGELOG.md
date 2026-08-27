@@ -4,8 +4,9 @@
 
 ### Changed
 
-- Added the pure provider-independent base-load calculation models as the first
-  implementation stage of ADR-0008. No Home Assistant entity is exposed yet.
+- Added the provider-independent Estimated Base Load sensor, using bounded
+  power-only history, five eligible days in a rolling seven-day window, and
+  restart-safe daily summaries as defined by ADR-0008.
 - Defined the proposed provider-independent Estimated Base Load architecture,
   including its multi-day robust estimator, coverage contract, bounded
   persistence, and boundaries against appliance identification and projections.
