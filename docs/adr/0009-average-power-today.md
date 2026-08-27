@@ -116,4 +116,3 @@ tests cover identity, state, attributes, and unavailable behavior.
   long outage.
 - It describes only the time Electricity Pro observed with sufficient quality.
 - Imported-power semantics do not yet support solar export or batteries.
-
