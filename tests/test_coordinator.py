@@ -27,6 +27,7 @@ from custom_components.electricity_pro.const import (
     CONF_PRICING_STRATEGY,
     DOMAIN,
 )
+from custom_components.electricity_pro.base_load import BaseLoadUnavailableReason
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
 from custom_components.electricity_pro.forecast import ForecastInterval
 from custom_components.electricity_pro.forecast_insights import (
@@ -112,6 +113,111 @@ def test_timing_runtime_expires_stale_power_after_ten_minutes(hass) -> None:
         (interval.energy_kwh for interval in intervals),
         Decimal(0),
     ) == Decimal(1) / Decimal(6)
+
+
+def test_base_load_runtime_tracks_power_without_price(hass) -> None:
+    """Base-load coverage must not depend on a configured price source."""
+    hass.config.time_zone = "Europe/Stockholm"
+    hass.states.async_set("sensor.test_power", "600", {"unit_of_measurement": "W"})
+    coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
+    start = datetime(2026, 8, 25, 0, 0, tzinfo=UTC)
+
+    with patch.object(coordinator._store, "async_delay_save"):  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start,
+        ):
+            coordinator._read(power_observed=True)  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start + timedelta(minutes=5),
+        ):
+            coordinator._read()  # noqa: SLF001
+
+    intervals = coordinator._base_load_buckets.intervals_for_date(  # noqa: SLF001
+        start.astimezone(coordinator._local_timezone).date()  # noqa: SLF001
+    )
+    assert len(intervals) == 1
+    assert intervals[0].mean_power_w == Decimal(600)
+    assert intervals[0].covered_duration == timedelta(minutes=5)
+
+
+def test_base_load_runtime_marks_negative_source_power(hass) -> None:
+    """A negative source value should reject the day without being published."""
+    hass.config.time_zone = "Europe/Stockholm"
+    hass.states.async_set("sensor.test_power", "-100", {"unit_of_measurement": "W"})
+    coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
+    start = datetime(2026, 8, 25, 0, 0, tzinfo=UTC)
+
+    with patch.object(coordinator._store, "async_delay_save"):  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start,
+        ):
+            data = coordinator._read(power_observed=True)  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start + timedelta(minutes=5),
+        ):
+            coordinator._read()  # noqa: SLF001
+
+    local_date = start.astimezone(coordinator._local_timezone).date()  # noqa: SLF001
+    assert data.current_power is None
+    assert coordinator._base_load_buckets.bidirectional_observed(local_date)  # noqa: SLF001
+
+
+def test_base_load_runtime_publishes_after_five_eligible_days(hass) -> None:
+    """Five complete recent days should produce the rolling median estimate."""
+    hass.config.time_zone = "Europe/Stockholm"
+    coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
+    timezone = coordinator._local_timezone  # noqa: SLF001
+    for day, power in zip(range(20, 25), (180, 190, 200, 210, 220)):
+        period_start = date(2026, 8, day)
+        day_start = datetime(2026, 8, day, tzinfo=timezone)
+        coordinator._base_load_buckets.add_segment(  # noqa: SLF001
+            start=day_start,
+            end=day_start + timedelta(days=1),
+            power_w=Decimal(power),
+        )
+        coordinator._finalize_base_load_day(period_start)  # noqa: SLF001
+
+    result = coordinator.estimated_base_load
+    assert result is not None
+    assert result.estimate_w == Decimal(200)
+    assert result.unavailable_reason is None
+
+
+async def test_base_load_runtime_restores_bounded_history(hass) -> None:
+    """Restart restoration should preserve buckets and daily summaries."""
+    hass.config.time_zone = "Europe/Stockholm"
+    original = ElectricityProCoordinator(hass, _daily_peak_entry())
+    period_start = date(2026, 8, 24)
+    day_start = datetime(2026, 8, 24, tzinfo=original._local_timezone)  # noqa: SLF001
+    original._base_load_buckets.add_segment(  # noqa: SLF001
+        start=day_start,
+        end=day_start + timedelta(days=1),
+        power_w=Decimal(250),
+    )
+    original._finalize_base_load_day(period_start)  # noqa: SLF001
+    stored = original._statistics_data()  # noqa: SLF001
+    restored = ElectricityProCoordinator(hass, _daily_peak_entry())
+
+    with patch.object(
+        restored._store,  # noqa: SLF001
+        "async_load",
+        AsyncMock(return_value=stored),
+    ):
+        await restored._async_restore_statistics()  # noqa: SLF001
+
+    assert restored._base_load_buckets.as_dict() == (  # noqa: SLF001
+        original._base_load_buckets.as_dict()  # noqa: SLF001
+    )
+    restored._recalculate_base_load(period_start)  # noqa: SLF001
+    assert restored.estimated_base_load is not None
+    assert (
+        restored.estimated_base_load.unavailable_reason
+        is BaseLoadUnavailableReason.INSUFFICIENT_HISTORY
+    )
 
 
 def test_timing_runtime_finalizes_a_complete_local_day(hass) -> None:

@@ -34,6 +34,13 @@ from .const import (
     DOMAIN,
 )
 from .calculations import calculate_declared_effective_price
+from .base_load import (
+    BaseLoadBucketAccumulator,
+    BaseLoadEstimateResult,
+    DailyBaseLoadSummary,
+    calculate_base_load_estimate,
+    calculate_daily_base_load,
+)
 from .forecast import ForecastInterval
 from .forecast_insights import (
     ForecastDirectionInsight,
@@ -71,6 +78,8 @@ _COST_THIS_MONTH_UNIT = "cost_this_month_unit"
 _PEAK_POWER_TODAY = "peak_power_today"
 _TIMING_BUCKETS = "consumption_timing_buckets"
 _TIMING_RESULT = "consumption_timing_score_yesterday"
+_BASE_LOAD_BUCKETS = "base_load_buckets"
+_BASE_LOAD_DAILY_SUMMARIES = "base_load_daily_summaries"
 _KWH_PER_WH = Decimal("0.001")
 _FORECAST_REFRESH_INTERVAL = timedelta(minutes=15)
 _WORKDAY_REFRESH_INTERVAL = timedelta(hours=6)
@@ -113,6 +122,12 @@ class ElectricityProCoordinator(
         self._timing_power: Decimal | None = None
         self._timing_power_observed_at: datetime | None = None
         self._timing_effective_price: Decimal | None = None
+        self._base_load_buckets = BaseLoadBucketAccumulator(self._local_timezone)
+        self._base_load_daily_summaries: dict[date, DailyBaseLoadSummary] = {}
+        self._base_load_result: BaseLoadEstimateResult | None = None
+        self._base_load_last_time: datetime | None = None
+        self._base_load_power: Decimal | None = None
+        self._base_load_power_observed_at: datetime | None = None
         self._cost_this_month_unit: str | None = None
         self._forecast_intervals_by_date: dict[date, list[ForecastInterval]] = {}
         self._forecast_intervals: list[ForecastInterval] = []
@@ -132,6 +147,7 @@ class ElectricityProCoordinator(
         await self._async_restore_statistics()
         local_today = dt_util.now().astimezone(self._local_timezone).date()
         self._finalize_restored_timing_days(local_today)
+        self._finalize_restored_base_load_days(local_today)
         cancel_daily_rollover = async_track_time_change(
             self.hass,
             self._async_daily_rollover,
@@ -196,6 +212,11 @@ class ElectricityProCoordinator(
             return None
         return self._timing_result_date, self._timing_result
 
+    @property
+    def estimated_base_load(self) -> BaseLoadEstimateResult | None:
+        """Return the latest rolling base-load calculation."""
+        return self._base_load_result
+
     async def _async_timing_tick(self, now: datetime) -> None:
         """Close timing-history segments while source states remain quiet."""
         self.async_set_updated_data(self._read())
@@ -206,8 +227,11 @@ class ElectricityProCoordinator(
         local_now = now.astimezone(self._local_timezone)
         data = self._provider.read()
         self._update_timing_history(data, local_now, power_observed=False)
+        self._update_base_load_history(data, local_now, power_observed=False)
         self._finalize_timing_day(local_now.date() - timedelta(days=1))
+        self._finalize_base_load_day(local_now.date() - timedelta(days=1))
         self._timing_buckets.retain_dates({local_now.date()})
+        self._base_load_buckets.retain_dates({local_now.date()})
         peak_cleared = self._peak_power_today.clear()
         self._store.async_delay_save(self._statistics_data, delay=1)
         if peak_cleared and self.data is not None:
@@ -218,6 +242,8 @@ class ElectricityProCoordinator(
                     peak_power_time_today=None,
                 )
             )
+        elif self.data is not None:
+            self.async_set_updated_data(self.data)
 
     @callback
     def _async_source_changed(
@@ -462,6 +488,32 @@ class ElectricityProCoordinator(
                 self._timing_result = None
                 _LOGGER.warning("Ignoring invalid persisted timing score result")
 
+        if _BASE_LOAD_BUCKETS in stored:
+            try:
+                self._base_load_buckets = BaseLoadBucketAccumulator.from_dict(
+                    self._local_timezone,
+                    stored[_BASE_LOAD_BUCKETS],
+                )
+            except ValueError:
+                _LOGGER.warning("Ignoring invalid persisted base-load bucket history")
+
+        summaries = stored.get(_BASE_LOAD_DAILY_SUMMARIES)
+        if isinstance(summaries, list):
+            try:
+                restored_summaries = tuple(
+                    DailyBaseLoadSummary.from_dict(item) for item in summaries
+                )
+                if len({item.period_start for item in restored_summaries}) != len(
+                    restored_summaries
+                ):
+                    raise ValueError
+            except (TypeError, ValueError):
+                _LOGGER.warning("Ignoring invalid persisted base-load summaries")
+            else:
+                self._base_load_daily_summaries = {
+                    item.period_start: item for item in restored_summaries
+                }
+
     @callback
     def _read(self, *, power_observed: bool = False) -> ElectricityProData:
         """Read provider data and update derived statistics."""
@@ -480,9 +532,14 @@ class ElectricityProCoordinator(
             now,
             power_observed=power_observed,
         )
+        should_save |= self._update_base_load_history(
+            data,
+            now,
+            power_observed=power_observed,
+        )
 
         if data.current_power is not None:
-            should_save = self._peak_power_today.update(data.current_power, now)
+            should_save |= self._peak_power_today.update(data.current_power, now)
         peak_snapshot = self._peak_power_today.snapshot
         updates["peak_power_today"] = (
             peak_snapshot.peak_power_w if peak_snapshot is not None else None
@@ -600,6 +657,50 @@ class ElectricityProCoordinator(
         )
         return bucket_closed
 
+    def _update_base_load_history(
+        self,
+        data: ElectricityProData,
+        now: datetime,
+        *,
+        power_observed: bool,
+    ) -> bool:
+        """Integrate power-only history independently of price availability."""
+        bucket_closed = False
+        if (
+            self._base_load_last_time is not None
+            and self._base_load_power is not None
+            and self._base_load_power_observed_at is not None
+        ):
+            valid_end = min(
+                now,
+                self._base_load_power_observed_at + _TIMING_POWER_MAX_HOLD,
+            )
+            if valid_end > self._base_load_last_time:
+                bucket_closed = (
+                    int(self._base_load_last_time.timestamp()) // (15 * 60)
+                    != int(valid_end.timestamp()) // (15 * 60)
+                )
+                self._base_load_buckets.add_segment(
+                    start=self._base_load_last_time,
+                    end=valid_end,
+                    power_w=self._base_load_power,
+                )
+
+        self._base_load_last_time = now
+        if power_observed:
+            self._base_load_power = (
+                Decimal(-1)
+                if data.current_power_bidirectional
+                else data.current_power
+            )
+            self._base_load_power_observed_at = (
+                now
+                if data.current_power is not None
+                or data.current_power_bidirectional
+                else None
+            )
+        return bucket_closed
+
     def _finalize_restored_timing_days(self, local_today: date) -> None:
         """Finalize a retained previous day after a restart across midnight."""
         previous_day = local_today - timedelta(days=1)
@@ -630,6 +731,58 @@ class ElectricityProCoordinator(
             ),
         )
         self._timing_result_date = period_start
+
+    def _finalize_restored_base_load_days(self, local_today: date) -> None:
+        """Finalize retained power history after a restart across midnight."""
+        previous_day = local_today - timedelta(days=1)
+        if (
+            self._base_load_buckets.intervals_for_date(previous_day)
+            or self._base_load_buckets.bidirectional_observed(previous_day)
+        ):
+            self._finalize_base_load_day(previous_day)
+        self._base_load_buckets.retain_dates({local_today})
+        self._recalculate_base_load(previous_day)
+
+    def _finalize_base_load_day(self, period_start: date) -> None:
+        """Calculate and retain one completed local-day base-load summary."""
+        day_start = datetime.combine(
+            period_start,
+            datetime.min.time(),
+            tzinfo=self._local_timezone,
+        )
+        day_end = datetime.combine(
+            period_start + timedelta(days=1),
+            datetime.min.time(),
+            tzinfo=self._local_timezone,
+        )
+        summary = calculate_daily_base_load(
+            period_start,
+            self._base_load_buckets.intervals_for_date(period_start),
+            period_duration=day_end.astimezone(UTC) - day_start.astimezone(UTC),
+            longest_uncovered_gap=self._base_load_buckets.longest_uncovered_gap(
+                period_start,
+                day_start=day_start,
+                day_end=day_end,
+            ),
+            bidirectional_power_observed=(
+                self._base_load_buckets.bidirectional_observed(period_start)
+            ),
+        )
+        self._base_load_daily_summaries[period_start] = summary
+        self._recalculate_base_load(period_start)
+
+    def _recalculate_base_load(self, window_end: date) -> None:
+        """Refresh the rolling estimate and enforce seven-day retention."""
+        window_start = window_end - timedelta(days=6)
+        self._base_load_daily_summaries = {
+            stored_date: summary
+            for stored_date, summary in self._base_load_daily_summaries.items()
+            if window_start <= stored_date <= window_end
+        }
+        self._base_load_result = calculate_base_load_estimate(
+            tuple(self._base_load_daily_summaries.values()),
+            window_end=window_end,
+        )
 
     def _recalculate_forecast_insights(self) -> None:
         """Recalculate cached forecast insight results from current intervals."""
@@ -713,6 +866,11 @@ class ElectricityProCoordinator(
                 "period_start": self._timing_result_date.isoformat(),
                 "result": self._timing_result.as_dict(),
             }
+        data[_BASE_LOAD_BUCKETS] = self._base_load_buckets.as_dict()
+        data[_BASE_LOAD_DAILY_SUMMARIES] = [
+            summary.as_dict()
+            for _, summary in sorted(self._base_load_daily_summaries.items())
+        ]
         return data
 
 

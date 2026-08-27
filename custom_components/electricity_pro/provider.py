@@ -52,6 +52,7 @@ class ElectricityProData:
     """Normalized Electricity Pro data."""
 
     current_power: Decimal | None
+    current_power_bidirectional: bool
     current_price: Decimal | None
     current_price_unit: str | None
     pricing_metadata: PricingMetadata | None
@@ -316,6 +317,9 @@ class ElectricityProEntityProvider:
             current_power=self._normalize_power(
                 self._hass.states.get(self._power_entity_id)
             ),
+            current_power_bidirectional=self._is_negative_power(
+                self._hass.states.get(self._power_entity_id)
+            ),
             current_price=current_price,
             current_price_unit=current_price_unit,
             pricing_metadata=self._pricing_metadata,
@@ -416,6 +420,15 @@ class ElectricityProEntityProvider:
             return None
 
         return watts
+
+    @staticmethod
+    def _is_negative_power(source_state: State | None) -> bool:
+        """Identify supported power measurements hidden due to negative value."""
+        source_value = ElectricityProEntityProvider._parse_state(source_state)
+        if source_value is None or not source_value.is_finite():
+            return False
+        source_unit: Any = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
+        return source_unit in {UnitOfPower.WATT, UnitOfPower.KILO_WATT} and source_value < 0
 
     @staticmethod
     def _normalize_price(

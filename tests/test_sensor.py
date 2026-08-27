@@ -16,6 +16,7 @@ from custom_components.electricity_pro.const import (
     CONF_FORECAST_PRICE_AREA,
     DOMAIN,
 )
+from custom_components.electricity_pro.base_load import BaseLoadEstimateResult
 from custom_components.electricity_pro.timing_score import (
     TimingScoreRating,
     TimingScoreResult,
@@ -67,6 +68,40 @@ CHEAPEST_3H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID = (
 )
 PRICE_DIRECTION_ENTITY_ID = f"sensor.{DOMAIN}_price_direction"
 TIMING_SCORE_ENTITY_ID = f"sensor.{DOMAIN}_consumption_timing_score_yesterday"
+BASE_LOAD_ENTITY_ID = f"sensor.{DOMAIN}_estimated_base_load"
+
+
+async def test_estimated_base_load_publishes_value_and_metadata(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A five-day estimate should publish a whole-watt power sensor."""
+    entry = await setup_electricity_pro()
+    coordinator = entry.runtime_data
+    coordinator._base_load_result = BaseLoadEstimateResult(  # noqa: SLF001
+        estimate_w=Decimal("205.4"),
+        unavailable_reason=None,
+        window_start=date(2026, 8, 19),
+        window_end=date(2026, 8, 25),
+        eligible_days=5,
+        required_days=5,
+        daily_estimates=tuple(
+            (date(2026, 8, day), Decimal(value))
+            for day, value in zip(
+                range(21, 26), ("190", "200", "205.4", "210", "220")
+            )
+        ),
+    )
+    coordinator.async_set_updated_data(coordinator.data)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(BASE_LOAD_ENTITY_ID)
+    assert state is not None
+    assert state.state == "205.4"
+    assert state.attributes["unit_of_measurement"] == "W"
+    assert state.attributes["eligible_days"] == 5
+    assert state.attributes["method"] == "median_of_daily_p10"
+    assert state.attributes["daily_estimates_w"]["2026-08-23"] == "205.4"
 
 
 async def test_consumption_timing_score_publishes_completed_result(

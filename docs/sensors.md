@@ -82,6 +82,7 @@ clear and broadly useful.
 | Daily | Remaining cost today | `remaining_cost_today` | Calculated | Currency | None | Measurement | Available |
 | Daily | Peak power today | `peak_power_today` | Calculated | W | Power | Measurement | Available |
 | Daily | Peak power time today | `peak_power_time_today` | Calculated | Timestamp | Timestamp | None | Available |
+| Rolling | Estimated base load | `estimated_base_load` | Calculated | W | Power | Measurement | Available after 5 eligible days |
 | Monthly | Monthly peak-hour time | `monthly_peak_hour_time` | Mirrored | Timestamp | Timestamp | None | Available |
 
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
@@ -189,6 +190,24 @@ A future provider-independent implementation may calculate billing peaks from
 historical interval data and configurable tariff rules.
 
 ## Current insights
+
+### Estimated Base Load
+
+`estimated_base_load` estimates the home's recent continuous background demand
+from Current Power only. It does not require a price provider, Nord Pool, or
+Home Assistant Recorder.
+
+Electricity Pro calculates each completed local day's duration-weighted 10th
+percentile from 15-minute mean-power buckets. The published value is the median
+of at least five eligible days in the latest seven-day window. A day is eligible
+when Current Power covered at least 90% of its actual duration, no uncovered gap
+exceeded one hour, and no negative power was observed.
+
+The sensor therefore remains unavailable for at least five completed days after
+installation. Its attributes show the rolling window, eligible and required day
+counts, daily estimates, and the fixed method `median_of_daily_p10`. It describes
+observed whole-home demand and does not identify appliances or judge whether the
+result is good or bad.
 
 ### Consumption Timing Score Yesterday
 
