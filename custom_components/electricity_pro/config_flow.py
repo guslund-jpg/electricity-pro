@@ -167,6 +167,7 @@ def _setup_method_schema() -> vol.Schema:
 
 def _tibber_settings_schema(
     *,
+    forecast_nordpool_config_entry_default: str | None = None,
     grid_fee_default: float | None = None,
     energy_tax_default: float | None = None,
     good_price_threshold_default: float | None = None,
@@ -180,6 +181,16 @@ def _tibber_settings_schema(
     fixed_grid_fee_default: float | None = None,
 ) -> vol.Schema:
     """Return only the settings Tibber cannot determine."""
+    forecast_entry_key = (
+        vol.Optional(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+        if forecast_nordpool_config_entry_default is None
+        else vol.Optional(
+            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+            description={
+                "suggested_value": forecast_nordpool_config_entry_default,
+            },
+        )
+    )
     grid_fee_key = (
         vol.Optional(CONF_GRID_FEE_PER_KWH)
         if grid_fee_default is None
@@ -216,6 +227,9 @@ def _tibber_settings_schema(
     )
     return vol.Schema(
         {
+            forecast_entry_key: selector.ConfigEntrySelector(
+                selector.ConfigEntrySelectorConfig(integration="nordpool")
+            ),
             grid_fee_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
@@ -753,6 +767,25 @@ class ElectricityProConfigFlow(
                     data_schema=_tibber_settings_schema(),
                     errors={"base": "invalid_grid_tariff"},
                 )
+            nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+            if isinstance(nordpool_entry_id, str):
+                nordpool_entry = self.hass.config_entries.async_get_entry(
+                    nordpool_entry_id
+                )
+                if nordpool_entry is not None:
+                    areas = nordpool_entry.data.get("areas", [])
+                    if isinstance(areas, list) and len(areas) > 1:
+                        self._pending_user_input = {
+                            **self._selected_tibber_source.data,
+                            **user_input,
+                        }
+                        self._forecast_areas = [str(area) for area in areas]
+                        return self.async_show_form(
+                            step_id="forecast_area",
+                            data_schema=_forecast_area_schema(self._forecast_areas),
+                        )
+
+            user_input.pop(CONF_FORECAST_PRICE_AREA, None)
             data = {**self._selected_tibber_source.data, **user_input}
             return self.async_create_entry(title="Electricity Pro", data=data)
 
@@ -813,6 +846,54 @@ class ElectricityProOptionsFlow(OptionsFlow):
             )
         if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER:
             if user_input is not None:
+                if (
+                    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY not in user_input
+                    and CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in self.config_entry.data
+                ):
+                    user_input[CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] = None
+                nordpool_entry_id = user_input.get(
+                    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+                )
+                if isinstance(nordpool_entry_id, str):
+                    nordpool_entry = self.hass.config_entries.async_get_entry(
+                        nordpool_entry_id
+                    )
+                    if nordpool_entry is not None:
+                        areas = nordpool_entry.data.get("areas", [])
+                        if isinstance(areas, list) and len(areas) > 1:
+                            selected_area = user_input.get(CONF_FORECAST_PRICE_AREA)
+                            current_nordpool_entry_id = self.config_entry.options.get(
+                                CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+                                self.config_entry.data.get(
+                                    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+                                ),
+                            )
+                            if (
+                                selected_area is None
+                                and nordpool_entry_id == current_nordpool_entry_id
+                            ):
+                                selected_area = self.config_entry.options.get(
+                                    CONF_FORECAST_PRICE_AREA,
+                                    self.config_entry.data.get(
+                                        CONF_FORECAST_PRICE_AREA
+                                    ),
+                                )
+                                if selected_area in areas:
+                                    user_input[CONF_FORECAST_PRICE_AREA] = selected_area
+                            if selected_area not in areas:
+                                self._pending_user_input = user_input
+                                self._forecast_areas = [str(area) for area in areas]
+                                return self.async_show_form(
+                                    step_id="forecast_area",
+                                    data_schema=_forecast_area_schema(
+                                        self._forecast_areas
+                                    ),
+                                )
+                            return self.async_create_entry(
+                                title="",
+                                data=user_input,
+                            )
+                user_input.pop(CONF_FORECAST_PRICE_AREA, None)
                 return self.async_create_entry(title="", data=user_input)
             current_grid_fee = self.config_entry.options.get(
                 CONF_GRID_FEE_PER_KWH,
@@ -831,6 +912,9 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 step_id="init",
                 data_schema=_tibber_settings_schema(
                     grid_fee_default=current_grid_fee,
+                    forecast_nordpool_config_entry_default=values.get(
+                        CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+                    ),
                     energy_tax_default=current_energy_tax,
                     good_price_threshold_default=current_threshold,
                     high_fee_default=values.get(CONF_GRID_FEE_HIGH_PER_KWH),

@@ -85,6 +85,7 @@
         "title": "Confirm Tibber fast track",
         "description": "Electricity Pro found {entity_count} compatible entities. Current power: {power_entity}. Contracted price: {price_entity}. Tibber's contracted price includes market energy, Tibber markup, and VAT, but not grid fees or Swedish energy tax. Add those grid-side costs below when applicable.",
         "data": {
+          "forecast_nordpool_config_entry": "Nord Pool forecast config entry",
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
           "energy_tax_per_kwh": "Energy tax per kWh (including VAT)",
           "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
@@ -98,6 +99,7 @@
           "fixed_grid_fee_monthly": "Fixed monthly grid-provider fee (including VAT)"
         },
         "data_description": {
+          "forecast_nordpool_config_entry": "Optional: Select the native Nord Pool integration to enable future-price insights such as the cheapest 1h, 2h, and 3h windows. Area and currency are inherited automatically.",
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the Tibber price, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
           "energy_tax_per_kwh": "Optional: Energy tax per kWh in the local currency, including VAT. For example, 0.45 SEK/kWh in Sweden. Check your grid agreement or bill because rates can change and reduced regional rates may apply.",
           "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
