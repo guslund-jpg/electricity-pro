@@ -1,0 +1,189 @@
+"""Tests for pure provider-independent base-load calculations."""
+
+from datetime import date, timedelta
+from decimal import Decimal
+
+import pytest
+
+from custom_components.electricity_pro.base_load import (
+    BaseLoadUnavailableReason,
+    DailyBaseLoadSummary,
+    DailyBaseLoadUnavailableReason,
+    PowerInterval,
+    calculate_base_load_estimate,
+    calculate_daily_base_load,
+    duration_weighted_percentile,
+)
+
+_DAY = timedelta(days=1)
+
+
+def _interval(power: str, hours: int = 6) -> PowerInterval:
+    """Create one covered power interval."""
+    return PowerInterval(Decimal(power), timedelta(hours=hours))
+
+
+def _summary(day: int, estimate: str | None) -> DailyBaseLoadSummary:
+    """Create one daily summary in a fixed August 2026 window."""
+    return DailyBaseLoadSummary(
+        period_start=date(2026, 8, day),
+        estimate_w=Decimal(estimate) if estimate is not None else None,
+        unavailable_reason=(
+            None
+            if estimate is not None
+            else DailyBaseLoadUnavailableReason.INSUFFICIENT_COVERAGE
+        ),
+        coverage_percent=Decimal(100 if estimate is not None else 50),
+        longest_uncovered_gap=timedelta(
+            seconds=0 if estimate is not None else 12 * 3600
+        ),
+    )
+
+
+def test_duration_weighted_percentile_interpolates_bucket_midpoints() -> None:
+    """The low percentile should interpolate deterministically by duration."""
+    intervals = tuple(_interval(str(power)) for power in (100, 200, 300, 400))
+
+    assert duration_weighted_percentile(intervals, Decimal("0.10")) == Decimal(100)
+    assert duration_weighted_percentile(intervals, Decimal("0.50")) == Decimal(250)
+    assert duration_weighted_percentile(intervals, Decimal("0.90")) == Decimal(400)
+
+
+def test_daily_estimate_uses_repeated_low_demand_not_transient_minimum() -> None:
+    """A brief zero should not determine a mostly higher low-demand day."""
+    intervals = (
+        PowerInterval(Decimal(0), timedelta(minutes=15)),
+        PowerInterval(Decimal(180), timedelta(hours=3, minutes=45)),
+        PowerInterval(Decimal(400), timedelta(hours=20)),
+    )
+
+    result = calculate_daily_base_load(
+        date(2026, 8, 20),
+        intervals,
+        period_duration=_DAY,
+        longest_uncovered_gap=timedelta(0),
+    )
+
+    assert result.estimate_w == Decimal("185.0947368421052631578947368")
+    assert result.unavailable_reason is None
+
+
+@pytest.mark.parametrize(
+    ("coverage_hours", "gap", "bidirectional", "expected_reason"),
+    [
+        (
+            20,
+            timedelta(0),
+            False,
+            DailyBaseLoadUnavailableReason.INSUFFICIENT_COVERAGE,
+        ),
+        (
+            24,
+            timedelta(hours=2),
+            False,
+            DailyBaseLoadUnavailableReason.LONG_DATA_GAP,
+        ),
+        (
+            24,
+            timedelta(0),
+            True,
+            DailyBaseLoadUnavailableReason.UNSUPPORTED_BIDIRECTIONAL_POWER,
+        ),
+    ],
+)
+def test_daily_estimate_enforces_quality_contract(
+    coverage_hours: int,
+    gap: timedelta,
+    bidirectional: bool,
+    expected_reason: DailyBaseLoadUnavailableReason,
+) -> None:
+    """Incomplete, gapped, or bidirectional days must remain unavailable."""
+    result = calculate_daily_base_load(
+        date(2026, 8, 20),
+        (_interval("200", coverage_hours),),
+        period_duration=_DAY,
+        longest_uncovered_gap=gap,
+        bidirectional_power_observed=bidirectional,
+    )
+
+    assert result.estimate_w is None
+    assert result.unavailable_reason is expected_reason
+
+
+def test_rolling_estimate_requires_five_days_in_latest_seven() -> None:
+    """Older eligible history must not replace a missing recent day."""
+    summaries = tuple(_summary(day, "200") for day in (15, 20, 21, 22, 23))
+
+    result = calculate_base_load_estimate(
+        summaries,
+        window_end=date(2026, 8, 25),
+    )
+
+    assert result.estimate_w is None
+    assert result.unavailable_reason is BaseLoadUnavailableReason.INSUFFICIENT_HISTORY
+    assert result.eligible_days == 4
+    assert result.window_start == date(2026, 8, 19)
+
+
+def test_rolling_estimate_uses_median_and_rejects_outlier_day() -> None:
+    """One unusually high daily estimate should not dominate the result."""
+    summaries = tuple(
+        _summary(day, estimate)
+        for day, estimate in zip(
+            (19, 20, 21, 22, 23, 24, 25),
+            ("180", "190", "200", "205", "210", "220", "2000"),
+        )
+    )
+
+    result = calculate_base_load_estimate(
+        summaries,
+        window_end=date(2026, 8, 25),
+    )
+
+    assert result.estimate_w == Decimal(205)
+    assert result.eligible_days == 7
+    assert result.unavailable_reason is None
+
+
+def test_rolling_estimate_averages_middle_values_for_even_day_count() -> None:
+    """An even eligible-day count should use the exact midpoint average."""
+    summaries = tuple(
+        _summary(day, estimate)
+        for day, estimate in zip(
+            (20, 21, 22, 23, 24, 25),
+            ("100", "200", "300", "400", "500", "600"),
+        )
+    )
+
+    result = calculate_base_load_estimate(
+        summaries,
+        window_end=date(2026, 8, 25),
+    )
+
+    assert result.estimate_w == Decimal(350)
+
+
+def test_daily_summary_round_trip_and_invalid_storage() -> None:
+    """Daily summaries should persist losslessly and reject corrupt data."""
+    summary = _summary(25, "212.5")
+    assert DailyBaseLoadSummary.from_dict(summary.as_dict()) == summary
+
+    with pytest.raises(ValueError, match="invalid daily base-load summary"):
+        DailyBaseLoadSummary.from_dict({"period_start": "bad"})
+
+
+@pytest.mark.parametrize(
+    ("power", "duration"),
+    [
+        (Decimal("-1"), timedelta(minutes=15)),
+        (Decimal("NaN"), timedelta(minutes=15)),
+        (Decimal(100), timedelta(0)),
+    ],
+)
+def test_power_interval_rejects_invalid_values(
+    power: Decimal,
+    duration: timedelta,
+) -> None:
+    """Invalid normalized power must not enter the estimator."""
+    with pytest.raises(ValueError, match="invalid power interval"):
+        PowerInterval(power, duration)
