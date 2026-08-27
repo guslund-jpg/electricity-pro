@@ -187,6 +187,85 @@ def test_base_load_runtime_publishes_after_five_eligible_days(hass) -> None:
     assert result.unavailable_reason is None
 
 
+def test_average_power_today_uses_elapsed_local_day(hass) -> None:
+    """The coordinator should calculate against elapsed time since midnight."""
+    hass.config.time_zone = "Europe/Stockholm"
+    coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
+    timezone = coordinator._local_timezone  # noqa: SLF001
+    day_start = datetime(2026, 8, 25, tzinfo=timezone)
+    now = day_start + timedelta(hours=4)
+    coordinator._base_load_buckets.add_segment(  # noqa: SLF001
+        start=day_start,
+        end=day_start + timedelta(hours=1),
+        power_w=Decimal(100),
+    )
+    coordinator._base_load_buckets.add_segment(  # noqa: SLF001
+        start=day_start + timedelta(hours=1),
+        end=now,
+        power_w=Decimal(300),
+    )
+
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=now,
+    ):
+        stored = coordinator.average_power_today
+
+    assert stored is not None
+    period_start, result = stored
+    assert period_start == date(2026, 8, 25)
+    assert result.average_power_w == Decimal(250)
+    assert result.coverage_percent == Decimal(100)
+
+
+@pytest.mark.parametrize(
+    ("day", "elapsed_hours"),
+    [
+        (date(2026, 3, 29), 3),
+        (date(2026, 10, 25), 5),
+    ],
+)
+def test_average_power_today_uses_actual_dst_elapsed_time(
+    hass,
+    day: date,
+    elapsed_hours: int,
+) -> None:
+    """Spring and autumn clock changes must use elapsed real time."""
+    hass.config.time_zone = "Europe/Stockholm"
+    coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
+    timezone = coordinator._local_timezone  # noqa: SLF001
+    day_start = datetime.combine(day, datetime.min.time(), tzinfo=timezone)
+    now = datetime.combine(day, datetime.min.time(), tzinfo=timezone).replace(hour=4)
+    coordinator._base_load_buckets.add_segment(  # noqa: SLF001
+        start=day_start,
+        end=now,
+        power_w=Decimal(400),
+    )
+
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=now,
+    ):
+        stored = coordinator.average_power_today
+
+    assert stored is not None
+    assert stored[1].covered_duration == timedelta(hours=elapsed_hours)
+    assert stored[1].coverage_percent == Decimal(100)
+
+
+def test_average_power_today_is_empty_at_local_midnight(hass) -> None:
+    """The new local day should begin unavailable before any interval."""
+    hass.config.time_zone = "Europe/Stockholm"
+    coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
+    midnight = datetime(2026, 8, 25, tzinfo=coordinator._local_timezone)  # noqa: SLF001
+
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=midnight,
+    ):
+        assert coordinator.average_power_today is None
+
+
 async def test_base_load_runtime_restores_bounded_history(hass) -> None:
     """Restart restoration should preserve buckets and daily summaries."""
     hass.config.time_zone = "Europe/Stockholm"

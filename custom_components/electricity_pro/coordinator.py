@@ -35,10 +35,12 @@ from .const import (
 )
 from .calculations import calculate_declared_effective_price
 from .base_load import (
+    AveragePowerResult,
     BaseLoadBucketAccumulator,
     BaseLoadEstimateResult,
     DailyBaseLoadSummary,
     calculate_base_load_estimate,
+    calculate_average_power,
     calculate_daily_base_load,
 )
 from .forecast import ForecastInterval
@@ -216,6 +218,32 @@ class ElectricityProCoordinator(
     def estimated_base_load(self) -> BaseLoadEstimateResult | None:
         """Return the latest rolling base-load calculation."""
         return self._base_load_result
+
+    @property
+    def average_power_today(self) -> tuple[date, AveragePowerResult] | None:
+        """Return the duration-weighted mean for the elapsed local day."""
+        now = dt_util.now().astimezone(self._local_timezone)
+        period_start = now.date()
+        day_start = datetime.combine(
+            period_start,
+            datetime.min.time(),
+            tzinfo=self._local_timezone,
+        )
+        elapsed_duration = now.astimezone(UTC) - day_start.astimezone(UTC)
+        if elapsed_duration <= timedelta(0):
+            return None
+        return period_start, calculate_average_power(
+            self._base_load_buckets.intervals_for_date(period_start),
+            elapsed_duration=elapsed_duration,
+            longest_uncovered_gap=self._base_load_buckets.longest_uncovered_gap(
+                period_start,
+                day_start=day_start,
+                day_end=now,
+            ),
+            bidirectional_power_observed=(
+                self._base_load_buckets.bidirectional_observed(period_start)
+            ),
+        )
 
     async def _async_timing_tick(self, now: datetime) -> None:
         """Close timing-history segments while source states remain quiet."""

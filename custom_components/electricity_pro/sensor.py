@@ -29,7 +29,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from . import ElectricityProConfigEntry
-from .base_load import BaseLoadEstimateResult
+from .base_load import AveragePowerResult, BaseLoadEstimateResult
 from .calculations import (
     calculate_consumption_weighted_average_price,
     calculate_current_cost_rate,
@@ -563,6 +563,12 @@ async def async_setup_entry(
             entry=entry,
         )
     )
+    entities.append(
+        ElectricityProAveragePowerTodaySensor(
+            coordinator=entry.runtime_data,
+            entry=entry,
+        )
+    )
 
     async_add_entities(entities)
 
@@ -789,6 +795,68 @@ class ElectricityProEstimatedBaseLoadSensor(
                 for stored_date, value in result.daily_estimates
             },
             "method": "median_of_daily_p10",
+        }
+
+
+class ElectricityProAveragePowerTodaySensor(
+    CoordinatorEntity[ElectricityProCoordinator],
+    SensorEntity,
+):
+    """Represent duration-weighted Average Power Today."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Average power today"
+    _attr_icon = "mdi:chart-bell-curve-cumulative"
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_native_unit_of_measurement = UnitOfPower.WATT
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
+
+    def __init__(
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+    ) -> None:
+        """Initialize the average-power sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_average_power_today"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name="Electricity Pro",
+            manufacturer="Electricity Pro",
+            model="Electricity monitor",
+        )
+
+    @property
+    def _result(self) -> tuple[date, AveragePowerResult] | None:
+        """Return the current local-day result."""
+        return self.coordinator.average_power_today
+
+    @property
+    def native_value(self) -> Decimal | None:
+        """Return the duration-weighted mean in watts."""
+        result = self._result
+        return None if result is None else result[1].average_power_w
+
+    @property
+    def available(self) -> bool:
+        """Require sufficient elapsed-day power coverage."""
+        return super().available and self.native_value is not None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return coverage metadata for the current estimate."""
+        stored = self._result
+        if stored is None:
+            return None
+        period_start, result = stored
+        return {
+            "period_start": period_start.isoformat(),
+            "coverage_percent": str(result.coverage_percent),
+            "covered_duration_minutes": str(
+                Decimal(str(result.covered_duration.total_seconds())) / Decimal(60)
+            ),
+            "method": "duration_weighted_mean",
         }
 
 

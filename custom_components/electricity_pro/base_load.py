@@ -31,6 +31,15 @@ class BaseLoadUnavailableReason(StrEnum):
     INSUFFICIENT_HISTORY = "insufficient_history"
 
 
+class AveragePowerUnavailableReason(StrEnum):
+    """Reasons Average Power Today cannot be published."""
+
+    INSUFFICIENT_COVERAGE = "insufficient_coverage"
+    LONG_DATA_GAP = "long_data_gap"
+    NO_COVERED_INTERVALS = "no_covered_intervals"
+    UNSUPPORTED_BIDIRECTIONAL_POWER = "unsupported_bidirectional_power"
+
+
 @dataclass(frozen=True, slots=True)
 class PowerInterval:
     """One covered interval represented by its mean imported power."""
@@ -147,6 +156,33 @@ class BaseLoadEstimateResult:
             raise ValueError("invalid base-load estimate result")
 
 
+@dataclass(frozen=True, slots=True)
+class AveragePowerResult:
+    """Duration-weighted current-day power and coverage metadata."""
+
+    average_power_w: Decimal | None
+    unavailable_reason: AveragePowerUnavailableReason | None
+    coverage_percent: Decimal
+    covered_duration: timedelta
+
+    def __post_init__(self) -> None:
+        """Validate result consistency."""
+        if (
+            not self.coverage_percent.is_finite()
+            or not Decimal(0) <= self.coverage_percent <= _ONE_HUNDRED
+            or self.covered_duration < timedelta(0)
+            or (
+                self.average_power_w is not None
+                and (
+                    not self.average_power_w.is_finite()
+                    or self.average_power_w < 0
+                )
+            )
+            or (self.average_power_w is None) == (self.unavailable_reason is None)
+        ):
+            raise ValueError("invalid average-power result")
+
+
 def calculate_daily_base_load(
     period_start: date,
     intervals: tuple[PowerInterval, ...],
@@ -244,6 +280,63 @@ def calculate_base_load_estimate(
         eligible_days=len(daily_estimates),
         required_days=required_days,
         daily_estimates=daily_estimates,
+    )
+
+
+def calculate_average_power(
+    intervals: tuple[PowerInterval, ...],
+    *,
+    elapsed_duration: timedelta,
+    longest_uncovered_gap: timedelta,
+    bidirectional_power_observed: bool = False,
+    minimum_coverage: Decimal = _DEFAULT_MINIMUM_COVERAGE,
+    maximum_gap: timedelta = _DEFAULT_MAXIMUM_GAP,
+) -> AveragePowerResult:
+    """Calculate duration-weighted mean power for the elapsed local day."""
+    if (
+        elapsed_duration <= timedelta(0)
+        or longest_uncovered_gap < timedelta(0)
+        or not Decimal(0) <= minimum_coverage <= Decimal(1)
+        or maximum_gap < timedelta(0)
+    ):
+        raise ValueError("invalid average-power period")
+
+    covered_seconds = sum(
+        (_seconds(interval.covered_duration) for interval in intervals),
+        Decimal(0),
+    )
+    coverage = min(covered_seconds / _seconds(elapsed_duration), Decimal(1))
+    coverage_percent = coverage * _ONE_HUNDRED
+    covered_duration = _timedelta_from_decimal_seconds(covered_seconds)
+
+    if bidirectional_power_observed:
+        reason = AveragePowerUnavailableReason.UNSUPPORTED_BIDIRECTIONAL_POWER
+    elif not intervals:
+        reason = AveragePowerUnavailableReason.NO_COVERED_INTERVALS
+    elif coverage < minimum_coverage:
+        reason = AveragePowerUnavailableReason.INSUFFICIENT_COVERAGE
+    elif longest_uncovered_gap > maximum_gap:
+        reason = AveragePowerUnavailableReason.LONG_DATA_GAP
+    else:
+        weighted_power = sum(
+            (
+                interval.mean_power_w * _seconds(interval.covered_duration)
+                for interval in intervals
+            ),
+            Decimal(0),
+        )
+        return AveragePowerResult(
+            average_power_w=weighted_power / covered_seconds,
+            unavailable_reason=None,
+            coverage_percent=coverage_percent,
+            covered_duration=covered_duration,
+        )
+
+    return AveragePowerResult(
+        average_power_w=None,
+        unavailable_reason=reason,
+        coverage_percent=coverage_percent,
+        covered_duration=covered_duration,
     )
 
 
