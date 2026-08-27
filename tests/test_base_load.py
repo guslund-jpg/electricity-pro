@@ -7,12 +7,14 @@ import pytest
 from zoneinfo import ZoneInfo
 
 from custom_components.electricity_pro.base_load import (
+    AveragePowerUnavailableReason,
     BaseLoadUnavailableReason,
     BaseLoadBucketAccumulator,
     DailyBaseLoadSummary,
     DailyBaseLoadUnavailableReason,
     PowerInterval,
     calculate_base_load_estimate,
+    calculate_average_power,
     calculate_daily_base_load,
     duration_weighted_percentile,
 )
@@ -49,6 +51,71 @@ def test_duration_weighted_percentile_interpolates_bucket_midpoints() -> None:
     assert duration_weighted_percentile(intervals, Decimal("0.10")) == Decimal(100)
     assert duration_weighted_percentile(intervals, Decimal("0.50")) == Decimal(250)
     assert duration_weighted_percentile(intervals, Decimal("0.90")) == Decimal(400)
+
+
+def test_average_power_is_duration_weighted() -> None:
+    """Irregular intervals must be weighted by time, not observation count."""
+    result = calculate_average_power(
+        (_interval("100", 1), _interval("300", 3)),
+        elapsed_duration=timedelta(hours=4),
+        longest_uncovered_gap=timedelta(0),
+    )
+
+    assert result.average_power_w == Decimal(250)
+    assert result.coverage_percent == Decimal(100)
+    assert result.covered_duration == timedelta(hours=4)
+
+
+@pytest.mark.parametrize(
+    ("intervals", "elapsed", "gap", "bidirectional", "reason"),
+    [
+        (
+            (_interval("200", 8),),
+            timedelta(hours=10),
+            timedelta(hours=2),
+            False,
+            AveragePowerUnavailableReason.INSUFFICIENT_COVERAGE,
+        ),
+        (
+            (_interval("200", 10),),
+            timedelta(hours=10),
+            timedelta(hours=2),
+            False,
+            AveragePowerUnavailableReason.LONG_DATA_GAP,
+        ),
+        (
+            (),
+            timedelta(hours=1),
+            timedelta(hours=1),
+            False,
+            AveragePowerUnavailableReason.NO_COVERED_INTERVALS,
+        ),
+        (
+            (_interval("200", 10),),
+            timedelta(hours=10),
+            timedelta(0),
+            True,
+            AveragePowerUnavailableReason.UNSUPPORTED_BIDIRECTIONAL_POWER,
+        ),
+    ],
+)
+def test_average_power_enforces_quality_contract(
+    intervals: tuple[PowerInterval, ...],
+    elapsed: timedelta,
+    gap: timedelta,
+    bidirectional: bool,
+    reason: AveragePowerUnavailableReason,
+) -> None:
+    """Partial, gapped, empty, and bidirectional days must be unavailable."""
+    result = calculate_average_power(
+        intervals,
+        elapsed_duration=elapsed,
+        longest_uncovered_gap=gap,
+        bidirectional_power_observed=bidirectional,
+    )
+
+    assert result.average_power_w is None
+    assert result.unavailable_reason is reason
 
 
 def test_daily_estimate_uses_repeated_low_demand_not_transient_minimum() -> None:

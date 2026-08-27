@@ -82,6 +82,7 @@ clear and broadly useful.
 | Daily | Remaining cost today | `remaining_cost_today` | Calculated | Currency | None | Measurement | Available |
 | Daily | Peak power today | `peak_power_today` | Calculated | W | Power | Measurement | Available |
 | Daily | Peak power time today | `peak_power_time_today` | Calculated | Timestamp | Timestamp | None | Available |
+| Daily | Average power today | `average_power_today` | Calculated | W | Power | Measurement | Coverage dependent |
 | Rolling | Estimated base load | `estimated_base_load` | Calculated | W | Power | Measurement | Available after 5 eligible days |
 | Monthly | Monthly peak-hour time | `monthly_peak_hour_time` | Mirrored | Timestamp | Timestamp | None | Available |
 
@@ -190,6 +191,19 @@ A future provider-independent implementation may calculate billing peaks from
 historical interval data and configurable tariff rules.
 
 ## Current insights
+
+### Average Power Today
+
+`average_power_today` is the duration-weighted mean of Current Power during the
+observed portion of the current local day. It does not average irregular sensor
+updates as if they were equally spaced, and it does not require price, forecast,
+or Energy Today data.
+
+The sensor becomes available when Electricity Pro has valid Current Power for
+at least 90% of elapsed real time since local midnight and no uncovered gap
+exceeds one hour. It resets to unavailable at midnight until a valid interval
+has accumulated. Its attributes show the local date, coverage percentage,
+covered minutes, and the method `duration_weighted_mean`.
 
 ### Estimated Base Load
 

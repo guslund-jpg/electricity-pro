@@ -1,7 +1,7 @@
 """Tests for Electricity Pro sensors."""
 
 from collections.abc import Callable
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from types import CoroutineType
 from typing import Any
@@ -69,6 +69,52 @@ CHEAPEST_3H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID = (
 PRICE_DIRECTION_ENTITY_ID = f"sensor.{DOMAIN}_price_direction"
 TIMING_SCORE_ENTITY_ID = f"sensor.{DOMAIN}_consumption_timing_score_yesterday"
 BASE_LOAD_ENTITY_ID = f"sensor.{DOMAIN}_estimated_base_load"
+AVERAGE_POWER_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_average_power_today"
+
+
+async def test_average_power_today_publishes_value_and_coverage(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Sufficient current-day coverage should publish mean power metadata."""
+    entry = await setup_electricity_pro()
+    coordinator = entry.runtime_data
+    timezone = coordinator._local_timezone  # noqa: SLF001
+    day_start = datetime(2026, 8, 25, tzinfo=timezone)
+    now = day_start + timedelta(hours=2)
+    coordinator._base_load_buckets.add_segment(  # noqa: SLF001
+        start=day_start,
+        end=now,
+        power_w=Decimal("425.5"),
+    )
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=now,
+    ):
+        coordinator.async_set_updated_data(coordinator.data)
+        await hass.async_block_till_done()
+
+        state = hass.states.get(AVERAGE_POWER_TODAY_ENTITY_ID)
+
+    assert state is not None
+    assert state.state == "425.5"
+    assert state.attributes["unit_of_measurement"] == "W"
+    assert state.attributes["period_start"] == "2026-08-25"
+    assert state.attributes["coverage_percent"] == "100"
+    assert state.attributes["covered_duration_minutes"] == "120.0"
+    assert state.attributes["method"] == "duration_weighted_mean"
+
+
+async def test_average_power_today_starts_unavailable(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A new setup must not imply coverage before observing elapsed time."""
+    await setup_electricity_pro()
+
+    state = hass.states.get(AVERAGE_POWER_TODAY_ENTITY_ID)
+    assert state is not None
+    assert state.state == "unavailable"
 
 
 async def test_estimated_base_load_publishes_value_and_metadata(
