@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Defined signed net-power and negative-price semantics for bidirectional homes,
+  including conservative boundaries that prevent import prices from being used
+  as export compensation.
+
 ## [1.3.0] - 2026-08-28
 
 ### Added
