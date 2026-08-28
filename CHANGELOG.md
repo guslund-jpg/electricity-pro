@@ -1,40 +1,26 @@
 # Changelog
 
-## [Unreleased]
+## [1.3.0] - 2026-08-28
+
+### Added
+
+- Added Consumption Timing Score Yesterday, a provider-independent retrospective
+  score with explicit coverage and price-variation quality rules.
+- Added Estimated Base Load, calculated from five eligible days in a rolling
+  seven-day window using bounded, restart-safe Current Power history.
+- Added Average Power Today as a duration-weighted statistic with elapsed-day
+  coverage, local-midnight reset, and daylight-saving-aware behavior.
+- Added Peak Power Time Today alongside the provider-independent daily peak.
 
 ### Changed
 
-- Added provider-independent Average Power Today using duration weighting,
-  elapsed-day coverage, restart-safe state, and the bounded base-load power
-  aggregates.
-- Added the provider-independent Estimated Base Load sensor, using bounded
-  power-only history, five eligible days in a rolling seven-day window, and
-  restart-safe daily summaries as defined by ADR-0008.
-- Defined the proposed provider-independent Estimated Base Load architecture,
-  including its multi-day robust estimator, coverage contract, bounded
-  persistence, and boundaries against appliance identification and projections.
 - Added the optional native Nord Pool forecast selector to Tibber fast-track
   setup and options, enabling forecast-window insights without switching to
   the custom-source path.
-- Exposed Consumption Timing Score Yesterday as a retrospective Home Assistant
-  sensor with data-quality availability and explanatory result attributes.
-- Added the internal Consumption Timing Score runtime: bounded 15-minute
-  history, restart-safe persistence, local-midnight finalization, and explicit
-  stale-power coverage handling. The public sensor remains a separate stage.
-- Added the pure Consumption Timing Score and 15-minute bucket-accumulator
-  models as the first implementation stage of ADR-0007. No Home Assistant
-  entity is exposed yet.
-- Defined the first v1.3 Consumption Timing Score design, including its
-  provider-independent percentile model, data-coverage rules, flat-price
-  behavior, persistence boundary, and retrospective Home Assistant entity.
 - Replaced the provider-specific Peak Power Today source with a persisted,
-  provider-independent statistic calculated from current power observations.
-  Added Peak Power Time Today and local-midnight rollover behavior.
+  provider-independent statistic calculated from Current Power observations.
 - Display live power as whole watts and live supplier and Effective Price values
   with two decimals in Home Assistant and the enhanced dashboard example.
-- Defined the provider-independent daily peak-power statistics architecture,
-  including local-day rollover, persistence, restart restoration, tie handling,
-  and the boundary against broader v1.3 intelligence.
 
 ## [1.2.0] - 2026-08-23
 
