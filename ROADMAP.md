@@ -269,55 +269,36 @@ configuration; they do not introduce provider-specific calculation branches.
 
 ---
 
-### v1.3 — Recommendation Intelligence
+### v1.3 — Recommendation Intelligence ✅
 
 #### Goal
 
 Turn normalized price data, reliable forecasts, and household statistics into
 explainable, actionable recommendations.
 
-Foundation:
+Delivered:
 
 - Provider-independent Peak Power Today and peak-time statistics implemented
   from [ADR-0006](docs/adr/0006-provider-independent-daily-power-statistics.md)
   under [#64](https://github.com/guslund-jpg/electricity-pro/issues/64)
 - Minimal persisted history primitives introduced only as required by the first
   recommendation designs
-
-Potential capabilities:
-
-- Best start time for a flexible appliance or charging session
-- Expected cost for a planned power level and duration
-- Estimated savings from waiting for a better window
-- EV charging, dishwasher and washing-machine scheduling guidance
-- Heat-pump preheating opportunities
-- Consumption Timing Score with historical and forward-looking coaching
-- Recommendation entities suitable for dashboards and Home Assistant
-  automations
-
-The first v1.3 recommendation design is the retrospective Consumption Timing
-Score defined by
+- Consumption Timing Score Yesterday, defined by
 [ADR-0007](docs/adr/0007-consumption-timing-score.md) and tracked by
-[#115](https://github.com/guslund-jpg/electricity-pro/issues/115).
-Its first retrospective sensor and quality metadata are implemented; any
-forward-looking coaching remains future work.
-
-The next proposed historical-intelligence design is provider-independent
-Estimated Base Load, defined by
+[#115](https://github.com/guslund-jpg/electricity-pro/issues/115), with
+retrospective quality and price-variation metadata
+- Provider-independent Estimated Base Load, defined by
 [ADR-0008](docs/adr/0008-base-load-estimation.md) and tracked by
-[#34](https://github.com/guslund-jpg/electricity-pro/issues/34). Its first
-version uses bounded Current Power history only and does not estimate appliance
-identity, annual cost, or whether a household's base load is excessive.
-
-The next daily-statistics candidate is provider-independent Average Power
-Today, defined by
+[#34](https://github.com/guslund-jpg/electricity-pro/issues/34), using bounded
+Current Power history without claiming appliance identity or annual cost
+- Provider-independent Average Power Today, defined by
 [ADR-0009](docs/adr/0009-average-power-today.md) and tracked by
-[#82](https://github.com/guslund-jpg/electricity-pro/issues/82). It reuses the
-bounded Current Power aggregates while requiring explicit elapsed-day coverage.
+[#82](https://github.com/guslund-jpg/electricity-pro/issues/82), with explicit
+elapsed-day coverage
+- Tibber fast-track access to optional native Nord Pool forecast selection
 
-Recommendations should explain the price window, duration, assumptions and
-estimated benefit behind their advice. Automatic device control remains a
-separate, explicitly designed capability.
+Forward-looking coaching, expected savings, appliance scheduling guidance, and
+automatic device control remain future, separately designed capabilities.
 
 ---
 

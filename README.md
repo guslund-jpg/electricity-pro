@@ -34,8 +34,9 @@ providers such as Tibber, Nord Pool and smart meters. Forecast insight sensors
 use the native Home Assistant Nord Pool integration and its future-price action.
 The v1.2 pricing and tariff foundation adds explicit price semantics and
 configurable grid and fixed-fee models without provider-specific calculation
-branches. The legacy HACS Nord Pool integration is not required or supported as
-a forecast source.
+branches. v1.3 adds provider-independent daily power statistics, retrospective
+consumption-timing analysis, and recent base-load estimation. The legacy HACS
+Nord Pool integration is not required or supported as a forecast source.
 
 ## Who is Electricity Pro for?
 
@@ -117,7 +118,7 @@ Electricity Pro is evolving in carefully planned stages.
 | **v1.0** | Stable Release                   | ✅ Released                      |
 | **v1.1** | Forecast Prices & Scheduling     | ✅ Released                      |
 | **v1.2** | Pricing & Tariff Foundation      | ✅ Released                      |
-| **v1.3** | Recommendation Intelligence      | 🔭 Planned                       |
+| **v1.3** | Recommendation Intelligence      | ✅ Released                      |
 
 See [ROADMAP.md](ROADMAP.md) for more details.
 
@@ -211,11 +212,12 @@ grid-tariff settings, and optional Nord Pool and Workday features.
 
 ### Current release
 
-v1.2.0 – Provider-Independent Pricing & Tariff Foundation
+v1.3.0 – Recommendation Intelligence
 
 Electricity Pro is actively developed with a clear public roadmap.
 
-The current focus is v1.3 recommendation intelligence.
+The next roadmap phase is being planned from real-world v1.3 feedback and the
+remaining provider-independence foundations.
 
 ---
 
