@@ -312,6 +312,13 @@ Potential future capabilities include:
 - Heat pump optimisation
 - Whole-home energy intelligence
 
+The next provider-independence foundation is signed net power and consistent
+negative-value handling, defined by
+[ADR-0010](docs/adr/0010-signed-power-and-negative-values.md) and tracked by
+[#69](https://github.com/guslund-jpg/electricity-pro/issues/69). Export revenue,
+gross-flow channels, and solar or battery optimization remain separate future
+designs.
+
 ---
 
 ## The Three Questions

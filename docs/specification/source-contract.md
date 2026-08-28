@@ -63,15 +63,16 @@ Fixed supplier and grid charges remain separate from all per-kWh prices.
 | Property | Contract |
 | --- | --- |
 | Entity | `sensor.electricity_pro_current_power` |
-| Meaning | Current whole-home electricity import power |
+| Meaning | Current whole-home net grid exchange power |
 | Canonical unit | W |
-| Expected value | Numeric and greater than or equal to zero |
+| Expected value | Finite numeric; positive import and negative export |
 | Update behavior | As frequently as the source provides |
 | Missing source | Entity becomes unavailable |
 | Required | Yes for live-power features |
 
-The adapter converts kilowatts to watts when required. Export and signed
-bidirectional power may be introduced as separate capabilities later.
+The adapter converts kilowatts to watts when required. The source must measure
+whole-home net exchange rather than generation alone. Export revenue and
+separate gross import/export channels require additional source contracts.
 
 ### Current price
 
