@@ -153,9 +153,9 @@ The first version does not include:
 - Recorder reconstruction before observation began; or
 - exported energy and negative power.
 
-Bidirectional behavior remains blocked on issue #69. The estimator must not
-silently clamp negative values to zero because that would create an
-artificially low estimate.
+ADR-0010 later defined signed Current Power. The estimator rejects any local
+day containing export as `unsupported_bidirectional_power`; it must not clamp
+negative values to zero because that would create an artificially low estimate.
 
 ## Testing strategy
 

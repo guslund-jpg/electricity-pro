@@ -32,6 +32,9 @@ Instead, it builds an intelligence layer on top of your existing energy integrat
 Existing live measurements work with compatible Home Assistant entities from
 providers such as Tibber, Nord Pool and smart meters. Forecast insight sensors
 use the native Home Assistant Nord Pool integration and its future-price action.
+Whole-home Current Power uses signed net-grid semantics: positive values mean
+import and negative values mean export. Export compensation is not inferred
+from the configured import price.
 The v1.2 pricing and tariff foundation adds explicit price semantics and
 configurable grid and fixed-fee models without provider-specific calculation
 branches. v1.3 adds provider-independent daily power statistics, retrospective

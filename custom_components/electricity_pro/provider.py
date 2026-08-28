@@ -416,14 +416,14 @@ class ElectricityProEntityProvider:
         else:
             return None
 
-        if not watts.is_finite() or watts < 0:
+        if not watts.is_finite():
             return None
 
         return watts
 
     @staticmethod
     def _is_negative_power(source_state: State | None) -> bool:
-        """Identify supported power measurements hidden due to negative value."""
+        """Identify a supported signed power measurement as net export."""
         source_value = ElectricityProEntityProvider._parse_state(source_state)
         if source_value is None or not source_value.is_finite():
             return False
@@ -443,7 +443,6 @@ class ElectricityProEntityProvider:
 
         if (
             not source_value.is_finite()
-            or source_value < 0
             or not isinstance(source_unit, str)
             or not source_unit.strip()
         ):

@@ -222,7 +222,6 @@ def test_read_valid_sources(
         ("unknown", "W"),
         ("unavailable", "W"),
         ("not-a-number", "W"),
-        ("-1", "W"),
         ("1000", "V"),
         ("NaN", "W"),
         ("Infinity", "W"),
@@ -250,12 +249,38 @@ def test_invalid_power_returns_none(
 
 
 @pytest.mark.parametrize(
+    ("value", "unit", "expected"),
+    [("-125", "W", Decimal(-125)), ("-1.5", "kW", Decimal(-1500))],
+)
+def test_signed_power_preserves_export(
+    hass: HomeAssistant,
+    value: str,
+    unit: str,
+    expected: Decimal,
+) -> None:
+    """Finite negative whole-home power should normalize as net export."""
+    hass.states.async_set(
+        "sensor.test_power",
+        value,
+        {"unit_of_measurement": unit},
+    )
+    provider = _create_provider(
+        hass,
+        include_price=False,
+        include_energy=False,
+    )
+
+    data = provider.read()
+    assert data.current_power == expected
+    assert data.current_power_bidirectional
+
+
+@pytest.mark.parametrize(
     ("value", "attributes"),
     [
         ("unknown", {"unit_of_measurement": "SEK/kWh"}),
         ("unavailable", {"unit_of_measurement": "SEK/kWh"}),
         ("banana", {"unit_of_measurement": "SEK/kWh"}),
-        ("-1", {"unit_of_measurement": "SEK/kWh"}),
         ("1.25", {}),
         ("NaN", {"unit_of_measurement": "SEK/kWh"}),
         ("Infinity", {"unit_of_measurement": "SEK/kWh"}),
@@ -286,6 +311,20 @@ def test_invalid_price_returns_none(
 
     assert data.current_price is None
     assert data.current_price_unit is None
+
+
+def test_negative_price_is_valid(hass: HomeAssistant) -> None:
+    """A finite negative electricity price should preserve its source unit."""
+    hass.states.async_set("sensor.test_power", "1000", {"unit_of_measurement": "W"})
+    hass.states.async_set(
+        "sensor.test_price",
+        "-0.25",
+        {"unit_of_measurement": "SEK/kWh"},
+    )
+    data = _create_provider(hass, include_energy=False).read()
+
+    assert data.current_price == Decimal("-0.25")
+    assert data.current_price_unit == "SEK/kWh"
 
 
 @pytest.mark.parametrize(

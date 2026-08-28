@@ -68,8 +68,9 @@ For each valid normalized current-power observation:
 5. If it is lower, keep the existing snapshot unchanged.
 
 The provider continues to reject unavailable, unknown, malformed, non-finite,
-negative, and unsupported-unit values. A missing observation never clears a
-valid peak.
+and unsupported-unit values. ADR-0010 later expanded Current Power to signed
+net exchange; negative export observations do not replace a valid peak import.
+A missing observation never clears a valid peak.
 
 ### Local-midnight rollover
 
@@ -120,7 +121,7 @@ This decision does not introduce:
 - solar-export or bidirectional-power semantics; or
 - a registry or plugin system for arbitrary statistics.
 
-Bidirectional semantics remain tracked by issue #69. Consumption Timing Score
+Signed net-power semantics are defined by ADR-0010. Consumption Timing Score
 remains tracked by issue #115.
 
 ## Testing strategy

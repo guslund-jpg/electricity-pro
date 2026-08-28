@@ -4,9 +4,9 @@
 
 ### Changed
 
-- Defined signed net-power and negative-price semantics for bidirectional homes,
-  including conservative boundaries that prevent import prices from being used
-  as export compensation.
+- Added signed net Current Power and negative live-price support. Export remains
+  excluded from cost-rate and imported-demand analytics so an import contract
+  price is never misrepresented as export compensation.
 
 ## [1.3.0] - 2026-08-28
 

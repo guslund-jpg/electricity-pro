@@ -91,8 +91,9 @@ The first version does not include:
 - exported energy or net-power semantics; or
 - recommendations based on whether the value is high or low.
 
-Bidirectional power remains tracked by issue #69 and must not be silently
-clamped to zero.
+ADR-0010 later defined signed Current Power. Average Power Today remains an
+imported-demand statistic and rejects a local day containing export rather than
+silently clamping negative values to zero.
 
 ## Testing strategy
 
