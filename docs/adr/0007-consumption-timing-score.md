@@ -178,9 +178,10 @@ The first version does not include:
 - exported energy or negative power; or
 - a base-load correction.
 
-Bidirectional behavior remains blocked on issue #69. Base-load estimation in
-issue #34 may later provide a separate explanation, but it is not required to
-make the first timing score mathematically valid.
+ADR-0010 later defined signed Current Power while retaining this score's
+imported-consumption meaning. A local day containing export is explicitly
+unavailable with `unsupported_bidirectional_power`. Base-load estimation in
+issue #34 remains a separate explanation.
 
 ## Testing strategy
 

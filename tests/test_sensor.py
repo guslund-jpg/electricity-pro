@@ -503,6 +503,19 @@ async def test_current_power_converts_kw_to_w(
     assert state.attributes["unit_of_measurement"] == "W"
 
 
+async def test_current_power_publishes_signed_export(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Negative whole-home source power should remain visible as net export."""
+    await setup_electricity_pro(power_value="-0.45", power_unit="kW")
+
+    state = hass.states.get(ENTITY_ID)
+    assert state is not None
+    assert Decimal(state.state) == Decimal(-450)
+    assert state.attributes["unit_of_measurement"] == "W"
+
+
 async def test_current_power_becomes_unavailable(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
@@ -595,6 +608,40 @@ async def test_effective_price_includes_configured_adjustments(
     assert Decimal(state.state) == Decimal("1.05")
     assert state.attributes["unit_of_measurement"] == "SEK/kWh"
     assert state.attributes["state_class"] == "measurement"
+
+
+async def test_negative_price_flows_through_live_price_sensors(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A signed base price should remain valid after configured additions."""
+    await setup_electricity_pro(
+        power_value="1000",
+        price_value="-0.50",
+        grid_fee_per_kwh=0.20,
+    )
+
+    price = hass.states.get(PRICE_ENTITY_ID)
+    effective = hass.states.get(EFFECTIVE_PRICE_ENTITY_ID)
+    cost_rate = hass.states.get(COST_RATE_ENTITY_ID)
+    assert price is not None
+    assert effective is not None
+    assert cost_rate is not None
+    assert Decimal(price.state) == Decimal("-0.50")
+    assert Decimal(effective.state) == Decimal("-0.30")
+    assert Decimal(cost_rate.state) == Decimal("-0.30")
+
+
+async def test_current_cost_rate_unavailable_during_export(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """The import price must not be presented as export compensation."""
+    await setup_electricity_pro(power_value="-500", price_value="1.50")
+
+    state = hass.states.get(COST_RATE_ENTITY_ID)
+    assert state is not None
+    assert state.state == "unavailable"
 
 
 async def test_current_cost_rate_uses_normalized_effective_price(
@@ -1182,6 +1229,27 @@ async def test_peak_power_today_survives_invalid_current_power(
 
     assert state is not None
     assert Decimal(state.state) == Decimal(1234)
+
+
+async def test_peak_power_today_ignores_export(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A negative net-power observation must not replace the peak import."""
+    await setup_electricity_pro(power_value="1234")
+    hass.states.async_set(
+        SOURCE_ENTITY_ID,
+        "-2500",
+        {"unit_of_measurement": "W", "device_class": "power"},
+    )
+    await hass.async_block_till_done()
+
+    current = hass.states.get(ENTITY_ID)
+    peak = hass.states.get(PEAK_POWER_TODAY_ENTITY_ID)
+    assert current is not None
+    assert peak is not None
+    assert Decimal(current.state) == Decimal(-2500)
+    assert Decimal(peak.state) == Decimal(1234)
 
 
 async def test_phase_current_initial_values(

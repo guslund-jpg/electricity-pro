@@ -566,7 +566,7 @@ class ElectricityProCoordinator(
             power_observed=power_observed,
         )
 
-        if data.current_power is not None:
+        if data.current_power is not None and data.current_power >= 0:
             should_save |= self._peak_power_today.update(data.current_power, now)
         peak_snapshot = self._peak_power_today.snapshot
         updates["peak_power_today"] = (
@@ -675,8 +675,14 @@ class ElectricityProCoordinator(
 
         self._timing_last_time = now
         if power_observed:
-            self._timing_power = data.current_power
-            self._timing_power_observed_at = now if data.current_power is not None else None
+            self._timing_power = (
+                data.current_power
+                if data.current_power is not None and data.current_power >= 0
+                else None
+            )
+            self._timing_power_observed_at = (
+                now if self._timing_power is not None else None
+            )
         self._timing_effective_price = calculate_declared_effective_price(
             data.current_price,
             data.pricing_metadata,
@@ -756,6 +762,9 @@ class ElectricityProCoordinator(
                 period_start,
                 day_start=day_start,
                 day_end=day_end,
+            ),
+            bidirectional_power_observed=(
+                self._base_load_buckets.bidirectional_observed(period_start)
             ),
         )
         self._timing_result_date = period_start

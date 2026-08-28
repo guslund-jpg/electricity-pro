@@ -46,6 +46,22 @@ async def test_good_time_is_off_above_threshold(
     assert state.state == "off"
 
 
+async def test_good_time_accepts_negative_effective_price(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A negative price is valid and should compare below the threshold."""
+    await setup_electricity_pro(
+        price_value="-0.50",
+        grid_fee_per_kwh=0.20,
+        good_price_threshold=0.00,
+    )
+
+    state = hass.states.get(ENTITY_ID)
+    assert state is not None
+    assert state.state == "on"
+
+
 async def test_good_time_updates_with_price(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],

@@ -24,7 +24,11 @@ def calculate_current_cost_rate(
     if power_w is None or price_per_kwh is None:
         return None
 
-    if power_w < 0 or price_per_kwh < 0:
+    if (
+        not power_w.is_finite()
+        or not price_per_kwh.is_finite()
+        or power_w < 0
+    ):
         return None
 
     power_kw = power_w / Decimal(1000)
@@ -42,7 +46,7 @@ def calculate_normalized_effective_price(
     Every configured live price source reaches this calculation with explicit
     component semantics.
     """
-    if base_price is None or not base_price.is_finite() or base_price < 0:
+    if base_price is None or not base_price.is_finite():
         return None
 
     additions = adjustments or {}

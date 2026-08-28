@@ -94,7 +94,6 @@ def test_calculate_normalized_effective_price_respects_complete_source() -> None
     [
         (None, {}),
         (Decimal("NaN"), {}),
-        (Decimal("-0.01"), {}),
         (Decimal("0.80"), {PriceComponent.ENERGY_TAX: Decimal("NaN")}),
         (Decimal("0.80"), {PriceComponent.ENERGY_TAX: Decimal("-0.01")}),
     ],
@@ -112,6 +111,20 @@ def test_calculate_normalized_effective_price_rejects_invalid_values(
     assert calculate_normalized_effective_price(
         base_price, metadata, adjustments
     ) is None
+
+
+def test_calculate_normalized_effective_price_accepts_negative_base() -> None:
+    """Non-negative tariff components should be added to a signed base price."""
+    metadata = PricingMetadata(
+        strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
+        scope=PriceComponentScope(frozenset({PriceComponent.MARKET_ENERGY})),
+    )
+
+    assert calculate_normalized_effective_price(
+        Decimal("-0.50"),
+        metadata,
+        {PriceComponent.ENERGY_TAX: Decimal("0.20")},
+    ) == Decimal("-0.30")
 
 
 def test_calculate_consumption_weighted_average_price() -> None:
@@ -241,11 +254,11 @@ def test_calculate_current_cost_rate_rejects_negative_power() -> None:
     assert result is None
 
 
-def test_calculate_current_cost_rate_rejects_negative_price() -> None:
-    """Negative prices should not produce a cost rate."""
+def test_calculate_current_cost_rate_accepts_negative_import_price() -> None:
+    """Imported power at a negative price should produce a negative rate."""
     result = calculate_current_cost_rate(
         power_w=Decimal(2400),
         price_per_kwh=Decimal("-0.25"),
     )
 
-    assert result is None
+    assert result == Decimal("-0.600")

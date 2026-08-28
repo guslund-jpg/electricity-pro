@@ -86,6 +86,21 @@ clear and broadly useful.
 | Rolling | Estimated base load | `estimated_base_load` | Calculated | W | Power | Measurement | Available after 5 eligible days |
 | Monthly | Monthly peak-hour time | `monthly_peak_hour_time` | Mirrored | Timestamp | Timestamp | None | Available |
 
+### Current Power and signed flow
+
+`current_power` represents whole-home net grid exchange in watts. Positive
+values mean import from the grid and negative values mean export. The configured
+source must measure whole-home net exchange rather than solar generation alone.
+
+Current Cost Rate uses the configured import price only while power is
+non-negative; it becomes unavailable during export because Electricity Pro has
+no export-compensation source. Peak Power Today remains peak import. Average
+Power Today, Estimated Base Load, and Consumption Timing Score reject local days
+containing export rather than treating export as household consumption.
+
+Finite negative Current Price and Effective Price values are valid. During
+positive import they may produce a negative Current Cost Rate.
+
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
 | ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
 | Current L1 | `current_l1`        | Mirrored | A           | Current      | Measurement | High     |

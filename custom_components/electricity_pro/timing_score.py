@@ -24,6 +24,7 @@ class TimingScoreUnavailableReason(StrEnum):
     LONG_DATA_GAP = "long_data_gap"
     NO_CONSUMPTION = "no_consumption"
     INSUFFICIENT_PRICE_VARIATION = "insufficient_price_variation"
+    UNSUPPORTED_BIDIRECTIONAL_POWER = "unsupported_bidirectional_power"
 
 
 class TimingScoreRating(StrEnum):
@@ -152,6 +153,7 @@ def calculate_timing_score(
     *,
     period_duration: timedelta,
     longest_uncovered_gap: timedelta,
+    bidirectional_power_observed: bool = False,
     minimum_coverage: Decimal = _DEFAULT_MINIMUM_COVERAGE,
     maximum_gap: timedelta = _DEFAULT_MAXIMUM_GAP,
     minimum_price_variation: Decimal = _DEFAULT_MINIMUM_PRICE_VARIATION,
@@ -169,6 +171,12 @@ def calculate_timing_score(
     coverage_percent = coverage * _ONE_HUNDRED
     energy = sum((interval.energy_kwh for interval in intervals), Decimal(0))
 
+    if bidirectional_power_observed:
+        return _unavailable(
+            TimingScoreUnavailableReason.UNSUPPORTED_BIDIRECTIONAL_POWER,
+            coverage_percent,
+            energy,
+        )
     if coverage < minimum_coverage:
         return _unavailable(
             TimingScoreUnavailableReason.INSUFFICIENT_COVERAGE,

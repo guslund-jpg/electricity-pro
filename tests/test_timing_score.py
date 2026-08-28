@@ -70,6 +70,24 @@ def test_score_handles_tied_and_negative_prices() -> None:
     assert result.rating is TimingScoreRating.WELL_TIMED
 
 
+def test_score_rejects_bidirectional_power_day() -> None:
+    """Net export makes an imported-consumption timing score unsupported."""
+    result = calculate_timing_score(
+        (_interval("1", "1", 43200), _interval("1", "2", 43200)),
+        period_duration=timedelta(days=1),
+        longest_uncovered_gap=timedelta(0),
+        bidirectional_power_observed=True,
+    )
+
+    assert result.score is None
+    assert (
+        result.unavailable_reason
+        is TimingScoreUnavailableReason.UNSUPPORTED_BIDIRECTIONAL_POWER
+    )
+    assert result.rating is None
+    assert type(result).from_dict(result.as_dict()) == result
+
+
 @pytest.mark.parametrize(
     ("intervals", "period", "gap", "reason"),
     [

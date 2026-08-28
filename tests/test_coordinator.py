@@ -40,7 +40,10 @@ from custom_components.electricity_pro.pricing import (
     PricingStrategy,
     VatTreatment,
 )
-from custom_components.electricity_pro.timing_score import TimingBucketAccumulator
+from custom_components.electricity_pro.timing_score import (
+    TimingBucketAccumulator,
+    TimingScoreUnavailableReason,
+)
 
 
 def _daily_peak_entry() -> MockConfigEntry:
@@ -162,7 +165,7 @@ def test_base_load_runtime_marks_negative_source_power(hass) -> None:
             coordinator._read()  # noqa: SLF001
 
     local_date = start.astimezone(coordinator._local_timezone).date()  # noqa: SLF001
-    assert data.current_power is None
+    assert data.current_power == Decimal(-100)
     assert coordinator._base_load_buckets.bidirectional_observed(local_date)  # noqa: SLF001
 
 
@@ -319,6 +322,35 @@ def test_timing_runtime_finalizes_a_complete_local_day(hass) -> None:
     result_date, result = coordinator.timing_score_yesterday
     assert result_date == period_start
     assert result.score == Decimal(88)
+
+
+def test_timing_runtime_rejects_a_day_containing_export(hass) -> None:
+    """A complete priced day is still unsupported when net export occurred."""
+    hass.config.time_zone = "Europe/Stockholm"
+    coordinator = ElectricityProCoordinator(hass, _timing_entry())
+    period_start = date(2026, 8, 24)
+    day_start = datetime(2026, 8, 24, tzinfo=coordinator._local_timezone)  # noqa: SLF001
+    coordinator._timing_buckets.add_segment(  # noqa: SLF001
+        start=day_start,
+        end=day_start + timedelta(days=1),
+        power_w=Decimal(1000),
+        effective_price=Decimal(1),
+    )
+    coordinator._base_load_buckets.add_segment(  # noqa: SLF001
+        start=day_start,
+        end=day_start + timedelta(minutes=5),
+        power_w=Decimal(-100),
+    )
+
+    coordinator._finalize_timing_day(period_start)  # noqa: SLF001
+
+    assert coordinator.timing_score_yesterday is not None
+    result = coordinator.timing_score_yesterday[1]
+    assert result.score is None
+    assert (
+        result.unavailable_reason
+        is TimingScoreUnavailableReason.UNSUPPORTED_BIDIRECTIONAL_POWER
+    )
 
 
 async def test_timing_runtime_restores_buckets_and_completed_result(hass) -> None:
