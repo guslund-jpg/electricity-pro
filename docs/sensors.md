@@ -72,6 +72,7 @@ clear and broadly useful.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Live | Current power | `current_power` | Mirrored | W | Power | Measurement | Available |
 | Live | Current price | `current_price` | Mirrored | Currency/kWh | None | Measurement | Available |
+| Live | Current market price | `current_market_price` | Forecast-derived | Currency/kWh | None | Measurement | Forecast dependent |
 | Live | Effective price | `effective_price` | Calculated | Currency/kWh | None | Measurement | Available |
 | Live | Current cost rate | `current_cost_rate` | Calculated | Currency/h | None | Measurement | Available |
 | Daily | Energy today | `current_energy` | Mirrored | Wh or kWh | Energy | Total increasing | Available |
@@ -100,6 +101,21 @@ containing export rather than treating export as household consumption.
 
 Finite negative Current Price and Effective Price values are valid. During
 positive import they may produce a negative Current Cost Rate.
+
+### Current Market Price
+
+`current_market_price` is the unadjusted exchange price for the unique
+normalized forecast interval covering the current instant. It is separate from
+Current Price, which remains the configured live supplier, market, or complete
+price source, and from Effective Price, which includes applicable configured
+variable components.
+
+The sensor is created when a native market-price forecast source is configured.
+It accepts finite negative prices and exposes the delivery interval, resolution,
+currency, price area, publication time, included components, VAT treatment, and
+price completeness. It is unavailable when the current interval is missing or
+the normalized series is ambiguous because of overlaps, conflicting duplicate
+prices, or mixed metadata.
 
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
 | ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |

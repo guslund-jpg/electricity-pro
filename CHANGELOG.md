@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added Current Market Price from the normalized forecast interval covering the
+  current instant, with explicit area, interval, component, VAT, and
+  completeness metadata.
+
 ### Changed
 
 - Added signed net Current Power and negative live-price support. Export remains

@@ -43,7 +43,11 @@ from .base_load import (
     calculate_average_power,
     calculate_daily_base_load,
 )
-from .forecast import ForecastInterval
+from .forecast import (
+    ForecastInterval,
+    current_market_price_interval,
+    validate_forecast_series,
+)
 from .forecast_insights import (
     ForecastDirectionInsight,
     ForecastWindowInsight,
@@ -293,6 +297,14 @@ class ElectricityProCoordinator(
         return self._forecast_intervals
 
     @property
+    def current_market_price_interval(self) -> ForecastInterval | None:
+        """Return the normalized market-price interval covering now."""
+        return current_market_price_interval(
+            self._forecast_intervals,
+            now=dt_util.now(),
+        )
+
+    @property
     def cheapest_1h_window(self) -> ForecastWindowInsight | None:
         """Return the cheapest upcoming one-hour forecast window."""
         return self._cheapest_1h_window
@@ -438,20 +450,15 @@ class ElectricityProCoordinator(
 
     def _rebuild_forecast_intervals(self) -> None:
         """Build one ordered forecast sequence from the cached delivery dates."""
-        unique_intervals = {
-            (
-                interval.start,
-                interval.end,
-                interval.currency,
-                interval.area,
-            ): interval
-            for intervals in self._forecast_intervals_by_date.values()
-            for interval in intervals
-        }
-        self._forecast_intervals = sorted(
-            unique_intervals.values(),
-            key=lambda interval: interval.start,
-        )
+        try:
+            self._forecast_intervals = validate_forecast_series(
+                interval
+                for intervals in self._forecast_intervals_by_date.values()
+                for interval in intervals
+            )
+        except ValueError as err:
+            _LOGGER.warning("Unable to publish market-price forecast series: %s", err)
+            self._forecast_intervals = []
 
     async def _async_restore_statistics(self) -> None:
         """Restore persisted statistics state when available."""
