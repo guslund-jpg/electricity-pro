@@ -59,3 +59,33 @@ def test_enhanced_dashboard_live_header_precision() -> None:
         "sensor.electricity_pro_effective_price",
     ):
         assert series_by_entity[entity_id]["float_precision"] == 2
+
+
+def test_enhanced_dashboard_phase_current_gauges_share_20a_scale() -> None:
+    """Phase-current gauges should use one comparable example scale."""
+    dashboard = yaml.safe_load(
+        (DASHBOARD_EXAMPLES / "electricity-pro-enhanced.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    cards_by_entity = {
+        item["entity"]: item
+        for item in _walk(dashboard)
+        if isinstance(item, dict)
+        and item.get("type") == "gauge"
+        and str(item.get("entity", "")).startswith(
+            "sensor.electricity_pro_current_l"
+        )
+    }
+
+    expected_entities = {
+        "sensor.electricity_pro_current_l1",
+        "sensor.electricity_pro_current_l2",
+        "sensor.electricity_pro_current_l3",
+    }
+    assert cards_by_entity.keys() == expected_entities
+    for card in cards_by_entity.values():
+        assert card["min"] == 0
+        assert card["max"] == 20
+        assert card["needle"] is True
+        assert card["severity"] == {"green": 0, "yellow": 14, "red": 18}

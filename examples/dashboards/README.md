@@ -118,6 +118,12 @@ Its Overview view uses the same editable Current Power, Effective Price, and
 Current Cost Rate gauges as the standard dashboard. These gauges use built-in
 Home Assistant cards and do not add another frontend dependency.
 
+The Details view presents Current L1, L2, and L3 as comparable gauges. The
+example assumes a 20 A main fuse: green below 14 A, yellow from 14 A, and red
+from 18 A. All three gauges deliberately use the same scale so phase imbalance
+is easy to see. Change each gauge's `max` and `severity` values together if the
+installation has a different main-fuse rating.
+
 ## Customization
 
 For either dashboard, replace entity IDs if Home Assistant assigned different
