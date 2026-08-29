@@ -131,9 +131,12 @@ your grid agreement or bill. Energy-tax rates can change and reduced regional
 rates may apply, so Electricity Pro does not prefill a national default. The
 optional native Nord Pool selection enables future-price insights such as the
 cheapest 1h, 2h, and 3h windows; it is not required for live measurements or
-retrospective statistics.
+consumption and power statistics.
 
-When Nord Pool is selected, Electricity Pro also exposes Current Market Price.
+When Nord Pool is selected, Electricity Pro also exposes Current Market Price
+and Average Market Price Today. The daily average is a complete-local-day,
+duration-weighted value intended for long-term retrospective market-price
+statistics. It is not used for Good Time or any other recommendation.
 The `electricity_pro.get_market_price_forecast` action returns the normalized
 bounded interval series for dashboards and automations. Select the Electricity
 Pro configuration explicitly when calling the action. Before tomorrow's prices

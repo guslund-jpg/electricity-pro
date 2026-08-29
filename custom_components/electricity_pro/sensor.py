@@ -54,7 +54,7 @@ from .const import (
     DOMAIN,
 )
 from .coordinator import ElectricityProCoordinator
-from .forecast import ForecastInterval
+from .forecast import DailyAverageMarketPriceResult, ForecastInterval
 from .forecast_insights import ForecastDirectionInsight, ForecastWindowInsight
 from .pricing import PricingMetadata
 from .provider import ElectricityProData
@@ -500,6 +500,10 @@ async def async_setup_entry(
                     coordinator=entry.runtime_data,
                     entry=entry,
                 ),
+                ElectricityProAverageMarketPriceTodaySensor(
+                    coordinator=entry.runtime_data,
+                    entry=entry,
+                ),
                 ElectricityProCheapestWindowSensor(
                     coordinator=entry.runtime_data,
                     entry=entry,
@@ -761,6 +765,70 @@ class ElectricityProCurrentMarketPriceSensor(
                 }
             )
         return attributes
+
+
+class ElectricityProAverageMarketPriceTodaySensor(
+    ElectricityProForecastInsightSensor,
+):
+    """Represent the retrospective time-weighted market average for today."""
+
+    _attr_icon = "mdi:chart-bell-curve"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 3
+
+    def __init__(
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+    ) -> None:
+        """Initialize the Average Market Price Today sensor."""
+        super().__init__(
+            coordinator,
+            entry,
+            key="average_market_price_today",
+            name="Average market price today",
+        )
+
+    @property
+    def _result(self) -> DailyAverageMarketPriceResult | None:
+        """Return the complete local-day market-price result."""
+        return self.coordinator.average_market_price_today
+
+    @property
+    def native_value(self) -> Decimal | None:
+        """Return the duration-weighted market average."""
+        result = self._result
+        return None if result is None else result.average_market_price
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the normalized market-price unit."""
+        result = self._result
+        return None if result is None else f"{result.currency}/kWh"
+
+    @property
+    def available(self) -> bool:
+        """Require continuous normalized intervals for the complete local day."""
+        return super().available and self._result is not None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Explain the completed period and strictly retrospective purpose."""
+        result = self._result
+        if result is None:
+            return None
+        return {
+            "period_start": result.period_start.isoformat(),
+            "period_end": result.period_end.isoformat(),
+            "interval_count": result.interval_count,
+            "coverage_percent": "100",
+            "currency": result.currency,
+            "price_area": result.area,
+            "method": "duration_weighted_mean",
+            "statistic_scope": "retrospective_market_price",
+            "used_for_recommendations": False,
+            **_forecast_price_attributes(result.pricing_metadata),
+        }
 
 
 class ElectricityProConsumptionTimingScoreSensor(
