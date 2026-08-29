@@ -81,7 +81,7 @@ def test_enhanced_dashboard_market_price_presentation() -> None:
         if chart.get("header", {}).get("title")
         == "Market, supplier, and effective price"
     )
-    assert "min" not in comparison["yaxis"][0]
+    assert comparison["yaxis"][0]["min"] == "~0"
     assert [series["entity"] for series in comparison["series"]] == [
         "sensor.electricity_pro_current_market_price",
         "sensor.electricity_pro_current_price",
@@ -95,8 +95,17 @@ def test_enhanced_dashboard_market_price_presentation() -> None:
     )
     assert forecast["graph_span"] == "50h"
     assert forecast["span"] == {"start": "day"}
+    assert forecast["yaxis"][0]["min"] == "~0"
+    assert forecast["update_delay"] == "3s"
+    assert forecast["update_interval"] == "1min"
     assert forecast["now"]["show"] is True
+    assert forecast["apex_config"]["chart"] == {
+        "animations": {"enabled": False},
+        "redrawOnParentResize": True,
+        "redrawOnWindowResize": True,
+    }
     assert forecast["series"][0]["curve"] == "stepline"
+    assert forecast["series"][0]["show"]["in_header"] == "before_now"
     assert "entity.attributes.forecast" in forecast["series"][0]["data_generator"]
 
 

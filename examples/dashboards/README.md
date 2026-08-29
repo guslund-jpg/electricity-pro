@@ -130,6 +130,14 @@ unpublished part of the chart remains blank. The 50-hour display span also
 accommodates daylight-saving transitions and does not imply that 50 hours of
 prices are always available.
 
+The forward chart currently uses ApexCharts Card's advanced `data_generator`
+support. With ApexCharts Card 2.2.3 on some newer Home Assistant frontends, the
+card can remain on **Loading** until the browser window is resized. The
+underlying Electricity Pro sensor and forecast data remain available; resizing
+the window is a temporary presentation workaround. A future dashboard revision
+will replace this fragile rendering path with a reliably initialized frontend
+method.
+
 Its Overview view uses the same editable Current Power, Effective Price, and
 Current Cost Rate gauges as the standard dashboard. These gauges use built-in
 Home Assistant cards and do not add another frontend dependency.

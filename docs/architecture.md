@@ -239,7 +239,7 @@ the configured variable grid fee and Energy Tax. It remains distinct from live
 Effective Price until a forecast source declares a comparable complete
 component scope.
 
-The proposed v1.4 public market-price series is defined by
+The v1.4 public market-price series is defined by
 [ADR-0011](adr/0011-market-price-series-contract.md). It reuses
 `ForecastInterval`, adds a Current Market Price entity for the interval covering
 the current instant, and exposes the bounded ordered series through a

@@ -218,11 +218,11 @@ grid-tariff settings, and optional Nord Pool and Workday features.
 
 ### Current release
 
-v1.3.0 – Recommendation Intelligence
+v1.4.0 – Market Price Intelligence
 
 Electricity Pro is actively developed with a clear public roadmap.
 
-The next roadmap phase is being planned from real-world v1.3 feedback and the
+The next roadmap phase is being planned from real-world v1.4 feedback and the
 remaining provider-independence foundations.
 
 ---
