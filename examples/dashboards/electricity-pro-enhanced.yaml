@@ -471,7 +471,8 @@ views:
           graph_span: 50h
           span:
             start: day
-          update_interval: 5min
+          update_delay: 3s
+          update_interval: 1min
           now:
             show: true
             label: Now
@@ -494,25 +495,20 @@ views:
               float_precision: 2
               extend_to: false
               show:
-                in_header: true
-                extremas: time
+                in_header: before_now
               data_generator: |
                 const intervals = entity.attributes.forecast || [];
-                const points = [];
-                intervals.forEach((interval, index) => {
-                  const start = new Date(interval.start).getTime();
-                  const end = new Date(interval.end).getTime();
-                  if (index > 0) {
-                    const previousEnd = new Date(
-                      intervals[index - 1].end
-                    ).getTime();
-                    if (start > previousEnd) {
-                      points.push([previousEnd, null]);
-                    }
-                  }
-                  points.push([start, interval.price]);
-                  points.push([end, interval.price]);
-                });
+                const points = intervals.map((interval) => [
+                  new Date(interval.start).getTime(),
+                  Number(interval.price),
+                ]);
+                if (intervals.length > 0) {
+                  const last = intervals[intervals.length - 1];
+                  points.push([
+                    new Date(last.end).getTime(),
+                    Number(last.price),
+                  ]);
+                }
                 return points;
 
       - type: grid
