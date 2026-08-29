@@ -71,6 +71,19 @@ class ForecastInterval:
         return int(self.duration.total_seconds() // 60)
 
 
+@dataclass(frozen=True, slots=True)
+class DailyAverageMarketPriceResult:
+    """Represent one complete local day's time-weighted market average."""
+
+    average_market_price: Decimal
+    period_start: datetime
+    period_end: datetime
+    interval_count: int
+    currency: str
+    area: str
+    pricing_metadata: PricingMetadata
+
+
 def validate_forecast_series(
     intervals: Iterable[ForecastInterval],
 ) -> list[ForecastInterval]:
@@ -119,6 +132,60 @@ def current_market_price_interval(
 
     matches = [interval for interval in intervals if interval.start <= now < interval.end]
     return matches[0] if len(matches) == 1 else None
+
+
+def daily_average_market_price(
+    intervals: Iterable[ForecastInterval],
+    *,
+    period_start: datetime,
+    period_end: datetime,
+) -> DailyAverageMarketPriceResult | None:
+    """Return a duration-weighted average only for one completely covered day."""
+    if period_start.tzinfo is None or period_end.tzinfo is None:
+        raise ValueError("Daily market-price boundaries must be timezone-aware")
+    if period_start >= period_end:
+        raise ValueError("Daily market-price period start must be before end")
+
+    validated = validate_forecast_series(intervals)
+    relevant = [
+        interval
+        for interval in validated
+        if interval.end > period_start and interval.start < period_end
+    ]
+    if not relevant:
+        return None
+
+    cursor = period_start
+    weighted_price_seconds = Decimal(0)
+    covered_seconds = Decimal(0)
+    interval_count = 0
+    for interval in relevant:
+        clipped_start = max(interval.start, period_start)
+        clipped_end = min(interval.end, period_end)
+        if clipped_start != cursor:
+            return None
+
+        duration_seconds = Decimal(str((clipped_end - clipped_start).total_seconds()))
+        weighted_price_seconds += interval.market_price * duration_seconds
+        covered_seconds += duration_seconds
+        interval_count += 1
+        cursor = clipped_end
+        if cursor == period_end:
+            break
+
+    if cursor != period_end or covered_seconds <= 0:
+        return None
+
+    first = relevant[0]
+    return DailyAverageMarketPriceResult(
+        average_market_price=weighted_price_seconds / covered_seconds,
+        period_start=period_start,
+        period_end=period_end,
+        interval_count=interval_count,
+        currency=first.currency,
+        area=first.area,
+        pricing_metadata=first.pricing_metadata,
+    )
 
 
 def serialize_market_price_forecast(

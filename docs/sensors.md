@@ -73,6 +73,7 @@ clear and broadly useful.
 | Live | Current power | `current_power` | Mirrored | W | Power | Measurement | Available |
 | Live | Current price | `current_price` | Mirrored | Currency/kWh | None | Measurement | Available |
 | Live | Current market price | `current_market_price` | Forecast-derived | Currency/kWh | None | Measurement | Forecast dependent |
+| Statistic | Average market price today | `average_market_price_today` | Calculated | Currency/kWh | None | Measurement | Forecast dependent |
 | Live | Effective price | `effective_price` | Calculated | Currency/kWh | None | Measurement | Available |
 | Live | Current cost rate | `current_cost_rate` | Calculated | Currency/h | None | Measurement | Available |
 | Daily | Energy today | `current_energy` | Mirrored | Wh or kWh | Energy | Total increasing | Available |
@@ -124,6 +125,27 @@ state history. Automations should use the authoritative response-only
 `electricity_pro.get_market_price_forecast` action and explicitly select the
 Electricity Pro configuration to query.
 
+### Average Market Price Today
+
+`average_market_price_today` is the duration-weighted mean of the raw market
+price intervals covering the complete local calendar day. It preserves the
+forecast source's currency, price area, component scope, and VAT treatment.
+The sensor is unavailable if the normalized series contains any gap or does
+not cover local midnight through the following local midnight; a partial day
+is never presented as a daily average. This also makes 23-hour and 25-hour
+daylight-saving days behave correctly.
+
+This sensor is intended for Home Assistant Recorder and long-term retrospective
+statistics of market-price levels. It is **not a recommendation**, does not
+describe the household's achieved price, and is not used by Good Time, cheapest
+window, price-direction, or other scheduling insights. For recommendations,
+use the dedicated forward-looking forecast insights instead.
+
+It differs from Consumption-Weighted Average Price Today: this sensor weights
+each market interval by its duration only, whereas the consumption-weighted
+sensor reflects when the household actually used electricity and includes its
+configured effective-price scope.
+
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
 | ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
 | Current L1 | `current_l1`        | Mirrored | A           | Current      | Measurement | High     |
@@ -159,7 +181,7 @@ or a percentage.
 | Sensor | Proposed entity key | Type | Unit | Priority | Notes |
 | --- | --- | --- | --- | --- | --- |
 | Average power today | `average_power_today` | Calculated | W | Future | Requires statistics implementation |
-| Average market price today | `average_price_today` | Calculated | Currency/kWh | Future | Requires price history |
+| Average market price today | `average_market_price_today` | Calculated | Currency/kWh | Implemented | Complete normalized local-day series |
 | Monthly peak-hour consumption | `monthly_peak_hour_consumption` | Mirrored initially | kWh | High | Highest hourly consumption in current month |
 
 ### Consumption-weighted average price today

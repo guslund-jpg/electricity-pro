@@ -9,6 +9,9 @@
   completeness metadata.
 - Added a response-only market-price forecast action and a bounded forecast
   attribute for dashboards. The bulk attribute is excluded from Recorder.
+- Added Average Market Price Today as a complete-local-day, duration-weighted
+  retrospective statistic. It is explicitly excluded from recommendations and
+  remains unavailable for incomplete daily price series.
 
 ### Changed
 

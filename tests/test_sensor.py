@@ -71,9 +71,81 @@ CHEAPEST_3H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID = (
 )
 PRICE_DIRECTION_ENTITY_ID = f"sensor.{DOMAIN}_price_direction"
 CURRENT_MARKET_PRICE_ENTITY_ID = f"sensor.{DOMAIN}_current_market_price"
+AVERAGE_MARKET_PRICE_TODAY_ENTITY_ID = (
+    f"sensor.{DOMAIN}_average_market_price_today"
+)
 TIMING_SCORE_ENTITY_ID = f"sensor.{DOMAIN}_consumption_timing_score_yesterday"
 BASE_LOAD_ENTITY_ID = f"sensor.{DOMAIN}_estimated_base_load"
 AVERAGE_POWER_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_average_power_today"
+
+
+async def test_average_market_price_today_is_complete_day_retrospective_statistic(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """The market mean should publish only as a complete retrospective statistic."""
+    hass.config.time_zone = "Europe/Stockholm"
+    period_start = datetime(2026, 8, 12, 22, 0, tzinfo=UTC)
+    intervals = [
+        {
+            "start": (period_start + timedelta(minutes=15 * index)).isoformat(),
+            "end": (period_start + timedelta(minutes=15 * (index + 1))).isoformat(),
+            "price": 1000 if index < 48 else 3000,
+        }
+        for index in range(96)
+    ]
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 8, 0, tzinfo=UTC),
+    ):
+        await setup_electricity_pro(
+            forecast_price_area="SE3",
+            forecast_currency="SEK",
+            forecast_nordpool_config_entry="nordpool-entry-id",
+            forecast_intervals=intervals,
+        )
+
+    state = hass.states.get(AVERAGE_MARKET_PRICE_TODAY_ENTITY_ID)
+    assert state is not None
+    assert state.state == "2"
+    assert state.attributes["unit_of_measurement"] == "SEK/kWh"
+    assert state.attributes["state_class"] == "measurement"
+    assert state.attributes["period_start"] == "2026-08-13T00:00:00+02:00"
+    assert state.attributes["period_end"] == "2026-08-14T00:00:00+02:00"
+    assert state.attributes["interval_count"] == 96
+    assert state.attributes["coverage_percent"] == "100"
+    assert state.attributes["method"] == "duration_weighted_mean"
+    assert state.attributes["statistic_scope"] == "retrospective_market_price"
+    assert state.attributes["used_for_recommendations"] is False
+    assert state.attributes["price_components"] == ["market_energy"]
+
+
+async def test_average_market_price_today_unavailable_for_partial_day(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """An incomplete local day must not produce a misleading daily average."""
+    hass.config.time_zone = "Europe/Stockholm"
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 8, 0, tzinfo=UTC),
+    ):
+        await setup_electricity_pro(
+            forecast_price_area="SE3",
+            forecast_currency="SEK",
+            forecast_nordpool_config_entry="nordpool-entry-id",
+            forecast_intervals=[
+                {
+                    "start": "2026-08-12T22:00:00+00:00",
+                    "end": "2026-08-13T21:45:00+00:00",
+                    "price": 1000,
+                }
+            ],
+        )
+
+    state = hass.states.get(AVERAGE_MARKET_PRICE_TODAY_ENTITY_ID)
+    assert state is not None
+    assert state.state == "unavailable"
 
 
 async def test_average_power_today_publishes_value_and_coverage(

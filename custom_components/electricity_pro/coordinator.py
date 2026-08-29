@@ -44,8 +44,10 @@ from .base_load import (
     calculate_daily_base_load,
 )
 from .forecast import (
+    DailyAverageMarketPriceResult,
     ForecastInterval,
     current_market_price_interval,
+    daily_average_market_price,
     serialize_market_price_forecast,
     validate_forecast_series,
 )
@@ -303,6 +305,26 @@ class ElectricityProCoordinator(
         return current_market_price_interval(
             self._forecast_intervals,
             now=dt_util.now(),
+        )
+
+    @property
+    def average_market_price_today(self) -> DailyAverageMarketPriceResult | None:
+        """Return the complete local day's duration-weighted market average."""
+        local_now = dt_util.now().astimezone(self._local_timezone)
+        period_start = datetime.combine(
+            local_now.date(),
+            datetime.min.time(),
+            tzinfo=self._local_timezone,
+        )
+        period_end = datetime.combine(
+            local_now.date() + timedelta(days=1),
+            datetime.min.time(),
+            tzinfo=self._local_timezone,
+        )
+        return daily_average_market_price(
+            self._forecast_intervals,
+            period_start=period_start,
+            period_end=period_end,
         )
 
     @property

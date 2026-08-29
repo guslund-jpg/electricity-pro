@@ -2,12 +2,14 @@
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 import pytest
 
 from custom_components.electricity_pro.forecast import (
     ForecastInterval,
     current_market_price_interval,
+    daily_average_market_price,
     serialize_market_price_forecast,
     validate_forecast_series,
 )
@@ -117,6 +119,112 @@ def test_forecast_interval_accepts_negative_market_price() -> None:
     )
 
     assert interval.market_price == Decimal("-0.01")
+
+
+def test_daily_average_market_price_is_duration_weighted_for_complete_local_day(
+) -> None:
+    """A complete local day should produce one duration-weighted market mean."""
+    timezone = ZoneInfo("Europe/Stockholm")
+    period_start = datetime(2026, 8, 13, tzinfo=timezone)
+    midpoint = period_start + timedelta(hours=6)
+    period_end = period_start + timedelta(days=1)
+    intervals = [
+        ForecastInterval(
+            start=period_start,
+            end=midpoint,
+            market_price=Decimal("1"),
+            currency="SEK",
+            area="SE3",
+        ),
+        ForecastInterval(
+            start=midpoint,
+            end=period_end,
+            market_price=Decimal("3"),
+            currency="SEK",
+            area="SE3",
+        ),
+    ]
+
+    result = daily_average_market_price(
+        intervals,
+        period_start=period_start,
+        period_end=period_end,
+    )
+
+    assert result is not None
+    assert result.average_market_price == Decimal("2.5")
+    assert result.interval_count == 2
+    assert result.currency == "SEK"
+    assert result.area == "SE3"
+
+
+def test_daily_average_market_price_rejects_partial_day() -> None:
+    """A partial series must not be published as a daily market average."""
+    timezone = ZoneInfo("Europe/Stockholm")
+    period_start = datetime(2026, 8, 13, tzinfo=timezone)
+    period_end = period_start + timedelta(days=1)
+
+    assert (
+        daily_average_market_price(
+            [
+                ForecastInterval(
+                    start=period_start,
+                    end=period_end - timedelta(minutes=15),
+                    market_price=Decimal("1.5"),
+                    currency="SEK",
+                    area="SE3",
+                )
+            ],
+            period_start=period_start,
+            period_end=period_end,
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    ("local_day", "expected_intervals"),
+    [
+        ((2026, 3, 29), 92),
+        ((2026, 10, 25), 100),
+    ],
+)
+def test_daily_average_market_price_handles_daylight_saving_days(
+    local_day: tuple[int, int, int],
+    expected_intervals: int,
+) -> None:
+    """Complete 23- and 25-hour local days should both be accepted."""
+    timezone = ZoneInfo("Europe/Stockholm")
+    period_start = datetime(*local_day, tzinfo=timezone)
+    period_end = datetime(
+        *(period_start.date() + timedelta(days=1)).timetuple()[:3],
+        tzinfo=timezone,
+    )
+    utc_start = period_start.astimezone(UTC)
+    utc_end = period_end.astimezone(UTC)
+    intervals = []
+    cursor = utc_start
+    while cursor < utc_end:
+        intervals.append(
+            ForecastInterval(
+                start=cursor,
+                end=cursor + timedelta(minutes=15),
+                market_price=Decimal("1.25"),
+                currency="SEK",
+                area="SE3",
+            )
+        )
+        cursor += timedelta(minutes=15)
+
+    result = daily_average_market_price(
+        intervals,
+        period_start=period_start,
+        period_end=period_end,
+    )
+
+    assert result is not None
+    assert result.average_market_price == Decimal("1.25")
+    assert result.interval_count == expected_intervals
 
 
 def _interval(

@@ -64,6 +64,8 @@ Monitor your home's energy usage in real time.
 - Energy This Month
 - Current Electricity Price
 - Current Market Price when a Nord Pool forecast source is configured
+- Average Market Price Today for long-term retrospective market statistics;
+  it is not used for recommendations
 - Effective Price
 - Current Cost Rate
 - Cost Today
