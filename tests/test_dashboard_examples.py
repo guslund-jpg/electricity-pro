@@ -55,10 +55,49 @@ def test_enhanced_dashboard_live_header_precision() -> None:
         == 0
     )
     for entity_id in (
+        "sensor.electricity_pro_current_market_price",
         "sensor.electricity_pro_current_price",
         "sensor.electricity_pro_effective_price",
     ):
         assert series_by_entity[entity_id]["float_precision"] == 2
+
+
+def test_enhanced_dashboard_market_price_presentation() -> None:
+    """Enhanced dashboard compares and previews provider-independent prices."""
+    dashboard = yaml.safe_load(
+        (DASHBOARD_EXAMPLES / "electricity-pro-enhanced.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    charts = [
+        item
+        for item in _walk(dashboard)
+        if isinstance(item, dict) and item.get("type") == "custom:apexcharts-card"
+    ]
+
+    comparison = next(
+        chart
+        for chart in charts
+        if chart.get("header", {}).get("title")
+        == "Market, supplier, and effective price"
+    )
+    assert "min" not in comparison["yaxis"][0]
+    assert [series["entity"] for series in comparison["series"]] == [
+        "sensor.electricity_pro_current_market_price",
+        "sensor.electricity_pro_current_price",
+        "sensor.electricity_pro_effective_price",
+    ]
+
+    forecast = next(
+        chart
+        for chart in charts
+        if chart.get("header", {}).get("title") == "Market price forecast"
+    )
+    assert forecast["graph_span"] == "50h"
+    assert forecast["span"] == {"start": "day"}
+    assert forecast["now"]["show"] is True
+    assert forecast["series"][0]["curve"] == "stepline"
+    assert "entity.attributes.forecast" in forecast["series"][0]["data_generator"]
 
 
 def test_enhanced_dashboard_phase_current_gauges_share_20a_scale() -> None:

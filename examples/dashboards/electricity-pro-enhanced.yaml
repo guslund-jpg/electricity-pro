@@ -284,13 +284,24 @@ views:
           graph_span: 24h
           header:
             show: true
-            title: Supplier and effective price
+            title: Market, supplier, and effective price
             show_states: true
             colorize_states: true
           yaxis:
-            - min: 0
-              decimals: 2
+            - decimals: 2
           series:
+            - entity: sensor.electricity_pro_current_market_price
+              name: Current market price
+              type: line
+              curve: stepline
+              color: "#b0bec5"
+              stroke_width: 2
+              float_precision: 2
+              show:
+                in_header: false
+              group_by:
+                duration: 15min
+                func: avg
             - entity: sensor.electricity_pro_current_price
               name: Current supplier price
               type: line
@@ -445,6 +456,62 @@ views:
       - type: custom:mushroom-title-card
         title: Upcoming price windows
         subtitle: Scheduling insights from native Nord Pool forecasts
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_current_market_price
+            state_not: unavailable
+          - condition: state
+            entity: sensor.electricity_pro_current_market_price
+            state_not: unknown
+        card:
+          type: custom:apexcharts-card
+          graph_span: 50h
+          span:
+            start: day
+          update_interval: 5min
+          now:
+            show: true
+            label: Now
+            color: "#ef5350"
+          header:
+            show: true
+            title: Market price forecast
+            show_states: true
+            colorize_states: true
+          yaxis:
+            - decimals: 2
+          series:
+            - entity: sensor.electricity_pro_current_market_price
+              name: Market price
+              type: line
+              curve: stepline
+              color: "#42a5f5"
+              stroke_width: 2
+              float_precision: 2
+              extend_to: false
+              show:
+                in_header: true
+                extremas: time
+              data_generator: |
+                const intervals = entity.attributes.forecast || [];
+                const points = [];
+                intervals.forEach((interval, index) => {
+                  const start = new Date(interval.start).getTime();
+                  const end = new Date(interval.end).getTime();
+                  if (index > 0) {
+                    const previousEnd = new Date(
+                      intervals[index - 1].end
+                    ).getTime();
+                    if (start > previousEnd) {
+                      points.push([previousEnd, null]);
+                    }
+                  }
+                  points.push([start, interval.price]);
+                  points.push([end, interval.price]);
+                });
+                return points;
 
       - type: grid
         columns: 2

@@ -77,9 +77,11 @@ and history graph cards. No HACS frontend cards are required.
 `electricity-pro-enhanced.yaml` contains four views:
 
 - **Overview** — insight, live values, and daily and monthly statistics
-- **Trends** — recorded power and price history with richer charts
+- **Trends** — recorded power history plus market, supplier, and effective-price
+  comparison
 - **Details** — optional three-phase current and voltage measurements
-- **Forecast** — Mushroom presentation of the v1.1 scheduling insights
+- **Forecast** — a forward market-price chart and Mushroom presentation of the
+  scheduling insights
 
 ![Illustrative Electricity Pro enhanced dashboard](electricity-pro-enhanced-preview.svg)
 
@@ -113,6 +115,20 @@ forecast insights calculated by the integration. It does not create forecasts,
 modify prices, or contain provider-specific calculations. Optional cards are
 wrapped in built-in conditional cards and are hidden when their entities are
 `unknown` or `unavailable`.
+
+When a Nord Pool forecast source is configured, the Trends price chart adds the
+raw market price alongside the contracted supplier price and Electricity Pro's
+effective price. These lines deliberately represent different scopes: market
+price is the underlying exchange price, supplier price is the contracted price
+reported by the configured provider, and effective price adds configured costs
+such as grid fees and energy tax.
+
+The Forecast view plots every market-price interval retained by Electricity Pro
+from the start of today through tomorrow, with a red **Now** marker. Before Nord
+Pool publishes tomorrow's prices, normally around 13:00 local market time, the
+unpublished part of the chart remains blank. The 50-hour display span also
+accommodates daylight-saving transitions and does not imply that 50 hours of
+prices are always available.
 
 Its Overview view uses the same editable Current Power, Effective Price, and
 Current Cost Rate gauges as the standard dashboard. These gauges use built-in
