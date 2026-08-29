@@ -117,6 +117,13 @@ price completeness. It is unavailable when the current interval is missing or
 the normalized series is ambiguous because of overlaps, conflicting duplicate
 prices, or mixed metadata.
 
+The sensor's bounded `forecast` attribute contains the current and next
+retained delivery dates for dashboard presentation. Electricity Pro excludes
+that bulk attribute from Recorder while retaining normal Current Market Price
+state history. Automations should use the authoritative response-only
+`electricity_pro.get_market_price_forecast` action and explicitly select the
+Electricity Pro configuration to query.
+
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
 | ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
 | Current L1 | `current_l1`        | Mirrored | A           | Current      | Measurement | High     |

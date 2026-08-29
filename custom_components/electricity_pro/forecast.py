@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 from .pricing import (
     PriceCompleteness,
@@ -118,3 +119,41 @@ def current_market_price_interval(
 
     matches = [interval for interval in intervals if interval.start <= now < interval.end]
     return matches[0] if len(matches) == 1 else None
+
+
+def serialize_market_price_forecast(
+    intervals: Iterable[ForecastInterval],
+) -> dict[str, Any]:
+    """Serialize one validated market-price series for Home Assistant."""
+    validated = validate_forecast_series(intervals)
+    if not validated:
+        raise ValueError("Market-price forecast is unavailable")
+
+    first = validated[0]
+    publication_times = [
+        interval.published_at
+        for interval in validated
+        if interval.published_at is not None
+    ]
+    published_at = max(publication_times) if publication_times else None
+    return {
+        "currency": first.currency,
+        "area": first.area,
+        "price_components": sorted(
+            component.value
+            for component in first.pricing_metadata.scope.included
+        ),
+        "vat_treatment": first.pricing_metadata.scope.vat.value,
+        "price_completeness": first.pricing_metadata.completeness.value,
+        "published_at": (
+            published_at.isoformat() if published_at is not None else None
+        ),
+        "intervals": [
+            {
+                "start": interval.start.isoformat(),
+                "end": interval.end.isoformat(),
+                "price": float(interval.market_price),
+            }
+            for interval in validated
+        ],
+    }

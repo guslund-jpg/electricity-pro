@@ -46,6 +46,7 @@ from .base_load import (
 from .forecast import (
     ForecastInterval,
     current_market_price_interval,
+    serialize_market_price_forecast,
     validate_forecast_series,
 )
 from .forecast_insights import (
@@ -303,6 +304,11 @@ class ElectricityProCoordinator(
             self._forecast_intervals,
             now=dt_util.now(),
         )
+
+    @property
+    def market_price_forecast_response(self) -> dict[str, Any]:
+        """Return the serialized bounded market-price forecast series."""
+        return serialize_market_price_forecast(self._forecast_intervals)
 
     @property
     def cheapest_1h_window(self) -> ForecastWindowInsight | None:

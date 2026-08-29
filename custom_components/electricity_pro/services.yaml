@@ -1,0 +1,13 @@
+get_market_price_forecast:
+  name: Get market price forecast
+  description: >-
+    Returns the normalized market-price intervals currently held by one
+    Electricity Pro configuration.
+  fields:
+    config_entry_id:
+      name: Electricity Pro configuration
+      description: Select the Electricity Pro configuration to query.
+      required: true
+      selector:
+        config_entry:
+          integration: electricity_pro

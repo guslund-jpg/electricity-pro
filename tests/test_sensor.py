@@ -22,6 +22,9 @@ from custom_components.electricity_pro.timing_score import (
     TimingScoreResult,
     TimingScoreUnavailableReason,
 )
+from custom_components.electricity_pro.sensor import (
+    ElectricityProCurrentMarketPriceSensor,
+)
 
 ENTITY_ID = f"sensor.{DOMAIN}_current_power"
 SOURCE_ENTITY_ID = "sensor.test_power"
@@ -1934,6 +1937,15 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
     assert market_price_state.attributes["price_components"] == ["market_energy"]
     assert market_price_state.attributes["vat_treatment"] == "unknown"
     assert market_price_state.attributes["price_completeness"] == "partial"
+    assert len(market_price_state.attributes["forecast"]) == 16
+    assert market_price_state.attributes["forecast"][0] == {
+        "start": "2026-08-13T20:00:00+00:00",
+        "end": "2026-08-13T20:15:00+00:00",
+        "price": 0.59104,
+    }
+    assert ElectricityProCurrentMarketPriceSensor._unrecorded_attributes == (  # noqa: SLF001
+        frozenset({"forecast"})
+    )
 
     assert cheapest_1h_state is not None
     assert cheapest_1h_state.attributes["device_class"] == "timestamp"

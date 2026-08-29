@@ -7,6 +7,8 @@
 - Added Current Market Price from the normalized forecast interval covering the
   current instant, with explicit area, interval, component, VAT, and
   completeness metadata.
+- Added a response-only market-price forecast action and a bounded forecast
+  attribute for dashboards. The bulk attribute is excluded from Recorder.
 
 ### Changed
 
