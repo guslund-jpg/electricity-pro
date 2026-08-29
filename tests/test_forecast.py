@@ -5,7 +5,11 @@ from decimal import Decimal
 
 import pytest
 
-from custom_components.electricity_pro.forecast import ForecastInterval
+from custom_components.electricity_pro.forecast import (
+    ForecastInterval,
+    current_market_price_interval,
+    validate_forecast_series,
+)
 from custom_components.electricity_pro.pricing import (
     PriceCompleteness,
     PriceComponent,
@@ -112,3 +116,79 @@ def test_forecast_interval_accepts_negative_market_price() -> None:
     )
 
     assert interval.market_price == Decimal("-0.01")
+
+
+def _interval(
+    start_hour: int,
+    end_hour: int,
+    price: str,
+    *,
+    currency: str = "SEK",
+) -> ForecastInterval:
+    """Create one UTC market-price interval for series tests."""
+    return ForecastInterval(
+        start=datetime(2026, 8, 13, start_hour, tzinfo=UTC),
+        end=datetime(2026, 8, 13, end_hour, tzinfo=UTC),
+        market_price=Decimal(price),
+        currency=currency,
+        area="SE3",
+    )
+
+
+def test_validate_forecast_series_sorts_and_deduplicates() -> None:
+    """A valid series should be ordered and ignore identical duplicates."""
+    first = _interval(10, 11, "0.20")
+    second = _interval(11, 12, "0.30")
+
+    assert validate_forecast_series([second, first, first]) == [first, second]
+
+
+@pytest.mark.parametrize(
+    "intervals",
+    [
+        [_interval(10, 11, "0.20"), _interval(10, 11, "0.25")],
+        [_interval(10, 12, "0.20"), _interval(11, 13, "0.25")],
+        [
+            _interval(10, 11, "0.20", currency="SEK"),
+            _interval(11, 12, "0.25", currency="EUR"),
+        ],
+    ],
+)
+def test_validate_forecast_series_rejects_ambiguous_data(
+    intervals: list[ForecastInterval],
+) -> None:
+    """Conflicts, overlaps, and mixed metadata should reject the series."""
+    with pytest.raises(ValueError):
+        validate_forecast_series(intervals)
+
+
+def test_current_market_price_interval_uses_start_inclusive_end_exclusive() -> None:
+    """The active interval should switch exactly at its boundary."""
+    first = _interval(10, 11, "-0.05")
+    second = _interval(11, 12, "0.30")
+    intervals = validate_forecast_series([second, first])
+
+    assert current_market_price_interval(
+        intervals,
+        now=datetime(2026, 8, 13, 10, tzinfo=UTC),
+    ) == first
+    assert current_market_price_interval(
+        intervals,
+        now=datetime(2026, 8, 13, 11, tzinfo=UTC),
+    ) == second
+    assert (
+        current_market_price_interval(
+            intervals,
+            now=datetime(2026, 8, 13, 12, tzinfo=UTC),
+        )
+        is None
+    )
+
+
+def test_current_market_price_interval_requires_aware_now() -> None:
+    """Current interval selection must not compare ambiguous local datetimes."""
+    with pytest.raises(ValueError, match="timezone-aware"):
+        current_market_price_interval(
+            [_interval(10, 11, "0.20")],
+            now=datetime(2026, 8, 13, 10),
+        )

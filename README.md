@@ -63,6 +63,7 @@ Monitor your home's energy usage in real time.
 - Energy Today
 - Energy This Month
 - Current Electricity Price
+- Current Market Price when a Nord Pool forecast source is configured
 - Effective Price
 - Current Cost Rate
 - Cost Today

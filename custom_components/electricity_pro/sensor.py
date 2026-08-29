@@ -54,6 +54,7 @@ from .const import (
     DOMAIN,
 )
 from .coordinator import ElectricityProCoordinator
+from .forecast import ForecastInterval
 from .forecast_insights import ForecastDirectionInsight, ForecastWindowInsight
 from .pricing import PricingMetadata
 from .provider import ElectricityProData
@@ -495,6 +496,10 @@ async def async_setup_entry(
     if forecast_configured:
         entities.extend(
             (
+                ElectricityProCurrentMarketPriceSensor(
+                    coordinator=entry.runtime_data,
+                    entry=entry,
+                ),
                 ElectricityProCheapestWindowSensor(
                     coordinator=entry.runtime_data,
                     entry=entry,
@@ -667,6 +672,87 @@ class ElectricityProForecastInsightSensor(
             manufacturer="Electricity Pro",
             model="Electricity monitor",
         )
+
+
+class ElectricityProCurrentMarketPriceSensor(
+    ElectricityProForecastInsightSensor,
+):
+    """Represent the normalized market price covering the current instant."""
+
+    _attr_icon = "mdi:chart-line"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 2
+
+    def __init__(
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+    ) -> None:
+        """Initialize the Current Market Price sensor."""
+        super().__init__(
+            coordinator,
+            entry,
+            key="current_market_price",
+            name="Current market price",
+        )
+
+    async def async_added_to_hass(self) -> None:
+        """Refresh the active interval as time advances between source updates."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_track_time_interval(
+                self.hass,
+                self._handle_time_update,
+                timedelta(minutes=1),
+            )
+        )
+
+    @callback
+    def _handle_time_update(self, now: datetime) -> None:
+        """Publish a new state when the active delivery interval changes."""
+        self.async_write_ha_state()
+
+    @property
+    def _interval(self) -> ForecastInterval | None:
+        """Return the current normalized market-price interval."""
+        return self.coordinator.current_market_price_interval
+
+    @property
+    def native_value(self) -> Decimal | None:
+        """Return the unadjusted exchange price covering now."""
+        interval = self._interval
+        return None if interval is None else interval.market_price
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the normalized market-price unit."""
+        interval = self._interval
+        return None if interval is None else f"{interval.currency}/kWh"
+
+    @property
+    def available(self) -> bool:
+        """Require one valid interval covering the current instant."""
+        return super().available and self._interval is not None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return transparent interval and component metadata."""
+        interval = self._interval
+        if interval is None:
+            return None
+        return {
+            "interval_start": interval.start.isoformat(),
+            "interval_end": interval.end.isoformat(),
+            "resolution_minutes": interval.resolution_minutes,
+            "currency": interval.currency,
+            "price_area": interval.area,
+            "published_at": (
+                interval.published_at.isoformat()
+                if interval.published_at is not None
+                else None
+            ),
+            **_forecast_price_attributes(interval.pricing_metadata),
+        }
 
 
 class ElectricityProConsumptionTimingScoreSensor(
