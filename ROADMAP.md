@@ -302,7 +302,9 @@ automatic device control remain future, separately designed capabilities.
 
 ---
 
-### v1.4 — Market Price Intelligence 🚧
+### v1.4 — Market Price Intelligence ✅
+
+Completed.
 
 #### Goal
 
@@ -310,7 +312,7 @@ Expose provider-independent current and forecast market-price data so users can
 understand the underlying spot market, see the available future price horizon,
 and build retrospective market statistics on one normalized interval contract.
 
-Planned:
+Highlights:
 
 - Current Market Price with explicit component and VAT semantics
 - A bounded provider-independent market-price forecast series
@@ -327,7 +329,7 @@ VAT, and time-dependent grid component must be projected correctly.
 
 ---
 
-## Beyond v1.3
+## Beyond v1.4
 
 Potential future capabilities include:
 
