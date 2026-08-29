@@ -302,6 +302,31 @@ automatic device control remain future, separately designed capabilities.
 
 ---
 
+### v1.4 — Market Price Intelligence 🚧
+
+#### Goal
+
+Expose provider-independent current and forecast market-price data so users can
+understand the underlying spot market, see the available future price horizon,
+and build retrospective market statistics on one normalized interval contract.
+
+Planned:
+
+- Current Market Price with explicit component and VAT semantics
+- A bounded provider-independent market-price forecast series
+- A forward-looking dashboard graph with a visible current-time position
+- Market Price alongside Supplier Price and Effective Price in the live chart
+- Average Market Price Today after complete-day behavior is defined
+
+The architecture is proposed by
+[ADR-0011](docs/adr/0011-market-price-series-contract.md) and tracked by
+[#217](https://github.com/guslund-jpg/electricity-pro/issues/217) and
+[#57](https://github.com/guslund-jpg/electricity-pro/issues/57). Forecast
+Effective Price remains a separate design because every future supplier, tax,
+VAT, and time-dependent grid component must be projected correctly.
+
+---
+
 ## Beyond v1.3
 
 Potential future capabilities include:
