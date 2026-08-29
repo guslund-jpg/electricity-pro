@@ -81,7 +81,7 @@ def test_enhanced_dashboard_market_price_presentation() -> None:
         if chart.get("header", {}).get("title")
         == "Market, supplier, and effective price"
     )
-    assert "min" not in comparison["yaxis"][0]
+    assert comparison["yaxis"][0]["min"] == "~0"
     assert [series["entity"] for series in comparison["series"]] == [
         "sensor.electricity_pro_current_market_price",
         "sensor.electricity_pro_current_price",
@@ -95,6 +95,7 @@ def test_enhanced_dashboard_market_price_presentation() -> None:
     )
     assert forecast["graph_span"] == "50h"
     assert forecast["span"] == {"start": "day"}
+    assert forecast["yaxis"][0]["min"] == "~0"
     assert forecast["now"]["show"] is True
     assert forecast["series"][0]["curve"] == "stepline"
     assert "entity.attributes.forecast" in forecast["series"][0]["data_generator"]

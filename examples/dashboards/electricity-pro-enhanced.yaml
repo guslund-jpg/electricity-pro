@@ -288,7 +288,8 @@ views:
             show_states: true
             colorize_states: true
           yaxis:
-            - decimals: 2
+            - min: "~0"
+              decimals: 2
           series:
             - entity: sensor.electricity_pro_current_market_price
               name: Current market price
@@ -481,7 +482,8 @@ views:
             show_states: true
             colorize_states: true
           yaxis:
-            - decimals: 2
+            - min: "~0"
+              decimals: 2
           series:
             - entity: sensor.electricity_pro_current_market_price
               name: Market price
