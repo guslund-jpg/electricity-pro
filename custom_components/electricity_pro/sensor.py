@@ -682,6 +682,7 @@ class ElectricityProCurrentMarketPriceSensor(
     _attr_icon = "mdi:chart-line"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
+    _unrecorded_attributes = frozenset({"forecast"})
 
     def __init__(
         self,
@@ -738,21 +739,28 @@ class ElectricityProCurrentMarketPriceSensor(
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return transparent interval and component metadata."""
         interval = self._interval
-        if interval is None:
+        try:
+            forecast = self.coordinator.market_price_forecast_response
+        except ValueError:
             return None
-        return {
-            "interval_start": interval.start.isoformat(),
-            "interval_end": interval.end.isoformat(),
-            "resolution_minutes": interval.resolution_minutes,
-            "currency": interval.currency,
-            "price_area": interval.area,
-            "published_at": (
-                interval.published_at.isoformat()
-                if interval.published_at is not None
-                else None
-            ),
-            **_forecast_price_attributes(interval.pricing_metadata),
+        attributes: dict[str, Any] = {
+            "currency": forecast["currency"],
+            "price_area": forecast["area"],
+            "published_at": forecast["published_at"],
+            "price_components": forecast["price_components"],
+            "vat_treatment": forecast["vat_treatment"],
+            "price_completeness": forecast["price_completeness"],
+            "forecast": forecast["intervals"],
         }
+        if interval is not None:
+            attributes.update(
+                {
+                    "interval_start": interval.start.isoformat(),
+                    "interval_end": interval.end.isoformat(),
+                    "resolution_minutes": interval.resolution_minutes,
+                }
+            )
+        return attributes
 
 
 class ElectricityProConsumptionTimingScoreSensor(

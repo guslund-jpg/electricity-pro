@@ -3,6 +3,7 @@
 from homeassistant.const import Platform
 
 DOMAIN = "electricity_pro"
+SERVICE_GET_MARKET_PRICE_FORECAST = "get_market_price_forecast"
 
 CONF_SETUP_METHOD = "setup_method"
 CONF_SOURCE_PROFILE = "source_profile"

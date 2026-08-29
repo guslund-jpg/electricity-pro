@@ -8,6 +8,7 @@ import pytest
 from custom_components.electricity_pro.forecast import (
     ForecastInterval,
     current_market_price_interval,
+    serialize_market_price_forecast,
     validate_forecast_series,
 )
 from custom_components.electricity_pro.pricing import (
@@ -192,3 +193,50 @@ def test_current_market_price_interval_requires_aware_now() -> None:
             [_interval(10, 11, "0.20")],
             now=datetime(2026, 8, 13, 10),
         )
+
+
+def test_serialize_market_price_forecast_returns_json_safe_series() -> None:
+    """Forecast responses should carry shared metadata and numeric prices."""
+    first = ForecastInterval(
+        start=datetime(2026, 8, 13, 10, tzinfo=UTC),
+        end=datetime(2026, 8, 13, 11, tzinfo=UTC),
+        market_price=Decimal("-0.05000"),
+        currency="SEK",
+        area="SE3",
+        published_at=datetime(2026, 8, 12, 11, tzinfo=UTC),
+    )
+    second = ForecastInterval(
+        start=datetime(2026, 8, 13, 11, tzinfo=UTC),
+        end=datetime(2026, 8, 13, 12, tzinfo=UTC),
+        market_price=Decimal("0.30000"),
+        currency="SEK",
+        area="SE3",
+        published_at=datetime(2026, 8, 12, 11, tzinfo=UTC),
+    )
+
+    assert serialize_market_price_forecast([second, first]) == {
+        "currency": "SEK",
+        "area": "SE3",
+        "price_components": ["market_energy"],
+        "vat_treatment": "unknown",
+        "price_completeness": "partial",
+        "published_at": "2026-08-12T11:00:00+00:00",
+        "intervals": [
+            {
+                "start": "2026-08-13T10:00:00+00:00",
+                "end": "2026-08-13T11:00:00+00:00",
+                "price": -0.05,
+            },
+            {
+                "start": "2026-08-13T11:00:00+00:00",
+                "end": "2026-08-13T12:00:00+00:00",
+                "price": 0.3,
+            },
+        ],
+    }
+
+
+def test_serialize_market_price_forecast_rejects_empty_series() -> None:
+    """The action contract should reject an unavailable forecast."""
+    with pytest.raises(ValueError, match="unavailable"):
+        serialize_market_price_forecast([])
