@@ -122,6 +122,41 @@ direction because all compared intervals share the same scope. It must not be
 called Effective Price or compared with the live Good Price threshold. Absolute
 threshold advice requires matching, complete live and forecast price scopes.
 
+### Current market price
+
+| Property | Contract |
+| --- | --- |
+| Proposed entity | `sensor.electricity_pro_current_market_price` |
+| Meaning | Unadjusted exchange price for the delivery interval covering now |
+| Canonical unit | Source currency per kWh |
+| Expected value | Finite signed numeric |
+| Interval rule | Exactly one normalized interval satisfies `start <= now < end` |
+| Missing source | Entity becomes unavailable |
+| Required | For market-price comparison features only |
+
+Current Market Price remains distinct from Current Price, Supplier Price, and
+Effective Price. It exposes market energy only and retains the source's declared
+VAT treatment and completeness. The first adapter is native Nord Pool, but the
+entity contract contains no provider-specific fields.
+
+### Market price forecast series
+
+| Property | Contract |
+| --- | --- |
+| Proposed action | `electricity_pro.get_market_price_forecast` |
+| Meaning | Ordered normalized market-price delivery intervals |
+| Canonical unit | One declared source currency per kWh |
+| Boundaries | Timezone-aware start-inclusive, end-exclusive timestamps |
+| Horizon | Complete bounded source horizon; not guaranteed to be 24 hours |
+| Missing source | Empty or unavailable response with a Home Assistant error |
+| Required | For market-price forecast graphs and interval analytics |
+
+The response-only action is the authoritative bulk interface. A bounded
+`forecast` state attribute may support the enhanced dashboard, but it is
+excluded from Recorder and never becomes an unbounded price-history store.
+Detailed validation and presentation rules are defined by
+[ADR-0011](../adr/0011-market-price-series-contract.md).
+
 ### Energy today
 
 | Property | Contract |
