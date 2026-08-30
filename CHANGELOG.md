@@ -8,6 +8,8 @@
   decimals while retaining full calculation precision.
 - Render the enhanced dashboard's 24-hour household-power history as a thin
   unfilled line for clearer comparison with its 24-hour price chart.
+- Add a six-hour, ungrouped Power Detail chart below the enhanced dashboard's
+  voltage readings for inspecting brief spikes and sustained loads.
 
 ## [1.4.0] - 2026-08-29
 

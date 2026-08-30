@@ -79,7 +79,8 @@ and history graph cards. No HACS frontend cards are required.
 - **Overview** — insight, live values, and daily and monthly statistics
 - **Trends** — recorded power history plus market, supplier, and effective-price
   comparison
-- **Details** — optional three-phase current and voltage measurements
+- **Details** — optional three-phase current and voltage measurements plus a
+  six-hour raw power-detail chart
 - **Forecast** — a forward market-price chart and Mushroom presentation of the
   scheduling insights
 
@@ -147,6 +148,12 @@ example assumes a 20 A main fuse: green below 14 A, yellow from 14 A, and red
 from 18 A. All three gauges deliberately use the same scale so phase imbalance
 is easy to see. Change each gauge's `max` and `severity` values together if the
 installation has a different main-fuse rating.
+
+Below the voltage readings, the six-hour Power Detail chart retains the
+individual recorded power readings instead of averaging them into five-minute
+groups. Use it to inspect whether a high reading is a brief transient or a
+sustained load. The 24-hour Trends chart remains five-minute averaged for a
+clearer overview, so short peaks can appear lower or be hidden there.
 
 ## Customization
 
