@@ -438,6 +438,7 @@ SENSOR_DESCRIPTIONS: tuple[
         icon="mdi:lightning-bolt",
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=2,
         value_fn=lambda data: data.current_energy,
         unit_fn=lambda data: data.current_energy_unit,
         available_fn=lambda data: (
@@ -1089,7 +1090,7 @@ class ElectricityProCheapestWindowAverageEffectivePriceSensor(
 ):
     """Represent the average scheduling price for a cheapest upcoming window."""
 
-    _attr_suggested_display_precision = 5
+    _attr_suggested_display_precision = 2
 
     def __init__(
         self,

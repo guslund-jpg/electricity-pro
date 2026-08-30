@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Display Energy Today and cheapest-window average scheduling prices with two
+  decimals while retaining full calculation precision.
+
 ## [1.4.0] - 2026-08-29
 
 ### Added
