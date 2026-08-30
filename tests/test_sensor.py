@@ -23,6 +23,8 @@ from custom_components.electricity_pro.timing_score import (
     TimingScoreUnavailableReason,
 )
 from custom_components.electricity_pro.sensor import (
+    SENSOR_DESCRIPTIONS,
+    ElectricityProCheapestWindowAverageEffectivePriceSensor,
     ElectricityProCurrentMarketPriceSensor,
 )
 
@@ -303,6 +305,21 @@ async def test_energy_today_initial_value(
     assert state.attributes["device_class"] == "energy"
     assert state.attributes["state_class"] == "total_increasing"
     assert state.attributes["friendly_name"] == "Electricity Pro Energy today"
+
+
+def test_dashboard_facing_energy_and_window_prices_suggest_two_decimals() -> None:
+    """Dashboard-facing energy and scheduling prices should be concise."""
+    energy_description = next(
+        description
+        for description in SENSOR_DESCRIPTIONS
+        if description.key == "current_energy"
+    )
+
+    assert energy_description.suggested_display_precision == 2
+    window_price_sensor = object.__new__(
+        ElectricityProCheapestWindowAverageEffectivePriceSensor
+    )
+    assert window_price_sensor.suggested_display_precision == 2
 
 
 async def test_energy_today_updates_when_source_changes(
