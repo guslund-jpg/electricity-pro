@@ -6,6 +6,8 @@
 
 - Display Energy Today and cheapest-window average scheduling prices with two
   decimals while retaining full calculation precision.
+- Render the enhanced dashboard's 24-hour household-power history as a thin
+  unfilled line for clearer comparison with its 24-hour price chart.
 
 ## [1.4.0] - 2026-08-29
 
