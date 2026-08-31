@@ -8,7 +8,11 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 from custom_components.electricity_pro.const import (
     CONF_FORECAST_CURRENCY,
@@ -170,6 +174,16 @@ async def test_average_power_today_publishes_value_and_coverage(
         return_value=now,
     ):
         coordinator.async_set_updated_data(coordinator.data)
+        await hass.async_block_till_done()
+
+        state_before_interval = hass.states.get(AVERAGE_POWER_TODAY_ENTITY_ID)
+        assert state_before_interval is not None
+        assert state_before_interval.state == "unavailable"
+
+        async_fire_time_changed(
+            hass,
+            dt_util.utcnow() + timedelta(minutes=5),
+        )
         await hass.async_block_till_done()
 
         state = hass.states.get(AVERAGE_POWER_TODAY_ENTITY_ID)
@@ -779,12 +793,16 @@ async def test_consumption_weighted_average_price_today_updates(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """Achieved average price should update when a daily source changes."""
+    """Achieved average price should publish source changes every five minutes."""
     await setup_electricity_pro(
         energy_value="10",
         accumulated_cost_today_value="12",
         accumulated_cost_today_unit="SEK",
     )
+
+    initial_state = hass.states.get(WEIGHTED_AVERAGE_PRICE_ENTITY_ID)
+    assert initial_state is not None
+    assert Decimal(initial_state.state) == Decimal("1.2")
 
     hass.states.async_set(
         "sensor.test_accumulated_cost_today",
@@ -794,6 +812,15 @@ async def test_consumption_weighted_average_price_today_updates(
             "device_class": "monetary",
             "state_class": "total",
         },
+    )
+    await hass.async_block_till_done()
+
+    state_before_interval = hass.states.get(WEIGHTED_AVERAGE_PRICE_ENTITY_ID)
+    assert state_before_interval is initial_state
+
+    async_fire_time_changed(
+        hass,
+        dt_util.utcnow() + timedelta(minutes=5),
     )
     await hass.async_block_till_done()
 
@@ -1096,7 +1123,7 @@ async def test_remaining_cost_today_updates_when_power_changes(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """Remaining cost today should update when power changes."""
+    """Remaining cost today should publish source changes once per minute."""
 
     with patch(
         "custom_components.electricity_pro.sensor.dt_util.now",
@@ -1116,6 +1143,10 @@ async def test_remaining_cost_today_updates_when_power_changes(
             price_unit="SEK/kWh",
         )
 
+        initial_state = hass.states.get(REMAINING_COST_ENTITY_ID)
+        assert initial_state is not None
+        assert Decimal(initial_state.state) == Decimal("18.00")
+
         hass.states.async_set(
             SOURCE_ENTITY_ID,
             "1500",
@@ -1125,6 +1156,15 @@ async def test_remaining_cost_today_updates_when_power_changes(
             },
         )
 
+        await hass.async_block_till_done()
+
+        state_before_interval = hass.states.get(REMAINING_COST_ENTITY_ID)
+        assert state_before_interval is initial_state
+
+        async_fire_time_changed(
+            hass,
+            dt_util.utcnow() + timedelta(minutes=1),
+        )
         await hass.async_block_till_done()
 
         state = hass.states.get(REMAINING_COST_ENTITY_ID)

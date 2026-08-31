@@ -11,6 +11,13 @@
 - Add a six-hour, ungrouped Power Detail chart below the enhanced dashboard's
   voltage readings for inspecting brief spikes and sustained loads.
 
+### Fixed
+
+- Bound Recorder writes from Remaining Cost Today to one update per minute at
+  cent precision, and Average Power Today and Consumption-Weighted Average
+  Price Today to one update every five minutes, instead of republishing them
+  for every configured source-entity change.
+
 ## [1.4.0] - 2026-08-29
 
 ### Added
