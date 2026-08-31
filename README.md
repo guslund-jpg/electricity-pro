@@ -207,6 +207,7 @@ grid-tariff settings, and optional Nord Pool and Workday features.
 ## Documentation
 
 - [Configuration and project guide](docs/README.md#configuration)
+- [Recorder and database-write guidance](docs/README.md#recorder-and-database-writes)
 - [Roadmap](ROADMAP.md)
 - [Architecture](docs/architecture.md)
 - [Contributing](CONTRIBUTING.md)

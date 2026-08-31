@@ -61,6 +61,13 @@ from .provider import ElectricityProData
 from .statistics import remaining_cost_today
 from .timing_score import TimingScoreResult
 
+_AVERAGE_POWER_UPDATE_INTERVAL = timedelta(minutes=5)
+_CURRENCY_QUANTUM = Decimal("0.01")
+_SCHEDULED_SENSOR_UPDATE_INTERVALS = {
+    "remaining_cost_today": timedelta(minutes=1),
+    "consumption_weighted_average_price_today": timedelta(minutes=5),
+}
+
 
 @dataclass(frozen=True, kw_only=True)
 class ElectricityProSensorEntityDescription(
@@ -165,9 +172,14 @@ def consumption_weighted_average_price_unit(
 
 def projected_remaining_cost(data: ElectricityProData) -> Decimal | None:
     """Return the projected electricity cost until local midnight."""
-    return remaining_cost_today(
+    projected_cost = remaining_cost_today(
         current_cost_rate(data),
         dt_util.now(),
+    )
+    return (
+        None
+        if projected_cost is None
+        else projected_cost.quantize(_CURRENCY_QUANTUM)
     )
 
 
@@ -614,16 +626,26 @@ class ElectricityProSensor(
         """Register entity update listeners."""
         await super().async_added_to_hass()
 
-        if self.entity_description.key != "remaining_cost_today":
+        update_interval = _SCHEDULED_SENSOR_UPDATE_INTERVALS.get(
+            self.entity_description.key
+        )
+        if update_interval is None:
             return
 
         self.async_on_remove(
             async_track_time_interval(
                 self.hass,
                 self._handle_time_update,
-                timedelta(minutes=1),
+                update_interval,
             )
         )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Publish selected calculations only on schedule."""
+        if self.entity_description.key in _SCHEDULED_SENSOR_UPDATE_INTERVALS:
+            return
+        super()._handle_coordinator_update()
 
     @callback
     def _handle_time_update(self, now: datetime) -> None:
@@ -989,6 +1011,26 @@ class ElectricityProAveragePowerTodaySensor(
             manufacturer="Electricity Pro",
             model="Electricity monitor",
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Publish the daily average on a bounded schedule."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_track_time_interval(
+                self.hass,
+                self._handle_time_update,
+                _AVERAGE_POWER_UPDATE_INTERVAL,
+            )
+        )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Keep collecting source data without publishing every source event."""
+
+    @callback
+    def _handle_time_update(self, now: datetime) -> None:
+        """Publish the latest duration-weighted daily average."""
+        self.async_write_ha_state()
 
     @property
     def _result(self) -> tuple[date, AveragePowerResult] | None:
