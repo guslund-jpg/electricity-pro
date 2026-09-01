@@ -284,7 +284,7 @@ SENSOR_DESCRIPTIONS: tuple[
         name="Effective price",
         icon="mdi:cash-plus",
         state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=3,
+        suggested_display_precision=2,
         value_fn=effective_price,
         unit_fn=lambda data: data.current_price_unit,
         available_fn=lambda data: (
@@ -298,7 +298,7 @@ SENSOR_DESCRIPTIONS: tuple[
         name="Consumption-weighted average price today",
         icon="mdi:chart-line",
         state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=3,
+        suggested_display_precision=2,
         value_fn=consumption_weighted_average_price,
         unit_fn=consumption_weighted_average_price_unit,
         available_fn=lambda data: (

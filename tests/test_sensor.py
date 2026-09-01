@@ -321,15 +321,18 @@ async def test_energy_today_initial_value(
     assert state.attributes["friendly_name"] == "Electricity Pro Energy today"
 
 
-def test_dashboard_facing_energy_and_window_prices_suggest_two_decimals() -> None:
-    """Dashboard-facing energy and scheduling prices should be concise."""
-    energy_description = next(
-        description
-        for description in SENSOR_DESCRIPTIONS
-        if description.key == "current_energy"
-    )
+def test_dashboard_facing_values_suggest_two_decimals() -> None:
+    """Dashboard-facing energy and price values should be concise."""
+    descriptions = {description.key: description for description in SENSOR_DESCRIPTIONS}
 
-    assert energy_description.suggested_display_precision == 2
+    assert descriptions["current_energy"].suggested_display_precision == 2
+    assert descriptions["effective_price"].suggested_display_precision == 2
+    assert (
+        descriptions[
+            "consumption_weighted_average_price_today"
+        ].suggested_display_precision
+        == 2
+    )
     window_price_sensor = object.__new__(
         ElectricityProCheapestWindowAverageEffectivePriceSensor
     )
