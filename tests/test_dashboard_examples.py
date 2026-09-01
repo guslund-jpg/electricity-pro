@@ -62,6 +62,25 @@ def test_enhanced_dashboard_live_header_precision() -> None:
         assert series_by_entity[entity_id]["float_precision"] == 2
 
 
+def test_enhanced_dashboard_advice_formats_effective_price_to_two_decimals() -> None:
+    """Enhanced advice card should not expose raw effective-price precision."""
+    dashboard = yaml.safe_load(
+        (DASHBOARD_EXAMPLES / "electricity-pro-enhanced.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    advice_card = next(
+        item
+        for item in _walk(dashboard)
+        if isinstance(item, dict)
+        and item.get("type") == "custom:mushroom-template-card"
+        and item.get("entity")
+        == "binary_sensor.electricity_pro_good_time_to_use_electricity"
+    )
+
+    assert "'%.2f' | format" in advice_card["secondary"]
+
+
 def test_enhanced_dashboard_market_price_presentation() -> None:
     """Enhanced dashboard compares and previews provider-independent prices."""
     dashboard = yaml.safe_load(

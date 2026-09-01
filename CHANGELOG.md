@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Display Effective Price and Average Effective Price Today with two decimals
+  in the enhanced dashboard while retaining full calculation precision.
 - Display Energy Today and cheapest-window average scheduling prices with two
   decimals while retaining full calculation precision.
 - Render the enhanced dashboard's 24-hour household-power history as a thin

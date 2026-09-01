@@ -83,8 +83,10 @@ views:
                if is_state('binary_sensor.electricity_pro_good_time_to_use_electricity', 'on')
                else 'Wait for a better price' }}
           secondary: >-
+            {% set price = states('sensor.electricity_pro_effective_price') %}
             Effective price:
-            {{ states('sensor.electricity_pro_effective_price') }}
+            {{ '%.2f' | format(price | float)
+               if price not in ['unknown', 'unavailable'] else price }}
             {{ state_attr('sensor.electricity_pro_effective_price',
                           'unit_of_measurement') or '' }}
           icon: >-
