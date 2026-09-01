@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Align the README and project guide with the released v1.4.0 Market Price
+  Intelligence scope and the post-1.0 stability policy.
 - Display Effective Price and Average Effective Price Today with two decimals
   in the enhanced dashboard while retaining full calculation precision.
 - Display Energy Today and cheapest-window average scheduling prices with two

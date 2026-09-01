@@ -315,9 +315,9 @@ Planned development areas include:
 
 ### Forecasting
 
-- Daily consumption forecast
-- Monthly cost projection
-- Electricity-price forecast support
+- Electricity-price forecast support through native Nord Pool (delivered)
+- Daily consumption forecast (future)
+- Monthly cost projection (future)
 
 ### Optimisation
 
@@ -328,12 +328,14 @@ Planned development areas include:
 
 ## Development status
 
-Electricity Pro has not yet reached a stable public API.
+Electricity Pro reached its stable release line with v1.0. The current release
+is v1.4.0, Market Price Intelligence.
 
-Until version 1.0, configuration fields, entity names, internal modules, and
-analytics interfaces may change between releases.
+Post-1.0 development preserves user-facing entities and configuration wherever
+possible. Any necessary breaking change must be documented with migration
+guidance in the changelog.
 
-Version 1.0 will represent:
+The stable-release foundation includes:
 
 - A stable measurement model
 - A mature analytics layer
@@ -344,15 +346,15 @@ Version 1.0 will represent:
 
 ## Documentation
 
-The planned documentation structure is:
+Documentation is organized as follows:
 
-| Document                      | Purpose                                      |
-| ----------------------------- | -------------------------------------------- |
-| `README.md`                   | Project overview                             |
-| `docs/ARCHITECTURE.md`        | Technical architecture and layer boundaries  |
-| [`ROADMAP.md`](../ROADMAP.md) | Authoritative release roadmap                |
-| `CONTRIBUTING.md`             | Contribution workflow and coding conventions |
-| `CHANGELOG.md`                | Release history                              |
+| Document                                  | Purpose                                      |
+| ----------------------------------------- | -------------------------------------------- |
+| [`README.md`](../README.md)               | Project overview                             |
+| [`architecture.md`](architecture.md)      | Technical architecture and layer boundaries  |
+| [`ROADMAP.md`](../ROADMAP.md)             | Authoritative release roadmap                |
+| [`CONTRIBUTING.md`](../CONTRIBUTING.md)   | Contribution workflow and coding conventions |
+| [`CHANGELOG.md`](../CHANGELOG.md)         | Release history                              |
 | `design/`                     | Short design specifications for capabilities |
 
 ## Contributing
