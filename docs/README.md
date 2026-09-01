@@ -355,7 +355,7 @@ Documentation is organized as follows:
 | [`ROADMAP.md`](../ROADMAP.md)             | Authoritative release roadmap                |
 | [`CONTRIBUTING.md`](../CONTRIBUTING.md)   | Contribution workflow and coding conventions |
 | [`CHANGELOG.md`](../CHANGELOG.md)         | Release history                              |
-| `design/`                     | Short design specifications for capabilities |
+| [`design/`](../design)                    | Short design specifications for capabilities |
 
 ## Contributing
 
