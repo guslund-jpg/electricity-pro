@@ -38,8 +38,10 @@ from the configured import price.
 The v1.2 pricing and tariff foundation adds explicit price semantics and
 configurable grid and fixed-fee models without provider-specific calculation
 branches. v1.3 adds provider-independent daily power statistics, retrospective
-consumption-timing analysis, and recent base-load estimation. The legacy HACS
-Nord Pool integration is not required or supported as a forecast source.
+consumption-timing analysis, and recent base-load estimation. v1.4 adds current
+and forecast market-price intelligence, a complete-day Average Market Price
+statistic, and signed net-power and negative-price support. The legacy HACS Nord
+Pool integration is not required or supported as a forecast source.
 
 ## Who is Electricity Pro for?
 
@@ -125,6 +127,7 @@ Electricity Pro is evolving in carefully planned stages.
 | **v1.1** | Forecast Prices & Scheduling     | ✅ Released                      |
 | **v1.2** | Pricing & Tariff Foundation      | ✅ Released                      |
 | **v1.3** | Recommendation Intelligence      | ✅ Released                      |
+| **v1.4** | Market Price Intelligence        | ✅ Released                      |
 
 See [ROADMAP.md](ROADMAP.md) for more details.
 
