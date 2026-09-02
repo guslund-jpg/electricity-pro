@@ -10,12 +10,12 @@ import pytest
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
-from homeassistant.const import ATTR_CONFIG_ENTRY_ID
 from homeassistant.exceptions import ConfigEntryError, ServiceValidationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro import async_setup_entry
 from custom_components.electricity_pro.const import (
+    ATTR_CONFIG_ENTRY_ID,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
     DOMAIN,
@@ -23,6 +23,11 @@ from custom_components.electricity_pro.const import (
 )
 
 ENTITY_ID = "sensor.electricity_pro_current_power"
+
+
+def test_forecast_action_uses_integration_owned_config_entry_field() -> None:
+    """The action field must not depend on a version-specific HA constant."""
+    assert ATTR_CONFIG_ENTRY_ID == "config_entry_id"
 
 
 async def test_setup_rejects_price_source_without_metadata(
