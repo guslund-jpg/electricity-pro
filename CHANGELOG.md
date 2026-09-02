@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-09-02
+
 ### Changed
 
 - Align the README and project guide with the released v1.4.0 Market Price

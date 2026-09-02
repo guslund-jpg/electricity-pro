@@ -329,7 +329,7 @@ Planned development areas include:
 ## Development status
 
 Electricity Pro reached its stable release line with v1.0. The current release
-is v1.4.0, Market Price Intelligence.
+is v1.4.1, the Market Price Intelligence maintenance release.
 
 Post-1.0 development preserves user-facing entities and configuration wherever
 possible. Any necessary breaking change must be documented with migration
@@ -398,4 +398,4 @@ engine that integrates naturally with Home Assistant.
 
 ## Licence
 
-The project licence will be documented before the first public release.
+Electricity Pro is released under the [MIT License](../LICENSE).

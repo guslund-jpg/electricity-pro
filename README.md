@@ -224,7 +224,7 @@ grid-tariff settings, and optional Nord Pool and Workday features.
 
 ### Current release
 
-v1.4.0 – Market Price Intelligence
+v1.4.1 – Market Price Intelligence maintenance release
 
 Electricity Pro is actively developed with a clear public roadmap.
 
