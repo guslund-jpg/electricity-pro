@@ -5,7 +5,6 @@ from __future__ import annotations
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.const import ATTR_CONFIG_ENTRY_ID
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
@@ -17,6 +16,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    ATTR_CONFIG_ENTRY_ID,
     CONF_PRICE_ENTITY,
     DOMAIN,
     PLATFORMS,

@@ -151,6 +151,8 @@ standard dashboard as the dependency-free baseline.
 
 ### HACS installation (recommended)
 
+Electricity Pro requires Home Assistant 2025.9.0 or newer.
+
 Electricity Pro currently supports installation as a HACS custom repository:
 
 1. Open HACS in your Home Assistant sidebar.

@@ -17,6 +17,8 @@
 
 ### Fixed
 
+- Avoid importing the version-specific Home Assistant `ATTR_CONFIG_ENTRY_ID`
+  constant so the integration and its config flow load on supported releases.
 - Bound Recorder writes from Remaining Cost Today to one update per minute at
   cent precision, and Average Power Today and Consumption-Weighted Average
   Price Today to one update every five minutes, instead of republishing them
