@@ -47,6 +47,7 @@ from .const import (
     CONF_PRICING_STRATEGY,
     CONF_SETUP_METHOD,
     CONF_SOURCE_PROFILE,
+    CONF_SUPPLIER_MARKUP_PER_KWH,
     CONF_TIBBER_DEVICE,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
@@ -169,6 +170,7 @@ def _tibber_settings_schema(
     *,
     forecast_nordpool_config_entry_default: str | None = None,
     grid_fee_default: float | None = None,
+    supplier_markup_default: float | None = None,
     energy_tax_default: float | None = None,
     good_price_threshold_default: float | None = None,
     high_fee_default: float | None = None,
@@ -195,6 +197,14 @@ def _tibber_settings_schema(
         vol.Optional(CONF_GRID_FEE_PER_KWH)
         if grid_fee_default is None
         else vol.Optional(CONF_GRID_FEE_PER_KWH, default=grid_fee_default)
+    )
+    supplier_markup_key = (
+        vol.Optional(CONF_SUPPLIER_MARKUP_PER_KWH)
+        if supplier_markup_default is None
+        else vol.Optional(
+            CONF_SUPPLIER_MARKUP_PER_KWH,
+            default=supplier_markup_default,
+        )
     )
     energy_tax_key = (
         vol.Optional(CONF_ENERGY_TAX_PER_KWH)
@@ -231,6 +241,13 @@ def _tibber_settings_schema(
                 selector.ConfigEntrySelectorConfig(integration="nordpool")
             ),
             grid_fee_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            supplier_markup_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
                     step=0.001,
@@ -295,6 +312,7 @@ def _entity_schema(
     monthly_peak_hour_consumption_default: str | None = None,
     monthly_peak_hour_time_default: str | None = None,
     grid_fee_per_kwh_default: float | None = None,
+    supplier_markup_per_kwh_default: float | None = None,
     energy_tax_per_kwh_default: float | None = None,
     good_price_threshold_default: float | None = None,
     forecast_nordpool_config_entry_default: str | None = None,
@@ -432,6 +450,14 @@ def _entity_schema(
             CONF_GRID_FEE_PER_KWH,
             default=grid_fee_per_kwh_default,
         )
+    supplier_markup_key = (
+        vol.Optional(CONF_SUPPLIER_MARKUP_PER_KWH)
+        if supplier_markup_per_kwh_default is None
+        else vol.Optional(
+            CONF_SUPPLIER_MARKUP_PER_KWH,
+            default=supplier_markup_per_kwh_default,
+        )
+    )
     energy_tax_key = (
         vol.Optional(CONF_ENERGY_TAX_PER_KWH)
         if energy_tax_per_kwh_default is None
@@ -533,6 +559,13 @@ def _entity_schema(
                 )
             ),
             grid_fee_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            supplier_markup_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
                     step=0.001,
@@ -903,6 +936,10 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 CONF_ENERGY_TAX_PER_KWH,
                 self.config_entry.data.get(CONF_ENERGY_TAX_PER_KWH),
             )
+            current_supplier_markup = self.config_entry.options.get(
+                CONF_SUPPLIER_MARKUP_PER_KWH,
+                self.config_entry.data.get(CONF_SUPPLIER_MARKUP_PER_KWH),
+            )
             current_threshold = self.config_entry.options.get(
                 CONF_GOOD_PRICE_THRESHOLD,
                 self.config_entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
@@ -916,6 +953,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
                         CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
                     ),
                     energy_tax_default=current_energy_tax,
+                    supplier_markup_default=current_supplier_markup,
                     good_price_threshold_default=current_threshold,
                     high_fee_default=values.get(CONF_GRID_FEE_HIGH_PER_KWH),
                     high_start_default=values.get(
@@ -1065,6 +1103,10 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_ENERGY_TAX_PER_KWH,
             self.config_entry.data.get(CONF_ENERGY_TAX_PER_KWH),
         )
+        current_supplier_markup = self.config_entry.options.get(
+            CONF_SUPPLIER_MARKUP_PER_KWH,
+            self.config_entry.data.get(CONF_SUPPLIER_MARKUP_PER_KWH),
+        )
         tariff_values = {**self.config_entry.data, **self.config_entry.options}
         current_fixed_supplier_fee = self.config_entry.options.get(
             CONF_FIXED_SUPPLIER_FEE_MONTHLY,
@@ -1103,6 +1145,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 monthly_peak_hour_time_default=current_monthly_peak_hour_time,
                 grid_fee_per_kwh_default=current_grid_fee,
                 energy_tax_per_kwh_default=current_energy_tax,
+                supplier_markup_per_kwh_default=current_supplier_markup,
                 good_price_threshold_default=current_good_price_threshold,
                 forecast_nordpool_config_entry_default=current_forecast_nordpool_config_entry,
                 grid_fee_high_per_kwh_default=tariff_values.get(

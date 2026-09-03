@@ -1,5 +1,6 @@
 """Tests for pure forecast insight calculations."""
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
@@ -9,7 +10,12 @@ from custom_components.electricity_pro.forecast_insights import (
     find_next_inexpensive_1h_window,
     find_price_direction,
 )
-from custom_components.electricity_pro.pricing import PriceComponent
+from custom_components.electricity_pro.pricing import (
+    PriceComponent,
+    PriceComponentScope,
+    PricingMetadata,
+    PricingStrategy,
+)
 
 
 def _interval(
@@ -170,12 +176,40 @@ def test_find_cheapest_continuous_window_uses_weighted_average() -> None:
         duration_minutes=60,
         grid_fee_per_kwh=Decimal("0.10"),
         energy_tax_per_kwh=Decimal("0.45"),
+        supplier_markup_per_kwh=Decimal("0.08"),
     )
 
     assert result is not None
     assert result.average_market_price == Decimal("0.50")
-    assert result.average_effective_price == Decimal("1.05")
+    assert result.average_effective_price == Decimal("1.13")
     assert PriceComponent.ENERGY_TAX in result.pricing_metadata.scope.included
+    assert PriceComponent.SUPPLIER_MARKUP in result.pricing_metadata.scope.included
+
+
+def test_forecast_supplier_markup_is_not_added_twice() -> None:
+    """A forecast source that includes markup should retain its supplied value."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    interval = replace(
+        _interval(now, minutes=60, market_price="0.88"),
+        pricing_metadata=PricingMetadata(
+            strategy=PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
+            scope=PriceComponentScope(
+                frozenset(
+                    {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
+                )
+            ),
+        ),
+    )
+
+    result = find_cheapest_continuous_window(
+        [interval],
+        now=now,
+        duration_minutes=60,
+        supplier_markup_per_kwh=Decimal("0.08"),
+    )
+
+    assert result is not None
+    assert result.average_scheduling_price == Decimal("0.88")
 
 
 def test_find_cheapest_window_applies_grid_fee_for_each_interval() -> None:

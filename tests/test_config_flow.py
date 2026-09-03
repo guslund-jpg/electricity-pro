@@ -32,6 +32,7 @@ from custom_components.electricity_pro.const import (
     CONF_PRICING_STRATEGY,
     CONF_SETUP_METHOD,
     CONF_SOURCE_PROFILE,
+    CONF_SUPPLIER_MARKUP_PER_KWH,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
@@ -264,8 +265,9 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
         keys.index(CONF_GRID_FEE_PER_KWH) + 1 : keys.index(
             CONF_FIXED_SUPPLIER_FEE_MONTHLY
         )
-    ] == [
-        CONF_GRID_FEE_HIGH_PER_KWH,
+        ] == [
+            CONF_SUPPLIER_MARKUP_PER_KWH,
+            CONF_GRID_FEE_HIGH_PER_KWH,
         CONF_GRID_FEE_HIGH_START,
         CONF_GRID_FEE_HIGH_END,
         CONF_GRID_FEE_HIGH_SEASON_START,
@@ -487,6 +489,7 @@ async def test_user_step_stores_explicit_price_metadata(hass) -> None:
                 PriceComponent.ENERGY_TAX.value,
             ],
             CONF_PRICE_VAT_TREATMENT: VatTreatment.INCLUDED.value,
+            CONF_SUPPLIER_MARKUP_PER_KWH: 0.08,
         },
     )
 
@@ -497,6 +500,7 @@ async def test_user_step_stores_explicit_price_metadata(hass) -> None:
         PriceComponent.SUPPLIER_MARKUP.value,
     ]
     assert result["data"][CONF_PRICE_COMPLETENESS] == PriceCompleteness.PARTIAL.value
+    assert result["data"][CONF_SUPPLIER_MARKUP_PER_KWH] == 0.08
 
 
 async def test_incomplete_entry_options_require_price_confirmation(hass) -> None:

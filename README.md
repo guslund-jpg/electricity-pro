@@ -89,7 +89,8 @@ Monitor your home's energy usage in real time.
 - Cheapest upcoming 2h window start (Nord Pool forecast)
 - Cheapest upcoming 3h window start (Nord Pool forecast)
 - Average scheduling price for each cheapest 1h, 2h and 3h window. This is the
-  Nord Pool market price plus the configured variable grid fee and Energy Tax,
+  Nord Pool market price plus the configured supplier markup, variable grid
+  fee, and Energy Tax,
   not a complete household Effective Price.
 - Next inexpensive 1h window start only when the forecast and live Effective
   Price have comparable, complete component scopes
