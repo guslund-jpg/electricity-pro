@@ -723,6 +723,7 @@ class ElectricityProCoordinator(
             data.pricing_metadata,
             data.grid_fee_per_kwh,
             data.energy_tax_per_kwh,
+            data.supplier_markup_per_kwh,
         )
         return bucket_closed
 
@@ -867,6 +868,7 @@ class ElectricityProCoordinator(
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
             energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
+            supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
         )
         self._cheapest_2h_window = find_cheapest_continuous_window(
             self._forecast_intervals,
@@ -875,6 +877,7 @@ class ElectricityProCoordinator(
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
             energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
+            supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
         )
         self._cheapest_3h_window = find_cheapest_continuous_window(
             self._forecast_intervals,
@@ -883,6 +886,7 @@ class ElectricityProCoordinator(
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
             energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
+            supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
         )
         threshold = provider_data.good_price_threshold
         forecast_metadata = (
@@ -905,6 +909,7 @@ class ElectricityProCoordinator(
                 grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
                 grid_fee_at=self._provider.grid_fee_at,
                 energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
+                supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
                 price_is_comparable=prices_are_comparable,
             )
             if threshold is not None
@@ -916,6 +921,7 @@ class ElectricityProCoordinator(
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
             energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
+            supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
         )
 
     @callback

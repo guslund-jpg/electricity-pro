@@ -96,6 +96,7 @@ def find_cheapest_continuous_window(
     grid_fee_per_kwh: Decimal | None = None,
     grid_fee_at: GridFeeAt | None = None,
     energy_tax_per_kwh: Decimal | None = None,
+    supplier_markup_per_kwh: Decimal | None = None,
 ) -> ForecastWindowInsight | None:
     """Return the cheapest upcoming continuous window with the exact duration."""
     upcoming = sorted(
@@ -132,6 +133,7 @@ def find_cheapest_continuous_window(
             grid_fee_per_kwh=grid_fee_per_kwh,
             grid_fee_at=grid_fee_at,
             energy_tax_per_kwh=energy_tax_per_kwh,
+            supplier_markup_per_kwh=supplier_markup_per_kwh,
         )
         candidate = ForecastWindowInsight(
             start=window[0].start,
@@ -151,6 +153,7 @@ def find_cheapest_continuous_window(
                     grid_fee_at=grid_fee_at,
                 ),
                 energy_tax_per_kwh is not None,
+                supplier_markup_per_kwh is not None,
             ),
         )
         if best_window is None or (candidate.average_scheduling_price, candidate.start, candidate.average_market_price) < (
@@ -170,6 +173,7 @@ def find_price_direction(
     grid_fee_per_kwh: Decimal | None = None,
     grid_fee_at: GridFeeAt | None = None,
     energy_tax_per_kwh: Decimal | None = None,
+    supplier_markup_per_kwh: Decimal | None = None,
 ) -> ForecastDirectionInsight | None:
     """Return the near-term price direction from the normalized forecast."""
     sorted_intervals = sorted(intervals, key=lambda interval: interval.start)
@@ -184,17 +188,21 @@ def find_price_direction(
                 return None
             current_scheduling_price = _scheduling_price(
                 current.market_price,
+                pricing_metadata=current.pricing_metadata,
                 at=current.start,
                 grid_fee_per_kwh=grid_fee_per_kwh,
                 grid_fee_at=grid_fee_at,
                 energy_tax_per_kwh=energy_tax_per_kwh,
+                supplier_markup_per_kwh=supplier_markup_per_kwh,
             )
             next_scheduling_price = _scheduling_price(
                 following.market_price,
+                pricing_metadata=following.pricing_metadata,
                 at=following.start,
                 grid_fee_per_kwh=grid_fee_per_kwh,
                 grid_fee_at=grid_fee_at,
                 energy_tax_per_kwh=energy_tax_per_kwh,
+                supplier_markup_per_kwh=supplier_markup_per_kwh,
             )
             delta = next_scheduling_price - current_scheduling_price
             direction = "stable" if delta == 0 else "rising" if delta > 0 else "falling"
@@ -218,6 +226,7 @@ def find_price_direction(
                         grid_fee_at=grid_fee_at,
                     ),
                     energy_tax_per_kwh is not None,
+                    supplier_markup_per_kwh is not None,
                 ),
             )
 
@@ -227,17 +236,35 @@ def find_price_direction(
 def _scheduling_price(
     market_price: Decimal,
     *,
+    pricing_metadata: PricingMetadata,
     at: datetime,
     grid_fee_per_kwh: Decimal | None,
     grid_fee_at: GridFeeAt | None,
     energy_tax_per_kwh: Decimal | None,
+    supplier_markup_per_kwh: Decimal | None,
 ) -> Decimal:
-    """Return the market-derived scheduling price including grid adjustments."""
+    """Return the market-derived scheduling price with configured adjustments."""
     grid_fee = grid_fee_at(at) if grid_fee_at is not None else grid_fee_per_kwh
+    grid_adjustment = (
+        Decimal("0")
+        if pricing_metadata.scope.includes(PriceComponent.VARIABLE_GRID_FEE)
+        else grid_fee or Decimal("0")
+    )
+    tax_adjustment = (
+        Decimal("0")
+        if pricing_metadata.scope.includes(PriceComponent.ENERGY_TAX)
+        else energy_tax_per_kwh or Decimal("0")
+    )
+    markup_adjustment = (
+        Decimal("0")
+        if pricing_metadata.scope.includes(PriceComponent.SUPPLIER_MARKUP)
+        else supplier_markup_per_kwh or Decimal("0")
+    )
     return (
         market_price
-        + (grid_fee or Decimal("0"))
-        + (energy_tax_per_kwh or Decimal("0"))
+        + grid_adjustment
+        + tax_adjustment
+        + markup_adjustment
     )
 
 
@@ -256,16 +283,19 @@ def _average_scheduling_price(
     grid_fee_per_kwh: Decimal | None,
     grid_fee_at: GridFeeAt | None,
     energy_tax_per_kwh: Decimal | None,
+    supplier_markup_per_kwh: Decimal | None,
 ) -> Decimal:
     """Return the duration-weighted average scheduling price for a window."""
     total_minutes = sum(interval.resolution_minutes for interval in window)
     weighted_sum = sum(
         _scheduling_price(
             interval.market_price,
+            pricing_metadata=interval.pricing_metadata,
             at=interval.start,
             grid_fee_per_kwh=grid_fee_per_kwh,
             grid_fee_at=grid_fee_at,
             energy_tax_per_kwh=energy_tax_per_kwh,
+            supplier_markup_per_kwh=supplier_markup_per_kwh,
         )
         * interval.resolution_minutes
         for interval in window
@@ -281,6 +311,7 @@ def find_next_inexpensive_1h_window(
     grid_fee_per_kwh: Decimal | None = None,
     grid_fee_at: GridFeeAt | None = None,
     energy_tax_per_kwh: Decimal | None = None,
+    supplier_markup_per_kwh: Decimal | None = None,
     price_is_comparable: bool = True,
 ) -> NextInexpensive1hWindowInsight | None:
     """Return the earliest comparable 1-hour window at or below threshold."""
@@ -318,6 +349,7 @@ def find_next_inexpensive_1h_window(
             grid_fee_per_kwh=grid_fee_per_kwh,
             grid_fee_at=grid_fee_at,
             energy_tax_per_kwh=energy_tax_per_kwh,
+            supplier_markup_per_kwh=supplier_markup_per_kwh,
         )
         if average_scheduling_price > threshold:
             continue
@@ -341,6 +373,7 @@ def find_next_inexpensive_1h_window(
                     grid_fee_at=grid_fee_at,
                 ),
                 energy_tax_per_kwh is not None,
+                supplier_markup_per_kwh is not None,
             ),
         )
 
@@ -363,6 +396,7 @@ def _scheduling_price_metadata(
     interval: ForecastInterval,
     includes_grid_fee: bool,
     includes_energy_tax: bool,
+    includes_supplier_markup: bool,
 ) -> PricingMetadata:
     """Return component metadata for a derived forecast scheduling price."""
     included = set(interval.pricing_metadata.scope.included)
@@ -370,6 +404,8 @@ def _scheduling_price_metadata(
         included.add(PriceComponent.VARIABLE_GRID_FEE)
     if includes_energy_tax:
         included.add(PriceComponent.ENERGY_TAX)
+    if includes_supplier_markup:
+        included.add(PriceComponent.SUPPLIER_MARKUP)
     return PricingMetadata(
         strategy=interval.pricing_metadata.strategy,
         scope=PriceComponentScope(

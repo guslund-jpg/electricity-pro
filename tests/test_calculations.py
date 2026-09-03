@@ -151,6 +151,35 @@ def test_explicit_energy_tax_is_added_to_effective_prices() -> None:
     assert calculate_declared_effective_price(
         Decimal("1.00"), metadata, Decimal("0.10"), Decimal("0.45")
     ) == Decimal("1.55")
+
+
+def test_supplier_markup_is_added_only_when_missing_from_source() -> None:
+    """Configured supplier markup should enrich raw market prices only once."""
+    market_metadata = PricingMetadata(
+        strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
+        scope=PriceComponentScope(frozenset({PriceComponent.MARKET_ENERGY})),
+        completeness=PriceCompleteness.PARTIAL,
+    )
+    contracted_metadata = PricingMetadata(
+        strategy=PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
+        scope=PriceComponentScope(
+            frozenset(
+                {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
+            )
+        ),
+        completeness=PriceCompleteness.PARTIAL,
+    )
+
+    assert calculate_declared_effective_price(
+        Decimal("0.80"),
+        market_metadata,
+        supplier_markup_per_kwh=Decimal("0.08"),
+    ) == Decimal("0.88")
+    assert calculate_declared_effective_price(
+        Decimal("0.88"),
+        contracted_metadata,
+        supplier_markup_per_kwh=Decimal("0.08"),
+    ) == Decimal("0.88")
     assert calculate_consumption_weighted_average_price(
         Decimal("10"), Decimal("10"), "kWh", Decimal("0.10"), Decimal("0.45")
     ) == Decimal("1.55")

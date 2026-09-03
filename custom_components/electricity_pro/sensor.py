@@ -126,6 +126,7 @@ def effective_price(data: ElectricityProData) -> Decimal | None:
         data.pricing_metadata,
         data.grid_fee_per_kwh,
         data.energy_tax_per_kwh,
+        data.supplier_markup_per_kwh,
     )
 
 

@@ -235,9 +235,9 @@ partial completeness.
 `forecast_insights.py` contains deterministic scheduling calculations. It does
 not call Home Assistant or Nord Pool directly and operates only on normalized,
 ordered interval boundaries. Its scheduling price is the market forecast plus
-the configured variable grid fee and Energy Tax. It remains distinct from live
-Effective Price until a forecast source declares a comparable complete
-component scope.
+the configured supplier markup, variable grid fee, and Energy Tax. It remains
+distinct from live Effective Price until a forecast source declares a
+comparable complete component scope.
 
 The v1.4 public market-price series is defined by
 [ADR-0011](adr/0011-market-price-series-contract.md). It reuses

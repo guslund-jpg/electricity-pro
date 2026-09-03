@@ -70,15 +70,27 @@ def calculate_declared_effective_price(
     metadata: PricingMetadata | None,
     grid_fee_per_kwh: Decimal | None = None,
     energy_tax_per_kwh: Decimal | None = None,
+    supplier_markup_per_kwh: Decimal | None = None,
 ) -> Decimal | None:
     """Calculate live Effective Price from explicitly declared semantics."""
     if metadata is None:
         return None
     adjustments = {}
-    if grid_fee_per_kwh is not None:
+    if (
+        grid_fee_per_kwh is not None
+        and not metadata.scope.includes(PriceComponent.VARIABLE_GRID_FEE)
+    ):
         adjustments[PriceComponent.VARIABLE_GRID_FEE] = grid_fee_per_kwh
-    if energy_tax_per_kwh is not None:
+    if (
+        energy_tax_per_kwh is not None
+        and not metadata.scope.includes(PriceComponent.ENERGY_TAX)
+    ):
         adjustments[PriceComponent.ENERGY_TAX] = energy_tax_per_kwh
+    if (
+        supplier_markup_per_kwh is not None
+        and not metadata.scope.includes(PriceComponent.SUPPLIER_MARKUP)
+    ):
+        adjustments[PriceComponent.SUPPLIER_MARKUP] = supplier_markup_per_kwh
     return calculate_normalized_effective_price(
         base_price,
         metadata,

@@ -38,6 +38,7 @@ from .const import (
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_ENTITY,
+    CONF_SUPPLIER_MARKUP_PER_KWH,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
@@ -82,6 +83,7 @@ class ElectricityProData:
     total_supplier_cost_this_month: Decimal | None
     total_supplier_cost_this_month_unit: str | None
     grid_fee_per_kwh: Decimal | None
+    supplier_markup_per_kwh: Decimal | None
     energy_tax_per_kwh: Decimal | None
     good_price_threshold: Decimal | None
 
@@ -156,6 +158,12 @@ class ElectricityProEntityProvider:
             entry.options.get(
                 CONF_GRID_FEE_PER_KWH,
                 entry.data.get(CONF_GRID_FEE_PER_KWH),
+            )
+        )
+        self._supplier_markup_per_kwh = self._normalize_adjustment(
+            entry.options.get(
+                CONF_SUPPLIER_MARKUP_PER_KWH,
+                entry.data.get(CONF_SUPPLIER_MARKUP_PER_KWH),
             )
         )
         self._energy_tax_per_kwh = self._normalize_adjustment(
@@ -351,6 +359,7 @@ class ElectricityProEntityProvider:
             total_supplier_cost_this_month=None,
             total_supplier_cost_this_month_unit=None,
             grid_fee_per_kwh=self.grid_fee_at(dt_util.now()),
+            supplier_markup_per_kwh=self._supplier_markup_per_kwh,
             energy_tax_per_kwh=self._energy_tax_per_kwh,
             good_price_threshold=self._good_price_threshold,
         )

@@ -28,6 +28,7 @@ from custom_components.electricity_pro.const import (
     CONF_PRICE_INCLUDED_COMPONENTS,
     CONF_PRICE_VAT_TREATMENT,
     CONF_PRICING_STRATEGY,
+    CONF_SUPPLIER_MARKUP_PER_KWH,
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
@@ -72,6 +73,7 @@ def setup_electricity_pro(hass):
         monthly_peak_hour_consumption_unit: str = "kWh",
         monthly_peak_hour_time_value: str | None = None,
         grid_fee_per_kwh: float | None = None,
+        supplier_markup_per_kwh: float | None = None,
         fixed_supplier_fee_monthly: float | None = None,
         fixed_grid_fee_monthly: float | None = None,
         good_price_threshold: float | None = None,
@@ -97,6 +99,9 @@ def setup_electricity_pro(hass):
 
         if grid_fee_per_kwh is not None:
             entry_data[CONF_GRID_FEE_PER_KWH] = grid_fee_per_kwh
+
+        if supplier_markup_per_kwh is not None:
+            entry_data[CONF_SUPPLIER_MARKUP_PER_KWH] = supplier_markup_per_kwh
 
         if fixed_supplier_fee_monthly is not None:
             entry_data[CONF_FIXED_SUPPLIER_FEE_MONTHLY] = (

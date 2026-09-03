@@ -190,6 +190,13 @@ a price entity is selected, declare its source type, included components, and
 VAT treatment to prevent double counting. Phase-current and phase-voltage
 sensors are optional diagnostics and appear at the bottom of the form.
 
+For a market-only source such as Nord Pool, optionally enter the electricity
+supplier's per-kWh markup, including VAT and in the same currency per kWh as the
+price source. Electricity Pro adds it to live Effective Price and to market-only
+forecast scheduling prices. If the selected live price already includes the
+supplier markup, declare that component as included; the configured amount is
+then not added to the live value, preventing double counting.
+
 ### Grid-tariff fees
 
 The grid-fee fields model variable charges per consumed kWh, including VAT.

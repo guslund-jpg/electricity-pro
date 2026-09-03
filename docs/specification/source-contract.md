@@ -113,7 +113,7 @@ the result. Fixed charges do not belong in this value.
 | Meaning | Forecast comparison value used for relative scheduling |
 | Initial source | Native Home Assistant Nord Pool action |
 | Canonical unit | Currency per kWh |
-| Included components | Market energy plus configured variable grid fee and Energy Tax when applicable |
+| Included components | Market energy plus configured supplier markup, variable grid fee, and Energy Tax when applicable |
 | Completeness | Partial for native Nord Pool |
 | VAT treatment | Unknown unless the source contract declares it |
 

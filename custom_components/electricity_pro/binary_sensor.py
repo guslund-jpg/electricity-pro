@@ -22,6 +22,7 @@ def good_time_to_use_electricity(data: ElectricityProData) -> bool | None:
         data.pricing_metadata,
         data.grid_fee_per_kwh,
         data.energy_tax_per_kwh,
+        data.supplier_markup_per_kwh,
     )
     if effective_price is None or data.good_price_threshold is None:
         return None

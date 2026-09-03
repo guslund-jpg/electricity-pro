@@ -205,11 +205,12 @@ the first day, the result is only as complete as those source values; no
 historical values are reconstructed by Electricity Pro.
 
 Live Effective Price, Current Cost Rate, and Good Time require explicit pricing
-metadata. Electricity Pro adds configured variable grid fee and Energy Tax only
-when those components are not already declared as part of the selected source
-price. An entry with a configured price source cannot load until its source
-type, included components, and VAT treatment are confirmed in integration
-options.
+metadata. Electricity Pro adds configured supplier markup, variable grid fee,
+and Energy Tax only when those components are not already declared as part of
+the selected source price. A configured supplier markup also enriches
+market-only forecast scheduling prices. An entry with a configured price source
+cannot load until its source type, included components, and VAT treatment are
+confirmed in integration options.
 
 ### Monthly peak-hour consumption
 
