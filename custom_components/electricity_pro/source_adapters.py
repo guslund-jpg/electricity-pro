@@ -12,6 +12,7 @@ from .const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_ENERGY_SOURCE_TYPE,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     CONF_POWER_ENTITY,
@@ -24,6 +25,7 @@ from .const import (
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
+    ENERGY_SOURCE_DAILY,
 )
 from .pricing import (
     PriceComponent,
@@ -103,6 +105,8 @@ def discover_tibber_sources(
 
     discovered: list[DiscoveredSource] = []
     for device_id, data in sorted(by_device.items()):
+        if CONF_ENERGY_ENTITY in data:
+            data[CONF_ENERGY_SOURCE_TYPE] = ENERGY_SOURCE_DAILY
         if CONF_PRICE_ENTITY in data:
             data.update(_TIBBER_PRICE_METADATA)
         discovered.append(DiscoveredSource(device_id=device_id, data=data))

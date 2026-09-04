@@ -9,6 +9,8 @@ from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import (
+    CONF_ENERGY_ENTITY,
+    CONF_ENERGY_SOURCE_TYPE,
     CONF_FORECAST_CURRENCY,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
@@ -26,6 +28,7 @@ from custom_components.electricity_pro.const import (
     CONF_PRICE_VAT_TREATMENT,
     CONF_PRICING_STRATEGY,
     DOMAIN,
+    ENERGY_SOURCE_LIFETIME,
 )
 from custom_components.electricity_pro.base_load import BaseLoadUnavailableReason
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
@@ -74,6 +77,65 @@ def _timing_entry() -> MockConfigEntry:
         },
         entry_id="timing-entry",
     )
+
+
+async def test_lifetime_energy_baseline_restores_for_same_source(hass) -> None:
+    """Continue a derived daily total across an ordinary restart."""
+    hass.config.time_zone = "UTC"
+    hass.states.async_set("sensor.test_power", "100", {"unit_of_measurement": "W"})
+    hass.states.async_set(
+        "sensor.total_import",
+        "1200",
+        {"unit_of_measurement": "kWh"},
+    )
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_ENERGY_ENTITY: "sensor.total_import",
+            CONF_ENERGY_SOURCE_TYPE: ENERGY_SOURCE_LIFETIME,
+        },
+        entry_id="lifetime-energy-entry",
+    )
+    observed_at = datetime(2026, 9, 4, 10, 0, tzinfo=UTC)
+    original = ElectricityProCoordinator(hass, entry)
+    with (
+        patch.object(original._store, "async_delay_save"),  # noqa: SLF001
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=observed_at,
+        ),
+    ):
+        original._read()  # noqa: SLF001
+        hass.states.async_set(
+            "sensor.total_import",
+            "1201",
+            {"unit_of_measurement": "kWh"},
+        )
+        original._read()  # noqa: SLF001
+
+    stored = original._statistics_data()  # noqa: SLF001
+    restored = ElectricityProCoordinator(hass, entry)
+    with patch.object(restored._store, "async_load", return_value=stored):  # noqa: SLF001
+        await restored._async_restore_statistics()  # noqa: SLF001
+
+    hass.states.async_set(
+        "sensor.total_import",
+        "1201.5",
+        {"unit_of_measurement": "kWh"},
+    )
+    with (
+        patch.object(restored._store, "async_delay_save"),  # noqa: SLF001
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=observed_at + timedelta(hours=1),
+        ),
+    ):
+        data = restored._read()  # noqa: SLF001
+
+    assert data.current_energy == Decimal("1.5")
+    assert data.energy_today_period_complete is False
 
 
 def test_timing_runtime_expires_stale_power_after_ten_minutes(hass) -> None:

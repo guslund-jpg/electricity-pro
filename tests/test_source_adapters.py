@@ -8,6 +8,7 @@ from custom_components.electricity_pro.const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
     CONF_CURRENT_L1_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_ENERGY_SOURCE_TYPE,
     CONF_POWER_ENTITY,
     CONF_PRICE_COMPLETENESS,
     CONF_PRICE_ENTITY,
@@ -15,6 +16,7 @@ from custom_components.electricity_pro.const import (
     CONF_PRICE_VAT_TREATMENT,
     CONF_PRICING_STRATEGY,
     CONF_SOURCE_PROFILE,
+    ENERGY_SOURCE_DAILY,
 )
 from custom_components.electricity_pro.pricing import (
     PriceComponent,
@@ -54,6 +56,7 @@ def test_discovers_tibber_capabilities_without_entity_name_assumptions() -> None
     assert source.data[CONF_POWER_ENTITY] == "sensor.my_renamed_live_load"
     assert source.data[CONF_PRICE_ENTITY] == "sensor.my_renamed_contract_rate"
     assert source.data[CONF_ENERGY_ENTITY] == "sensor.energy_so_far"
+    assert source.data[CONF_ENERGY_SOURCE_TYPE] == ENERGY_SOURCE_DAILY
     assert source.data[CONF_ACCUMULATED_COST_TODAY_ENTITY] == "sensor.cost_so_far"
     assert source.data[CONF_CURRENT_L1_ENTITY] == "sensor.phase_one"
     assert source.data[CONF_PRICING_STRATEGY] == (

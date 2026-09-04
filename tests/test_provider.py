@@ -12,6 +12,7 @@ from custom_components.electricity_pro.const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_ENERGY_SOURCE_TYPE,
     CONF_GRID_FEE_HIGH_END,
     CONF_GRID_FEE_HIGH_PER_KWH,
     CONF_GRID_FEE_HIGH_SEASON_END,
@@ -26,6 +27,7 @@ from custom_components.electricity_pro.const import (
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
+    ENERGY_SOURCE_LIFETIME,
 )
 from custom_components.electricity_pro.provider import (
     ElectricityProEntityProvider,
@@ -104,6 +106,24 @@ def test_optional_source_entity_ids(
     )
 
     assert provider.source_entity_ids == ("sensor.test_power",)
+
+
+def test_provider_exposes_lifetime_energy_semantics(hass: HomeAssistant) -> None:
+    """Provider should distinguish lifetime registers from native daily totals."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_ENERGY_ENTITY: "sensor.total_import",
+            CONF_ENERGY_SOURCE_TYPE: ENERGY_SOURCE_LIFETIME,
+        },
+    )
+
+    provider = ElectricityProEntityProvider(hass, entry)
+
+    assert provider.energy_source_is_lifetime_total
+    assert provider.energy_entity_id == "sensor.total_import"
 
 
 def test_grid_fee_at_uses_time_varying_resolver(hass: HomeAssistant) -> None:

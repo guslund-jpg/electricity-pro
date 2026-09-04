@@ -153,7 +153,7 @@ forecast source independently. Typical fields are:
 | Nord Pool forecast | Native Nord Pool config entry | Configured area and currency are inherited |
 | Current power | Instantaneous whole-home import power | Power, normally W |
 | Electricity price | Current variable electricity price | Currency/kWh |
-| Energy today | Consumption accumulated since local midnight | Energy, Wh or kWh |
+| Accumulated energy | Consumption since local midnight or a total accumulated meter reading | Energy, Wh or kWh |
 | Cost today | Cost accumulated since local midnight | Monetary |
 | Monthly peak hour consumption | Highest hourly energy value this month | Energy, normally kWh |
 | Monthly peak hour time | Time of that monthly peak | Timestamp |
@@ -165,6 +165,18 @@ For Tibber Pulse, representative source names include **Power**,
 **Current L1–L3**, and **Voltage phase 1–3**. Names can differ with language,
 Home Assistant version, device capabilities, or user customisation. Treat these
 as examples rather than fixed entity IDs.
+
+For the accumulated-energy source, declare whether its value represents the
+current local day or the meter's total accumulated import reading. Electricity
+Pro uses a daily value directly. For a total accumulated reading, it persists a
+baseline and publishes the increase observed during the local day as **Energy
+today**. The first day starts at zero when the integration is configured, so it
+represents only consumption observed from that point; after the next local
+midnight the full day is covered. This calculation does not require Recorder,
+and excluding the source from Recorder does not break it. The Energy today
+attributes expose `source_type` and `period_complete`; achieved average-price
+calculations remain unavailable while a day derived from a total reading is
+only partial.
 
 ### Verify a source before selecting it
 
@@ -238,7 +250,7 @@ Depending on the enabled capabilities, configuration may therefore include:
 
 - Current power sensor
 - Current electricity price sensor
-- Accumulated energy today sensor
+- Accumulated energy sensor, either daily or a total accumulated reading
 - Accumulated cost today sensor
 
 Optional sources may be added or changed through the integration options flow.

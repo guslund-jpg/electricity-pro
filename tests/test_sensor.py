@@ -19,6 +19,7 @@ from custom_components.electricity_pro.const import (
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
     DOMAIN,
+    ENERGY_SOURCE_LIFETIME,
 )
 from custom_components.electricity_pro.base_load import BaseLoadEstimateResult
 from custom_components.electricity_pro.timing_score import (
@@ -319,6 +320,8 @@ async def test_energy_today_initial_value(
     assert state.attributes["device_class"] == "energy"
     assert state.attributes["state_class"] == "total_increasing"
     assert state.attributes["friendly_name"] == "Electricity Pro Energy today"
+    assert state.attributes["source_type"] == "daily"
+    assert state.attributes["period_complete"] is True
 
 
 def test_dashboard_facing_values_suggest_two_decimals() -> None:
@@ -366,6 +369,82 @@ async def test_energy_today_updates_when_source_changes(
     assert state is not None
     assert Decimal(state.state) == Decimal("13.25")
     assert state.attributes["unit_of_measurement"] == "kWh"
+
+
+async def test_energy_today_derives_usage_from_lifetime_total(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A lifetime import register should be exposed as today's delta."""
+    observed_at = datetime(2026, 9, 4, 10, 0, tzinfo=UTC)
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=observed_at,
+    ):
+        await setup_electricity_pro(
+            energy_value="1200",
+            energy_unit="kWh",
+            energy_source_type=ENERGY_SOURCE_LIFETIME,
+        )
+
+        initial = hass.states.get(ENERGY_ENTITY_ID)
+        assert initial is not None
+        assert Decimal(initial.state) == Decimal(0)
+        assert initial.attributes["source_type"] == ENERGY_SOURCE_LIFETIME
+        assert initial.attributes["period_complete"] is False
+
+        hass.states.async_set(
+            ENERGY_SOURCE_ENTITY_ID,
+            "1201.25",
+            {
+                "unit_of_measurement": "kWh",
+                "device_class": "energy",
+                "state_class": "total_increasing",
+            },
+        )
+        await hass.async_block_till_done()
+
+    state = hass.states.get(ENERGY_ENTITY_ID)
+    assert state is not None
+    assert Decimal(state.state) == Decimal("1.25")
+    assert state.attributes["unit_of_measurement"] == "kWh"
+
+
+async def test_lifetime_energy_today_resets_at_local_midnight(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """The derived lifetime source should reset at local midnight."""
+    hass.config.time_zone = "Europe/Stockholm"
+    before_midnight = datetime(2026, 9, 4, 21, 55, tzinfo=UTC)
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=before_midnight,
+    ):
+        entry = await setup_electricity_pro(
+            energy_value="1200",
+            energy_unit="kWh",
+            energy_source_type=ENERGY_SOURCE_LIFETIME,
+        )
+        hass.states.async_set(
+            ENERGY_SOURCE_ENTITY_ID,
+            "1201.25",
+            {
+                "unit_of_measurement": "kWh",
+                "device_class": "energy",
+                "state_class": "total_increasing",
+            },
+        )
+        await hass.async_block_till_done()
+
+    midnight = datetime(2026, 9, 4, 22, 0, tzinfo=UTC)
+    entry.runtime_data._async_daily_rollover(midnight)  # noqa: SLF001
+    await hass.async_block_till_done()
+
+    state = hass.states.get(ENERGY_ENTITY_ID)
+    assert state is not None
+    assert Decimal(state.state) == Decimal(0)
+    assert state.attributes["period_complete"] is True
 
 
 async def test_energy_today_accepts_wh(
@@ -841,6 +920,23 @@ async def test_consumption_weighted_average_price_unavailable_at_zero_energy(
     await setup_electricity_pro(
         energy_value="0",
         accumulated_cost_today_value="0",
+        accumulated_cost_today_unit="SEK",
+    )
+
+    state = hass.states.get(WEIGHTED_AVERAGE_PRICE_ENTITY_ID)
+    assert state is not None
+    assert state.state == "unavailable"
+
+
+async def test_consumption_weighted_average_price_waits_for_complete_energy_day(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Do not combine a full-day cost with a partial lifetime-energy period."""
+    await setup_electricity_pro(
+        energy_value="1200",
+        energy_source_type=ENERGY_SOURCE_LIFETIME,
+        accumulated_cost_today_value="12",
         accumulated_cost_today_unit="SEK",
     )
 

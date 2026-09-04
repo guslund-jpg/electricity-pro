@@ -169,8 +169,17 @@ Detailed validation and presentation rules are defined by
 | Missing source | Entity becomes unavailable |
 | Required | For daily energy features |
 
-A reset at the start of a new local day is expected. The internal entity key
-remains `current_energy` for compatibility with recorded history.
+The configured source declares one of two semantics: consumption already
+accumulated since local midnight, or a total accumulated import register.
+A native daily value is mirrored. A total accumulated reading is converted to kWh and its
+observed increase since a persisted local-midnight baseline is exposed. On the
+first configuration day, or after Home Assistant was offline across midnight,
+the value derived from the total covers observations from the new baseline rather
+than guessing unobserved consumption from Recorder history. The `source_type`
+and `period_complete` attributes make this explicit, and calculations requiring
+aligned full-day totals remain unavailable during partial coverage. The
+internal entity key remains `current_energy` for compatibility with recorded
+history.
 
 ### Cost today
 

@@ -193,3 +193,65 @@ class CumulativeStatistic:
             value=value,
         )
         return value
+
+
+class DailyConsumptionFromTotal:
+    """Derive one local day's consumption from a lifetime cumulative meter."""
+
+    def __init__(self, snapshot: StatisticsSnapshot | None = None) -> None:
+        """Initialize the statistic, optionally from persisted state."""
+        self._snapshot = snapshot
+        self._source_reset_detected = False
+
+    @property
+    def snapshot(self) -> StatisticsSnapshot | None:
+        """Return the current persistable state."""
+        return self._snapshot
+
+    @property
+    def source_reset_detected(self) -> bool:
+        """Return whether the most recent update detected a decreasing meter."""
+        return self._source_reset_detected
+
+    def reset(self, measurement: Decimal | None, now: datetime) -> None:
+        """Start a new local day from the latest available meter reading."""
+        if measurement is None:
+            self._snapshot = None
+            self._source_reset_detected = False
+            return
+        self._validate_measurement(measurement)
+        self._snapshot = StatisticsSnapshot(
+            period_start=CalendarPeriod.DAY.start(now),
+            last_value=measurement,
+            value=Decimal(0),
+        )
+        self._source_reset_detected = False
+
+    def update(self, measurement: Decimal, now: datetime) -> Decimal:
+        """Apply a lifetime meter reading and return consumption for today."""
+        self._validate_measurement(measurement)
+        period_start = CalendarPeriod.DAY.start(now)
+        previous = self._snapshot
+
+        if previous is None or previous.period_start != period_start:
+            value = Decimal(0)
+            self._source_reset_detected = False
+        elif measurement < previous.last_value:
+            value = previous.value
+            self._source_reset_detected = True
+        else:
+            value = previous.value + measurement - previous.last_value
+            self._source_reset_detected = False
+
+        self._snapshot = StatisticsSnapshot(
+            period_start=period_start,
+            last_value=measurement,
+            value=value,
+        )
+        return value
+
+    @staticmethod
+    def _validate_measurement(measurement: Decimal) -> None:
+        """Reject invalid cumulative meter readings."""
+        if not measurement.is_finite() or measurement < 0:
+            raise ValueError("measurement must be a non-negative finite value")

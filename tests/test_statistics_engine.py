@@ -8,6 +8,7 @@ import pytest
 from custom_components.electricity_pro.statistics_engine import (
     CalendarPeriod,
     CumulativeStatistic,
+    DailyConsumptionFromTotal,
     DailyPeakSnapshot,
     DailyPeakStatistic,
     StatisticsSnapshot,
@@ -121,6 +122,55 @@ def test_cumulative_statistic_rejects_invalid_measurement(
 
     with pytest.raises(ValueError, match="non-negative finite"):
         statistic.update(measurement, dt(2026, 8, 1))
+
+
+def test_daily_consumption_from_total_accumulates_lifetime_meter_deltas() -> None:
+    """Derive today's consumption without exposing the lifetime total."""
+    statistic = DailyConsumptionFromTotal()
+
+    assert statistic.update(Decimal("1200"), dt(2026, 8, 3)) == Decimal(0)
+    assert statistic.update(Decimal("1201.25"), dt(2026, 8, 3)) == Decimal("1.25")
+    assert statistic.update(Decimal("1202"), dt(2026, 8, 3)) == Decimal(2)
+
+
+def test_daily_consumption_from_total_starts_new_day_at_zero() -> None:
+    """Do not assign an unobserved overnight delta to the new day."""
+    statistic = DailyConsumptionFromTotal()
+    statistic.update(Decimal("1200"), dt(2026, 8, 3))
+    statistic.update(Decimal("1202"), dt(2026, 8, 3))
+
+    assert statistic.update(Decimal("1203"), dt(2026, 8, 4)) == Decimal(0)
+
+
+def test_daily_consumption_from_total_survives_restart_and_meter_reset() -> None:
+    """Restore the daily baseline and safely accept a replaced meter."""
+    snapshot = StatisticsSnapshot(
+        period_start=date(2026, 8, 3),
+        last_value=Decimal("1201"),
+        value=Decimal(1),
+    )
+    statistic = DailyConsumptionFromTotal(snapshot)
+
+    assert statistic.update(Decimal("1202"), dt(2026, 8, 3)) == Decimal(2)
+    assert statistic.update(Decimal("0.5"), dt(2026, 8, 3)) == Decimal(2)
+    assert statistic.source_reset_detected
+    assert statistic.update(Decimal("0.75"), dt(2026, 8, 3)) == Decimal("2.25")
+    assert not statistic.source_reset_detected
+
+
+def test_daily_consumption_from_total_can_reset_at_midnight() -> None:
+    """A scheduled local-midnight reset retains only the new baseline."""
+    statistic = DailyConsumptionFromTotal()
+    statistic.update(Decimal("1200"), dt(2026, 8, 3))
+    midnight = datetime(2026, 8, 4, tzinfo=UTC)
+
+    statistic.reset(Decimal("1202"), midnight)
+
+    assert statistic.snapshot == StatisticsSnapshot(
+        period_start=date(2026, 8, 4),
+        last_value=Decimal("1202"),
+        value=Decimal(0),
+    )
 
 
 def test_daily_peak_tracks_highest_measurement_and_earliest_tie() -> None:
