@@ -2372,7 +2372,7 @@ async def test_next_inexpensive_sensor_omitted_for_partial_forecast(
         "custom_components.electricity_pro.coordinator.dt_util.now",
         return_value=datetime(2026, 8, 13, 20, 1, tzinfo=UTC),
     ):
-        await setup_electricity_pro(
+        entry = await setup_electricity_pro(
             good_price_threshold=0.65,
             forecast_price_area="SE3",
             forecast_currency="SEK",
@@ -2397,6 +2397,8 @@ async def test_next_inexpensive_sensor_omitted_for_partial_forecast(
         )
 
     assert hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID) is None
+    assert entry.runtime_data.forecast_prices_are_comparable is False
+    assert entry.runtime_data.adaptive_forecast_prices == ()
 
 
 async def test_next_inexpensive_sensor_omitted_for_incompatible_forecast(
@@ -2473,7 +2475,7 @@ async def test_next_inexpensive_sensor_created_for_comparable_complete_forecast(
         "custom_components.electricity_pro.coordinator.dt_util.now",
         return_value=datetime(2026, 8, 13, 20, 1, tzinfo=UTC),
     ):
-        await setup_electricity_pro(
+        entry = await setup_electricity_pro(
             price_value="0.80",
             price_completeness=PriceCompleteness.COMPLETE,
             good_price_threshold=0.65,
@@ -2493,6 +2495,50 @@ async def test_next_inexpensive_sensor_created_for_comparable_complete_forecast(
     state = hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID)
     assert state is not None
     assert state.state == "2026-08-13T21:00:00+00:00"
+    assert entry.runtime_data.forecast_prices_are_comparable is True
+    assert entry.runtime_data.adaptive_forecast_prices[0].effective_price == (
+        Decimal("0.6")
+    )
+
+
+async def test_complete_forecast_with_different_currency_is_not_comparable(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Matching components must not allow cross-currency price comparison."""
+    complete_metadata = PricingMetadata(
+        strategy=PricingStrategy.EXTERNAL_COMPLETE_PRICE,
+        scope=PriceComponentScope(
+            frozenset(PriceComponent),
+            vat=VatTreatment.INCLUDED,
+        ),
+        completeness=PriceCompleteness.COMPLETE,
+    )
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 20, 1, tzinfo=UTC),
+    ):
+        entry = await setup_electricity_pro(
+            price_value="0.80",
+            price_unit="SEK/kWh",
+            price_completeness=PriceCompleteness.COMPLETE,
+            good_price_threshold=0.65,
+            forecast_price_area="SE3",
+            forecast_currency="EUR",
+            forecast_nordpool_config_entry="complete-forecast-entry-id",
+            forecast_pricing_metadata=complete_metadata,
+            forecast_intervals=[
+                {
+                    "start": "2026-08-13T21:00:00+00:00",
+                    "end": "2026-08-13T22:00:00+00:00",
+                    "price": 600,
+                }
+            ],
+        )
+
+    assert entry.runtime_data.forecast_prices_are_comparable is False
+    assert entry.runtime_data.adaptive_forecast_prices == ()
+    assert hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID) is None
 
 
 def test_next_inexpensive_registry_entry_is_migration_safe(hass) -> None:

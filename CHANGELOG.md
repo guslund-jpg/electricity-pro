@@ -8,6 +8,10 @@
   current complete Effective Price with comparable historical local hours,
   supports a configurable target percentile and absolute ceiling, and clearly
   reports when it is using the existing fixed threshold during warm-up.
+- Refine an adaptive good-now result when a complete compatible forecast has a
+  materially better price within six hours. The comparison uses 10 percent of
+  the historical 90th-to-10th-percentile range and reports when incomplete
+  forecast data causes the refinement to be withheld.
 - Persist compatible Effective Price observations as bounded, duration-weighted
   hourly summaries so the future adaptive mode can build history safely across
   restarts and discard it when price semantics or tariffs change.
