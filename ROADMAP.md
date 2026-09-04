@@ -353,6 +353,9 @@ Supplier markup, total accumulated-energy sources and the expanded Standard
 dashboard are already present in the unreleased development line and form part
 of the v1.5 release baseline.
 
+The adaptive classification contract is proposed by
+[ADR-0012](docs/adr/0012-adaptive-good-price-classification.md).
+
 Tracked work: [adaptive good-price threshold #237](https://github.com/guslund-jpg/electricity-pro/issues/237),
 [unavailable recommendation sensor #232](https://github.com/guslund-jpg/electricity-pro/issues/232),
 and [contributor design guidance #70](https://github.com/guslund-jpg/electricity-pro/issues/70).

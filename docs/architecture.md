@@ -538,6 +538,11 @@ next architectural additions are expected to include:
 - storage scheduling built on explicit state-of-charge, efficiency and power
   limits.
 
+The proposed adaptive Good Time contract is documented in
+[ADR-0012](adr/0012-adaptive-good-price-classification.md). It keeps fixed
+threshold behaviour backward compatible and defines comparable-price history,
+cold-start fallback, bounded persistence, and forecast-suppression rules.
+
 The term **Intelligence Engine** describes the combined calculation,
 statistics, forecasting and analysis capabilities. It is an architectural
 direction rather than a separate subsystem or provider-specific service.
