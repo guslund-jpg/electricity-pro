@@ -24,6 +24,7 @@ from .const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_ENERGY_SOURCE_TYPE,
     CONF_ENERGY_TAX_PER_KWH,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FIXED_SUPPLIER_FEE_MONTHLY,
@@ -53,6 +54,8 @@ from .const import (
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
+    ENERGY_SOURCE_DAILY,
+    ENERGY_SOURCE_LIFETIME,
 )
 from .pricing import (
     PriceComponent,
@@ -95,6 +98,17 @@ _VAT_OPTIONS = [
     {"value": VatTreatment.INCLUDED.value, "label": "VAT included"},
     {"value": VatTreatment.EXCLUDED.value, "label": "VAT excluded"},
     {"value": VatTreatment.UNKNOWN.value, "label": "Unknown"},
+]
+
+_ENERGY_SOURCE_TYPE_OPTIONS = [
+    {
+        "value": ENERGY_SOURCE_DAILY,
+        "label": "Accumulated since midnight",
+    },
+    {
+        "value": ENERGY_SOURCE_LIFETIME,
+        "label": "Total accumulated energy",
+    },
 ]
 
 
@@ -302,6 +316,7 @@ def _entity_schema(
     price_included_components_default: list[str] | None = None,
     price_vat_treatment_default: str | None = None,
     energy_default: str | None = None,
+    energy_source_type_default: str = ENERGY_SOURCE_DAILY,
     accumulated_cost_today_default: str | None = None,
     current_l1_default: str | None = None,
     current_l2_default: str | None = None,
@@ -372,6 +387,10 @@ def _entity_schema(
             CONF_ENERGY_ENTITY,
             default=energy_default,
         )
+    energy_source_type_key = vol.Optional(
+        CONF_ENERGY_SOURCE_TYPE,
+        default=energy_source_type_default,
+    )
 
     if accumulated_cost_today_default is None:
         accumulated_cost_today_key = vol.Optional(CONF_ACCUMULATED_COST_TODAY_ENTITY)
@@ -538,6 +557,12 @@ def _entity_schema(
             energy_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
+                )
+            ),
+            energy_source_type_key: selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_ENERGY_SOURCE_TYPE_OPTIONS,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
             accumulated_cost_today_key: selector.EntitySelector(
@@ -1052,6 +1077,13 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_ENERGY_ENTITY,
             self.config_entry.data.get(CONF_ENERGY_ENTITY),
         )
+        current_energy_source_type = self.config_entry.options.get(
+            CONF_ENERGY_SOURCE_TYPE,
+            self.config_entry.data.get(
+                CONF_ENERGY_SOURCE_TYPE,
+                ENERGY_SOURCE_DAILY,
+            ),
+        )
 
         current_accumulated_cost_today = self.config_entry.options.get(
             CONF_ACCUMULATED_COST_TODAY_ENTITY,
@@ -1134,6 +1166,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 price_included_components_default=current_price_components,
                 price_vat_treatment_default=current_vat_treatment,
                 energy_default=current_energy,
+                energy_source_type_default=current_energy_source_type,
                 accumulated_cost_today_default=current_accumulated_cost_today,
                 current_l1_default=current_l1,
                 current_l2_default=current_l2,

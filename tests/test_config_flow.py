@@ -11,7 +11,9 @@ from custom_components.electricity_pro.const import (
     CONF_CURRENT_L1_ENTITY,
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
+    CONF_ENERGY_ENTITY,
     CONF_ENERGY_TAX_PER_KWH,
+    CONF_ENERGY_SOURCE_TYPE,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
     CONF_FIXED_SUPPLIER_FEE_MONTHLY,
@@ -37,6 +39,8 @@ from custom_components.electricity_pro.const import (
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
+    ENERGY_SOURCE_DAILY,
+    ENERGY_SOURCE_LIFETIME,
 )
 from custom_components.electricity_pro.pricing import (
     PriceComponent,
@@ -253,6 +257,7 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
     keys = [key.schema for key in result["data_schema"].schema]
 
     assert keys[0] == CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+    assert keys.index(CONF_ENERGY_SOURCE_TYPE) == keys.index(CONF_ENERGY_ENTITY) + 1
     assert keys[-6:] == [
         CONF_CURRENT_L1_ENTITY,
         CONF_CURRENT_L2_ENTITY,
@@ -265,17 +270,50 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
         keys.index(CONF_GRID_FEE_PER_KWH) + 1 : keys.index(
             CONF_FIXED_SUPPLIER_FEE_MONTHLY
         )
-        ] == [
-            CONF_SUPPLIER_MARKUP_PER_KWH,
-            CONF_GRID_FEE_HIGH_PER_KWH,
+    ] == [
+        CONF_SUPPLIER_MARKUP_PER_KWH,
+        CONF_GRID_FEE_HIGH_PER_KWH,
         CONF_GRID_FEE_HIGH_START,
         CONF_GRID_FEE_HIGH_END,
         CONF_GRID_FEE_HIGH_SEASON_START,
-            CONF_GRID_FEE_HIGH_SEASON_END,
+        CONF_GRID_FEE_HIGH_SEASON_END,
         CONF_GRID_FEE_WORKDAY_ENTITY,
         CONF_ENERGY_TAX_PER_KWH,
         CONF_FIXED_GRID_FEE_MONTHLY,
     ]
+
+
+async def test_manual_flow_stores_lifetime_energy_source_type(hass) -> None:
+    """Custom setup should record how the selected energy sensor accumulates."""
+    result = await _start_manual_flow(hass)
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_ENERGY_ENTITY: "sensor.p1ib_active_energy_import",
+            CONF_ENERGY_SOURCE_TYPE: ENERGY_SOURCE_LIFETIME,
+        },
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_ENERGY_SOURCE_TYPE] == ENERGY_SOURCE_LIFETIME
+
+
+async def test_manual_flow_defaults_existing_energy_semantics_to_daily(hass) -> None:
+    """Existing and omitted source semantics should remain backward compatible."""
+    result = await _start_manual_flow(hass)
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_ENERGY_ENTITY: "sensor.daily_energy",
+        },
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_ENERGY_SOURCE_TYPE] == ENERGY_SOURCE_DAILY
 
 
 async def test_user_step_creates_entry_with_forecast_config(hass) -> None:

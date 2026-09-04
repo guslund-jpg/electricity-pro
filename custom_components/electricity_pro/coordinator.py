@@ -68,6 +68,7 @@ from .provider import (
 from .statistics_engine import (
     CalendarPeriod,
     CumulativeStatistic,
+    DailyConsumptionFromTotal,
     DailyPeakSnapshot,
     DailyPeakStatistic,
     StatisticsSnapshot,
@@ -82,6 +83,9 @@ _LOGGER = logging.getLogger(__name__)
 
 _STORAGE_VERSION = 1
 _ENERGY_THIS_MONTH = "energy_this_month"
+_ENERGY_TODAY_FROM_TOTAL = "energy_today_from_total"
+_ENERGY_TODAY_SOURCE_ENTITY = "energy_today_source_entity"
+_ENERGY_TODAY_PERIOD_COMPLETE = "energy_today_period_complete"
 _COST_THIS_MONTH = "cost_this_month"
 _COST_THIS_MONTH_UNIT = "cost_this_month_unit"
 _PEAK_POWER_TODAY = "peak_power_today"
@@ -122,6 +126,8 @@ class ElectricityProCoordinator(
             entry=entry,
         )
         self._energy_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
+        self._energy_today_from_total = DailyConsumptionFromTotal()
+        self._energy_today_period_complete = False
         self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._peak_power_today = DailyPeakStatistic()
         self._timing_buckets = TimingBucketAccumulator(self._local_timezone)
@@ -261,6 +267,13 @@ class ElectricityProCoordinator(
         """Finalize timing history and clear daily state at local midnight."""
         local_now = now.astimezone(self._local_timezone)
         data = self._provider.read()
+        energy_kwh = _energy_in_kwh(
+            data.current_energy,
+            data.current_energy_unit,
+        )
+        if self._provider.energy_source_is_lifetime_total:
+            self._energy_today_from_total.reset(energy_kwh, local_now)
+            self._energy_today_period_complete = energy_kwh is not None
         self._update_timing_history(data, local_now, power_observed=False)
         self._update_base_load_history(data, local_now, power_observed=False)
         self._finalize_timing_day(local_now.date() - timedelta(days=1))
@@ -269,16 +282,29 @@ class ElectricityProCoordinator(
         self._base_load_buckets.retain_dates({local_now.date()})
         peak_cleared = self._peak_power_today.clear()
         self._store.async_delay_save(self._statistics_data, delay=1)
-        if peak_cleared and self.data is not None:
+        if self.data is not None:
+            rollover_updates: dict[str, Decimal | datetime | str | None] = {}
+            if self._provider.energy_source_is_lifetime_total:
+                rollover_updates["current_energy"] = (
+                    Decimal(0) if energy_kwh is not None else None
+                )
+                rollover_updates["current_energy_unit"] = (
+                    UnitOfEnergy.KILO_WATT_HOUR
+                    if energy_kwh is not None
+                    else None
+                )
+                rollover_updates["energy_today_period_complete"] = (
+                    self._energy_today_period_complete
+                )
+            if peak_cleared:
+                rollover_updates["peak_power_today"] = None
+                rollover_updates["peak_power_time_today"] = None
             self.async_set_updated_data(
                 replace(
                     self.data,
-                    peak_power_today=None,
-                    peak_power_time_today=None,
+                    **rollover_updates,
                 )
             )
-        elif self.data is not None:
-            self.async_set_updated_data(self.data)
 
     @callback
     def _async_source_changed(
@@ -505,6 +531,26 @@ class ElectricityProCoordinator(
                     snapshot,
                 )
 
+        if (
+            self._provider.energy_source_is_lifetime_total
+            and stored.get(_ENERGY_TODAY_SOURCE_ENTITY)
+            == self._provider.energy_entity_id
+            and _ENERGY_TODAY_FROM_TOTAL in stored
+        ):
+            try:
+                snapshot = StatisticsSnapshot.from_dict(
+                    stored[_ENERGY_TODAY_FROM_TOTAL]
+                )
+            except ValueError:
+                _LOGGER.warning(
+                    "Ignoring invalid persisted lifetime energy baseline"
+                )
+            else:
+                self._energy_today_from_total = DailyConsumptionFromTotal(snapshot)
+                self._energy_today_period_complete = stored.get(
+                    _ENERGY_TODAY_PERIOD_COMPLETE
+                ) is True
+
         cost_unit = stored.get(_COST_THIS_MONTH_UNIT)
         if _COST_THIS_MONTH in stored and isinstance(cost_unit, str) and cost_unit:
             try:
@@ -581,7 +627,7 @@ class ElectricityProCoordinator(
     def _read(self, *, power_observed: bool = False) -> ElectricityProData:
         """Read provider data and update derived statistics."""
         data = self._provider.read()
-        energy_kwh = _energy_in_kwh(
+        source_energy_kwh = _energy_in_kwh(
             data.current_energy,
             data.current_energy_unit,
         )
@@ -590,7 +636,34 @@ class ElectricityProCoordinator(
         updates: dict[str, Decimal | datetime | str | None] = {}
         should_save = False
 
-        should_save = self._update_timing_history(
+        if self._provider.energy_source_is_lifetime_total:
+            if source_energy_kwh is None:
+                energy_kwh = None
+                updates["current_energy"] = None
+                updates["current_energy_unit"] = None
+            else:
+                previous_snapshot = self._energy_today_from_total.snapshot
+                if (
+                    previous_snapshot is None
+                    or previous_snapshot.period_start != now.date()
+                ):
+                    self._energy_today_period_complete = False
+                energy_kwh = self._energy_today_from_total.update(
+                    source_energy_kwh,
+                    now,
+                )
+                if self._energy_today_from_total.source_reset_detected:
+                    self._energy_today_period_complete = False
+                updates["current_energy"] = energy_kwh
+                updates["current_energy_unit"] = UnitOfEnergy.KILO_WATT_HOUR
+                should_save = True
+            updates["energy_today_period_complete"] = (
+                self._energy_today_period_complete
+            )
+        else:
+            energy_kwh = source_energy_kwh
+
+        should_save |= self._update_timing_history(
             data,
             now,
             power_observed=power_observed,
@@ -930,6 +1003,16 @@ class ElectricityProCoordinator(
         data: dict[str, Any] = {}
         if (snapshot := self._energy_this_month.snapshot) is not None:
             data[_ENERGY_THIS_MONTH] = snapshot.as_dict()
+        if (
+            self._provider.energy_source_is_lifetime_total
+            and (snapshot := self._energy_today_from_total.snapshot) is not None
+            and self._provider.energy_entity_id is not None
+        ):
+            data[_ENERGY_TODAY_FROM_TOTAL] = snapshot.as_dict()
+            data[_ENERGY_TODAY_SOURCE_ENTITY] = self._provider.energy_entity_id
+            data[_ENERGY_TODAY_PERIOD_COMPLETE] = (
+                self._energy_today_period_complete
+            )
         if (
             (snapshot := self._cost_this_month.snapshot) is not None
             and self._cost_this_month_unit is not None

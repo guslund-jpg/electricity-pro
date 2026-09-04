@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- Accept total accumulated-energy registers in custom or mixed setup and
+  derive Energy Today from a restart-safe local-midnight baseline, while
+  continuing to prefer Tibber's authoritative daily value in the fast path.
+
 ## [1.4.1] - 2026-09-02
 
 ### Changed

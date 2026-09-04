@@ -148,6 +148,8 @@ def consumption_weighted_average_price(
     data: ElectricityProData,
 ) -> Decimal | None:
     """Return today's achieved average effective price per kWh."""
+    if not data.energy_today_period_complete:
+        return None
     return calculate_consumption_weighted_average_price(
         data.accumulated_cost_today,
         data.current_energy,
@@ -672,6 +674,16 @@ class ElectricityProSensor(
         return super().available and self.entity_description.available_fn(
             self.coordinator.data
         )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Expose energy-source semantics for Energy today."""
+        if self.entity_description.key != "current_energy":
+            return None
+        return {
+            "source_type": self.coordinator.data.energy_source_type,
+            "period_complete": self.coordinator.data.energy_today_period_complete,
+        }
 
 
 class ElectricityProForecastInsightSensor(

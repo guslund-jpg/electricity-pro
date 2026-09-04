@@ -24,6 +24,7 @@ from .const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_ENERGY_SOURCE_TYPE,
     CONF_ENERGY_TAX_PER_KWH,
     CONF_GRID_FEE_PER_KWH,
     CONF_GRID_FEE_HIGH_END,
@@ -42,6 +43,8 @@ from .const import (
     CONF_VOLTAGE_L1_ENTITY,
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
+    ENERGY_SOURCE_DAILY,
+    ENERGY_SOURCE_LIFETIME,
 )
 from .grid_tariff import HighLowGridTariff
 from .pricing import PricingMetadata
@@ -59,6 +62,8 @@ class ElectricityProData:
     pricing_metadata: PricingMetadata | None
     current_energy: Decimal | None
     current_energy_unit: str | None
+    energy_source_type: str
+    energy_today_period_complete: bool
     accumulated_cost_today: Decimal | None
     accumulated_cost_today_unit: str | None
     peak_power_today: Decimal | None
@@ -116,6 +121,16 @@ class ElectricityProEntityProvider:
         self._energy_entity_id: str | None = entry.options.get(
             CONF_ENERGY_ENTITY,
             entry.data.get(CONF_ENERGY_ENTITY),
+        )
+        configured_energy_source_type = entry.options.get(
+            CONF_ENERGY_SOURCE_TYPE,
+            entry.data.get(CONF_ENERGY_SOURCE_TYPE, ENERGY_SOURCE_DAILY),
+        )
+        self._energy_source_type = (
+            configured_energy_source_type
+            if configured_energy_source_type
+            in {ENERGY_SOURCE_DAILY, ENERGY_SOURCE_LIFETIME}
+            else ENERGY_SOURCE_DAILY
         )
 
         self._accumulated_cost_today_entity_id: str | None = entry.options.get(
@@ -196,6 +211,16 @@ class ElectricityProEntityProvider:
     def power_entity_id(self) -> str:
         """Return the normalized current-power source entity ID."""
         return self._power_entity_id
+
+    @property
+    def energy_source_is_lifetime_total(self) -> bool:
+        """Return whether the configured energy source is a lifetime register."""
+        return self._energy_source_type == ENERGY_SOURCE_LIFETIME
+
+    @property
+    def energy_entity_id(self) -> str | None:
+        """Return the configured energy source entity ID."""
+        return self._energy_entity_id
 
     @property
     def source_entity_ids(self) -> tuple[str, ...]:
@@ -333,6 +358,10 @@ class ElectricityProEntityProvider:
             pricing_metadata=self._pricing_metadata,
             current_energy=current_energy,
             current_energy_unit=current_energy_unit,
+            energy_source_type=self._energy_source_type,
+            energy_today_period_complete=(
+                self._energy_source_type == ENERGY_SOURCE_DAILY
+            ),
             accumulated_cost_today=accumulated_cost_today,
             accumulated_cost_today_unit=accumulated_cost_today_unit,
             peak_power_today=None,

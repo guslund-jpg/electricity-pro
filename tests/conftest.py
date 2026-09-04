@@ -13,6 +13,7 @@ from custom_components.electricity_pro.const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_ENERGY_SOURCE_TYPE,
     CONF_FORECAST_CURRENCY,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
@@ -61,6 +62,7 @@ def setup_electricity_pro(hass):
         price_unit: str = "SEK/kWh",
         energy_value: str | None = None,
         energy_unit: str = "kWh",
+        energy_source_type: str | None = None,
         accumulated_cost_today_value: str | None = None,
         accumulated_cost_today_unit: str = "SEK",
         current_l1_value: str | None = None,
@@ -155,6 +157,8 @@ def setup_electricity_pro(hass):
                 },
             )
             entry_data[CONF_ENERGY_ENTITY] = "sensor.test_energy"
+            if energy_source_type is not None:
+                entry_data[CONF_ENERGY_SOURCE_TYPE] = energy_source_type
 
         if accumulated_cost_today_value is not None:
             hass.states.async_set(

@@ -76,7 +76,7 @@ clear and broadly useful.
 | Statistic | Average market price today | `average_market_price_today` | Calculated | Currency/kWh | None | Measurement | Forecast dependent |
 | Live | Effective price | `effective_price` | Calculated | Currency/kWh | None | Measurement | Available |
 | Live | Current cost rate | `current_cost_rate` | Calculated | Currency/h | None | Measurement | Available |
-| Daily | Energy today | `current_energy` | Mirrored | Wh or kWh | Energy | Total increasing | Available |
+| Daily | Energy today | `current_energy` | Mirrored or total-accumulated-derived | kWh for derived values; source unit otherwise | Energy | Total increasing | Available |
 | Monthly | Energy this month | `energy_this_month` | Calculated | kWh | Energy | Total | Available |
 | Daily | Cost today | `cost_today` | Mirrored | Currency | Monetary | Total | Available |
 | Daily | Consumption-weighted average price today | `consumption_weighted_average_price_today` | Calculated | Currency/kWh | None | Measurement | Available |
