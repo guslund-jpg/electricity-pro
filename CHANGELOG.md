@@ -27,6 +27,9 @@
 
 ### Changed
 
+- Expand the contributor design principles into concrete guidance for
+  electrical semantics, provider boundaries, normalized inputs, pure analytics,
+  entity contracts, unavailable data, and backward-compatible evolution.
 - Hide the Next Inexpensive 1h Window sensor while the configured forecast is
   incomplete or incompatible with live Effective Price. Existing unusable
   registry entries are disabled by the integration and can be restored under

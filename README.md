@@ -130,7 +130,7 @@ Electricity Pro is evolving in carefully planned stages.
 | **v1.2** | Pricing & Tariff Foundation       | Released          |
 | **v1.3** | Recommendation Intelligence       | Released          |
 | **v1.4** | Market Price Intelligence         | Released          |
-| **v1.5** | Adaptive Price Intelligence       | Planned           |
+| **v1.5** | Adaptive Price Intelligence       | In development    |
 | **v1.6** | Production & Bidirectional Energy | Direction defined |
 | **v1.7** | Flexible-Load Recommendations     | Future            |
 | **v1.8** | Storage & Whole-Home Optimisation | Future            |
