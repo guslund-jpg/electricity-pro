@@ -4,6 +4,9 @@
 
 ### Added
 
+- Add the pure adaptive-price calculation foundation with four-week
+  recency-weighted cohorts, explicit cold-start fallback, negative-price
+  support, and an optional absolute ceiling.
 - Allow an optional VAT-inclusive supplier markup to enrich market-only live
   and forecast prices without adding it twice when the selected supplier price
   already includes that component.
