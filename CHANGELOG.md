@@ -4,6 +4,9 @@
 
 ### Added
 
+- Persist compatible Effective Price observations as bounded, duration-weighted
+  hourly summaries so the future adaptive mode can build history safely across
+  restarts and discard it when price semantics or tariffs change.
 - Add the pure adaptive-price calculation foundation with four-week
   recency-weighted cohorts, explicit cold-start fallback, negative-price
   support, and an optional absolute ceiling.
