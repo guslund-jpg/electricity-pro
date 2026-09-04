@@ -146,6 +146,23 @@ each market interval by its duration only, whereas the consumption-weighted
 sensor reflects when the household actually used electricity and includes its
 configured effective-price scope.
 
+### Next inexpensive 1h window
+
+`next_inexpensive_1h_window_start` is an absolute-threshold recommendation. It
+is exposed only when the configured live and forecast Effective Prices are
+complete and have matching component and VAT semantics. The currently
+supported native Nord Pool forecast is intentionally market-only with unknown
+VAT treatment, so this recommendation is not created from that source.
+
+This safety rule does not affect Cheapest 1h, 2h, and 3h Window. Those sensors
+rank the available forecast scheduling prices relative to one another and do
+not claim that those prices equal the household's complete Effective Price.
+
+On upgrade, an existing unusable Next Inexpensive entity is disabled by the
+integration rather than left as a permanently unavailable state. Its registry
+identity is retained so Electricity Pro can restore it if a future forecast
+source supplies compatible complete pricing.
+
 | Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
 | ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
 | Current L1 | `current_l1`        | Mirrored | A           | Current      | Measurement | High     |

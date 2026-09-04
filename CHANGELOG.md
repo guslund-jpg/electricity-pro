@@ -23,6 +23,10 @@
 
 ### Changed
 
+- Hide the Next Inexpensive 1h Window sensor while the configured forecast is
+  incomplete or incompatible with live Effective Price. Existing unusable
+  registry entries are disabled by the integration and can be restored under
+  the same identity when a comparable forecast source becomes available.
 - Remove the duplicate standalone supplier-price and market-price tiles from
   the Standard dashboard's Live view; both prices remain in the 24-hour price
   comparison graph.

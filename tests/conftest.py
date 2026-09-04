@@ -42,6 +42,7 @@ from custom_components.electricity_pro.forecast import ForecastInterval
 from custom_components.electricity_pro.pricing import (
     PriceComponent,
     PriceCompleteness,
+    PricingMetadata,
     PricingStrategy,
     VatTreatment,
 )
@@ -90,6 +91,7 @@ def setup_electricity_pro(hass):
         forecast_currency: str | None = None,
         forecast_nordpool_config_entry: str | None = None,
         forecast_intervals: list[dict[str, object]] | None = None,
+        forecast_pricing_metadata: PricingMetadata | None = None,
     ) -> MockConfigEntry:
         """Create and set up an Electricity Pro config entry."""
 
@@ -300,6 +302,11 @@ def setup_electricity_pro(hass):
                     market_price=Decimal(str(interval["price"])) / Decimal("1000"),
                     currency=str(forecast_currency),
                     area=str(forecast_price_area),
+                    **(
+                        {"pricing_metadata": forecast_pricing_metadata}
+                        if forecast_pricing_metadata is not None
+                        else {}
+                    ),
                 )
                 for interval in forecast_intervals
             ]
