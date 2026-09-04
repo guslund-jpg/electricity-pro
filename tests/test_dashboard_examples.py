@@ -88,6 +88,18 @@ def test_standard_dashboard_covers_core_measurements_and_insights() -> None:
     }
     assert statistics_headings == {"Today’s totals", "This month"}
 
+    live_tile_entity_ids = {
+        item["entity"]
+        for item in _walk(views_by_title["Live"])
+        if isinstance(item, dict)
+        and item.get("type") == "tile"
+        and isinstance(item.get("entity"), str)
+    }
+    assert not {
+        "sensor.electricity_pro_current_market_price",
+        "sensor.electricity_pro_current_price",
+    } & live_tile_entity_ids
+
     advice_tiles = {
         item["card"]["name"]: item
         for item in _walk(dashboard)

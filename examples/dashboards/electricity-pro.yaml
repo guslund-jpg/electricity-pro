@@ -186,36 +186,6 @@ views:
           - type: conditional
             conditions:
               - condition: state
-                entity: sensor.electricity_pro_current_price
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_current_price
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_current_price
-              name: Current supplier price
-              icon: mdi:currency-usd
-              color: green
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_current_market_price
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_current_market_price
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_current_market_price
-              name: Current market price
-              icon: mdi:chart-line
-              color: blue
-
-          - type: conditional
-            conditions:
-              - condition: state
                 entity: sensor.electricity_pro_effective_price
                 state_not: unavailable
               - condition: state
