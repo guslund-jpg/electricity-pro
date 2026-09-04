@@ -13,6 +13,9 @@
 
 ### Changed
 
+- Remove the duplicate standalone supplier-price and market-price tiles from
+  the Standard dashboard's Live view; both prices remain in the 24-hour price
+  comparison graph.
 - Make the example-dashboard choice and manual copy process clearer after a
   HACS installation, with the dependency-free Standard dashboard recommended
   by default and direct links to both dashboard YAML files.
