@@ -49,6 +49,19 @@ class AdaptivePriceReason(StrEnum):
     INSUFFICIENT_COMPARABLE_HISTORY = "insufficient_comparable_history"
     INVALID_CURRENT_PRICE = "invalid_current_price"
     INCOMPATIBLE_CURRENT_PRICE = "incompatible_current_price"
+    BETTER_PRICE_FORECAST = "better_price_forecast"
+
+
+class ForecastComparisonStatus(StrEnum):
+    """Outcome of the optional adaptive forecast comparison."""
+
+    NOT_APPLICABLE = "not_applicable"
+    NOT_CONFIGURED = "not_configured"
+    WITHHELD_UNAVAILABLE = "withheld_unavailable"
+    WITHHELD_INCOMPATIBLE = "withheld_incompatible"
+    WITHHELD_NO_REFERENCE_RANGE = "withheld_no_reference_range"
+    NO_MATERIALLY_BETTER_PRICE = "no_materially_better_price"
+    SUPPRESSED = "suppressed"
 
 
 @dataclass(frozen=True, slots=True)
@@ -204,6 +217,38 @@ class HistoricalPriceObservation:
             )
         except (InvalidOperation, KeyError, TypeError, ValueError) as err:
             raise ValueError("invalid historical price observation") from err
+
+
+@dataclass(frozen=True, slots=True)
+class AdaptiveForecastPrice:
+    """One future complete Effective Price eligible for comparison."""
+
+    start: datetime
+    end: datetime
+    effective_price: Decimal
+    scope: AdaptivePriceScope
+
+    def __post_init__(self) -> None:
+        """Reject malformed or semantically incomplete forecast values."""
+        if (
+            self.start.tzinfo is None
+            or self.end.tzinfo is None
+            or self.start >= self.end
+            or not self.effective_price.is_finite()
+            or not self.scope.is_comparable
+        ):
+            raise ValueError("invalid adaptive forecast price")
+
+
+@dataclass(frozen=True, slots=True)
+class AdaptiveForecastResult:
+    """Explain the optional forecast refinement of an adaptive result."""
+
+    status: ForecastComparisonStatus
+    suppress: bool = False
+    interval: AdaptiveForecastPrice | None = None
+    price_difference: Decimal | None = None
+    reference_range: Decimal | None = None
 
 
 @dataclass(slots=True)
@@ -578,6 +623,92 @@ def evaluate_adaptive_good_price(
         historical_days=len({observation.local_date for observation in cohort}),
         sample_count=len(cohort),
         required_sample_count=required_samples,
+    )
+
+
+def evaluate_adaptive_forecast(
+    *,
+    current_result: AdaptivePriceResult,
+    current_price: Decimal,
+    current_scope: AdaptivePriceScope,
+    observations: tuple[HistoricalPriceObservation, ...],
+    forecast_prices: tuple[AdaptiveForecastPrice, ...],
+    evaluation_time: datetime,
+    target_percentile: Decimal = _DEFAULT_TARGET_PERCENTILE,
+    absolute_ceiling: Decimal | None = None,
+    look_ahead_hours: int = 6,
+    history_days: int = _DEFAULT_HISTORY_DAYS,
+    half_life_days: int = _DEFAULT_HALF_LIFE_DAYS,
+) -> AdaptiveForecastResult:
+    """Suppress a good-now result for a materially better comparable forecast."""
+    if (
+        current_result.method is not AdaptiveEvaluationMethod.ADAPTIVE
+        or current_result.is_good is not True
+    ):
+        return AdaptiveForecastResult(ForecastComparisonStatus.NOT_APPLICABLE)
+
+    eligible = _eligible_observations(
+        observations,
+        current_scope=current_scope,
+        evaluation_time=evaluation_time,
+        history_days=history_days,
+    )
+    weighted_prices = tuple(
+        (
+            observation.effective_price,
+            _seconds(observation.covered_duration)
+            * recency_weight(
+                (evaluation_time.date() - observation.local_date).days,
+                half_life_days=half_life_days,
+            ),
+        )
+        for observation in eligible
+    )
+    reference_range = (
+        weighted_quantile(weighted_prices, Decimal("0.90"))
+        - weighted_quantile(weighted_prices, Decimal("0.10"))
+    )
+    if reference_range <= 0:
+        return AdaptiveForecastResult(
+            ForecastComparisonStatus.WITHHELD_NO_REFERENCE_RANGE,
+            reference_range=reference_range,
+        )
+
+    evaluation_utc = evaluation_time.astimezone(UTC)
+    look_ahead_end = evaluation_utc + timedelta(hours=look_ahead_hours)
+    material_difference = reference_range * Decimal("0.10")
+    for forecast in sorted(forecast_prices, key=lambda item: item.start):
+        local_start = forecast.start.astimezone(evaluation_time.tzinfo)
+        forecast_start_utc = forecast.start.astimezone(UTC)
+        if (
+            forecast.scope != current_scope
+            or forecast_start_utc < evaluation_utc
+            or forecast_start_utc >= look_ahead_end
+        ):
+            continue
+        future_result = evaluate_adaptive_good_price(
+            current_price=forecast.effective_price,
+            current_scope=forecast.scope,
+            observations=observations,
+            evaluation_time=local_start,
+            target_percentile=target_percentile,
+            absolute_ceiling=absolute_ceiling,
+            history_days=history_days,
+            half_life_days=half_life_days,
+        )
+        difference = current_price - forecast.effective_price
+        if future_result.is_good is True and difference >= material_difference:
+            return AdaptiveForecastResult(
+                ForecastComparisonStatus.SUPPRESSED,
+                suppress=True,
+                interval=forecast,
+                price_difference=difference,
+                reference_range=reference_range,
+            )
+
+    return AdaptiveForecastResult(
+        ForecastComparisonStatus.NO_MATERIALLY_BETTER_PRICE,
+        reference_range=reference_range,
     )
 
 

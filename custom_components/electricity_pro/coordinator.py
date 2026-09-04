@@ -30,6 +30,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .adaptive_price import (
+    AdaptiveForecastPrice,
     AdaptivePriceHistory,
     AdaptivePriceScope,
 )
@@ -195,6 +196,7 @@ class ElectricityProCoordinator(
         self._cheapest_3h_window: ForecastWindowInsight | None = None
         self._next_inexpensive_1h_window: NextInexpensive1hWindowInsight | None = None
         self._forecast_prices_are_comparable = False
+        self._adaptive_forecast_prices: tuple[AdaptiveForecastPrice, ...] = ()
         self._price_direction: ForecastDirectionInsight | None = None
         self._store: Store[dict[str, Any]] = Store(
             hass,
@@ -445,6 +447,16 @@ class ElectricityProCoordinator(
     def forecast_prices_are_comparable(self) -> bool:
         """Return whether live and forecast Effective Prices can be compared."""
         return self._forecast_prices_are_comparable
+
+    @property
+    def adaptive_forecast_prices(self) -> tuple[AdaptiveForecastPrice, ...]:
+        """Return complete future Effective Prices compatible with adaptive mode."""
+        return self._adaptive_forecast_prices
+
+    @property
+    def forecast_configured(self) -> bool:
+        """Return whether a forecast source is configured."""
+        return self._forecast_configured
 
     @property
     def price_direction(self) -> ForecastDirectionInsight | None:
@@ -1113,32 +1125,61 @@ class ElectricityProCoordinator(
             if self._forecast_intervals
             else None
         )
+        forecast_grid_fee = (
+            self._provider.grid_fee_at(self._forecast_intervals[0].start)
+            if self._forecast_intervals
+            else provider_data.grid_fee_per_kwh
+        )
         effective_forecast_metadata = (
             effective_price_metadata(
                 forecast_metadata,
-                provider_data.grid_fee_per_kwh,
+                forecast_grid_fee,
                 provider_data.energy_tax_per_kwh,
                 provider_data.supplier_markup_per_kwh,
             )
             if forecast_metadata is not None
             else None
         )
-        effective_live_metadata = (
-            effective_price_metadata(
-                provider_data.pricing_metadata,
-                provider_data.grid_fee_per_kwh,
-                provider_data.energy_tax_per_kwh,
-                provider_data.supplier_markup_per_kwh,
+        live_scope = self._adaptive_scope(provider_data)
+        forecast_scope = (
+            AdaptivePriceScope.from_metadata(
+                currency=self._forecast_intervals[0].currency,
+                unit=f"{self._forecast_intervals[0].currency}/kWh",
+                metadata=effective_forecast_metadata,
+                tariff_signature=self._adaptive_tariff_signature,
             )
-            if provider_data.pricing_metadata is not None
+            if effective_forecast_metadata is not None
+            and self._forecast_intervals
             else None
         )
         self._forecast_prices_are_comparable = bool(
-            effective_forecast_metadata is not None
-            and effective_forecast_metadata.is_complete
-            and effective_live_metadata is not None
-            and effective_live_metadata.is_complete
-            and effective_forecast_metadata.scope == effective_live_metadata.scope
+            forecast_scope is not None
+            and forecast_scope.is_comparable
+            and live_scope is not None
+            and forecast_scope == live_scope
+        )
+        self._adaptive_forecast_prices = (
+            tuple(
+                AdaptiveForecastPrice(
+                    start=interval.start,
+                    end=interval.end,
+                    effective_price=price,
+                    scope=forecast_scope,
+                )
+                for interval in self._forecast_intervals
+                if (
+                    price := calculate_declared_effective_price(
+                        interval.market_price,
+                        interval.pricing_metadata,
+                        self._provider.grid_fee_at(interval.start),
+                        provider_data.energy_tax_per_kwh,
+                        provider_data.supplier_markup_per_kwh,
+                    )
+                )
+                is not None
+            )
+            if self._forecast_prices_are_comparable and forecast_scope is not None
+            else ()
         )
         self._next_inexpensive_1h_window = (
             find_next_inexpensive_1h_window(

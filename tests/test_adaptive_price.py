@@ -9,10 +9,13 @@ import pytest
 from custom_components.electricity_pro.adaptive_price import (
     AdaptiveCohortType,
     AdaptiveEvaluationMethod,
+    AdaptiveForecastPrice,
     AdaptivePriceHistory,
     AdaptivePriceReason,
     AdaptivePriceScope,
+    ForecastComparisonStatus,
     HistoricalPriceObservation,
+    evaluate_adaptive_forecast,
     evaluate_adaptive_good_price,
     recency_weight,
     weighted_midrank,
@@ -307,6 +310,105 @@ def test_recent_prices_can_move_threshold_without_discarding_four_weeks() -> Non
 
     assert result.threshold == Decimal("0.50")
     assert result.is_good is True
+
+
+def test_materially_better_forecast_suppresses_good_now() -> None:
+    """A qualifying future price should suppress an otherwise good result."""
+    observations = (
+        tuple(_observation(day, "0.60", hour=12) for day in range(1, 29))
+        + tuple(_observation(day, "0.20", hour=14) for day in range(1, 29))
+        + tuple(_observation(day, "0.00", hour=16) for day in range(1, 29))
+        + tuple(_observation(day, "1.00", hour=18) for day in range(1, 29))
+    )
+    current_result = evaluate_adaptive_good_price(
+        current_price=Decimal("0.60"),
+        current_scope=_SCOPE,
+        observations=observations,
+        evaluation_time=_EVALUATION_TIME,
+    )
+    future = AdaptiveForecastPrice(
+        start=_EVALUATION_TIME.replace(hour=14, minute=0),
+        end=_EVALUATION_TIME.replace(hour=15, minute=0),
+        effective_price=Decimal("0.20"),
+        scope=_SCOPE,
+    )
+
+    result = evaluate_adaptive_forecast(
+        current_result=current_result,
+        current_price=Decimal("0.60"),
+        current_scope=_SCOPE,
+        observations=observations,
+        forecast_prices=(future,),
+        evaluation_time=_EVALUATION_TIME,
+    )
+
+    assert result.status is ForecastComparisonStatus.SUPPRESSED
+    assert result.suppress is True
+    assert result.interval == future
+    assert result.price_difference == Decimal("0.40")
+    assert result.reference_range == Decimal("1.00")
+
+
+def test_small_forecast_difference_does_not_suppress() -> None:
+    """A future good price must clear the history-scaled materiality rule."""
+    observations = (
+        tuple(_observation(day, "0.60", hour=12) for day in range(1, 29))
+        + tuple(_observation(day, "0.58", hour=14) for day in range(1, 29))
+        + tuple(_observation(day, "0.00", hour=16) for day in range(1, 29))
+        + tuple(_observation(day, "1.00", hour=18) for day in range(1, 29))
+    )
+    current_result = evaluate_adaptive_good_price(
+        current_price=Decimal("0.60"),
+        current_scope=_SCOPE,
+        observations=observations,
+        evaluation_time=_EVALUATION_TIME,
+    )
+
+    result = evaluate_adaptive_forecast(
+        current_result=current_result,
+        current_price=Decimal("0.60"),
+        current_scope=_SCOPE,
+        observations=observations,
+        forecast_prices=(
+            AdaptiveForecastPrice(
+                start=_EVALUATION_TIME.replace(hour=14, minute=0),
+                end=_EVALUATION_TIME.replace(hour=15, minute=0),
+                effective_price=Decimal("0.58"),
+                scope=_SCOPE,
+            ),
+        ),
+        evaluation_time=_EVALUATION_TIME,
+    )
+
+    assert result.status is ForecastComparisonStatus.NO_MATERIALLY_BETTER_PRICE
+    assert result.suppress is False
+
+
+def test_flat_history_withholds_forecast_suppression() -> None:
+    """A zero historical reference range must not invent materiality."""
+    observations = tuple(
+        _observation(day, "0.50", hour=hour)
+        for hour in (12, 14)
+        for day in range(1, 29)
+    )
+    current_result = evaluate_adaptive_good_price(
+        current_price=Decimal("0.50"),
+        current_scope=_SCOPE,
+        observations=observations,
+        evaluation_time=_EVALUATION_TIME,
+    )
+
+    result = evaluate_adaptive_forecast(
+        current_result=current_result,
+        current_price=Decimal("0.50"),
+        current_scope=_SCOPE,
+        observations=observations,
+        forecast_prices=(),
+        evaluation_time=_EVALUATION_TIME,
+    )
+
+    assert result.status is ForecastComparisonStatus.WITHHELD_NO_REFERENCE_RANGE
+    assert result.suppress is False
 
 
 def test_incompatible_and_low_coverage_observations_are_excluded() -> None:

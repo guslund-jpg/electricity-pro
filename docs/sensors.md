@@ -341,8 +341,15 @@ good.
 Attributes explain the selected method, reason, thresholds, percentile,
 historical cohort and sample counts. Adaptive describes a price as relatively
 favourable; it is not financial advice or a recommendation to consume energy.
-Forecast-aware suppression is planned separately and is not part of the first
-adaptive mode.
+
+When a complete forecast has the same currency, components, VAT treatment, and
+tariff definition, Adaptive also checks the next six hours. A future interval
+suppresses a good-now result only when it qualifies for its own local-hour
+cohort and is lower by at least 10 percent of the compatible history's
+90th-to-10th-percentile range. A flat historical range, missing forecast, or
+the currently supported partial Nord Pool market forecast never suppresses the
+result. Attributes expose the comparison status and any materially better
+interval.
 
 ## Planned intelligence sensors
 
