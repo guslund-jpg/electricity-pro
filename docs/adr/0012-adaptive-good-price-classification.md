@@ -48,9 +48,11 @@ Adaptive mode has these settings:
 - an optional absolute ceiling that can prevent a high price from being
   classified as good.
 
-The first version uses a 30-completed-local-day historical window and a
-six-hour forecast look-ahead. Those window lengths are implementation
-constants rather than additional configuration fields.
+The first version retains 28 completed local days and applies recency weighting
+with a seven-day half-life. This provides four complete weeks of weekday and
+weekend observations while allowing current weather and market conditions to
+dominate older observations. The six-hour forecast look-ahead is also an
+implementation constant rather than an additional configuration field.
 
 ### Comparable price contract
 
@@ -92,7 +94,7 @@ daylight-saving transitions remain distinct through their absolute start and
 end instants.
 
 The store retains the current partial hour plus eligible summaries from the
-30 most recently completed local dates. It is written when an hour closes, at
+28 most recently completed local dates. It is written when an hour closes, at
 local midnight, on integration unload, and after a compatibility reset. Normal
 source updates do not cause a persistent write for every price state change.
 Recorder is neither queried nor required.
@@ -109,10 +111,24 @@ It does not broaden the cohort further. This hierarchy accounts for recurring
 daily and weekly patterns when the data supports doing so without pretending
 that a small sample is reliable.
 
-The current percentile is its duration-weighted empirical percentile within
-the selected cohort. Tied prices use the midpoint of their combined weight.
-The adaptive threshold is the lowest price whose cumulative duration reaches
-the configured target percentile. Negative prices are valid and sort normally.
+Each historical summary receives a recency factor calculated as:
+
+```text
+recency_weight = 2 ^ (-age_in_days / 7)
+```
+
+An observation seven days old therefore has half the influence of a current
+observation, one 14 days old has one-quarter, and one 28 days old has
+one-sixteenth. Its percentile weight is covered duration multiplied by this
+recency factor. Minimum cohort sizes continue to count raw eligible
+observations, so weighting cannot make a small cohort appear sufficiently
+populated.
+
+The current percentile is its duration-and-recency-weighted empirical
+percentile within the selected cohort. Tied prices use the midpoint of their
+combined weight. The adaptive threshold is the lowest price whose cumulative
+weight reaches the configured target percentile. Negative prices are valid and
+sort normally.
 
 The current price is adaptively good when all of these conditions hold:
 
@@ -229,7 +245,8 @@ compatibility partition remains valid.
 Pure calculation tests cover:
 
 - fixed and adaptive classification boundaries;
-- weighted percentile and quantile behaviour, including ties;
+- duration-and-recency-weighted percentile and quantile behaviour, including
+  ties and exact half-life boundaries;
 - negative, zero, and flat price distributions;
 - preferred and fallback cohort selection;
 - minimum sample counts;
@@ -271,6 +288,14 @@ Rejected. It changes the meaning from historically favourable to favourable
 within one incomplete forecast horizon and is unavailable to configurations
 without a comparable forecast.
 
+### Seven-day hard history cutoff
+
+Rejected. It follows a short weather regime quickly but provides only five
+weekday and two weekend observations for each local hour. A 25th-percentile
+threshold would then depend on too few values and could move sharply because
+of one unusual day. Four retained weeks with a seven-day half-life preserves
+weekly coverage while still emphasizing current conditions.
+
 ### One cohort containing every hour
 
 Rejected. It would routinely call daytime or evening prices bad merely because
@@ -300,7 +325,8 @@ operate locally with bounded data.
 - A fully time-matched weekend cohort can take roughly four weeks to warm up.
 - A tariff change temporarily returns adaptive users to their fixed fallback or
   an unavailable result.
-- Thirty days follows gradual seasonal change but cannot model annual patterns.
+- Twenty-eight recency-weighted days follows current conditions without
+  modelling longer seasonal or annual patterns.
 - Forecast-aware suppression remains inactive with the current partial native
   Nord Pool forecast.
 - Additional configuration and explanatory attributes increase UI and
