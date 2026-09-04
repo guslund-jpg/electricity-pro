@@ -527,18 +527,20 @@ Home Assistant sensors,
 dashboards and automations
 ```
 
-Possible future modules may include:
+Daily statistics, bounded historical analysis, price forecasting,
+price-aware recommendations and dashboard examples are now implemented. The
+next architectural additions are expected to include:
 
-- daily statistics;
-- historical analysis;
-- forecasting;
-- cost projections;
-- price-aware recommendations;
-- dashboard examples.
+- adaptive price classification using compact persisted summaries;
+- explicit production, grid-import and grid-export source contracts;
+- export-price and revenue semantics;
+- device capability and constraint models for flexible loads; and
+- storage scheduling built on explicit state-of-charge, efficiency and power
+  limits.
 
-The term **Intelligence Engine** may be used for the combined calculation, statistics, forecasting and analysis capabilities as they grow.
-
-It is an architectural direction rather than a separate implemented subsystem in v0.6.
+The term **Intelligence Engine** describes the combined calculation,
+statistics, forecasting and analysis capabilities. It is an architectural
+direction rather than a separate subsystem or provider-specific service.
 
 ## Design decisions
 

@@ -118,17 +118,21 @@ Monitor your home's energy usage in real time.
 
 Electricity Pro is evolving in carefully planned stages.
 
-| Release  | Focus                            | Status                           |
-| -------- | -------------------------------- | -------------------------------- |
-| **v0.6** | Foundation                       | ✅ Released                      |
-| **v0.7** | Traditional Sensors & Statistics | ✅ Released                      |
-| **v0.8** | Intelligence                     | ✅ Released                      |
-| **v0.9** | Daily Statistics & Dashboards    | ✅ Released                      |
-| **v1.0** | Stable Release                   | ✅ Released                      |
-| **v1.1** | Forecast Prices & Scheduling     | ✅ Released                      |
-| **v1.2** | Pricing & Tariff Foundation      | ✅ Released                      |
-| **v1.3** | Recommendation Intelligence      | ✅ Released                      |
-| **v1.4** | Market Price Intelligence        | ✅ Released                      |
+| Release  | Focus                             | Status            |
+| -------- | --------------------------------- | ----------------- |
+| **v0.6** | Foundation                        | Released          |
+| **v0.7** | Traditional Sensors & Statistics  | Released          |
+| **v0.8** | Intelligence                      | Released          |
+| **v0.9** | Daily Statistics & Dashboards     | Released          |
+| **v1.0** | Stable Release                    | Released          |
+| **v1.1** | Forecast Prices & Scheduling      | Released          |
+| **v1.2** | Pricing & Tariff Foundation       | Released          |
+| **v1.3** | Recommendation Intelligence       | Released          |
+| **v1.4** | Market Price Intelligence         | Released          |
+| **v1.5** | Adaptive Price Intelligence       | Planned           |
+| **v1.6** | Production & Bidirectional Energy | Direction defined |
+| **v1.7** | Flexible-Load Recommendations     | Future            |
+| **v1.8** | Storage & Whole-Home Optimisation | Future            |
 
 See [ROADMAP.md](ROADMAP.md) for more details.
 
@@ -234,8 +238,9 @@ v1.4.1 – Market Price Intelligence maintenance release
 
 Electricity Pro is actively developed with a clear public roadmap.
 
-The next roadmap phase is being planned from real-world v1.4 feedback and the
-remaining provider-independence foundations.
+The next planned release is v1.5, focused on adaptive, explainable price
+intelligence. The following roadmap phase introduces explicit production,
+import and export energy flows before device-specific optimisation begins.
 
 ---
 
