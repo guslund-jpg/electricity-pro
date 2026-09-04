@@ -2,12 +2,14 @@
 
 from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 import pytest
 
 from custom_components.electricity_pro.adaptive_price import (
     AdaptiveCohortType,
     AdaptiveEvaluationMethod,
+    AdaptivePriceHistory,
     AdaptivePriceReason,
     AdaptivePriceScope,
     HistoricalPriceObservation,
@@ -399,3 +401,193 @@ def test_historical_summary_requires_aware_valid_boundaries() -> None:
             covered_duration=timedelta(hours=1),
             scope=_SCOPE,
         )
+
+
+def test_scope_storage_round_trip() -> None:
+    """Compatibility metadata should round-trip without changing identity."""
+    assert AdaptivePriceScope.from_dict(_SCOPE.as_dict()) == _SCOPE
+
+
+def test_history_builds_duration_weighted_completed_hour() -> None:
+    """Segments should form one compact duration-weighted hourly summary."""
+    history = AdaptivePriceHistory(UTC)
+    history.ensure_scope(_SCOPE, changed_at=_EVALUATION_TIME)
+    start = datetime(2026, 9, 7, 12, tzinfo=UTC)
+
+    assert (
+        history.add_segment(
+            start=start,
+            end=start + timedelta(minutes=15),
+            effective_price=Decimal("0.20"),
+        )
+        is False
+    )
+    assert (
+        history.add_segment(
+            start=start + timedelta(minutes=15),
+            end=start + timedelta(hours=1),
+            effective_price=Decimal("1.00"),
+        )
+        is True
+    )
+
+    assert len(history.observations) == 1
+    observation = history.observations[0]
+    assert observation.effective_price == Decimal("0.80")
+    assert observation.covered_duration == timedelta(hours=1)
+
+
+def test_history_discards_closed_hour_below_coverage_threshold() -> None:
+    """A closed hour with less than 90 percent coverage is not eligible."""
+    history = AdaptivePriceHistory(UTC)
+    history.ensure_scope(_SCOPE, changed_at=_EVALUATION_TIME)
+    start = datetime(2026, 9, 7, 12, tzinfo=UTC)
+
+    assert (
+        history.add_segment(
+            start=start,
+            end=start + timedelta(minutes=53),
+            effective_price=Decimal("0.50"),
+        )
+        is False
+    )
+    assert (
+        history.add_segment(
+            start=start + timedelta(hours=1),
+            end=start + timedelta(hours=1, minutes=1),
+            effective_price=Decimal("0.50"),
+        )
+        is True
+    )
+
+    assert history.observations == ()
+
+
+def test_history_scope_change_clears_incompatible_observations() -> None:
+    """A tariff change should start a visibly new compatibility partition."""
+    history = AdaptivePriceHistory(UTC)
+    history.ensure_scope(_SCOPE, changed_at=_EVALUATION_TIME)
+    start = datetime(2026, 9, 7, 12, tzinfo=UTC)
+    history.add_segment(
+        start=start,
+        end=start + timedelta(hours=1),
+        effective_price=Decimal("0.50"),
+    )
+    changed_scope = AdaptivePriceScope(
+        currency=_SCOPE.currency,
+        unit=_SCOPE.unit,
+        components=_SCOPE.components,
+        vat=_SCOPE.vat,
+        completeness=_SCOPE.completeness,
+        tariff_signature="tariff-v2",
+    )
+    changed_at = start + timedelta(hours=2)
+
+    assert history.ensure_scope(changed_scope, changed_at=changed_at) is True
+    assert history.observations == ()
+    assert history.scope == changed_scope
+    assert history.restarted_at == changed_at
+    assert history.restart_reason == "price_configuration_changed"
+    assert history.ensure_scope(changed_scope, changed_at=changed_at) is False
+
+
+def test_history_round_trip_preserves_completed_and_open_hours() -> None:
+    """Restart restoration should retain compact completed and partial data."""
+    history = AdaptivePriceHistory(UTC)
+    history.ensure_scope(_SCOPE, changed_at=_EVALUATION_TIME)
+    start = datetime(2026, 9, 5, 12, tzinfo=UTC)
+    history.add_segment(
+        start=start,
+        end=start + timedelta(hours=1, minutes=30),
+        effective_price=Decimal("0.75"),
+    )
+
+    restored = AdaptivePriceHistory.from_dict(UTC, history.as_dict())
+
+    assert restored.as_dict() == history.as_dict()
+    assert len(restored.observations) == 1
+    assert (
+        restored.add_segment(
+            start=start + timedelta(hours=1, minutes=30),
+            end=start + timedelta(hours=2),
+            effective_price=Decimal("1.25"),
+        )
+        is True
+    )
+    assert restored.observations[-1].effective_price == Decimal("1.00")
+
+
+def test_history_retains_only_four_completed_weeks() -> None:
+    """Retention should discard completed hours older than 28 local dates."""
+    history = AdaptivePriceHistory(UTC)
+    history.ensure_scope(_SCOPE, changed_at=_EVALUATION_TIME)
+    for days_ago in range(30, 0, -1):
+        start = datetime.combine(
+            (_EVALUATION_TIME - timedelta(days=days_ago)).date(),
+            time(12),
+            tzinfo=UTC,
+        )
+        history.add_segment(
+            start=start,
+            end=start + timedelta(hours=1),
+            effective_price=Decimal(days_ago),
+        )
+
+    history.retain_for_date(_EVALUATION_TIME.date())
+
+    assert len(history.observations) == 28
+    assert min(item.local_date for item in history.observations) == (
+        _EVALUATION_TIME.date() - timedelta(days=28)
+    )
+
+
+def test_history_distinguishes_repeated_dst_hour() -> None:
+    """Both occurrences of a repeated local clock hour must be retained."""
+    timezone = ZoneInfo("Europe/Stockholm")
+    history = AdaptivePriceHistory(timezone)
+    history.ensure_scope(
+        _SCOPE,
+        changed_at=datetime(2026, 10, 24, 23, tzinfo=UTC),
+    )
+
+    history.add_segment(
+        start=datetime(2026, 10, 25, 0, tzinfo=UTC),
+        end=datetime(2026, 10, 25, 2, tzinfo=UTC),
+        effective_price=Decimal("0.50"),
+    )
+
+    assert len(history.observations) == 2
+    assert [item.local_hour for item in history.observations] == [2, 2]
+    assert [item.start.utcoffset() for item in history.observations] == [
+        timedelta(hours=2),
+        timedelta(hours=1),
+    ]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        {"history_days": 0},
+        {"scope": {"currency": "SEK"}},
+        {"restarted_at": "2026-09-04T12:00:00"},
+        {"observations": [{"start": "invalid"}]},
+        {
+            "open_hours": [
+                {
+                    "start": "2026-09-04T12:00:00+00:00",
+                    "end": "2026-09-04T13:00:00+00:00",
+                    "price_seconds": "NaN",
+                    "covered_seconds": "3600",
+                }
+            ]
+        },
+    ],
+)
+def test_history_rejects_corrupt_storage(mutation: dict[str, object]) -> None:
+    """Invalid persisted fields must not partially restore history."""
+    history = AdaptivePriceHistory(UTC)
+    history.ensure_scope(_SCOPE, changed_at=_EVALUATION_TIME)
+    data = {**history.as_dict(), **mutation}
+
+    with pytest.raises(ValueError):
+        AdaptivePriceHistory.from_dict(UTC, data)

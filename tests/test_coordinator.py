@@ -8,6 +8,7 @@ import pytest
 from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.electricity_pro.base_load import BaseLoadUnavailableReason
 from custom_components.electricity_pro.const import (
     CONF_ENERGY_ENTITY,
     CONF_ENERGY_SOURCE_TYPE,
@@ -19,8 +20,8 @@ from custom_components.electricity_pro.const import (
     CONF_GRID_FEE_HIGH_SEASON_END,
     CONF_GRID_FEE_HIGH_SEASON_START,
     CONF_GRID_FEE_HIGH_START,
-    CONF_GRID_FEE_WORKDAY_ENTITY,
     CONF_GRID_FEE_PER_KWH,
+    CONF_GRID_FEE_WORKDAY_ENTITY,
     CONF_POWER_ENTITY,
     CONF_PRICE_COMPLETENESS,
     CONF_PRICE_ENTITY,
@@ -30,7 +31,6 @@ from custom_components.electricity_pro.const import (
     DOMAIN,
     ENERGY_SOURCE_LIFETIME,
 )
-from custom_components.electricity_pro.base_load import BaseLoadUnavailableReason
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
 from custom_components.electricity_pro.forecast import ForecastInterval
 from custom_components.electricity_pro.forecast_insights import (
@@ -44,7 +44,6 @@ from custom_components.electricity_pro.pricing import (
     VatTreatment,
 )
 from custom_components.electricity_pro.timing_score import (
-    TimingBucketAccumulator,
     TimingScoreUnavailableReason,
 )
 
@@ -77,6 +76,159 @@ def _timing_entry() -> MockConfigEntry:
         },
         entry_id="timing-entry",
     )
+
+
+def _adaptive_price_entry(
+    *,
+    price_entity: str = "sensor.test_price",
+) -> MockConfigEntry:
+    """Create a complete-price entry for adaptive history tests."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_PRICE_ENTITY: price_entity,
+            CONF_PRICING_STRATEGY: PricingStrategy.EXTERNAL_COMPLETE_PRICE,
+            CONF_PRICE_INCLUDED_COMPONENTS: [
+                PriceComponent.MARKET_ENERGY,
+                PriceComponent.SUPPLIER_MARKUP,
+                PriceComponent.ENERGY_TAX,
+                PriceComponent.VARIABLE_GRID_FEE,
+            ],
+            CONF_PRICE_VAT_TREATMENT: VatTreatment.INCLUDED,
+            CONF_PRICE_COMPLETENESS: PriceCompleteness.COMPLETE,
+        },
+        entry_id="adaptive-price-entry",
+    )
+
+
+async def test_adaptive_price_history_accumulates_and_restores(hass) -> None:
+    """Compatible Effective Price hours should survive a restart."""
+    hass.config.time_zone = "UTC"
+    hass.states.async_set("sensor.test_power", "100", {"unit_of_measurement": "W"})
+    hass.states.async_set(
+        "sensor.test_price",
+        "0.50",
+        {"unit_of_measurement": "SEK/kWh"},
+    )
+    entry = _adaptive_price_entry()
+    coordinator = ElectricityProCoordinator(hass, entry)
+    start = datetime(2026, 9, 4, 12, tzinfo=UTC)
+
+    with patch.object(coordinator._store, "async_delay_save"):  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start,
+        ):
+            coordinator._read()  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start + timedelta(hours=1),
+        ):
+            coordinator._read()  # noqa: SLF001
+
+    assert len(coordinator.adaptive_price_history.observations) == 1
+    assert (
+        coordinator.adaptive_price_history.observations[0].effective_price
+        == Decimal("0.50")
+    )
+
+    stored = coordinator._statistics_data()  # noqa: SLF001
+    restored = ElectricityProCoordinator(hass, entry)
+    with patch.object(
+        restored._store,  # noqa: SLF001
+        "async_load",
+        AsyncMock(return_value=stored),
+    ):
+        await restored._async_restore_statistics()  # noqa: SLF001
+
+    assert (
+        restored.adaptive_price_history.as_dict()
+        == coordinator.adaptive_price_history.as_dict()
+    )
+
+
+async def test_adaptive_price_history_resets_after_price_configuration_change(
+    hass,
+) -> None:
+    """A changed price source must not reuse incompatible stored history."""
+    hass.config.time_zone = "UTC"
+    hass.states.async_set("sensor.test_power", "100", {"unit_of_measurement": "W"})
+    hass.states.async_set(
+        "sensor.test_price",
+        "0.50",
+        {"unit_of_measurement": "SEK/kWh"},
+    )
+    original = ElectricityProCoordinator(hass, _adaptive_price_entry())
+    start = datetime(2026, 9, 4, 12, tzinfo=UTC)
+    with patch.object(original._store, "async_delay_save"):  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start,
+        ):
+            original._read()  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start + timedelta(hours=1),
+        ):
+            original._read()  # noqa: SLF001
+
+    hass.states.async_set(
+        "sensor.replacement_price",
+        "0.60",
+        {"unit_of_measurement": "SEK/kWh"},
+    )
+    changed = ElectricityProCoordinator(
+        hass,
+        _adaptive_price_entry(price_entity="sensor.replacement_price"),
+    )
+    with patch.object(
+        changed._store,  # noqa: SLF001
+        "async_load",
+        AsyncMock(return_value=original._statistics_data()),  # noqa: SLF001
+    ):
+        await changed._async_restore_statistics()  # noqa: SLF001
+    with (
+        patch.object(changed._store, "async_delay_save"),  # noqa: SLF001
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start + timedelta(hours=2),
+        ),
+    ):
+        changed._read()  # noqa: SLF001
+
+    assert changed.adaptive_price_history.observations == ()
+    assert changed.adaptive_price_history.restart_reason == (
+        "price_configuration_changed"
+    )
+
+
+def test_adaptive_price_history_rejects_partial_price_semantics(hass) -> None:
+    """Partial prices must not enter the comparable adaptive history."""
+    hass.config.time_zone = "UTC"
+    hass.states.async_set("sensor.test_power", "100", {"unit_of_measurement": "W"})
+    hass.states.async_set(
+        "sensor.test_price",
+        "0.50",
+        {"unit_of_measurement": "SEK/kWh"},
+    )
+    coordinator = ElectricityProCoordinator(hass, _timing_entry())
+    start = datetime(2026, 9, 4, 12, tzinfo=UTC)
+    with patch.object(coordinator._store, "async_delay_save"):  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start,
+        ):
+            coordinator._read()  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start + timedelta(hours=1),
+        ):
+            coordinator._read()  # noqa: SLF001
+
+    assert coordinator.adaptive_price_history.scope is None
+    assert coordinator.adaptive_price_history.observations == ()
 
 
 async def test_lifetime_energy_baseline_restores_for_same_source(hass) -> None:

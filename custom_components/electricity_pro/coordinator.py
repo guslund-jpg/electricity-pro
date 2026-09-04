@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
@@ -27,21 +29,38 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
-    CONF_FORECAST_PRICE_AREA,
-    CONF_GRID_FEE_WORKDAY_ENTITY,
-    DOMAIN,
+from .adaptive_price import (
+    AdaptivePriceHistory,
+    AdaptivePriceScope,
 )
-from .calculations import calculate_declared_effective_price
 from .base_load import (
     AveragePowerResult,
     BaseLoadBucketAccumulator,
     BaseLoadEstimateResult,
     DailyBaseLoadSummary,
-    calculate_base_load_estimate,
     calculate_average_power,
+    calculate_base_load_estimate,
     calculate_daily_base_load,
+)
+from .calculations import calculate_declared_effective_price
+from .const import (
+    CONF_ENERGY_TAX_PER_KWH,
+    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
+    CONF_FORECAST_PRICE_AREA,
+    CONF_GRID_FEE_HIGH_END,
+    CONF_GRID_FEE_HIGH_PER_KWH,
+    CONF_GRID_FEE_HIGH_SEASON_END,
+    CONF_GRID_FEE_HIGH_SEASON_START,
+    CONF_GRID_FEE_HIGH_START,
+    CONF_GRID_FEE_PER_KWH,
+    CONF_GRID_FEE_WORKDAY_ENTITY,
+    CONF_PRICE_COMPLETENESS,
+    CONF_PRICE_ENTITY,
+    CONF_PRICE_INCLUDED_COMPONENTS,
+    CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICING_STRATEGY,
+    CONF_SUPPLIER_MARKUP_PER_KWH,
+    DOMAIN,
 )
 from .forecast import (
     DailyAverageMarketPriceResult,
@@ -59,7 +78,6 @@ from .forecast_insights import (
     find_next_inexpensive_1h_window,
     find_price_direction,
 )
-from .workday import async_get_non_working_dates
 from .nordpool import async_get_nordpool_forecast_intervals_for_date
 from .provider import (
     ElectricityProData,
@@ -78,6 +96,7 @@ from .timing_score import (
     TimingScoreResult,
     calculate_timing_score,
 )
+from .workday import async_get_non_working_dates
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,6 +112,7 @@ _TIMING_BUCKETS = "consumption_timing_buckets"
 _TIMING_RESULT = "consumption_timing_score_yesterday"
 _BASE_LOAD_BUCKETS = "base_load_buckets"
 _BASE_LOAD_DAILY_SUMMARIES = "base_load_daily_summaries"
+_ADAPTIVE_PRICE_HISTORY = "adaptive_price_history"
 _KWH_PER_WH = Decimal("0.001")
 _FORECAST_REFRESH_INTERVAL = timedelta(minutes=15)
 _WORKDAY_REFRESH_INTERVAL = timedelta(hours=6)
@@ -100,6 +120,22 @@ _HOLIDAY_LOOKAHEAD_DAYS = 32
 _TOMORROW_PUBLICATION_HOUR = 13
 _TIMING_TICK_INTERVAL = timedelta(minutes=5)
 _TIMING_POWER_MAX_HOLD = timedelta(minutes=10)
+_ADAPTIVE_SCOPE_CONFIG_KEYS = (
+    CONF_PRICE_ENTITY,
+    CONF_PRICING_STRATEGY,
+    CONF_PRICE_INCLUDED_COMPONENTS,
+    CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICE_COMPLETENESS,
+    CONF_SUPPLIER_MARKUP_PER_KWH,
+    CONF_ENERGY_TAX_PER_KWH,
+    CONF_GRID_FEE_PER_KWH,
+    CONF_GRID_FEE_HIGH_PER_KWH,
+    CONF_GRID_FEE_HIGH_START,
+    CONF_GRID_FEE_HIGH_END,
+    CONF_GRID_FEE_HIGH_SEASON_START,
+    CONF_GRID_FEE_HIGH_SEASON_END,
+    CONF_GRID_FEE_WORKDAY_ENTITY,
+)
 
 
 class ElectricityProCoordinator(
@@ -143,6 +179,11 @@ class ElectricityProCoordinator(
         self._base_load_last_time: datetime | None = None
         self._base_load_power: Decimal | None = None
         self._base_load_power_observed_at: datetime | None = None
+        self._adaptive_price_history = AdaptivePriceHistory(self._local_timezone)
+        self._adaptive_price_last_time: datetime | None = None
+        self._adaptive_price: Decimal | None = None
+        self._adaptive_price_scope: AdaptivePriceScope | None = None
+        self._adaptive_tariff_signature = _adaptive_tariff_signature(entry)
         self._cost_this_month_unit: str | None = None
         self._forecast_intervals_by_date: dict[date, list[ForecastInterval]] = {}
         self._forecast_intervals: list[ForecastInterval] = []
@@ -160,6 +201,7 @@ class ElectricityProCoordinator(
     async def async_start(self) -> None:
         """Start listening for provider source changes."""
         await self._async_restore_statistics()
+        self._entry.async_on_unload(self._save_statistics)
         local_today = dt_util.now().astimezone(self._local_timezone).date()
         self._finalize_restored_timing_days(local_today)
         self._finalize_restored_base_load_days(local_today)
@@ -258,6 +300,16 @@ class ElectricityProCoordinator(
             ),
         )
 
+    @property
+    def adaptive_price_history(self) -> AdaptivePriceHistory:
+        """Return the bounded persisted Effective Price history."""
+        return self._adaptive_price_history
+
+    @callback
+    def _save_statistics(self) -> None:
+        """Schedule an immediate final save when the config entry unloads."""
+        self._store.async_delay_save(self._statistics_data, delay=0)
+
     async def _async_timing_tick(self, now: datetime) -> None:
         """Close timing-history segments while source states remain quiet."""
         self.async_set_updated_data(self._read())
@@ -276,10 +328,12 @@ class ElectricityProCoordinator(
             self._energy_today_period_complete = energy_kwh is not None
         self._update_timing_history(data, local_now, power_observed=False)
         self._update_base_load_history(data, local_now, power_observed=False)
+        self._update_adaptive_price_history(data, local_now)
         self._finalize_timing_day(local_now.date() - timedelta(days=1))
         self._finalize_base_load_day(local_now.date() - timedelta(days=1))
         self._timing_buckets.retain_dates({local_now.date()})
         self._base_load_buckets.retain_dates({local_now.date()})
+        self._adaptive_price_history.retain_for_date(local_now.date())
         peak_cleared = self._peak_power_today.clear()
         self._store.async_delay_save(self._statistics_data, delay=1)
         if self.data is not None:
@@ -623,6 +677,15 @@ class ElectricityProCoordinator(
                     item.period_start: item for item in restored_summaries
                 }
 
+        if _ADAPTIVE_PRICE_HISTORY in stored:
+            try:
+                self._adaptive_price_history = AdaptivePriceHistory.from_dict(
+                    self._local_timezone,
+                    stored[_ADAPTIVE_PRICE_HISTORY],
+                )
+            except ValueError:
+                _LOGGER.warning("Ignoring invalid persisted adaptive price history")
+
     @callback
     def _read(self, *, power_observed: bool = False) -> ElectricityProData:
         """Read provider data and update derived statistics."""
@@ -673,6 +736,7 @@ class ElectricityProCoordinator(
             now,
             power_observed=power_observed,
         )
+        should_save |= self._update_adaptive_price_history(data, now)
 
         if data.current_power is not None and data.current_power >= 0:
             should_save |= self._peak_power_today.update(data.current_power, now)
@@ -843,6 +907,68 @@ class ElectricityProCoordinator(
                 else None
             )
         return bucket_closed
+
+    def _update_adaptive_price_history(
+        self,
+        data: ElectricityProData,
+        now: datetime,
+    ) -> bool:
+        """Integrate compatible Effective Price into bounded hourly history."""
+        hour_closed = False
+        if (
+            self._adaptive_price_last_time is not None
+            and self._adaptive_price is not None
+            and self._adaptive_price_scope is not None
+            and now.astimezone(UTC)
+            > self._adaptive_price_last_time.astimezone(UTC)
+        ):
+            self._adaptive_price_history.ensure_scope(
+                self._adaptive_price_scope,
+                changed_at=self._adaptive_price_last_time,
+            )
+            hour_closed = self._adaptive_price_history.add_segment(
+                start=self._adaptive_price_last_time,
+                end=now,
+                effective_price=self._adaptive_price,
+            )
+
+        self._adaptive_price_last_time = now
+        effective_price = calculate_declared_effective_price(
+            data.current_price,
+            data.pricing_metadata,
+            data.grid_fee_per_kwh,
+            data.energy_tax_per_kwh,
+            data.supplier_markup_per_kwh,
+        )
+        scope = self._adaptive_scope(data)
+        scope_changed = False
+        if effective_price is not None and scope is not None:
+            scope_changed = self._adaptive_price_history.ensure_scope(
+                scope,
+                changed_at=now,
+            )
+            self._adaptive_price = effective_price
+            self._adaptive_price_scope = scope
+        else:
+            self._adaptive_price = None
+            self._adaptive_price_scope = None
+        return hour_closed or scope_changed
+
+    def _adaptive_scope(
+        self,
+        data: ElectricityProData,
+    ) -> AdaptivePriceScope | None:
+        """Return a complete compatibility scope for the current price."""
+        currency = _currency_from_price_unit(data.current_price_unit)
+        if currency is None or data.pricing_metadata is None:
+            return None
+        scope = AdaptivePriceScope.from_metadata(
+            currency=currency,
+            unit=f"{currency}/kWh",
+            metadata=data.pricing_metadata,
+            tariff_signature=self._adaptive_tariff_signature,
+        )
+        return scope if scope.is_comparable else None
 
     def _finalize_restored_timing_days(self, local_today: date) -> None:
         """Finalize a retained previous day after a restart across midnight."""
@@ -1032,6 +1158,7 @@ class ElectricityProCoordinator(
             summary.as_dict()
             for _, summary in sorted(self._base_load_daily_summaries.items())
         ]
+        data[_ADAPTIVE_PRICE_HISTORY] = self._adaptive_price_history.as_dict()
         return data
 
 
@@ -1058,3 +1185,20 @@ def _currency_from_price_unit(unit: str | None) -> str | None:
             currency = unit[: -len(suffix)].strip()
             return currency or None
     return None
+
+
+def _adaptive_tariff_signature(entry: ConfigEntry) -> str:
+    """Return a stable fingerprint for price-affecting configuration."""
+    settings = {**entry.data, **entry.options}
+    relevant_settings = {
+        key: settings[key]
+        for key in _ADAPTIVE_SCOPE_CONFIG_KEYS
+        if key in settings
+    }
+    serialized = json.dumps(
+        relevant_settings,
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

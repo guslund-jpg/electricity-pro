@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
+from datetime import UTC, date, datetime, timedelta, tzinfo
+from decimal import Decimal, InvalidOperation
 from enum import StrEnum
+from typing import Any
 
 from .pricing import (
     PriceCompleteness,
@@ -91,6 +92,43 @@ class AdaptivePriceScope:
             and self.completeness is PriceCompleteness.COMPLETE
         )
 
+    def as_dict(self) -> dict[str, Any]:
+        """Return a storage-safe compatibility identity."""
+        return {
+            "currency": self.currency,
+            "unit": self.unit,
+            "components": sorted(component.value for component in self.components),
+            "vat": self.vat.value,
+            "completeness": self.completeness.value,
+            "tariff_signature": self.tariff_signature,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> AdaptivePriceScope:
+        """Restore and validate a persisted compatibility identity."""
+        try:
+            components = data["components"]
+            if not isinstance(components, list):
+                raise TypeError
+            scope = cls(
+                currency=data["currency"],
+                unit=data["unit"],
+                components=frozenset(PriceComponent(value) for value in components),
+                vat=VatTreatment(data["vat"]),
+                completeness=PriceCompleteness(data["completeness"]),
+                tariff_signature=data["tariff_signature"],
+            )
+            if (
+                not isinstance(scope.currency, str)
+                or not isinstance(scope.unit, str)
+                or not isinstance(scope.tariff_signature, str)
+                or not scope.is_comparable
+            ):
+                raise ValueError
+        except (KeyError, TypeError, ValueError) as err:
+            raise ValueError("invalid adaptive price scope") from err
+        return scope
+
 
 @dataclass(frozen=True, slots=True)
 class HistoricalPriceObservation:
@@ -136,6 +174,284 @@ class HistoricalPriceObservation:
         """Return covered duration as a fraction of the actual period."""
         actual_seconds = _seconds(self.end.astimezone(UTC) - self.start.astimezone(UTC))
         return _seconds(self.covered_duration) / actual_seconds
+
+    def as_dict(self) -> dict[str, str]:
+        """Return a storage-safe hourly observation without repeated scope."""
+        return {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
+            "effective_price": str(self.effective_price),
+            "covered_seconds": str(_seconds(self.covered_duration)),
+        }
+
+    @classmethod
+    def from_dict(
+        cls,
+        data: dict[str, Any],
+        *,
+        scope: AdaptivePriceScope,
+    ) -> HistoricalPriceObservation:
+        """Restore and validate one persisted hourly observation."""
+        try:
+            return cls(
+                start=datetime.fromisoformat(data["start"]),
+                end=datetime.fromisoformat(data["end"]),
+                effective_price=Decimal(data["effective_price"]),
+                covered_duration=_timedelta_from_decimal_seconds(
+                    Decimal(data["covered_seconds"])
+                ),
+                scope=scope,
+            )
+        except (InvalidOperation, KeyError, TypeError, ValueError) as err:
+            raise ValueError("invalid historical price observation") from err
+
+
+@dataclass(slots=True)
+class _MutablePriceHour:
+    """Mutable duration-weighted aggregate for one absolute local hour."""
+
+    start: datetime
+    end: datetime
+    price_seconds: Decimal = Decimal(0)
+    covered_seconds: Decimal = Decimal(0)
+
+
+class AdaptivePriceHistory:
+    """Build and persist a bounded sequence of compatible hourly prices."""
+
+    def __init__(self, local_timezone: tzinfo, *, history_days: int = 28) -> None:
+        """Initialize an empty adaptive price history."""
+        if history_days <= 0:
+            raise ValueError("history days must be positive")
+        self._local_timezone = local_timezone
+        self._history_days = history_days
+        self._scope: AdaptivePriceScope | None = None
+        self._observations: dict[datetime, HistoricalPriceObservation] = {}
+        self._hours: dict[datetime, _MutablePriceHour] = {}
+        self._restarted_at: datetime | None = None
+        self._restart_reason: str | None = None
+
+    @property
+    def scope(self) -> AdaptivePriceScope | None:
+        """Return the active compatibility partition."""
+        return self._scope
+
+    @property
+    def observations(self) -> tuple[HistoricalPriceObservation, ...]:
+        """Return ordered eligible completed-hour observations."""
+        return tuple(self._observations[key] for key in sorted(self._observations))
+
+    @property
+    def restarted_at(self) -> datetime | None:
+        """Return when incompatible history was most recently cleared."""
+        return self._restarted_at
+
+    @property
+    def restart_reason(self) -> str | None:
+        """Return why incompatible history was most recently cleared."""
+        return self._restart_reason
+
+    def ensure_scope(
+        self,
+        scope: AdaptivePriceScope,
+        *,
+        changed_at: datetime,
+        reason: str = "price_configuration_changed",
+    ) -> bool:
+        """Activate a scope, clearing history only when compatibility changes."""
+        if changed_at.tzinfo is None or changed_at.utcoffset() is None:
+            raise ValueError("scope change time must be timezone-aware")
+        if not scope.is_comparable:
+            raise ValueError("adaptive price scope must be comparable")
+        if self._scope == scope:
+            return False
+        had_scope = self._scope is not None
+        self._scope = scope
+        self._observations.clear()
+        self._hours.clear()
+        self._restarted_at = changed_at if had_scope else None
+        self._restart_reason = reason if had_scope else None
+        return True
+
+    def add_segment(
+        self,
+        *,
+        start: datetime,
+        end: datetime,
+        effective_price: Decimal,
+    ) -> bool:
+        """Add one constant-price segment and finalize any closed local hours."""
+        if self._scope is None:
+            raise ValueError("adaptive price scope is not initialized")
+        if (
+            start.tzinfo is None
+            or start.utcoffset() is None
+            or end.tzinfo is None
+            or end.utcoffset() is None
+            or end.astimezone(UTC) <= start.astimezone(UTC)
+            or not effective_price.is_finite()
+        ):
+            raise ValueError("invalid adaptive price segment")
+
+        cursor = start.astimezone(UTC)
+        utc_end = end.astimezone(UTC)
+        while cursor < utc_end:
+            hour_start = _local_hour_start(cursor, self._local_timezone)
+            hour_end = _next_local_hour_boundary(cursor, self._local_timezone)
+            segment_end = min(hour_end, utc_end)
+            seconds = _seconds(segment_end - cursor)
+            hour = self._hours.setdefault(
+                hour_start,
+                _MutablePriceHour(start=hour_start, end=hour_end),
+            )
+            if hour.end != hour_end:
+                raise ValueError("conflicting adaptive price hour boundary")
+            hour.price_seconds += effective_price * seconds
+            hour.covered_seconds += seconds
+            cursor = segment_end
+
+        hour_closed = self._finalize_closed_hours(utc_end)
+        self.retain_for_date(utc_end.astimezone(self._local_timezone).date())
+        return hour_closed
+
+    def retain_for_date(self, local_today: date) -> None:
+        """Retain completed dates in the bounded four-week window."""
+        earliest = local_today - timedelta(days=self._history_days)
+        self._observations = {
+            key: observation
+            for key, observation in self._observations.items()
+            if earliest <= observation.local_date <= local_today
+        }
+        self._hours = {
+            key: hour
+            for key, hour in self._hours.items()
+            if hour.start.astimezone(self._local_timezone).date() >= earliest
+        }
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return bounded history in a storage-safe representation."""
+        return {
+            "history_days": self._history_days,
+            "scope": self._scope.as_dict() if self._scope is not None else None,
+            "restarted_at": (
+                self._restarted_at.isoformat()
+                if self._restarted_at is not None
+                else None
+            ),
+            "restart_reason": self._restart_reason,
+            "observations": [
+                observation.as_dict() for observation in self.observations
+            ],
+            "open_hours": [
+                {
+                    "start": hour.start.isoformat(),
+                    "end": hour.end.isoformat(),
+                    "price_seconds": str(hour.price_seconds),
+                    "covered_seconds": str(hour.covered_seconds),
+                }
+                for _, hour in sorted(self._hours.items())
+            ],
+        }
+
+    @classmethod
+    def from_dict(
+        cls,
+        local_timezone: tzinfo,
+        data: dict[str, Any],
+    ) -> AdaptivePriceHistory:
+        """Restore and validate persisted adaptive price history."""
+        try:
+            history_days = data["history_days"]
+            if not isinstance(history_days, int):
+                raise TypeError
+            history = cls(local_timezone, history_days=history_days)
+            raw_scope = data["scope"]
+            if raw_scope is not None:
+                if not isinstance(raw_scope, dict):
+                    raise ValueError
+                history._scope = AdaptivePriceScope.from_dict(raw_scope)
+
+            restarted_at = data["restarted_at"]
+            if restarted_at is not None:
+                history._restarted_at = datetime.fromisoformat(restarted_at)
+                if (
+                    history._restarted_at.tzinfo is None
+                    or history._restarted_at.utcoffset() is None
+                ):
+                    raise ValueError
+            restart_reason = data["restart_reason"]
+            if restart_reason is not None and (
+                not isinstance(restart_reason, str) or not restart_reason
+            ):
+                raise ValueError
+            history._restart_reason = restart_reason
+
+            if history._scope is None and (data["observations"] or data["open_hours"]):
+                raise ValueError
+            if history._scope is not None:
+                for item in data["observations"]:
+                    observation = HistoricalPriceObservation.from_dict(
+                        item,
+                        scope=history._scope,
+                    )
+                    key = observation.start.astimezone(UTC)
+                    if (
+                        key in history._observations
+                        or observation.coverage < _MIN_COVERAGE
+                    ):
+                        raise ValueError
+                    history._observations[key] = observation
+                for item in data["open_hours"]:
+                    start = datetime.fromisoformat(item["start"])
+                    end = datetime.fromisoformat(item["end"])
+                    price_seconds = Decimal(item["price_seconds"])
+                    covered_seconds = Decimal(item["covered_seconds"])
+                    if (
+                        start.tzinfo is None
+                        or start.utcoffset() is None
+                        or end.tzinfo is None
+                        or end.utcoffset() is None
+                        or end.astimezone(UTC) <= start.astimezone(UTC)
+                        or not price_seconds.is_finite()
+                        or not covered_seconds.is_finite()
+                        or covered_seconds <= 0
+                        or covered_seconds
+                        > _seconds(end.astimezone(UTC) - start.astimezone(UTC))
+                    ):
+                        raise ValueError
+                    key = start.astimezone(UTC)
+                    if key in history._hours or key in history._observations:
+                        raise ValueError
+                    history._hours[key] = _MutablePriceHour(
+                        start=key,
+                        end=end.astimezone(UTC),
+                        price_seconds=price_seconds,
+                        covered_seconds=covered_seconds,
+                    )
+        except (InvalidOperation, KeyError, TypeError, ValueError) as err:
+            raise ValueError("invalid adaptive price history") from err
+        return history
+
+    def _finalize_closed_hours(self, through: datetime) -> bool:
+        """Move closed, sufficiently covered hours into immutable history."""
+        closed_keys = sorted(
+            key for key, hour in self._hours.items() if hour.end <= through
+        )
+        for key in closed_keys:
+            hour = self._hours.pop(key)
+            actual_seconds = _seconds(hour.end - hour.start)
+            if hour.covered_seconds / actual_seconds < _MIN_COVERAGE:
+                continue
+            if self._scope is None:
+                raise AssertionError("closed adaptive history lost its scope")
+            self._observations[key] = HistoricalPriceObservation(
+                start=hour.start.astimezone(self._local_timezone),
+                end=hour.end.astimezone(self._local_timezone),
+                effective_price=hour.price_seconds / hour.covered_seconds,
+                covered_duration=_timedelta_from_decimal_seconds(hour.covered_seconds),
+                scope=self._scope,
+            )
+        return bool(closed_keys)
 
 
 @dataclass(frozen=True, slots=True)
@@ -406,3 +722,37 @@ def _unavailable(reason: AdaptivePriceReason) -> AdaptivePriceResult:
 def _seconds(duration: timedelta) -> Decimal:
     """Return exact-enough Decimal seconds for datetime arithmetic."""
     return Decimal(str(duration.total_seconds()))
+
+
+def _timedelta_from_decimal_seconds(value: Decimal) -> timedelta:
+    """Restore persisted Decimal seconds without precision loss."""
+    microseconds = value * Decimal(1_000_000)
+    if (
+        not microseconds.is_finite()
+        or microseconds <= 0
+        or microseconds != microseconds.to_integral_value()
+    ):
+        raise ValueError("invalid adaptive price duration")
+    return timedelta(microseconds=int(microseconds))
+
+
+def _local_hour_start(instant: datetime, local_timezone: tzinfo) -> datetime:
+    """Return the absolute start of the local clock hour containing instant."""
+    local = instant.astimezone(local_timezone)
+    return local.replace(minute=0, second=0, microsecond=0).astimezone(UTC)
+
+
+def _next_local_hour_boundary(
+    instant: datetime,
+    local_timezone: tzinfo,
+) -> datetime:
+    """Return the next absolute instant on a local clock-hour boundary."""
+    candidate = instant.astimezone(UTC).replace(second=0, microsecond=0)
+    candidate += timedelta(minutes=1)
+    limit = candidate + timedelta(hours=3)
+    while candidate <= limit:
+        local = candidate.astimezone(local_timezone)
+        if local.minute == 0:
+            return candidate
+        candidate += timedelta(minutes=1)
+    raise ValueError("unable to find next local hour boundary")
