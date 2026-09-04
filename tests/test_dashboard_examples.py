@@ -35,6 +35,78 @@ def test_dashboard_condition_state_not_is_scalar() -> None:
         assert not invalid, f"{dashboard_path.name} contains invalid state_not values"
 
 
+def test_standard_dashboard_covers_core_measurements_and_insights() -> None:
+    """Standard dashboard should cover the core product without custom cards."""
+    dashboard = yaml.safe_load(
+        (DASHBOARD_EXAMPLES / "electricity-pro.yaml").read_text(encoding="utf-8")
+    )
+    entity_ids = {
+        item["entity"]
+        for item in _walk(dashboard)
+        if isinstance(item, dict) and isinstance(item.get("entity"), str)
+    }
+
+    assert {
+        "sensor.electricity_pro_current_power",
+        "sensor.electricity_pro_current_market_price",
+        "sensor.electricity_pro_current_price",
+        "sensor.electricity_pro_effective_price",
+        "sensor.electricity_pro_current_cost_rate",
+        "sensor.electricity_pro_energy_today",
+        "sensor.electricity_pro_cost_today",
+        "sensor.electricity_pro_consumption_weighted_average_price_today",
+        "sensor.electricity_pro_average_power_today",
+        "sensor.electricity_pro_peak_power_today",
+        "sensor.electricity_pro_peak_power_time_today",
+        "sensor.electricity_pro_energy_this_month",
+        "sensor.electricity_pro_cost_this_month",
+        "sensor.electricity_pro_consumption_timing_score_yesterday",
+        "binary_sensor.electricity_pro_good_time_to_use_electricity",
+    } <= entity_ids
+
+    assert not {
+        str(item.get("type"))
+        for item in _walk(dashboard)
+        if isinstance(item, dict)
+    } & {"custom:mushroom-template-card", "custom:apexcharts-card"}
+
+    views_by_title = {view["title"]: view for view in dashboard["views"]}
+    assert set(views_by_title) == {"Overview", "Live", "Statistics", "Forecast"}
+    overview_entity_ids = {
+        item["entity"]
+        for item in _walk(views_by_title["Overview"])
+        if isinstance(item, dict) and isinstance(item.get("entity"), str)
+    }
+    assert not {
+        "sensor.electricity_pro_energy_this_month",
+        "sensor.electricity_pro_cost_this_month",
+    } & overview_entity_ids
+    statistics_headings = {
+        card["heading"]
+        for card in views_by_title["Statistics"]["cards"]
+        if card.get("type") == "heading"
+    }
+    assert statistics_headings == {"Today’s totals", "This month"}
+
+    advice_tiles = {
+        item["card"]["name"]: item
+        for item in _walk(dashboard)
+        if isinstance(item, dict)
+        and item.get("type") == "conditional"
+        and isinstance(item.get("card"), dict)
+        and item["card"].get("name")
+        in {"Good time to use electricity", "Wait for a better price"}
+    }
+    assert set(advice_tiles) == {
+        "Good time to use electricity",
+        "Wait for a better price",
+    }
+    for tile in advice_tiles.values():
+        assert tile["card"]["entity"] == "sensor.electricity_pro_effective_price"
+    assert advice_tiles["Good time to use electricity"]["conditions"][0]["state"] == "on"
+    assert advice_tiles["Wait for a better price"]["conditions"][0]["state"] == "off"
+
+
 def test_enhanced_dashboard_live_header_precision() -> None:
     """Enhanced live charts use readable power and price precision."""
     dashboard = yaml.safe_load(

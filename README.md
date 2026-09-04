@@ -138,13 +138,18 @@ See [ROADMAP.md](ROADMAP.md) for more details.
 
 ![Electricity Pro standard dashboard preview](examples/dashboards/electricity-pro-preview.svg)
 
-The [standard dashboard example](examples/dashboards/README.md) uses only cards
-included with Home Assistant and covers live measurements, daily and monthly
-statistics, Effective Price, and the first Good Time insight.
+Start with the **Standard dashboard**. It uses only cards included with Home
+Assistant and covers live measurements, daily and monthly statistics, Effective
+Price, current market-price context, and scheduling and retrospective insights.
 
-The optional [enhanced dashboard](examples/dashboards/README.md#enhanced-dashboard)
-adds Mushroom-based cards and ApexCharts visualizations while keeping the
-standard dashboard as the dependency-free baseline.
+| Example | Recommended for | Additional requirements |
+| ------- | --------------- | ----------------------- |
+| **Standard** | Most users and first-time setup | None |
+| **Enhanced** | Richer presentation and forecast charts | Mushroom and ApexCharts Card |
+
+HACS installs the integration but cannot add a dashboard automatically. The
+[one-minute dashboard guide](examples/dashboards/README.md#quick-installation)
+links directly to both ready-to-copy YAML examples.
 
 ---
 
@@ -186,13 +191,13 @@ entities can be added to any existing dashboard.
 Two optional, ready-to-copy dashboard examples are maintained in
 [`examples/dashboards`](examples/dashboards/README.md):
 
-- [`electricity-pro.yaml`](examples/dashboards/electricity-pro.yaml) uses only
-  cards built into Home Assistant.
+- **Recommended:** [`electricity-pro.yaml`](examples/dashboards/electricity-pro.yaml)
+  uses only cards built into Home Assistant.
 - [`electricity-pro-enhanced.yaml`](examples/dashboards/electricity-pro-enhanced.yaml)
   adds Mushroom and ApexCharts Card presentation.
 
 Dashboard YAML is not installed or imported by HACS. Follow the
-[dashboard installation guide](examples/dashboards/README.md#installation) to
+[dashboard installation guide](examples/dashboards/README.md#quick-installation) to
 create a manual dashboard, copy an example, and verify its entity IDs.
 
 ### Manual installation

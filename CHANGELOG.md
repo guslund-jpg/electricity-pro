@@ -8,6 +8,18 @@
   derive Energy Today from a restart-safe local-midnight baseline, while
   continuing to prefer Tibber's authoritative daily value in the fast path.
 
+### Changed
+
+- Make the example-dashboard choice and manual copy process clearer after a
+  HACS installation, with the dependency-free Standard dashboard recommended
+  by default and direct links to both dashboard YAML files.
+- Complete the Standard dashboard's native-card coverage with current market
+  price context, Average Power Today, Peak Power Time Today, and the
+  Consumption Timing Score Yesterday, and combine daily and monthly results in
+  one Statistics view. Replace the translated Good Time on/off state with
+  actionable wording and the current Effective Price, and keep monthly totals
+  off the snapshot Overview.
+
 ## [1.4.1] - 2026-09-02
 
 ### Changed
