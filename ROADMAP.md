@@ -187,8 +187,8 @@ Uses only built-in Home Assistant cards. Delivered.
 
 Uses optional custom cards for richer visualisations and analytics. Delivered.
 
-Average Market Price Today and Average Power Today remain future candidates
-outside the committed v0.9 scope.
+Average Market Price Today and Average Power Today were intentionally deferred
+from v0.9 and delivered in v1.4 and v1.3 respectively.
 
 ---
 
@@ -329,22 +329,123 @@ VAT, and time-dependent grid component must be projected correctly.
 
 ---
 
-## Beyond v1.4
+### v1.5 — Adaptive Price Intelligence 📋
 
-Potential future capabilities include:
+#### Goal
 
-- Solar optimisation
-- Battery optimisation
-- EV charging optimisation
-- Heat pump optimisation
-- Whole-home energy intelligence
+Replace a purely fixed definition of a good electricity price with an optional,
+explainable classification that can adapt to changing market conditions while
+preserving the existing fixed threshold.
 
-The next provider-independence foundation is signed net power and consistent
-negative-value handling, defined by
-[ADR-0010](docs/adr/0010-signed-power-and-negative-values.md) and tracked by
-[#69](https://github.com/guslund-jpg/electricity-pro/issues/69). Export revenue,
-gross-flow channels, and solar or battery optimization remain separate future
-designs.
+Planned direction:
+
+- retain the fixed Good Price threshold as a backward-compatible mode;
+- add an adaptive mode based on compact, comparable historical price summaries;
+- consider available forecast prices only when their component and VAT scope is
+  genuinely comparable;
+- define deterministic cold-start, negative-price and tariff-change behaviour;
+- expose the calculated threshold, data coverage and reason for each result;
+- resolve the confusing unavailable Next Inexpensive 1h Window entity; and
+- reconcile roadmap, sensor and architecture documentation with delivered
+  capabilities.
+
+Supplier markup, total accumulated-energy sources and the expanded Standard
+dashboard are already present in the unreleased development line and form part
+of the v1.5 release baseline.
+
+Tracked work: [adaptive good-price threshold #237](https://github.com/guslund-jpg/electricity-pro/issues/237),
+[unavailable recommendation sensor #232](https://github.com/guslund-jpg/electricity-pro/issues/232),
+and [contributor design guidance #70](https://github.com/guslund-jpg/electricity-pro/issues/70).
+
+Automatic device control is outside v1.5. Adaptive means relatively favourable
+under a documented method; it does not determine what an individual household
+can afford.
+
+---
+
+### v1.6 — Production & Bidirectional Energy Foundation 🔭
+
+#### Goal
+
+Extend Electricity Pro from consumption-oriented net-grid analysis to explicit,
+provider-independent production, import and export energy flows.
+
+Planned direction:
+
+- define normalized source contracts for grid import, grid export, local
+  production and household consumption;
+- support both daily and total accumulated energy counters where the source
+  semantics are known;
+- expose useful production, export, self-consumption and self-sufficiency
+  statistics;
+- retain signed Current Power for compatible net-grid meters without pretending
+  that one net value reveals every underlying flow;
+- add export compensation and revenue only from an explicitly configured export
+  price contract; and
+- allow existing consumption analytics to use gross household demand when the
+  required source data is available.
+
+The v1.6 foundation must work without solar, a battery or an EV and must not
+infer missing flows. Device control and vendor-specific integrations remain out
+of scope.
+
+Tracked work: [energy-flow contract #239](https://github.com/guslund-jpg/electricity-pro/issues/239),
+[production analytics #240](https://github.com/guslund-jpg/electricity-pro/issues/240),
+and [export pricing and revenue #241](https://github.com/guslund-jpg/electricity-pro/issues/241).
+
+---
+
+### v1.7 — Flexible-Load Recommendations 🔭
+
+#### Goal
+
+Build advisory, explainable scheduling recommendations for flexible household
+loads after price forecasts and energy-flow semantics are reliable.
+
+Candidate capabilities:
+
+- EV charging windows that account for required energy, departure time and
+  charging-power constraints;
+- heat-pump operating windows that respect comfort boundaries, minimum run
+  times and user-defined constraints; and
+- reusable load definitions for appliances with duration and energy needs.
+
+Recommendations come before automatic control. Electricity Pro must degrade
+safely when a device, forecast or price component is unavailable and must not
+assume that a recommended device can be controlled.
+
+Tracked work: [EV charging recommendations #242](https://github.com/guslund-jpg/electricity-pro/issues/242)
+and [heat-pump recommendations #243](https://github.com/guslund-jpg/electricity-pro/issues/243).
+
+---
+
+### v1.8 — Storage & Whole-Home Optimisation 🔭
+
+#### Goal
+
+Use the production foundation and complete import/export price semantics to
+plan storage and coordinate flexible household energy use.
+
+Candidate capabilities:
+
+- battery charge and discharge scheduling using state of charge, usable
+  capacity, power limits and round-trip efficiency;
+- comparison of self-consumption, export and later grid import;
+- coordination with solar forecasts, EV requirements and flexible loads; and
+- transparent fallback behaviour when forecasts or device data are incomplete.
+
+Battery scheduling is deliberately later than the production foundation. A
+safe schedule cannot be derived from net power and an import price alone.
+
+Tracked work: [battery scheduling and whole-home optimisation #244](https://github.com/guslund-jpg/electricity-pro/issues/244).
+
+---
+
+## Beyond v1.8
+
+Potential later capabilities include appliance-specific models, richer solar
+forecast integration, automatic control behind explicit opt-in safeguards, and
+broader whole-home energy intelligence.
 
 ---
 

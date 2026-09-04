@@ -27,15 +27,19 @@ Electricity Pro is currently under active development.
 - Coordinator-based updates
 - Home Assistant sensor entities
 
-## In development
+## Roadmap direction
 
-- Accumulated cost today
-- Estimated cost today
-- Daily cost analytics
-- Budget tracking
-- Monthly projections
-- Price and consumption forecasting
-- Energy-use recommendations
+The current release line already includes daily and monthly statistics, price
+forecasts, scheduling windows and retrospective recommendations. Planned work is
+sequenced so later optimisation is built on explicit data rather than inferred
+from an incomplete net measurement:
+
+- v1.5: adaptive, explainable good-price intelligence;
+- v1.6: production, grid import/export and self-consumption foundations;
+- v1.7: advisory EV-charging and heat-pump scheduling; and
+- v1.8: battery scheduling and coordinated whole-home optimisation.
+
+See the authoritative [`ROADMAP.md`](../ROADMAP.md) for scope and boundaries.
 
 ## How it works
 
@@ -341,9 +345,15 @@ Planned development areas include:
 ### Optimisation
 
 - Cheapest appliance usage windows
-- EV charging recommendations
-- Battery scheduling
-- Heat-pump optimisation
+- EV charging recommendations (v1.7 direction)
+- Heat-pump optimisation (v1.7 direction)
+- Battery scheduling (v1.8 direction)
+
+### Production and bidirectional energy
+
+- Explicit grid import and export measurements (v1.6 direction)
+- Solar production and self-consumption statistics (v1.6 direction)
+- Export-price and revenue semantics (v1.6 direction)
 
 ## Development status
 

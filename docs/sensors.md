@@ -176,13 +176,13 @@ The source semantics and normalized representation must be reviewed before
 implementation because integrations may expose power factor as either a ratio
 or a percentage.
 
-## Planned daily and monthly statistics
+## Daily and monthly statistics
 
-| Sensor | Proposed entity key | Type | Unit | Priority | Notes |
-| --- | --- | --- | --- | --- | --- |
-| Average power today | `average_power_today` | Calculated | W | Future | Requires statistics implementation |
-| Average market price today | `average_market_price_today` | Calculated | Currency/kWh | Implemented | Complete normalized local-day series |
-| Monthly peak-hour consumption | `monthly_peak_hour_consumption` | Mirrored initially | kWh | High | Highest hourly consumption in current month |
+Average Power Today and Average Market Price Today are implemented and listed
+in the current sensor catalog above. Monthly peak-hour consumption and time are
+currently mirrored from compatible source integrations. Future production,
+import and export statistics require separate source contracts; they must not
+be inferred from signed net Current Power alone.
 
 ### Consumption-weighted average price today
 
@@ -379,6 +379,10 @@ Future work may include:
 - supporting configurable billing periods;
 - supporting configurable demand-tariff rules;
 - calculating phase imbalance;
+- representing production, grid import and grid export as distinct flows;
+- calculating solar self-consumption and self-sufficiency when sufficient
+  source measurements exist;
+- modelling export compensation without reusing an import price;
 - comparing provider values with calculated values.
 
 These improvements should be tracked as enhancement issues rather than mixed

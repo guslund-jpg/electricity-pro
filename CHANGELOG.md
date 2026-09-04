@@ -4,6 +4,9 @@
 
 ### Added
 
+- Allow an optional VAT-inclusive supplier markup to enrich market-only live
+  and forecast prices without adding it twice when the selected supplier price
+  already includes that component.
 - Accept total accumulated-energy registers in custom or mixed setup and
   derive Energy Today from a restart-safe local-midnight baseline, while
   continuing to prefer Tibber's authoritative daily value in the fast path.
