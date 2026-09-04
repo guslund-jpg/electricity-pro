@@ -543,9 +543,15 @@ async def test_energy_this_month_restores_persisted_state(
         }
     }
 
-    with patch(
-        "custom_components.electricity_pro.coordinator.Store.async_load",
-        return_value=stored,
+    with (
+        patch(
+            "custom_components.electricity_pro.coordinator.Store.async_load",
+            return_value=stored,
+        ),
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=datetime(2026, 8, 15, 12, tzinfo=UTC),
+        ),
     ):
         await setup_electricity_pro(energy_value="108", energy_unit="kWh")
 
@@ -1882,9 +1888,15 @@ async def test_cost_this_month_restores_persisted_state(
         "cost_this_month_unit": "SEK",
     }
 
-    with patch(
-        "custom_components.electricity_pro.coordinator.Store.async_load",
-        return_value=stored,
+    with (
+        patch(
+            "custom_components.electricity_pro.coordinator.Store.async_load",
+            return_value=stored,
+        ),
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=datetime(2026, 8, 15, 12, tzinfo=UTC),
+        ),
     ):
         await setup_electricity_pro(
             accumulated_cost_today_value="12",

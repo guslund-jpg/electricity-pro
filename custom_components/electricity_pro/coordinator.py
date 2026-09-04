@@ -42,7 +42,10 @@ from .base_load import (
     calculate_base_load_estimate,
     calculate_daily_base_load,
 )
-from .calculations import calculate_declared_effective_price
+from .calculations import (
+    calculate_declared_effective_price,
+    effective_price_metadata,
+)
 from .const import (
     CONF_ENERGY_TAX_PER_KWH,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
@@ -304,6 +307,11 @@ class ElectricityProCoordinator(
     def adaptive_price_history(self) -> AdaptivePriceHistory:
         """Return the bounded persisted Effective Price history."""
         return self._adaptive_price_history
+
+    @property
+    def adaptive_price_scope(self) -> AdaptivePriceScope | None:
+        """Return the compatibility scope of the current Effective Price."""
+        return self._adaptive_price_scope
 
     @callback
     def _save_statistics(self) -> None:
@@ -962,10 +970,16 @@ class ElectricityProCoordinator(
         currency = _currency_from_price_unit(data.current_price_unit)
         if currency is None or data.pricing_metadata is None:
             return None
+        effective_metadata = effective_price_metadata(
+            data.pricing_metadata,
+            data.grid_fee_per_kwh,
+            data.energy_tax_per_kwh,
+            data.supplier_markup_per_kwh,
+        )
         scope = AdaptivePriceScope.from_metadata(
             currency=currency,
             unit=f"{currency}/kWh",
-            metadata=data.pricing_metadata,
+            metadata=effective_metadata,
             tariff_signature=self._adaptive_tariff_signature,
         )
         return scope if scope.is_comparable else None

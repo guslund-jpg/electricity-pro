@@ -237,6 +237,11 @@ class AdaptivePriceHistory:
         return self._scope
 
     @property
+    def local_timezone(self) -> tzinfo:
+        """Return the timezone used to classify local price hours."""
+        return self._local_timezone
+
+    @property
     def observations(self) -> tuple[HistoricalPriceObservation, ...]:
         """Return ordered eligible completed-hour observations."""
         return tuple(self._observations[key] for key in sorted(self._observations))

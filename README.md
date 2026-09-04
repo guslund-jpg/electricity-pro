@@ -84,7 +84,8 @@ Monitor your home's energy usage in real time.
 - Consumption Timing Score Yesterday compares when electricity was consumed
   with yesterday's relative Effective Prices (available after a sufficiently
   complete day of observations)
-- Good Time to Use Electricity based on an optional Effective Price threshold
+- Good Time to Use Electricity using either the existing fixed Effective Price
+  threshold or an opt-in adaptive comparison with similar historical hours
 - Cheapest upcoming 1h window start (Nord Pool forecast)
 - Cheapest upcoming 2h window start (Nord Pool forecast)
 - Cheapest upcoming 3h window start (Nord Pool forecast)
