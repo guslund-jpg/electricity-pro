@@ -386,6 +386,9 @@ Documentation is organized as follows:
 | [`CHANGELOG.md`](../CHANGELOG.md)         | Release history                              |
 | [`design/`](../design)                    | Short design specifications for capabilities |
 
+Contributor decisions are guided by the
+[Design Principles](vision/DESIGN_PRINCIPLES.md).
+
 ## Contributing
 
 Contributions will be welcome once the initial contributor documentation and

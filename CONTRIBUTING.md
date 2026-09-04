@@ -55,4 +55,10 @@ Electricity Pro values:
 - Stable public behaviour
 - Small, incremental improvements
 
-If you're unsure about a design decision, please open an issue before implementing large changes.
+The full [Design Principles](docs/vision/DESIGN_PRINCIPLES.md) explain how these
+values apply to provider boundaries, normalized measurements, analytics,
+entities, unavailable data, and compatibility. Review them before proposing a
+new source contract or capability.
+
+If you're unsure about a design decision, please open an issue before
+implementing large changes.

@@ -329,7 +329,7 @@ VAT, and time-dependent grid component must be projected correctly.
 
 ---
 
-### v1.5 — Adaptive Price Intelligence 📋
+### v1.5 — Adaptive Price Intelligence 🚧
 
 #### Goal
 
@@ -337,23 +337,23 @@ Replace a purely fixed definition of a good electricity price with an optional,
 explainable classification that can adapt to changing market conditions while
 preserving the existing fixed threshold.
 
-Planned direction:
+Delivered in the unreleased development line:
 
-- retain the fixed Good Price threshold as a backward-compatible mode;
-- add an adaptive mode based on compact, comparable historical price summaries;
-- consider available forecast prices only when their component and VAT scope is
+- retained the fixed Good Price threshold as a backward-compatible mode;
+- added an adaptive mode based on compact, comparable historical price summaries;
+- considered available forecast prices only when their component and VAT scope is
   genuinely comparable;
-- define deterministic cold-start, negative-price and tariff-change behaviour;
-- expose the calculated threshold, data coverage and reason for each result;
-- resolve the confusing unavailable Next Inexpensive 1h Window entity; and
-- reconcile roadmap, sensor and architecture documentation with delivered
+- defined deterministic cold-start, negative-price and tariff-change behaviour;
+- exposed the calculated threshold, data coverage and reason for each result;
+- resolved the confusing unavailable Next Inexpensive 1h Window entity; and
+- reconciled roadmap, sensor and architecture documentation with delivered
   capabilities.
 
 Supplier markup, total accumulated-energy sources and the expanded Standard
 dashboard are already present in the unreleased development line and form part
 of the v1.5 release baseline.
 
-The adaptive classification contract is proposed by
+The adaptive classification contract is defined by
 [ADR-0012](docs/adr/0012-adaptive-good-price-classification.md).
 
 Tracked work: [adaptive good-price threshold #237](https://github.com/guslund-jpg/electricity-pro/issues/237),
