@@ -9,6 +9,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
+    CONF_ADAPTIVE_PRICE_CEILING,
+    CONF_ADAPTIVE_TARGET_PERCENTILE,
     CONF_CURRENT_L1_ENTITY,
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
@@ -20,6 +22,7 @@ from custom_components.electricity_pro.const import (
     CONF_FIXED_SUPPLIER_FEE_MONTHLY,
     CONF_FIXED_GRID_FEE_MONTHLY,
     CONF_GRID_FEE_PER_KWH,
+    CONF_GOOD_PRICE_MODE,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
@@ -79,6 +82,10 @@ def setup_electricity_pro(hass):
         fixed_supplier_fee_monthly: float | None = None,
         fixed_grid_fee_monthly: float | None = None,
         good_price_threshold: float | None = None,
+        good_price_mode: str | None = None,
+        adaptive_target_percentile: float | None = None,
+        adaptive_price_ceiling: float | None = None,
+        price_completeness: PriceCompleteness = PriceCompleteness.PARTIAL,
         forecast_price_area: str | None = None,
         forecast_currency: str | None = None,
         forecast_nordpool_config_entry: str | None = None,
@@ -116,6 +123,17 @@ def setup_electricity_pro(hass):
         if good_price_threshold is not None:
             entry_data[CONF_GOOD_PRICE_THRESHOLD] = good_price_threshold
 
+        if good_price_mode is not None:
+            entry_data[CONF_GOOD_PRICE_MODE] = good_price_mode
+
+        if adaptive_target_percentile is not None:
+            entry_data[CONF_ADAPTIVE_TARGET_PERCENTILE] = (
+                adaptive_target_percentile
+            )
+
+        if adaptive_price_ceiling is not None:
+            entry_data[CONF_ADAPTIVE_PRICE_CEILING] = adaptive_price_ceiling
+
         if forecast_price_area is not None:
             entry_data[CONF_FORECAST_PRICE_AREA] = forecast_price_area
 
@@ -140,11 +158,13 @@ def setup_electricity_pro(hass):
             entry_data[CONF_PRICING_STRATEGY] = (
                 PricingStrategy.SUPPLIER_CONTRACTED_PRICE.value
             )
-            entry_data[CONF_PRICE_INCLUDED_COMPONENTS] = [
-                PriceComponent.MARKET_ENERGY.value,
-            ]
+            entry_data[CONF_PRICE_INCLUDED_COMPONENTS] = (
+                [component.value for component in PriceComponent]
+                if price_completeness is PriceCompleteness.COMPLETE
+                else [PriceComponent.MARKET_ENERGY.value]
+            )
             entry_data[CONF_PRICE_VAT_TREATMENT] = VatTreatment.INCLUDED.value
-            entry_data[CONF_PRICE_COMPLETENESS] = PriceCompleteness.PARTIAL.value
+            entry_data[CONF_PRICE_COMPLETENESS] = price_completeness.value
 
         if energy_value is not None:
             hass.states.async_set(

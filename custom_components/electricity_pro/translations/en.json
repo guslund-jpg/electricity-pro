@@ -43,7 +43,10 @@
           "grid_fee_workday_entity": "Public holidays (Home Assistant Workday)",
           "fixed_supplier_fee_monthly": "Fixed monthly electricity supplier fee (including VAT)",
           "fixed_grid_fee_monthly": "Fixed monthly grid-provider fee (including VAT)",
-          "good_price_threshold": "Good price threshold per kWh",
+          "good_price_threshold": "Fixed good-price threshold per kWh",
+          "good_price_mode": "Good Time method",
+          "adaptive_target_percentile": "Adaptive target percentile",
+          "adaptive_price_ceiling": "Optional adaptive price ceiling per kWh",
           "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
         },
         "data_description": {
@@ -74,7 +77,10 @@
           "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider.",
-          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 1.00 SEK/kWh for a Swedish setup.",
+          "good_price_threshold": "In Fixed mode, this is the maximum Effective Price considered good. In Adaptive mode, it is the optional fallback while history is warming up.",
+          "good_price_mode": "Fixed preserves the existing threshold rule. Adaptive compares the current complete Effective Price with comparable historical local hours.",
+          "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
+          "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
       },
@@ -99,7 +105,10 @@
           "grid_fee_high_season_start": "High season starts (MM-DD)",
           "grid_fee_high_season_end": "High season ends (MM-DD)",
           "grid_fee_workday_entity": "Public holidays (Home Assistant Workday)",
-          "good_price_threshold": "Good price threshold per kWh",
+          "good_price_threshold": "Fixed good-price threshold per kWh",
+          "good_price_mode": "Good Time method",
+          "adaptive_target_percentile": "Adaptive target percentile",
+          "adaptive_price_ceiling": "Optional adaptive price ceiling per kWh",
           "fixed_supplier_fee_monthly": "Fixed monthly electricity supplier fee (including VAT)",
           "fixed_grid_fee_monthly": "Fixed monthly grid-provider fee (including VAT)"
         },
@@ -114,7 +123,10 @@
           "grid_fee_high_season_start": "First date of the recurring high season, written MM-DD; for example 11-01.",
           "grid_fee_high_season_end": "Last date of the recurring high season, written MM-DD; for example 03-31.",
           "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
-          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity. For example, use 1.00 SEK/kWh for a Swedish setup.",
+          "good_price_threshold": "In Fixed mode, this is the maximum Effective Price considered good. In Adaptive mode, it is the optional fallback while history is warming up.",
+          "good_price_mode": "Fixed preserves the existing threshold rule. Adaptive compares the current complete Effective Price with comparable historical local hours.",
+          "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
+          "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider."
         }
@@ -129,6 +141,7 @@
     },
     "error": {
       "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
+      "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
       "tibber_sources_not_found": "No enabled Tibber home with both a current-power entity and contracted-price entity was found. Return and use Custom or mixed sources, or enable the required Tibber entities first."
     }
@@ -166,7 +179,10 @@
           "grid_fee_workday_entity": "Public holidays (Home Assistant Workday)",
           "fixed_supplier_fee_monthly": "Fixed monthly electricity supplier fee (including VAT)",
           "fixed_grid_fee_monthly": "Fixed monthly grid-provider fee (including VAT)",
-          "good_price_threshold": "Good price threshold per kWh",
+          "good_price_threshold": "Fixed good-price threshold per kWh",
+          "good_price_mode": "Good Time method",
+          "adaptive_target_percentile": "Adaptive target percentile",
+          "adaptive_price_ceiling": "Optional adaptive price ceiling per kWh",
           "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
         },
         "data_description": {
@@ -197,7 +213,10 @@
           "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider.",
-          "good_price_threshold": "Optional: Maximum Effective Price considered a good time to use electricity, in the same currency per kWh as the selected price sensor. For example, use 1.00 SEK/kWh for a Swedish setup.",
+          "good_price_threshold": "In Fixed mode, this is the maximum Effective Price considered good. In Adaptive mode, it is the optional fallback while history is warming up.",
+          "good_price_mode": "Fixed preserves the existing threshold rule. Adaptive compares the current complete Effective Price with comparable historical local hours.",
+          "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
+          "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
       },
@@ -211,6 +230,7 @@
     },
     "error": {
       "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
+      "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected."
     }
   }

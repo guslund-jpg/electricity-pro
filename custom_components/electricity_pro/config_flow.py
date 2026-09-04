@@ -20,6 +20,8 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
+    CONF_ADAPTIVE_PRICE_CEILING,
+    CONF_ADAPTIVE_TARGET_PERCENTILE,
     CONF_CURRENT_L1_ENTITY,
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
@@ -38,6 +40,7 @@ from .const import (
     CONF_GRID_FEE_HIGH_SEASON_START,
     CONF_GRID_FEE_HIGH_START,
     CONF_GOOD_PRICE_THRESHOLD,
+    CONF_GOOD_PRICE_MODE,
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     CONF_POWER_ENTITY,
@@ -54,8 +57,11 @@ from .const import (
     CONF_VOLTAGE_L2_ENTITY,
     CONF_VOLTAGE_L3_ENTITY,
     DOMAIN,
+    DEFAULT_ADAPTIVE_TARGET_PERCENTILE,
     ENERGY_SOURCE_DAILY,
     ENERGY_SOURCE_LIFETIME,
+    GOOD_PRICE_MODE_ADAPTIVE,
+    GOOD_PRICE_MODE_FIXED,
 )
 from .pricing import (
     PriceComponent,
@@ -109,6 +115,11 @@ _ENERGY_SOURCE_TYPE_OPTIONS = [
         "value": ENERGY_SOURCE_LIFETIME,
         "label": "Total accumulated energy",
     },
+]
+
+_GOOD_PRICE_MODE_OPTIONS = [
+    {"value": GOOD_PRICE_MODE_FIXED, "label": "Fixed threshold"},
+    {"value": GOOD_PRICE_MODE_ADAPTIVE, "label": "Adaptive"},
 ]
 
 
@@ -187,6 +198,9 @@ def _tibber_settings_schema(
     supplier_markup_default: float | None = None,
     energy_tax_default: float | None = None,
     good_price_threshold_default: float | None = None,
+    good_price_mode_default: str = GOOD_PRICE_MODE_FIXED,
+    adaptive_target_percentile_default: float = DEFAULT_ADAPTIVE_TARGET_PERCENTILE,
+    adaptive_price_ceiling_default: float | None = None,
     high_fee_default: float | None = None,
     high_start_default: str = "06:00",
     high_end_default: str = "22:00",
@@ -231,6 +245,14 @@ def _tibber_settings_schema(
         else vol.Optional(
             CONF_GOOD_PRICE_THRESHOLD,
             default=good_price_threshold_default,
+        )
+    )
+    adaptive_ceiling_key = (
+        vol.Optional(CONF_ADAPTIVE_PRICE_CEILING)
+        if adaptive_price_ceiling_default is None
+        else vol.Optional(
+            CONF_ADAPTIVE_PRICE_CEILING,
+            default=adaptive_price_ceiling_default,
         )
     )
     fixed_supplier_fee_key = (
@@ -304,6 +326,33 @@ def _tibber_settings_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
+            vol.Required(
+                CONF_GOOD_PRICE_MODE,
+                default=good_price_mode_default,
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_GOOD_PRICE_MODE_OPTIONS,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Required(
+                CONF_ADAPTIVE_TARGET_PERCENTILE,
+                default=adaptive_target_percentile_default,
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1,
+                    max=100,
+                    step=1,
+                    unit_of_measurement="%",
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            adaptive_ceiling_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
         }
     )
 
@@ -330,6 +379,9 @@ def _entity_schema(
     supplier_markup_per_kwh_default: float | None = None,
     energy_tax_per_kwh_default: float | None = None,
     good_price_threshold_default: float | None = None,
+    good_price_mode_default: str = GOOD_PRICE_MODE_FIXED,
+    adaptive_target_percentile_default: float = DEFAULT_ADAPTIVE_TARGET_PERCENTILE,
+    adaptive_price_ceiling_default: float | None = None,
     forecast_nordpool_config_entry_default: str | None = None,
     grid_fee_high_per_kwh_default: float | None = None,
     grid_fee_high_start_default: str = "06:00",
@@ -508,6 +560,14 @@ def _entity_schema(
             CONF_GOOD_PRICE_THRESHOLD,
             default=good_price_threshold_default,
         )
+    adaptive_price_ceiling_key = (
+        vol.Optional(CONF_ADAPTIVE_PRICE_CEILING)
+        if adaptive_price_ceiling_default is None
+        else vol.Optional(
+            CONF_ADAPTIVE_PRICE_CEILING,
+            default=adaptive_price_ceiling_default,
+        )
+    )
     if forecast_nordpool_config_entry_default is None:
         forecast_nordpool_config_entry_key = vol.Optional(
             CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
@@ -633,6 +693,33 @@ def _entity_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
+            vol.Required(
+                CONF_GOOD_PRICE_MODE,
+                default=good_price_mode_default,
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_GOOD_PRICE_MODE_OPTIONS,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Required(
+                CONF_ADAPTIVE_TARGET_PERCENTILE,
+                default=adaptive_target_percentile_default,
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1,
+                    max=100,
+                    step=1,
+                    unit_of_measurement="%",
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
+            adaptive_price_ceiling_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
             current_l1_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
@@ -726,6 +813,12 @@ class ElectricityProConfigFlow(
                     step_id="manual",
                     data_schema=_entity_schema(),
                     errors={"base": "invalid_grid_tariff"},
+                )
+            if not _good_price_input_valid(user_input):
+                return self.async_show_form(
+                    step_id="manual",
+                    data_schema=_entity_schema(),
+                    errors={"base": "invalid_good_price_settings"},
                 )
             if not _prepare_pricing_metadata(user_input):
                 return self.async_show_form(
@@ -825,6 +918,12 @@ class ElectricityProConfigFlow(
                     data_schema=_tibber_settings_schema(),
                     errors={"base": "invalid_grid_tariff"},
                 )
+            if not _good_price_input_valid(user_input):
+                return self.async_show_form(
+                    step_id="tibber_settings",
+                    data_schema=_tibber_settings_schema(),
+                    errors={"base": "invalid_good_price_settings"},
+                )
             nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
             if isinstance(nordpool_entry_id, str):
                 nordpool_entry = self.hass.config_entries.async_get_entry(
@@ -901,6 +1000,16 @@ class ElectricityProOptionsFlow(OptionsFlow):
                     else _entity_schema()
                 ),
                 errors={"base": "invalid_grid_tariff"},
+            )
+        if user_input is not None and not _good_price_input_valid(user_input):
+            return self.async_show_form(
+                step_id="init",
+                data_schema=(
+                    _tibber_settings_schema()
+                    if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
+                    else _entity_schema()
+                ),
+                errors={"base": "invalid_good_price_settings"},
             )
         if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER:
             if user_input is not None:
@@ -980,6 +1089,17 @@ class ElectricityProOptionsFlow(OptionsFlow):
                     energy_tax_default=current_energy_tax,
                     supplier_markup_default=current_supplier_markup,
                     good_price_threshold_default=current_threshold,
+                    good_price_mode_default=values.get(
+                        CONF_GOOD_PRICE_MODE,
+                        GOOD_PRICE_MODE_FIXED,
+                    ),
+                    adaptive_target_percentile_default=values.get(
+                        CONF_ADAPTIVE_TARGET_PERCENTILE,
+                        DEFAULT_ADAPTIVE_TARGET_PERCENTILE,
+                    ),
+                    adaptive_price_ceiling_default=values.get(
+                        CONF_ADAPTIVE_PRICE_CEILING
+                    ),
                     high_fee_default=values.get(CONF_GRID_FEE_HIGH_PER_KWH),
                     high_start_default=values.get(
                         CONF_GRID_FEE_HIGH_START, "06:00"
@@ -1152,6 +1272,24 @@ class ElectricityProOptionsFlow(OptionsFlow):
             CONF_GOOD_PRICE_THRESHOLD,
             self.config_entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
         )
+        current_good_price_mode = self.config_entry.options.get(
+            CONF_GOOD_PRICE_MODE,
+            self.config_entry.data.get(
+                CONF_GOOD_PRICE_MODE,
+                GOOD_PRICE_MODE_FIXED,
+            ),
+        )
+        current_adaptive_target_percentile = self.config_entry.options.get(
+            CONF_ADAPTIVE_TARGET_PERCENTILE,
+            self.config_entry.data.get(
+                CONF_ADAPTIVE_TARGET_PERCENTILE,
+                DEFAULT_ADAPTIVE_TARGET_PERCENTILE,
+            ),
+        )
+        current_adaptive_price_ceiling = self.config_entry.options.get(
+            CONF_ADAPTIVE_PRICE_CEILING,
+            self.config_entry.data.get(CONF_ADAPTIVE_PRICE_CEILING),
+        )
         current_forecast_nordpool_config_entry = self.config_entry.options.get(
             CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
             self.config_entry.data.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY),
@@ -1180,6 +1318,11 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 energy_tax_per_kwh_default=current_energy_tax,
                 supplier_markup_per_kwh_default=current_supplier_markup,
                 good_price_threshold_default=current_good_price_threshold,
+                good_price_mode_default=current_good_price_mode,
+                adaptive_target_percentile_default=(
+                    current_adaptive_target_percentile
+                ),
+                adaptive_price_ceiling_default=current_adaptive_price_ceiling,
                 forecast_nordpool_config_entry_default=current_forecast_nordpool_config_entry,
                 grid_fee_high_per_kwh_default=tariff_values.get(
                     CONF_GRID_FEE_HIGH_PER_KWH
@@ -1263,6 +1406,35 @@ def _grid_tariff_input_valid(user_input: dict[str, Any]) -> bool:
     except (InvalidOperation, TypeError, ValueError):
         return False
     return True
+
+
+def _good_price_input_valid(user_input: dict[str, Any]) -> bool:
+    """Validate explicit fixed/adaptive Good Time settings."""
+    mode = user_input.get(CONF_GOOD_PRICE_MODE, GOOD_PRICE_MODE_FIXED)
+    if mode not in {GOOD_PRICE_MODE_FIXED, GOOD_PRICE_MODE_ADAPTIVE}:
+        return False
+    try:
+        target = Decimal(
+            str(
+                user_input.get(
+                    CONF_ADAPTIVE_TARGET_PERCENTILE,
+                    DEFAULT_ADAPTIVE_TARGET_PERCENTILE,
+                )
+            )
+        )
+        ceiling_value = user_input.get(CONF_ADAPTIVE_PRICE_CEILING)
+        ceiling = (
+            Decimal(str(ceiling_value))
+            if ceiling_value is not None
+            else None
+        )
+    except (InvalidOperation, ValueError):
+        return False
+    return (
+        target.is_finite()
+        and Decimal(0) < target <= Decimal(100)
+        and (ceiling is None or ceiling.is_finite())
+    )
 
 
 def _parse_month_day_input(value: Any) -> tuple[int, int]:

@@ -301,13 +301,31 @@ custom attributes while an entity is unavailable.
 
 ### Good time to use electricity
 
-The optional `good_time_to_use_electricity` binary sensor compares Effective
-Price with a user-configured good-price threshold in the same currency per
-kWh. It is on at or below the threshold and off above it.
+The optional `good_time_to_use_electricity` binary sensor supports two methods:
 
-The insight is unavailable without current price data and is not created until
-a threshold is configured. This first version uses an absolute threshold;
-future forecast adapters may add relative and forward-looking recommendations.
+- **Fixed** preserves the original rule. It is on when Effective Price is at or
+  below the configured threshold and off above it.
+- **Adaptive** compares the current complete Effective Price with comparable
+  historical prices from the same local hour. It first prefers the same
+  weekday/weekend class and uses a recency-weighted target percentile. The
+  default target is the cheapest 25 percent.
+
+Adaptive history is maintained by Electricity Pro as compact hourly summaries;
+it does not depend on Recorder. Only prices with compatible currency,
+components, VAT treatment, completeness, and tariff configuration are mixed.
+Changing price or tariff configuration restarts the comparable history.
+
+While adaptive history is warming up, the configured fixed threshold is used
+as an explicitly reported fallback. Without a fallback, the state is unknown
+until sufficient comparable history exists. An optional absolute ceiling can
+prevent a relatively favourable but objectively high price from being called
+good.
+
+Attributes explain the selected method, reason, thresholds, percentile,
+historical cohort and sample counts. Adaptive describes a price as relatively
+favourable; it is not financial advice or a recommendation to consume energy.
+Forecast-aware suppression is planned separately and is not part of the first
+adaptive mode.
 
 ## Planned intelligence sensors
 

@@ -4,6 +4,10 @@
 
 ### Added
 
+- Add an opt-in Adaptive mode to Good Time to Use Electricity. It compares the
+  current complete Effective Price with comparable historical local hours,
+  supports a configurable target percentile and absolute ceiling, and clearly
+  reports when it is using the existing fixed threshold during warm-up.
 - Persist compatible Effective Price observations as bounded, duration-weighted
   hourly summaries so the future adaptive mode can build history safely across
   restarts and discard it when price semantics or tariffs change.

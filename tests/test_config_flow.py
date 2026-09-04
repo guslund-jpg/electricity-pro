@@ -8,6 +8,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.config_flow import _tibber_settings_schema
 from custom_components.electricity_pro.const import (
+    CONF_ADAPTIVE_PRICE_CEILING,
+    CONF_ADAPTIVE_TARGET_PERCENTILE,
     CONF_CURRENT_L1_ENTITY,
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
@@ -19,6 +21,7 @@ from custom_components.electricity_pro.const import (
     CONF_FIXED_SUPPLIER_FEE_MONTHLY,
     CONF_FIXED_GRID_FEE_MONTHLY,
     CONF_GOOD_PRICE_THRESHOLD,
+    CONF_GOOD_PRICE_MODE,
     CONF_GRID_FEE_PER_KWH,
     CONF_GRID_FEE_HIGH_END,
     CONF_GRID_FEE_WORKDAY_ENTITY,
@@ -41,6 +44,8 @@ from custom_components.electricity_pro.const import (
     DOMAIN,
     ENERGY_SOURCE_DAILY,
     ENERGY_SOURCE_LIFETIME,
+    GOOD_PRICE_MODE_ADAPTIVE,
+    GOOD_PRICE_MODE_FIXED,
 )
 from custom_components.electricity_pro.pricing import (
     PriceComponent,
@@ -432,6 +437,45 @@ async def test_options_flow_updates_forecast_config(hass) -> None:
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert CONF_FORECAST_PRICE_AREA not in result["data"]
     assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == "other-nordpool-entry-id"
+
+
+async def test_options_flow_saves_adaptive_good_price_settings(hass) -> None:
+    """The options flow should expose and persist adaptive classification."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={CONF_POWER_ENTITY: "sensor.test_power"},
+        options={CONF_GOOD_PRICE_THRESHOLD: 1.0},
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    defaults = {
+        key.schema: key.default()
+        for key in result["data_schema"].schema
+        if key.schema
+        in {CONF_GOOD_PRICE_MODE, CONF_ADAPTIVE_TARGET_PERCENTILE}
+    }
+    assert defaults == {
+        CONF_GOOD_PRICE_MODE: GOOD_PRICE_MODE_FIXED,
+        CONF_ADAPTIVE_TARGET_PERCENTILE: 25,
+    }
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_GOOD_PRICE_THRESHOLD: 1.0,
+            CONF_GOOD_PRICE_MODE: GOOD_PRICE_MODE_ADAPTIVE,
+            CONF_ADAPTIVE_TARGET_PERCENTILE: 20,
+            CONF_ADAPTIVE_PRICE_CEILING: 1.5,
+        },
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_GOOD_PRICE_MODE] == GOOD_PRICE_MODE_ADAPTIVE
+    assert result["data"][CONF_ADAPTIVE_TARGET_PERCENTILE] == 20
+    assert result["data"][CONF_ADAPTIVE_PRICE_CEILING] == 1.5
 
 
 async def test_tibber_options_reject_invalid_grid_tariff_time(hass) -> None:

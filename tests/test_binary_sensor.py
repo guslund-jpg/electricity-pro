@@ -7,7 +7,11 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.electricity_pro.const import DOMAIN
+from custom_components.electricity_pro.const import (
+    DOMAIN,
+    GOOD_PRICE_MODE_ADAPTIVE,
+)
+from custom_components.electricity_pro.pricing import PriceCompleteness
 
 ENTITY_ID = f"binary_sensor.{DOMAIN}_good_time_to_use_electricity"
 
@@ -93,3 +97,81 @@ async def test_good_time_not_created_without_threshold(
     await setup_electricity_pro(price_value="0.80")
 
     assert hass.states.get(ENTITY_ID) is None
+
+
+async def test_fixed_good_time_explains_legacy_evaluation(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Existing threshold-only setups should remain fixed and explainable."""
+    await setup_electricity_pro(
+        price_value="0.80",
+        good_price_threshold=1.00,
+    )
+
+    state = hass.states.get(ENTITY_ID)
+    assert state is not None
+    assert state.state == "on"
+    assert state.attributes["configured_mode"] == "fixed"
+    assert state.attributes["evaluation_method"] == "fixed"
+    assert state.attributes["reason"] == "within_fixed_threshold"
+    assert state.attributes["fixed_threshold"] == "1.0"
+
+
+async def test_adaptive_good_time_uses_fixed_threshold_during_cold_start(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Adaptive mode should remain useful while comparable history builds."""
+    await setup_electricity_pro(
+        price_value="0.80",
+        price_completeness=PriceCompleteness.COMPLETE,
+        good_price_mode=GOOD_PRICE_MODE_ADAPTIVE,
+        good_price_threshold=1.00,
+        adaptive_target_percentile=25,
+    )
+
+    state = hass.states.get(ENTITY_ID)
+    assert state is not None
+    assert state.state == "on"
+    assert state.attributes["configured_mode"] == "adaptive"
+    assert state.attributes["evaluation_method"] == "adaptive_fallback"
+    assert state.attributes["reason"] == "within_fixed_fallback"
+    assert state.attributes["sample_count"] == 0
+    assert state.attributes["target_percentile"] == "0.25"
+
+
+async def test_adaptive_good_time_is_unavailable_without_history_or_fallback(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Adaptive mode should state why a cold start cannot be classified."""
+    await setup_electricity_pro(
+        price_value="0.80",
+        price_completeness=PriceCompleteness.COMPLETE,
+        good_price_mode=GOOD_PRICE_MODE_ADAPTIVE,
+    )
+
+    state = hass.states.get(ENTITY_ID)
+    assert state is not None
+    assert state.state == "unknown"
+    assert state.attributes["configured_mode"] == "adaptive"
+    assert state.attributes["reason"] == "insufficient_comparable_history"
+    assert state.attributes["required_sample_count"] == 14
+
+
+async def test_adaptive_good_time_rejects_partial_current_price(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """Adaptive comparisons must not mix incomplete price semantics."""
+    await setup_electricity_pro(
+        price_value="0.80",
+        good_price_mode=GOOD_PRICE_MODE_ADAPTIVE,
+        good_price_threshold=1.00,
+    )
+
+    state = hass.states.get(ENTITY_ID)
+    assert state is not None
+    assert state.state == "unknown"
+    assert state.attributes["reason"] == "incompatible_current_price"

@@ -9,6 +9,7 @@ from custom_components.electricity_pro.calculations import (
     calculate_current_cost_rate,
     calculate_declared_effective_price,
     calculate_normalized_effective_price,
+    effective_price_metadata,
 )
 from custom_components.electricity_pro.pricing import (
     PriceComponent,
@@ -16,6 +17,7 @@ from custom_components.electricity_pro.pricing import (
     PriceCompleteness,
     PricingMetadata,
     PricingStrategy,
+    VatTreatment,
 )
 
 
@@ -183,6 +185,50 @@ def test_supplier_markup_is_added_only_when_missing_from_source() -> None:
     assert calculate_consumption_weighted_average_price(
         Decimal("10"), Decimal("10"), "kWh", Decimal("0.10"), Decimal("0.45")
     ) == Decimal("1.55")
+
+
+def test_effective_price_metadata_becomes_complete_after_composition() -> None:
+    """Configured missing components should complete the Effective Price scope."""
+    metadata = PricingMetadata(
+        strategy=PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
+        scope=PriceComponentScope(
+            frozenset(
+                {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
+            ),
+            vat=VatTreatment.INCLUDED,
+        ),
+        completeness=PriceCompleteness.PARTIAL,
+    )
+
+    result = effective_price_metadata(
+        metadata,
+        grid_fee_per_kwh=Decimal("0.10"),
+        energy_tax_per_kwh=Decimal("0.45"),
+    )
+
+    assert result.completeness is PriceCompleteness.COMPLETE
+    assert result.scope.included == frozenset(PriceComponent)
+
+
+def test_effective_price_metadata_keeps_incomplete_unknown_vat() -> None:
+    """Configured components cannot make unknown VAT semantics comparable."""
+    metadata = PricingMetadata(
+        strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
+        scope=PriceComponentScope(
+            frozenset({PriceComponent.MARKET_ENERGY}),
+            vat=VatTreatment.UNKNOWN,
+        ),
+        completeness=PriceCompleteness.PARTIAL,
+    )
+
+    result = effective_price_metadata(
+        metadata,
+        grid_fee_per_kwh=Decimal("0.10"),
+        energy_tax_per_kwh=Decimal("0.45"),
+        supplier_markup_per_kwh=Decimal("0.08"),
+    )
+
+    assert result.completeness is PriceCompleteness.PARTIAL
 
 
 def test_calculate_consumption_weighted_average_price_accepts_wh() -> None:

@@ -7,7 +7,13 @@ from decimal import Decimal
 
 from homeassistant.const import UnitOfEnergy
 
-from .pricing import PriceComponent, PricingMetadata
+from .pricing import (
+    PriceCompleteness,
+    PriceComponent,
+    PriceComponentScope,
+    PricingMetadata,
+    VatTreatment,
+)
 
 _KWH_PER_WH = Decimal("0.001")
 
@@ -95,6 +101,41 @@ def calculate_declared_effective_price(
         base_price,
         metadata,
         adjustments or None,
+    )
+
+
+def effective_price_metadata(
+    metadata: PricingMetadata,
+    grid_fee_per_kwh: Decimal | None = None,
+    energy_tax_per_kwh: Decimal | None = None,
+    supplier_markup_per_kwh: Decimal | None = None,
+) -> PricingMetadata:
+    """Describe the Effective Price after configured components are applied."""
+    included = set(metadata.scope.included)
+    configured_components = (
+        (PriceComponent.VARIABLE_GRID_FEE, grid_fee_per_kwh),
+        (PriceComponent.ENERGY_TAX, energy_tax_per_kwh),
+        (PriceComponent.SUPPLIER_MARKUP, supplier_markup_per_kwh),
+    )
+    for component, value in configured_components:
+        if value is not None and value.is_finite() and value >= 0:
+            included.add(component)
+
+    all_components = frozenset(PriceComponent)
+    completeness = metadata.completeness
+    if (
+        frozenset(included) == all_components
+        and metadata.scope.vat is not VatTreatment.UNKNOWN
+    ):
+        completeness = PriceCompleteness.COMPLETE
+
+    return PricingMetadata(
+        strategy=metadata.strategy,
+        scope=PriceComponentScope(
+            included=frozenset(included),
+            vat=metadata.scope.vat,
+        ),
+        completeness=completeness,
     )
 
 

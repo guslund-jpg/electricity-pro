@@ -12,6 +12,7 @@ from custom_components.electricity_pro.base_load import BaseLoadUnavailableReaso
 from custom_components.electricity_pro.const import (
     CONF_ENERGY_ENTITY,
     CONF_ENERGY_SOURCE_TYPE,
+    CONF_ENERGY_TAX_PER_KWH,
     CONF_FORECAST_CURRENCY,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
@@ -58,22 +59,31 @@ def _daily_peak_entry() -> MockConfigEntry:
     )
 
 
-def _timing_entry() -> MockConfigEntry:
+def _timing_entry(
+    *,
+    grid_fee_per_kwh: float | None = None,
+    energy_tax_per_kwh: float | None = None,
+) -> MockConfigEntry:
     """Create a complete entry for consumption-timing runtime tests."""
+    data = {
+        CONF_POWER_ENTITY: "sensor.test_power",
+        CONF_PRICE_ENTITY: "sensor.test_price",
+        CONF_PRICING_STRATEGY: PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
+        CONF_PRICE_INCLUDED_COMPONENTS: [
+            PriceComponent.MARKET_ENERGY,
+            PriceComponent.SUPPLIER_MARKUP,
+        ],
+        CONF_PRICE_VAT_TREATMENT: VatTreatment.INCLUDED,
+        CONF_PRICE_COMPLETENESS: PriceCompleteness.PARTIAL,
+    }
+    if grid_fee_per_kwh is not None:
+        data[CONF_GRID_FEE_PER_KWH] = grid_fee_per_kwh
+    if energy_tax_per_kwh is not None:
+        data[CONF_ENERGY_TAX_PER_KWH] = energy_tax_per_kwh
     return MockConfigEntry(
         domain=DOMAIN,
         title="Electricity Pro",
-        data={
-            CONF_POWER_ENTITY: "sensor.test_power",
-            CONF_PRICE_ENTITY: "sensor.test_price",
-            CONF_PRICING_STRATEGY: PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
-            CONF_PRICE_INCLUDED_COMPONENTS: [
-                PriceComponent.MARKET_ENERGY,
-                PriceComponent.SUPPLIER_MARKUP,
-            ],
-            CONF_PRICE_VAT_TREATMENT: VatTreatment.INCLUDED,
-            CONF_PRICE_COMPLETENESS: PriceCompleteness.PARTIAL,
-        },
+        data=data,
         entry_id="timing-entry",
     )
 
@@ -229,6 +239,39 @@ def test_adaptive_price_history_rejects_partial_price_semantics(hass) -> None:
 
     assert coordinator.adaptive_price_history.scope is None
     assert coordinator.adaptive_price_history.observations == ()
+
+
+def test_adaptive_price_history_accepts_fully_composed_effective_price(hass) -> None:
+    """Configured missing tariffs should form comparable Effective Price history."""
+    hass.config.time_zone = "UTC"
+    hass.states.async_set("sensor.test_power", "100", {"unit_of_measurement": "W"})
+    hass.states.async_set(
+        "sensor.test_price",
+        "0.50",
+        {"unit_of_measurement": "SEK/kWh"},
+    )
+    entry = _timing_entry(grid_fee_per_kwh=0.10, energy_tax_per_kwh=0.45)
+    coordinator = ElectricityProCoordinator(hass, entry)
+    start = datetime(2026, 9, 4, 12, tzinfo=UTC)
+    with patch.object(coordinator._store, "async_delay_save"):  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start,
+        ):
+            coordinator._read()  # noqa: SLF001
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=start + timedelta(hours=1),
+        ):
+            coordinator._read()  # noqa: SLF001
+
+    scope = coordinator.adaptive_price_history.scope
+    assert scope is not None
+    assert scope.completeness is PriceCompleteness.COMPLETE
+    assert scope.components == frozenset(PriceComponent)
+    assert coordinator.adaptive_price_history.observations[0].effective_price == (
+        Decimal("1.05")
+    )
 
 
 async def test_lifetime_energy_baseline_restores_for_same_source(hass) -> None:
