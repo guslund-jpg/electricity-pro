@@ -12,12 +12,47 @@ Built on Home Assistant's native Energy platform, Electricity Pro feels like a n
 
 ## Project Vision
 
-Electricity Pro is a provider-aware electricity analytics platform for Home
-Assistant.
+Electricity Pro aims to turn fragmented household electricity data into one
+provider-independent view of usage and cost. It is designed to be:
 
-Its long-term architecture aims to stay broadly provider-friendly, while some
-capabilities may begin with a narrower source requirement when that leads to a
-better and faster product.
+- **P1/HAN meter and dongle independent.** Electricity Pro consumes compatible
+  Home Assistant entities instead of tying its analytics to one meter product.
+  Tibber Pulse, P1IB, HomeWizard P1 Meter, and Athom Homey Energy Dongle are
+  examples of possible sources when their Home Assistant integrations expose
+  measurements with the required meaning and units.
+- **Electricity-supplier independent.** Supplier prices, per-kWh markups, and
+  fixed supplier fees are treated as explicit inputs rather than assumptions
+  about one retailer.
+- **Grid-provider independent.** Variable grid charges, time-of-use schedules,
+  fixed grid fees, and holiday rules can be described without provider-specific
+  calculation branches.
+- **Spot-market independent in its data model.** Live market prices can come
+  from any compatible Home Assistant price entity. Forecast insights currently
+  use Home Assistant's native Nord Pool integration; support for other markets,
+  such as EPEX SPOT, requires a compatible forecast source.
+
+The path from meter to electricity bill differs by country and household.
+Meters, suppliers, grid operators, and spot markets expose different sensors,
+APIs, tariffs, markups, and fixed charges. Regulated taxes and VAT add another
+layer. Electricity Pro normalizes these inputs and combines only components
+whose meaning is known, aiming to get as close as the available data permits to
+the household's true electricity cost.
+
+That cost model supports clearer statistics, better scheduling insights, and
+reliable inputs for Home Assistant automations. Most price and tariff details
+are optional: Electricity Pro remains useful with a compatible power source and
+spot price, which is often the largest time-varying component. Adding the
+applicable supplier, grid, and tax information makes cost-based results more
+complete. Missing components remain explicit rather than being silently
+guessed.
+
+For the most accurate setup, have a recent electricity-supplier bill and grid
+provider bill available during configuration. They usually contain the rates
+and fixed charges needed for the optional pricing fields.
+
+Some capabilities may initially support a narrower source when that allows a
+reliable first implementation, but the underlying contracts should remain
+provider-independent.
 
 ---
 

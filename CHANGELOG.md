@@ -27,6 +27,9 @@
 
 ### Changed
 
+- Clarify the provider-independent vision across meter dongles, electricity
+  suppliers, grid providers, and spot markets, including how optional billing
+  inputs improve cost completeness without silently guessing missing charges.
 - Expand the contributor design principles into concrete guidance for
   electrical semantics, provider boundaries, normalized inputs, pure analytics,
   entity contracts, unavailable data, and backward-compatible evolution.
