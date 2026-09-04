@@ -8,6 +8,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -31,6 +32,15 @@ from custom_components.electricity_pro.sensor import (
     SENSOR_DESCRIPTIONS,
     ElectricityProCheapestWindowAverageEffectivePriceSensor,
     ElectricityProCurrentMarketPriceSensor,
+    _update_next_inexpensive_window_registry,
+)
+from custom_components.electricity_pro.pricing import (
+    PriceComponent,
+    PriceComponentScope,
+    PriceCompleteness,
+    PricingMetadata,
+    PricingStrategy,
+    VatTreatment,
 )
 
 ENTITY_ID = f"sensor.{DOMAIN}_current_power"
@@ -2353,11 +2363,11 @@ async def test_forecast_insight_sensors_become_unavailable_without_forecast_data
 NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID = f"sensor.{DOMAIN}_next_inexpensive_1h_window_start"
 
 
-async def test_next_inexpensive_1h_window_sensor_exposes_qualifying_window(
+async def test_next_inexpensive_sensor_omitted_for_partial_forecast(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """The next inexpensive 1h window sensor should expose the first qualifying window."""
+    """A partial forecast must not expose threshold-based advice."""
     with patch(
         "custom_components.electricity_pro.coordinator.dt_util.now",
         return_value=datetime(2026, 8, 13, 20, 1, tzinfo=UTC),
@@ -2386,17 +2396,14 @@ async def test_next_inexpensive_1h_window_sensor_exposes_qualifying_window(
             ],
         )
 
-    state = hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID)
-    assert state is not None
-    assert state.attributes["device_class"] == "timestamp"
-    assert state.state == "unavailable"
+    assert hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID) is None
 
 
-async def test_next_inexpensive_1h_window_sensor_unavailable_when_no_qualifying_window(
+async def test_next_inexpensive_sensor_omitted_for_incompatible_forecast(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
-    """The next inexpensive 1h window sensor should be unavailable when no window qualifies."""
+    """An incompatible forecast must not create a permanently unavailable entity."""
     with patch(
         "custom_components.electricity_pro.coordinator.dt_util.now",
         return_value=datetime(2026, 8, 13, 20, 1, tzinfo=UTC),
@@ -2420,9 +2427,7 @@ async def test_next_inexpensive_1h_window_sensor_unavailable_when_no_qualifying_
             ],
         )
 
-    state = hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID)
-    assert state is not None
-    assert state.state == "unavailable"
+    assert hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID) is None
 
 
 async def test_next_inexpensive_1h_window_sensor_unavailable_without_threshold(
@@ -2449,3 +2454,63 @@ async def test_next_inexpensive_1h_window_sensor_unavailable_without_threshold(
 
     state = hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID)
     assert state is None
+
+
+async def test_next_inexpensive_sensor_created_for_comparable_complete_forecast(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+) -> None:
+    """A future compatible complete forecast should expose the recommendation."""
+    complete_metadata = PricingMetadata(
+        strategy=PricingStrategy.EXTERNAL_COMPLETE_PRICE,
+        scope=PriceComponentScope(
+            frozenset(PriceComponent),
+            vat=VatTreatment.INCLUDED,
+        ),
+        completeness=PriceCompleteness.COMPLETE,
+    )
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=datetime(2026, 8, 13, 20, 1, tzinfo=UTC),
+    ):
+        await setup_electricity_pro(
+            price_value="0.80",
+            price_completeness=PriceCompleteness.COMPLETE,
+            good_price_threshold=0.65,
+            forecast_price_area="SE3",
+            forecast_currency="SEK",
+            forecast_nordpool_config_entry="complete-forecast-entry-id",
+            forecast_pricing_metadata=complete_metadata,
+            forecast_intervals=[
+                {
+                    "start": "2026-08-13T21:00:00+00:00",
+                    "end": "2026-08-13T22:00:00+00:00",
+                    "price": 600,
+                }
+            ],
+        )
+
+    state = hass.states.get(NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID)
+    assert state is not None
+    assert state.state == "2026-08-13T21:00:00+00:00"
+
+
+def test_next_inexpensive_registry_entry_is_migration_safe(hass) -> None:
+    """Old entries should disable and later restore without losing identity."""
+    entry = MockConfigEntry(domain=DOMAIN, entry_id="migration-entry")
+    entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+    registry_entry = registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "migration-entry_next_inexpensive_1h_window_start",
+        config_entry=entry,
+    )
+
+    _update_next_inexpensive_window_registry(hass, entry, expose=False)
+    assert registry.async_get(registry_entry.entity_id).disabled_by is (
+        er.RegistryEntryDisabler.INTEGRATION
+    )
+
+    _update_next_inexpensive_window_registry(hass, entry, expose=True)
+    assert registry.async_get(registry_entry.entity_id).disabled_by is None

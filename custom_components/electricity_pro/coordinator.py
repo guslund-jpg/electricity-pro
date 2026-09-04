@@ -194,6 +194,7 @@ class ElectricityProCoordinator(
         self._cheapest_2h_window: ForecastWindowInsight | None = None
         self._cheapest_3h_window: ForecastWindowInsight | None = None
         self._next_inexpensive_1h_window: NextInexpensive1hWindowInsight | None = None
+        self._forecast_prices_are_comparable = False
         self._price_direction: ForecastDirectionInsight | None = None
         self._store: Store[dict[str, Any]] = Store(
             hass,
@@ -439,6 +440,11 @@ class ElectricityProCoordinator(
     def next_inexpensive_1h_window(self) -> NextInexpensive1hWindowInsight | None:
         """Return the next upcoming 1-hour window at or below the good price threshold."""
         return self._next_inexpensive_1h_window
+
+    @property
+    def forecast_prices_are_comparable(self) -> bool:
+        """Return whether live and forecast Effective Prices can be compared."""
+        return self._forecast_prices_are_comparable
 
     @property
     def price_direction(self) -> ForecastDirectionInsight | None:
@@ -1107,12 +1113,32 @@ class ElectricityProCoordinator(
             if self._forecast_intervals
             else None
         )
-        prices_are_comparable = bool(
-            forecast_metadata is not None
-            and forecast_metadata.is_complete
-            and provider_data.pricing_metadata is not None
-            and provider_data.pricing_metadata.is_complete
-            and forecast_metadata.scope == provider_data.pricing_metadata.scope
+        effective_forecast_metadata = (
+            effective_price_metadata(
+                forecast_metadata,
+                provider_data.grid_fee_per_kwh,
+                provider_data.energy_tax_per_kwh,
+                provider_data.supplier_markup_per_kwh,
+            )
+            if forecast_metadata is not None
+            else None
+        )
+        effective_live_metadata = (
+            effective_price_metadata(
+                provider_data.pricing_metadata,
+                provider_data.grid_fee_per_kwh,
+                provider_data.energy_tax_per_kwh,
+                provider_data.supplier_markup_per_kwh,
+            )
+            if provider_data.pricing_metadata is not None
+            else None
+        )
+        self._forecast_prices_are_comparable = bool(
+            effective_forecast_metadata is not None
+            and effective_forecast_metadata.is_complete
+            and effective_live_metadata is not None
+            and effective_live_metadata.is_complete
+            and effective_forecast_metadata.scope == effective_live_metadata.scope
         )
         self._next_inexpensive_1h_window = (
             find_next_inexpensive_1h_window(
@@ -1123,7 +1149,7 @@ class ElectricityProCoordinator(
                 grid_fee_at=self._provider.grid_fee_at,
                 energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
                 supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
-                price_is_comparable=prices_are_comparable,
+                price_is_comparable=self._forecast_prices_are_comparable,
             )
             if threshold is not None
             else None

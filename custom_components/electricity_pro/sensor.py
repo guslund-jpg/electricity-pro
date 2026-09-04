@@ -22,6 +22,7 @@ from homeassistant.const import (
     UnitOfPower,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
@@ -67,6 +68,7 @@ _SCHEDULED_SENSOR_UPDATE_INTERVALS = {
     "remaining_cost_today": timedelta(minutes=1),
     "consumption_weighted_average_price_today": timedelta(minutes=5),
 }
+_NEXT_INEXPENSIVE_1H_WINDOW_KEY = "next_inexpensive_1h_window_start"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -509,6 +511,19 @@ async def async_setup_entry(
         CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in entry.options
         or CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in entry.data
     )
+    expose_next_inexpensive_window = (
+        forecast_configured
+        and (
+            CONF_GOOD_PRICE_THRESHOLD in entry.options
+            or CONF_GOOD_PRICE_THRESHOLD in entry.data
+        )
+        and entry.runtime_data.forecast_prices_are_comparable
+    )
+    _update_next_inexpensive_window_registry(
+        hass,
+        entry,
+        expose=expose_next_inexpensive_window,
+    )
     if forecast_configured:
         entities.extend(
             (
@@ -563,10 +578,7 @@ async def async_setup_entry(
             )
         )
 
-        if (
-            CONF_GOOD_PRICE_THRESHOLD in entry.options
-            or CONF_GOOD_PRICE_THRESHOLD in entry.data
-        ):
+        if expose_next_inexpensive_window:
             entities.append(
                 ElectricityProNextInexpensive1hWindowSensor(
                     coordinator=entry.runtime_data,
@@ -1231,7 +1243,7 @@ class ElectricityProNextInexpensive1hWindowSensor(ElectricityProForecastInsightS
         super().__init__(
             coordinator,
             entry,
-            key="next_inexpensive_1h_window_start",
+            key=_NEXT_INEXPENSIVE_1H_WINDOW_KEY,
             name="Next inexpensive 1h window start",
         )
 
@@ -1264,6 +1276,33 @@ class ElectricityProNextInexpensive1hWindowSensor(ElectricityProForecastInsightS
             "price_area": insight.area,
             **_forecast_price_attributes(insight.pricing_metadata),
         }
+
+
+def _update_next_inexpensive_window_registry(
+    hass: HomeAssistant,
+    entry: ElectricityProConfigEntry,
+    *,
+    expose: bool,
+) -> None:
+    """Disable an old unusable entity and restore it when support returns."""
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id(
+        "sensor",
+        DOMAIN,
+        f"{entry.entry_id}_{_NEXT_INEXPENSIVE_1H_WINDOW_KEY}",
+    )
+    if entity_id is None:
+        return
+    registry_entry = registry.async_get(entity_id)
+    if registry_entry is None:
+        return
+    if expose and registry_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION:
+        registry.async_update_entity(entity_id, disabled_by=None)
+    elif not expose and registry_entry.disabled_by is None:
+        registry.async_update_entity(
+            entity_id,
+            disabled_by=er.RegistryEntryDisabler.INTEGRATION,
+        )
 
 
 class ElectricityProPriceDirectionSensor(ElectricityProForecastInsightSensor):
