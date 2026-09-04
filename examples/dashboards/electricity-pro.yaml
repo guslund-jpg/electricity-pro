@@ -71,16 +71,25 @@ views:
             conditions:
               - condition: state
                 entity: binary_sensor.electricity_pro_good_time_to_use_electricity
-                state_not: unavailable
-              - condition: state
-                entity: binary_sensor.electricity_pro_good_time_to_use_electricity
-                state_not: unknown
+                state: "on"
             card:
               type: tile
-              entity: binary_sensor.electricity_pro_good_time_to_use_electricity
+              entity: sensor.electricity_pro_effective_price
               name: Good time to use electricity
-              icon: mdi:lightning-bolt-circle
+              icon: mdi:check-circle-outline
               color: green
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.electricity_pro_good_time_to_use_electricity
+                state: "off"
+            card:
+              type: tile
+              entity: sensor.electricity_pro_effective_price
+              name: Wait for a better price
+              icon: mdi:clock-outline
+              color: amber
 
       - type: heading
         heading: Today
@@ -150,44 +159,6 @@ views:
               icon: mdi:flash-outline
               color: amber
 
-      - type: heading
-        heading: This month
-        icon: mdi:calendar-month
-
-      - type: grid
-        columns: 2
-        square: false
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_energy_this_month
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_energy_this_month
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_energy_this_month
-              name: Energy this month
-              icon: mdi:calendar-month
-              color: blue
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_cost_this_month
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_cost_this_month
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_cost_this_month
-              name: Cost this month
-              icon: mdi:calendar-month-outline
-              color: green
-
   - title: Live
     path: live
     icon: mdi:flash
@@ -226,6 +197,21 @@ views:
               name: Current supplier price
               icon: mdi:currency-usd
               color: green
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_market_price
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_market_price
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_current_market_price
+              name: Current market price
+              icon: mdi:chart-line
+              color: blue
 
           - type: conditional
             conditions:
@@ -286,15 +272,19 @@ views:
             state_not: unknown
         card:
           type: history-graph
-          title: Effective price — last 24 hours
+          title: Market, supplier, and effective price — last 24 hours
           hours_to_show: 24
           entities:
+            - entity: sensor.electricity_pro_current_market_price
+              name: Market price
+            - entity: sensor.electricity_pro_current_price
+              name: Supplier price
             - entity: sensor.electricity_pro_effective_price
               name: Effective price
 
-  - title: Today
-    path: today
-    icon: mdi:calendar-today
+  - title: Statistics
+    path: statistics
+    icon: mdi:calendar-range
     cards:
       - type: heading
         heading: Today’s totals
@@ -367,6 +357,21 @@ views:
           - type: conditional
             conditions:
               - condition: state
+                entity: sensor.electricity_pro_average_power_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_average_power_today
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_average_power_today
+              name: Average power today
+              icon: mdi:chart-areaspline
+              color: blue
+
+          - type: conditional
+            conditions:
+              - condition: state
                 entity: sensor.electricity_pro_peak_power_today
                 state_not: unavailable
               - condition: state
@@ -379,17 +384,36 @@ views:
               icon: mdi:flash-outline
               color: amber
 
-      - type: history-graph
-        title: Power — today
-        hours_to_show: 24
-        entities:
-          - entity: sensor.electricity_pro_current_power
-            name: Current power
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_time_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_time_today
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_peak_power_time_today
+              name: Peak power time today
+              icon: mdi:clock-outline
+              color: amber
 
-  - title: Month
-    path: month
-    icon: mdi:calendar-month
-    cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_consumption_timing_score_yesterday
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_consumption_timing_score_yesterday
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_consumption_timing_score_yesterday
+              name: Consumption timing score yesterday
+              icon: mdi:meter-electric-outline
+              color: green
+
       - type: heading
         heading: This month
         icon: mdi:calendar-month

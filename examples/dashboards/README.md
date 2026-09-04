@@ -6,16 +6,57 @@ enhanced dashboard with richer presentation cards.
 The enhanced dashboard never changes Electricity Pro calculations or entity
 semantics. It is an optional presentation layer only.
 
+## Choose a dashboard
+
+| Example | Choose it when | Dependencies |
+| ------- | -------------- | ------------ |
+| **Standard — recommended** | You want a reliable first setup using native Home Assistant cards | None |
+| **Enhanced** | You want richer cards, combined price charts, and the forward-price chart | Mushroom and ApexCharts Card |
+
+Begin with Standard unless the enhanced presentation is important to you and
+its two frontend dependencies are already installed. Both examples use the same
+Electricity Pro entities and can coexist as separate dashboards.
+
+## Quick installation
+
+HACS installs the Electricity Pro integration but does not create or modify
+Home Assistant dashboards. Installing either example takes about a minute:
+
+1. Open the chosen source file and use GitHub's **Copy raw file** button:
+   - [Standard dashboard YAML](electricity-pro.yaml)
+   - [Enhanced dashboard YAML](electricity-pro-enhanced.yaml)
+2. In Home Assistant, open **Settings → Dashboards → Add dashboard**.
+3. Choose **New dashboard from scratch**, give it a title such as
+   **Electricity Pro**, enable **Show in sidebar**, and create it.
+4. Open the dashboard, select **Edit dashboard**, and take control when
+   prompted.
+5. Open the three-dot menu and select **Raw configuration editor**.
+6. Replace the editor contents with the copied YAML, then save and exit edit
+   mode.
+7. Confirm that the entity IDs match the Electricity Pro entities in your
+   installation.
+
+If a card reports that an entity does not exist, open **Settings → Devices &
+services → Electricity Pro → Entities** and replace that entity ID in the
+dashboard YAML. Home Assistant may assign an alternative suffix when an entity
+name was already in use.
+
 ## Standard dashboard
 
-`electricity-pro.yaml` contains five views:
+`electricity-pro.yaml` contains four views:
 
-- **Overview** — the most important live, daily, and monthly values
-- **Live** — current power, supplier price, Effective Price, and recent history
-- **Today** — daily energy, cost, achieved average price, and peak power
-- **Month** — monthly energy, cost, and peak-hour information
+- **Overview** — the most important live values and today's key figures
+- **Live** — current power, market, supplier, and Effective Price, plus recent
+  history
+- **Statistics** — today's energy, cost, average and peak power, peak time, the
+  previous day's Consumption Timing Score, and this month's energy, cost, and
+  peak-hour information
 - **Forecast** — cheapest upcoming 1h, 2h and 3h windows, their average
   Effective Prices, next inexpensive hour, and near-term price direction
+
+The Overview translates the Good Time binary state into actionable wording:
+**Good time to use electricity** or **Wait for a better price**. Its tile shows
+the current Effective Price rather than the localized `on` or `off` text.
 
 The Overview and Live views present Current Power, Effective Price, and Current
 Cost Rate as green/yellow/red gauges. Their values are examples, not universal
@@ -38,23 +79,6 @@ demand, local currency, electricity contract, and preferred price limits.
 
 The preview is illustrative. Values, language, and visible optional cards depend
 on the entities configured in your Home Assistant installation.
-
-## Installation
-
-These examples are stored in the GitHub repository for copying. HACS installs
-the Electricity Pro integration but does not create or modify Home Assistant
-dashboards.
-
-1. In Home Assistant, open **Settings → Dashboards → Add dashboard**.
-2. Open the new dashboard, select **Edit dashboard**, and take control when
-   prompted.
-3. Open the three-dot menu, select **Raw configuration editor**, and replace
-   its contents with `electricity-pro.yaml`.
-4. Save the configuration and exit edit mode.
-5. Confirm that the entity IDs match your Electricity Pro entities.
-
-Entity IDs may differ if Home Assistant assigned alternative names during
-installation. Replace any entity IDs in the example when necessary.
 
 ## Requirements
 
