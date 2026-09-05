@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-05
+
 ### Added
 
 - Add an opt-in Adaptive mode to Good Time to Use Electricity. It compares the

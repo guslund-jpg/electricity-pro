@@ -75,7 +75,9 @@ configurable grid and fixed-fee models without provider-specific calculation
 branches. v1.3 adds provider-independent daily power statistics, retrospective
 consumption-timing analysis, and recent base-load estimation. v1.4 adds current
 and forecast market-price intelligence, a complete-day Average Market Price
-statistic, and signed net-power and negative-price support. The legacy HACS Nord
+statistic, and signed net-power and negative-price support. v1.5 adds opt-in,
+explainable Adaptive Good Time classification, comparable forecast refinement,
+supplier markup, and total accumulated-energy sources. The legacy HACS Nord
 Pool integration is not required or supported as a forecast source.
 
 ## Who is Electricity Pro for?
@@ -165,7 +167,7 @@ Electricity Pro is evolving in carefully planned stages.
 | **v1.2** | Pricing & Tariff Foundation       | Released          |
 | **v1.3** | Recommendation Intelligence       | Released          |
 | **v1.4** | Market Price Intelligence         | Released          |
-| **v1.5** | Adaptive Price Intelligence       | In development    |
+| **v1.5** | Adaptive Price Intelligence       | Released          |
 | **v1.6** | Production & Bidirectional Energy | Direction defined |
 | **v1.7** | Flexible-Load Recommendations     | Future            |
 | **v1.8** | Storage & Whole-Home Optimisation | Future            |
@@ -270,13 +272,13 @@ grid-tariff settings, and optional Nord Pool and Workday features.
 
 ### Current release
 
-v1.4.1 – Market Price Intelligence maintenance release
+v1.5.0 – Adaptive Price Intelligence
 
 Electricity Pro is actively developed with a clear public roadmap.
 
-The next planned release is v1.5, focused on adaptive, explainable price
-intelligence. The following roadmap phase introduces explicit production,
-import and export energy flows before device-specific optimisation begins.
+The next roadmap phase is v1.6, focused on explicit production, import, and
+export energy flows. Device-specific optimisation follows only after those
+energy-flow and pricing contracts are reliable.
 
 ---
 

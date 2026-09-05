@@ -34,7 +34,7 @@ forecasts, scheduling windows and retrospective recommendations. Planned work is
 sequenced so later optimisation is built on explicit data rather than inferred
 from an incomplete net measurement:
 
-- v1.5: adaptive, explainable good-price intelligence;
+- v1.5: adaptive, explainable good-price intelligence (delivered);
 - v1.6: production, grid import/export and self-consumption foundations;
 - v1.7: advisory EV-charging and heat-pump scheduling; and
 - v1.8: battery scheduling and coordinated whole-home optimisation.
@@ -358,7 +358,7 @@ Planned development areas include:
 ## Development status
 
 Electricity Pro reached its stable release line with v1.0. The current release
-is v1.4.1, the Market Price Intelligence maintenance release.
+is v1.5.0, the Adaptive Price Intelligence release.
 
 Post-1.0 development preserves user-facing entities and configuration wherever
 possible. Any necessary breaking change must be documented with migration
