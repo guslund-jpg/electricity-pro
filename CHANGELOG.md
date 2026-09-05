@@ -27,6 +27,8 @@
 
 ### Changed
 
+- Place the supplier-markup field directly after the Nord Pool forecast source
+  instead of inside the grid-tariff fields in both setup paths.
 - Clarify the provider-independent vision across meter dongles, electricity
   suppliers, grid providers, and spot markets, including how optional billing
   inputs improve cost completeness without silently guessing missing charges.

@@ -6,7 +6,10 @@ from homeassistant import config_entries, data_entry_flow
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.electricity_pro.config_flow import _tibber_settings_schema
+from custom_components.electricity_pro.config_flow import (
+    _entity_schema,
+    _tibber_settings_schema,
+)
 from custom_components.electricity_pro.const import (
     CONF_ADAPTIVE_PRICE_CEILING,
     CONF_ADAPTIVE_TARGET_PERCENTILE,
@@ -72,6 +75,16 @@ def test_tibber_settings_offer_optional_nordpool_forecast() -> None:
     keys = [key.schema for key in _tibber_settings_schema().schema]
 
     assert keys[0] == CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+    assert keys[1] == CONF_SUPPLIER_MARKUP_PER_KWH
+    assert keys[2] == CONF_GRID_FEE_PER_KWH
+
+
+def test_custom_settings_group_forecast_with_supplier_markup() -> None:
+    """The custom form should keep forecast markup beside its source."""
+    keys = [key.schema for key in _entity_schema().schema]
+
+    assert keys[0] == CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+    assert keys[1] == CONF_SUPPLIER_MARKUP_PER_KWH
 
 
 async def test_tibber_initial_setup_stores_nordpool_forecast(hass) -> None:
@@ -275,10 +288,9 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
         keys.index(CONF_GRID_FEE_PER_KWH) + 1 : keys.index(
             CONF_FIXED_SUPPLIER_FEE_MONTHLY
         )
-    ] == [
-        CONF_SUPPLIER_MARKUP_PER_KWH,
-        CONF_GRID_FEE_HIGH_PER_KWH,
-        CONF_GRID_FEE_HIGH_START,
+        ] == [
+            CONF_GRID_FEE_HIGH_PER_KWH,
+            CONF_GRID_FEE_HIGH_START,
         CONF_GRID_FEE_HIGH_END,
         CONF_GRID_FEE_HIGH_SEASON_START,
         CONF_GRID_FEE_HIGH_SEASON_END,
