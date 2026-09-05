@@ -276,14 +276,14 @@ def _tibber_settings_schema(
             forecast_entry_key: selector.ConfigEntrySelector(
                 selector.ConfigEntrySelectorConfig(integration="nordpool")
             ),
-            grid_fee_key: selector.NumberSelector(
+            supplier_markup_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
                     step=0.001,
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
-            supplier_markup_key: selector.NumberSelector(
+            grid_fee_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
                     step=0.001,
@@ -584,6 +584,13 @@ def _entity_schema(
                     integration="nordpool",
                 )
             ),
+            supplier_markup_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
             power_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
@@ -644,13 +651,6 @@ def _entity_schema(
                 )
             ),
             grid_fee_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            supplier_markup_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
                     step=0.001,
