@@ -329,7 +329,9 @@ VAT, and time-dependent grid component must be projected correctly.
 
 ---
 
-### v1.5 — Adaptive Price Intelligence 🚧
+### v1.5 — Adaptive Price Intelligence ✅
+
+Completed.
 
 #### Goal
 
@@ -337,7 +339,7 @@ Replace a purely fixed definition of a good electricity price with an optional,
 explainable classification that can adapt to changing market conditions while
 preserving the existing fixed threshold.
 
-Delivered in the unreleased development line:
+Delivered:
 
 - retained the fixed Good Price threshold as a backward-compatible mode;
 - added an adaptive mode based on compact, comparable historical price summaries;
@@ -349,9 +351,8 @@ Delivered in the unreleased development line:
 - reconciled roadmap, sensor and architecture documentation with delivered
   capabilities.
 
-Supplier markup, total accumulated-energy sources and the expanded Standard
-dashboard are already present in the unreleased development line and form part
-of the v1.5 release baseline.
+Supplier markup, total accumulated-energy sources, and the expanded Standard
+dashboard also form part of the v1.5 release.
 
 The adaptive classification contract is defined by
 [ADR-0012](docs/adr/0012-adaptive-good-price-classification.md).
