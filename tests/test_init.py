@@ -7,6 +7,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
@@ -87,6 +88,47 @@ async def test_setup_and_unload_entry(
     if state is not None:
         assert state.state == "unavailable"
         assert state.attributes.get("restored") is True
+
+
+async def test_reset_monthly_energy_action_targets_selected_entry(
+    hass, setup_electricity_pro,
+) -> None:
+    """Only the selected loaded coordinator receives a confirmed reset."""
+    entry = await setup_electricity_pro()
+    with patch.object(entry.runtime_data, "async_reset_monthly_energy") as reset:
+        await hass.services.async_call(
+            DOMAIN, "reset_monthly_energy",
+            {"config_entry_id": entry.entry_id, "confirm_reset": True},
+            blocking=True,
+        )
+        reset.assert_awaited_once()
+
+
+@pytest.mark.parametrize("confirmation", [{}, {"confirm_reset": False}])
+async def test_reset_monthly_energy_requires_confirmation(
+    hass, setup_electricity_pro, confirmation,
+) -> None:
+    """Missing or false confirmation must not reset anything."""
+    entry = await setup_electricity_pro()
+    with patch.object(entry.runtime_data, "async_reset_monthly_energy") as reset:
+        with pytest.raises(vol.Invalid):
+            await hass.services.async_call(
+                DOMAIN, "reset_monthly_energy",
+                {"config_entry_id": entry.entry_id, **confirmation}, blocking=True,
+            )
+        reset.assert_not_awaited()
+
+
+async def test_reset_monthly_energy_rejects_wrong_entry(hass, setup_electricity_pro):
+    """Never apply the action to an unrelated configuration."""
+    entry = await setup_electricity_pro()
+    with patch.object(entry.runtime_data, "async_reset_monthly_energy") as reset:
+        with pytest.raises(ServiceValidationError):
+            await hass.services.async_call(
+                DOMAIN, "reset_monthly_energy",
+                {"config_entry_id": "missing", "confirm_reset": True}, blocking=True,
+            )
+        reset.assert_not_awaited()
 
 
 async def test_get_market_price_forecast_action_returns_normalized_series(

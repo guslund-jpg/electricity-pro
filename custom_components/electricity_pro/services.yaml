@@ -1,3 +1,21 @@
+reset_monthly_energy:
+  name: Reset monthly energy
+  description: >-
+    Discards the selected configuration's monthly energy total and starts at zero
+    from the current reading. The remainder of this month is partial. Daily
+    energy, costs, meter readings and Recorder history are not reset.
+  fields:
+    config_entry_id:
+      name: Electricity Pro configuration
+      required: true
+      selector:
+        config_entry:
+          integration: electricity_pro
+    confirm_reset:
+      name: Confirm reset of monthly energy
+      required: true
+      selector:
+        boolean:
 get_market_price_forecast:
   name: Get market price forecast
   description: >-

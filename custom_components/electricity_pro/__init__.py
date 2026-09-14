@@ -58,6 +58,27 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         schema=_GET_MARKET_PRICE_FORECAST_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
+    async def async_reset_monthly_energy(call: ServiceCall) -> None:
+        """Reset monthly energy only for an explicitly selected loaded entry."""
+        entry = hass.config_entries.async_get_entry(call.data[ATTR_CONFIG_ENTRY_ID])
+        if entry is None or entry.domain != DOMAIN:
+            raise ServiceValidationError("Electricity Pro config entry not found")
+        if entry.state is not ConfigEntryState.LOADED:
+            raise ServiceValidationError("Electricity Pro config entry is not loaded")
+        try:
+            await entry.runtime_data.async_reset_monthly_energy()
+        except ValueError as err:
+            raise ServiceValidationError(str(err)) from err
+
+    hass.services.async_register(
+        DOMAIN,
+        "reset_monthly_energy",
+        async_reset_monthly_energy,
+        schema=vol.Schema({
+            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+            vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
+        }),
+    )
     return True
 
 

@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- Associate monthly energy baselines with their source and accumulation mode.
+  Add a confirmed, per-configuration reset action for incorrect monthly energy;
+  expose partial/unverified coverage without deleting Recorder history.
+  See [monthly energy recovery](docs/monthly-energy-recovery.md).
+
 - Show Tibber forecast VAT and markup on a separate step only when Nord Pool
   forecasting is selected; retain saved values when forecasts are disabled.
 
