@@ -66,6 +66,8 @@ from .timing_score import TimingScoreResult
 _AVERAGE_POWER_UPDATE_INTERVAL = timedelta(minutes=5)
 _CURRENCY_QUANTUM = Decimal("0.01")
 _SCHEDULED_SENSOR_UPDATE_INTERVALS = {
+    "total_cost_today": timedelta(minutes=1),
+    "total_cost_this_month": timedelta(minutes=1),
     "remaining_cost_today": timedelta(minutes=1),
     "consumption_weighted_average_price_today": timedelta(minutes=5),
 }
@@ -376,6 +378,34 @@ SENSOR_DESCRIPTIONS: tuple[
         value_fn=lambda data: data.monthly_peak_hour_time,
         available_fn=lambda data: data.monthly_peak_hour_time is not None,
         required_config_key=CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="total_cost_today",
+        name="Total cost estimate today",
+        icon="mdi:cash-multiple",
+        device_class=SensorDeviceClass.MONETARY,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=2,
+        value_fn=lambda data: data.household_cost_today,
+        unit_fn=lambda data: data.household_cost_unit,
+        available_fn=lambda data: (
+            data.household_cost_today is not None and data.household_cost_unit is not None
+        ),
+        required_config_keys=(CONF_ENERGY_ENTITY, CONF_PRICE_ENTITY),
+    ),
+    ElectricityProSensorEntityDescription(
+        key="total_cost_this_month",
+        name="Total cost estimate this month",
+        icon="mdi:cash-multiple",
+        device_class=SensorDeviceClass.MONETARY,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=2,
+        value_fn=lambda data: data.household_cost_this_month,
+        unit_fn=lambda data: data.household_cost_unit,
+        available_fn=lambda data: (
+            data.household_cost_this_month is not None and data.household_cost_unit is not None
+        ),
+        required_config_keys=(CONF_ENERGY_ENTITY, CONF_PRICE_ENTITY),
     ),
     ElectricityProSensorEntityDescription(
         key="cost_today",
@@ -726,6 +756,26 @@ class ElectricityProSensor(
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Expose source coverage and VAT requirements."""
+        if self.entity_description.key in {"total_cost_today", "total_cost_this_month"}:
+            data = self.coordinator.data
+            monthly = self.entity_description.key == "total_cost_this_month"
+            return {
+                "source": "local_household_estimate",
+                "coverage": "partial",
+                "variable_cost": _decimal_string(
+                    data.household_variable_month if monthly else data.household_variable_today
+                ),
+                "accrued_fixed_fees": _decimal_string(
+                    data.household_fixed_month if monthly else data.household_fixed_today
+                ),
+                "priced_energy_kwh": _decimal_string(
+                    data.household_priced_energy_month if monthly else data.household_priced_energy_today
+                ),
+                "missing_components": list(data.household_missing_fees),
+                "excluded_charges": ["demand_charges", "other_unconfigured_charges"],
+                "fixed_fee_method": "calendar_day_share_accrued_to_now",
+                "fixed_fee_coverage": "calendar_month_to_now" if monthly else "local_midnight_to_now",
+            }
         if self.entity_description.key == "current_supplier_price":
             if self.native_value is None:
                 return {"price_completeness": "unknown"}

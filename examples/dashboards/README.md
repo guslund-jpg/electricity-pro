@@ -18,6 +18,11 @@ does not rewrite that dashboard. Sensor entity IDs and calculations are unchange
 
 ## Choose a dashboard
 
+Household cost estimates are shown before the supplier-only breakdown.
+They include observed effective variable costs plus accrued fixed fees; notes
+identify partial periods, missing settings and excluded demand charges.
+See [household cost estimates](../../docs/household-cost-estimates.md).
+
 | Example | Choose it when | Dependencies |
 | ------- | -------------- | ------------ |
 | **Standard — recommended** | You want a reliable first setup using native Home Assistant cards | None |

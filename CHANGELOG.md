@@ -4,6 +4,12 @@
 
 ### Fixed
 
+- Add separate daily/monthly household cost estimates combining observed
+  effective variable costs with accrued fixed supplier/grid fees. Preserve
+  supplier totals and make household estimates primary in both dashboards.
+  Missing settings and excluded demand charges remain explicit.
+  See [household cost estimates](docs/household-cost-estimates.md).
+
 - Clarify supplier-cost labels and effective-price definitions in both example
   dashboards. Show partial cost coverage, monthly tracking/reset times, and
   warnings for unverified legacy monthly energy.

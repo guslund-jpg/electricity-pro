@@ -105,6 +105,14 @@ views:
 
       - type: markdown
         content: >-
+          **Total cost estimate** combines observed effective variable costs with
+          fixed fees accrued from midnight. It is partial, not a bill.
+          Demand charges and other unconfigured charges are excluded.
+          {% set priced = state_attr('sensor.electricity_pro_total_cost_estimate_today', 'priced_energy_kwh') %}
+          {% if priced is not none %}Variable cost covers {{ priced | float(0) | round(2) }} kWh.{% endif %}
+          {% set missing = state_attr('sensor.electricity_pro_total_cost_estimate_today', 'missing_components') or [] %}
+          {% if missing %}Missing settings: {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
+
           Supplier costs include supplier markup and VAT, but exclude grid charges
           and fixed fees. The effective average also includes configured variable
           grid charges and energy tax.
@@ -139,6 +147,22 @@ views:
               name: Energy today
               icon: mdi:lightning-bolt
               icon_color: blue
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_total_cost_estimate_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_total_cost_estimate_today
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_total_cost_estimate_today
+              name: Total cost estimate today
+              icon: mdi:cash-multiple
+              icon_color: green
               layout: vertical
 
           - type: conditional
@@ -194,6 +218,15 @@ views:
 
       - type: markdown
         content: >-
+          **Monthly total cost estimate** combines observed effective variable
+          costs with fixed fees accrued from the start of this calendar month.
+          Variable costs may cover a shorter period. Demand charges and other
+          unconfigured charges are excluded.
+          {% set priced = state_attr('sensor.electricity_pro_total_cost_estimate_this_month', 'priced_energy_kwh') %}
+          {% if priced is not none %}Variable cost covers {{ priced | float(0) | round(2) }} kWh.{% endif %}
+          {% set missing = state_attr('sensor.electricity_pro_total_cost_estimate_this_month', 'missing_components') or [] %}
+          {% if missing %}Missing settings: {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
+
           Monthly supplier cost excludes grid charges and fixed fees.
 
           {% set coverage = state_attr('sensor.electricity_pro_energy_this_month', 'coverage') %}
@@ -232,6 +265,22 @@ views:
               name: Energy this month
               icon: mdi:calendar-month
               icon_color: blue
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_total_cost_estimate_this_month
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_total_cost_estimate_this_month
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_total_cost_estimate_this_month
+              name: Total cost estimate this month
+              icon: mdi:calendar-month-outline
+              icon_color: green
               layout: vertical
 
           - type: conditional

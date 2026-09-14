@@ -49,6 +49,7 @@ from .calculations import (
     effective_price_metadata,
 )
 from .cost_ledger import CostLedger
+from .household_cost import accrued_fixed_fees
 from .const import (
     CONF_ENERGY_TAX_PER_KWH,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
@@ -874,26 +875,50 @@ class ElectricityProCoordinator(
         cost_unit = data.accumulated_cost_today_unit
         settings = {**self._entry.data, **self._entry.options}
         use_local_cost = not settings.get("accumulated_cost_today_entity")
+        supplier = calculate_supplier_price(
+            data.current_price, data.pricing_metadata, data.supplier_markup_per_kwh,
+        )
+        effective = calculate_declared_effective_price(
+            data.current_price, data.pricing_metadata, data.grid_fee_per_kwh,
+            data.energy_tax_per_kwh, data.supplier_markup_per_kwh,
+        )
+        if data.pricing_metadata is None or effective_price_metadata(
+            data.pricing_metadata, data.grid_fee_per_kwh,
+            data.energy_tax_per_kwh, data.supplier_markup_per_kwh,
+        ).completeness.value != "complete":
+            effective = None
+        before = self._local_costs.as_dict()
+        self._local_costs.update(
+            now, source_energy_kwh, supplier, effective,
+            _currency_from_price_unit(data.current_price_unit),
+            lifetime=self._provider.energy_source_is_lifetime_total,
+        )
+        ledger = self._local_costs
+        should_save |= before != ledger.as_dict()
+        fixed_day, fixed_month, missing_fees = accrued_fixed_fees(
+            now, data.fixed_supplier_fee_this_month, data.fixed_grid_fee_this_month,
+        )
+        known_day = ledger.unit is not None and (
+            ledger.daily_energy > 0 or (effective is not None and source_energy_kwh is not None)
+        )
+        known_month = ledger.unit is not None and (
+            ledger.monthly_energy > 0 or (effective is not None and source_energy_kwh is not None)
+        )
+        updates.update(
+            household_cost_today=ledger.daily_effective + fixed_day if known_day else None,
+            household_cost_this_month=ledger.monthly_effective + fixed_month if known_month else None,
+            household_cost_unit=ledger.unit,
+            household_variable_today=ledger.daily_effective,
+            household_variable_month=ledger.monthly_effective,
+            household_fixed_today=fixed_day,
+            household_fixed_month=fixed_month,
+            household_priced_energy_today=ledger.daily_energy,
+            household_priced_energy_month=ledger.monthly_energy,
+            household_missing_fees=(
+                missing_fees + (("complete_variable_price",) if effective is None else ())
+            ),
+        )
         if use_local_cost:
-            supplier = calculate_supplier_price(
-                data.current_price, data.pricing_metadata, data.supplier_markup_per_kwh,
-            )
-            effective = calculate_declared_effective_price(
-                data.current_price, data.pricing_metadata, data.grid_fee_per_kwh,
-                data.energy_tax_per_kwh, data.supplier_markup_per_kwh,
-            )
-            if data.pricing_metadata is None or effective_price_metadata(
-                data.pricing_metadata, data.grid_fee_per_kwh,
-                data.energy_tax_per_kwh, data.supplier_markup_per_kwh,
-            ).completeness.value != "complete":
-                effective = None
-            before = self._local_costs.as_dict()
-            self._local_costs.update(
-                now, source_energy_kwh, supplier, effective,
-                _currency_from_price_unit(data.current_price_unit),
-                lifetime=self._provider.energy_source_is_lifetime_total,
-            )
-            ledger = self._local_costs
             known = ledger.unit is not None and (
                 ledger.monthly_supplier_energy > 0
                 or (supplier is not None and source_energy_kwh is not None)

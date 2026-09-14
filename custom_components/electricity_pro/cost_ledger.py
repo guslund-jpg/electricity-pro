@@ -18,6 +18,8 @@ class CostLedger:
         self.daily_supplier = Decimal(0)
         self.monthly_supplier = Decimal(0)
         self.daily_effective = Decimal(0)
+        self.monthly_effective = Decimal(0)
+        self.monthly_energy = Decimal(0)
         self.daily_energy = Decimal(0)
         self.daily_supplier_energy = Decimal(0)
         self.monthly_supplier_energy = Decimal(0)
@@ -43,6 +45,7 @@ class CostLedger:
         if self.month != self.day[:7]:
             self.month = self.day[:7]
             self.monthly_supplier = self.monthly_supplier_energy = Decimal(0)
+            self.monthly_effective = self.monthly_energy = Decimal(0)
         if unit is None:
             supplier = effective = None
         if meter is None or not meter.is_finite() or meter < 0:
@@ -106,9 +109,13 @@ class CostLedger:
                         if start.date().isoformat() == self.day:
                             self.daily_supplier += energy * sp
                             self.daily_supplier_energy += energy
-                    if ep is not None and ep.is_finite() and start.date().isoformat() == self.day:
-                        self.daily_effective += energy * ep
-                        self.daily_energy += energy
+                    if ep is not None and ep.is_finite():
+                        if start.date().isoformat()[:7] == self.month:
+                            self.monthly_effective += energy * ep
+                            self.monthly_energy += energy
+                        if start.date().isoformat() == self.day:
+                            self.daily_effective += energy * ep
+                            self.daily_energy += energy
                     start = stop
             self._baseline(now, meter, supplier, effective)
         elif not self._segments or self._segments[-1][1:] != (supplier, effective):
@@ -128,6 +135,7 @@ class CostLedger:
             **{name: str(getattr(self, name)) for name in (
                 "daily_supplier", "monthly_supplier", "daily_effective",
                 "daily_energy", "daily_supplier_energy", "monthly_supplier_energy",
+                "monthly_effective", "monthly_energy",
             )},
         }
 
@@ -143,8 +151,19 @@ class CostLedger:
         for key in (
             "daily_supplier", "monthly_supplier", "daily_effective",
             "daily_energy", "daily_supplier_energy", "monthly_supplier_energy",
+            "monthly_effective", "monthly_energy",
         ):
-            value = Decimal(data[key])
+            if key in ("monthly_effective", "monthly_energy") and key not in data:
+                # Keep the known current day as partial monthly coverage;
+                # never infer earlier days from supplier-only totals.
+                same_month = (
+                    isinstance(data.get("day"), str)
+                    and data["day"][:7] == data.get("month")
+                )
+                daily_key = "daily_effective" if key == "monthly_effective" else "daily_energy"
+                value = Decimal(data.get(daily_key, "0") if same_month else "0")
+            else:
+                value = Decimal(data[key])
             if not value.is_finite() or ("energy" in key and value < 0):
                 raise ValueError("Invalid cost totals")
             setattr(ledger, key, value)

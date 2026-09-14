@@ -45,6 +45,29 @@ async def test_dashboard_coverage_notes_render(hass, coverage) -> None:
         assert "Supplier cost today" in names
         assert "Supplier cost this month" in names
         assert "Cost today" not in names
+        entity_cards = [
+            item["entity"] for item in _walk(dashboard)
+            if isinstance(item, dict) and item.get("type") in {"tile", "custom:mushroom-entity-card"}
+        ]
+        for suffix in ("today", "this_month"):
+            assert entity_cards.index("sensor.electricity_pro_total_cost_estimate_" + suffix) < entity_cards.index(
+                "sensor.electricity_pro_cost_" + suffix
+            )
+
+
+async def test_household_dashboard_notes_explain_missing_fixed_fees(hass) -> None:
+    hass.states.async_set("sensor.electricity_pro_total_cost_estimate_today", "2", {
+        "missing_components": ["fixed_supplier_fee", "fixed_grid_fee"],
+    })
+    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+        dashboard = yaml.safe_load(path.read_text())
+        rendered = "\n".join(
+            Template(item["content"], hass).async_render(parse_result=False)
+            for item in _walk(dashboard)
+            if isinstance(item, dict) and item.get("type") == "markdown"
+        )
+        assert "fixed supplier fee, fixed grid fee" in rendered
+        assert "Demand charges" in rendered
 
 
 async def test_dashboard_notes_do_not_call_external_costs_local_estimates(hass) -> None:

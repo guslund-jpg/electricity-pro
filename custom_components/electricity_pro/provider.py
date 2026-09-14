@@ -96,6 +96,16 @@ class ElectricityProData:
     local_priced_energy_today: Decimal | None = None
     local_supplier_energy_today: Decimal | None = None
     local_supplier_energy_month: Decimal | None = None
+    household_cost_today: Decimal | None = None
+    household_cost_this_month: Decimal | None = None
+    household_cost_unit: str | None = None
+    household_variable_today: Decimal | None = None
+    household_variable_month: Decimal | None = None
+    household_fixed_today: Decimal | None = None
+    household_fixed_month: Decimal | None = None
+    household_priced_energy_today: Decimal | None = None
+    household_priced_energy_month: Decimal | None = None
+    household_missing_fees: tuple[str, ...] = ()
 
 
 class ElectricityProEntityProvider:
