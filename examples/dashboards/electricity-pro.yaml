@@ -97,29 +97,20 @@ views:
 
       - type: markdown
         content: >-
-          **Total cost estimate** combines observed effective variable costs with
-          fixed fees accrued from midnight. It is partial, not a bill.
-          Demand charges and other unconfigured charges are excluded.
-          {% set priced = state_attr('sensor.electricity_pro_total_cost_estimate_today', 'priced_energy_kwh') %}
-          {% if priced is not none %}Variable cost covers {{ priced | float(0) | round(2) }} kWh.{% endif %}
-          {% set missing = state_attr('sensor.electricity_pro_total_cost_estimate_today', 'missing_components') or [] %}
-          {% if missing %}Missing settings: {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
-
-          Supplier costs include supplier markup and VAT, but exclude grid charges
-          and fixed fees. The effective average also includes configured variable
-          grid charges and energy tax.
-
-          {% if state_attr('sensor.electricity_pro_cost_today', 'source') == 'local_estimate' %}
-          **Partial cost estimate:** based on
-          {{ state_attr('sensor.electricity_pro_cost_today', 'priced_energy_kwh') | float(0) | round(2) }}
-          kWh of priced consumption, not necessarily all Energy today.
+          {% set total = 'sensor.electricity_pro_total_cost_estimate_today' %}
+          {% set supplier = 'sensor.electricity_pro_cost_today' %}
+          {% set priced = state_attr(total, 'priced_energy_kwh') %}
+          {% if priced is not none %}
+          **Partial estimate:** {{ priced | float(0) | round(2) }} kWh priced.
+          {% elif state_attr(supplier, 'source') == 'local_estimate' %}
+          **Partial supplier estimate:** {{ state_attr(supplier, 'priced_energy_kwh') | float(0) | round(2) }} kWh priced.
           {% endif %}
+          Total includes fixed fees accrued since midnight.
 
-          {% if state_attr('sensor.electricity_pro_consumption_weighted_average_price_today', 'source') == 'local_estimate' %}
-          The effective average covers
-          {{ state_attr('sensor.electricity_pro_consumption_weighted_average_price_today', 'priced_energy_kwh') | float(0) | round(2) }}
-          kWh with complete effective prices.
-          {% endif %}
+          {% set missing = state_attr(total, 'missing_components') or [] %}
+          {% if missing %}**Missing:** {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
+          Demand/other unconfigured charges excluded.
+          [Cost & coverage details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/household-cost-estimates.md)
 
       - type: grid
         columns: 2
@@ -303,29 +294,20 @@ views:
 
       - type: markdown
         content: >-
-          **Total cost estimate** combines observed effective variable costs with
-          fixed fees accrued from midnight. It is partial, not a bill.
-          Demand charges and other unconfigured charges are excluded.
-          {% set priced = state_attr('sensor.electricity_pro_total_cost_estimate_today', 'priced_energy_kwh') %}
-          {% if priced is not none %}Variable cost covers {{ priced | float(0) | round(2) }} kWh.{% endif %}
-          {% set missing = state_attr('sensor.electricity_pro_total_cost_estimate_today', 'missing_components') or [] %}
-          {% if missing %}Missing settings: {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
-
-          Supplier costs include supplier markup and VAT, but exclude grid charges
-          and fixed fees. The effective average also includes configured variable
-          grid charges and energy tax.
-
-          {% if state_attr('sensor.electricity_pro_cost_today', 'source') == 'local_estimate' %}
-          **Partial cost estimate:** based on
-          {{ state_attr('sensor.electricity_pro_cost_today', 'priced_energy_kwh') | float(0) | round(2) }}
-          kWh of priced consumption, not necessarily all Energy today.
+          {% set total = 'sensor.electricity_pro_total_cost_estimate_today' %}
+          {% set supplier = 'sensor.electricity_pro_cost_today' %}
+          {% set priced = state_attr(total, 'priced_energy_kwh') %}
+          {% if priced is not none %}
+          **Partial estimate:** {{ priced | float(0) | round(2) }} kWh priced.
+          {% elif state_attr(supplier, 'source') == 'local_estimate' %}
+          **Partial supplier estimate:** {{ state_attr(supplier, 'priced_energy_kwh') | float(0) | round(2) }} kWh priced.
           {% endif %}
+          Total includes fixed fees accrued since midnight.
 
-          {% if state_attr('sensor.electricity_pro_consumption_weighted_average_price_today', 'source') == 'local_estimate' %}
-          The effective average covers
-          {{ state_attr('sensor.electricity_pro_consumption_weighted_average_price_today', 'priced_energy_kwh') | float(0) | round(2) }}
-          kWh with complete effective prices.
-          {% endif %}
+          {% set missing = state_attr(total, 'missing_components') or [] %}
+          {% if missing %}**Missing:** {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
+          Demand/other unconfigured charges excluded.
+          [Cost & coverage details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/household-cost-estimates.md)
 
       - type: grid
         columns: 2
@@ -472,34 +454,28 @@ views:
 
       - type: markdown
         content: >-
-          **Monthly total cost estimate** combines observed effective variable
-          costs with fixed fees accrued from the start of this calendar month.
-          Variable costs may cover a shorter period. Demand charges and other
-          unconfigured charges are excluded.
-          {% set priced = state_attr('sensor.electricity_pro_total_cost_estimate_this_month', 'priced_energy_kwh') %}
-          {% if priced is not none %}Variable cost covers {{ priced | float(0) | round(2) }} kWh.{% endif %}
-          {% set missing = state_attr('sensor.electricity_pro_total_cost_estimate_this_month', 'missing_components') or [] %}
-          {% if missing %}Missing settings: {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
-
-          Monthly supplier cost excludes grid charges and fixed fees.
+          {% set total = 'sensor.electricity_pro_total_cost_estimate_this_month' %}
+          {% set supplier = 'sensor.electricity_pro_cost_this_month' %}
+          {% set priced = state_attr(total, 'priced_energy_kwh') %}
+          {% if priced is not none %}
+          **Partial estimate:** {{ priced | float(0) | round(2) }} kWh priced.
+          {% elif state_attr(supplier, 'source') == 'local_estimate' %}
+          **Partial supplier estimate:** {{ state_attr(supplier, 'priced_energy_kwh') | float(0) | round(2) }} kWh priced.
+          {% endif %}
+          Total includes fixed fees accrued since month start.
 
           {% set coverage = state_attr('sensor.electricity_pro_energy_this_month', 'coverage') %}
           {% if coverage == 'partial' %}
-          **Partial monthly energy:** counted since tracking started or was reset.
           {% set started = as_datetime(state_attr('sensor.electricity_pro_energy_this_month', 'tracking_started_at'), none) %}
-          {% if started is not none %}
-          Started {{ as_local(started).strftime('%d %b %Y, %H:%M') }}.
-          {% endif %}
+          **Partial monthly energy**{% if started is not none %} since {{ as_local(started).strftime('%d %b, %H:%M') }}{% endif %}.
           {% elif coverage == 'unverified' %}
-          **Unverified monthly energy:** restored from an older version.
-          Check the total before relying on it.
+          **Unverified monthly energy — check total.**
           {% endif %}
 
-          {% if state_attr('sensor.electricity_pro_cost_this_month', 'source') == 'local_estimate' %}
-          **Partial monthly cost estimate:** covers
-          {{ state_attr('sensor.electricity_pro_cost_this_month', 'priced_energy_kwh') | float(0) | round(2) }}
-          kWh of priced consumption. Energy and cost may cover different periods.
-          {% endif %}
+          {% set missing = state_attr(total, 'missing_components') or [] %}
+          {% if missing %}**Missing:** {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
+          Demand/other unconfigured charges excluded.
+          [Cost & coverage details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/household-cost-estimates.md)
 
       - type: grid
         columns: 2

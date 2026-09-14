@@ -35,10 +35,10 @@ async def test_dashboard_coverage_notes_render(hass, coverage) -> None:
             str(Template(card["content"], hass).async_render(parse_result=False))
             for card in cards
         )
-        assert "Partial cost estimate" in rendered
+        assert "Partial supplier estimate" in rendered
         assert "0.2" in rendered
-        assert "0.18" in rendered
-        assert "Energy and cost may cover different periods" in rendered
+        assert "Cost & coverage details" in rendered
+        assert "since month start" in rendered
         assert ("Partial monthly energy" in rendered) == (coverage == "partial")
         assert ("Unverified monthly energy" in rendered) == (coverage == "unverified")
         names = {item.get("name") for item in _walk(dashboard) if isinstance(item, dict)}
@@ -67,7 +67,35 @@ async def test_household_dashboard_notes_explain_missing_fixed_fees(hass) -> Non
             if isinstance(item, dict) and item.get("type") == "markdown"
         )
         assert "fixed supplier fee, fixed grid fee" in rendered
-        assert "Demand charges" in rendered
+        assert "Demand/other unconfigured charges excluded" in rendered
+
+
+async def test_cost_notes_remain_compact_and_prioritize_household_coverage(hass) -> None:
+    """Keep the normal household summaries short instead of repeating the guide."""
+    for suffix in ("today", "this_month"):
+        hass.states.async_set("sensor.electricity_pro_total_cost_estimate_" + suffix, "25", {
+            "priced_energy_kwh": "2.09", "missing_components": [],
+        })
+        hass.states.async_set("sensor.electricity_pro_cost_" + suffix, "4", {
+            "source": "local_estimate", "priced_energy_kwh": "1.23",
+        })
+    hass.states.async_set("sensor.electricity_pro_energy_this_month", "2.47", {
+        "coverage": "partial", "tracking_started_at": "2026-09-14T21:08:00+02:00",
+    })
+    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+        dashboard = yaml.safe_load(path.read_text())
+        notes = [
+            item for item in _walk(dashboard)
+            if isinstance(item, dict) and item.get("type") == "markdown"
+            and "Cost & coverage details" in item.get("content", "")
+        ]
+        assert len(notes) >= 2
+        for note in notes:
+            text = Template(note["content"], hass).async_render(parse_result=False)
+            assert "2.09 kWh priced" in text
+            assert "1.23" not in text
+            assert len(text.split()) <= 55
+            assert "docs/household-cost-estimates.md" in text
 
 
 async def test_dashboard_notes_do_not_call_external_costs_local_estimates(hass) -> None:
@@ -78,8 +106,8 @@ async def test_dashboard_notes_do_not_call_external_costs_local_estimates(hass) 
         for card in _walk(dashboard):
             if isinstance(card, dict) and card.get("type") == "markdown":
                 rendered = Template(card["content"], hass).async_render(parse_result=False)
-                assert "Partial cost estimate" not in rendered
-                assert "Partial monthly cost estimate" not in rendered
+                assert "Partial estimate" not in rendered
+                assert "Partial supplier estimate" not in rendered
                 assert "Unverified monthly energy" not in rendered
 
 
