@@ -124,6 +124,38 @@ _GOOD_PRICE_MODE_OPTIONS = [
 ]
 
 
+def _own_source_entities(hass: HomeAssistant | None) -> list[str]:
+    """Identify our outputs by registry ownership, including renamed entities."""
+    if hass is None:
+        return []
+    return [
+        entity.entity_id
+        for entity in er.async_get(hass).entities.values()
+        if entity.platform == DOMAIN
+    ]
+
+
+def _source_input_errors(
+    hass: HomeAssistant, user_input: dict[str, Any]
+) -> dict[str, str]:
+    """Prevent our outputs from feeding back into source inputs."""
+    own_entities = set(_own_source_entities(hass))
+    source_fields = (
+        CONF_POWER_ENTITY, CONF_PRICE_ENTITY, CONF_ENERGY_ENTITY,
+        CONF_ACCUMULATED_COST_TODAY_ENTITY,
+        CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+        CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
+        CONF_CURRENT_L1_ENTITY, CONF_CURRENT_L2_ENTITY, CONF_CURRENT_L3_ENTITY,
+        CONF_VOLTAGE_L1_ENTITY, CONF_VOLTAGE_L2_ENTITY, CONF_VOLTAGE_L3_ENTITY,
+        CONF_GRID_FEE_WORKDAY_ENTITY,
+    )
+    return {
+        field: "electricity_pro_source"
+        for field in source_fields
+        if user_input.get(field) in own_entities
+    }
+
+
 def _time_of_use_tariff_fields(
     *,
     high_fee_default: float | None = None,
@@ -398,6 +430,7 @@ def _entity_schema(
     fixed_grid_fee_monthly_default: float | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
+    excluded_sources = _own_source_entities(hass)
 
     if power_default is None:
         power_key = vol.Required(CONF_POWER_ENTITY)
@@ -591,12 +624,14 @@ def _entity_schema(
             ),
             power_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="power",
                 )
             ),
             price_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                 )
             ),
@@ -629,6 +664,7 @@ def _entity_schema(
             **_vat_rate_field(vat_rate_default),
             energy_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                 )
             ),
@@ -640,27 +676,21 @@ def _entity_schema(
             ),
             accumulated_cost_today_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="monetary",
-                    exclude_entities=(
-                        [
-                            entity.entity_id
-                            for entity in er.async_get(hass).entities.values()
-                            if entity.platform == DOMAIN
-                        ]
-                        if hass is not None
-                        else []
-                    ),
                 )
             ),
             monthly_peak_hour_consumption_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="energy",
                 )
             ),
             monthly_peak_hour_time_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="timestamp",
                 )
@@ -737,36 +767,42 @@ def _entity_schema(
             ),
             current_l1_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="current",
                 )
             ),
             current_l2_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="current",
                 )
             ),
             current_l3_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="current",
                 )
             ),
             voltage_l1_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="voltage",
                 )
             ),
             voltage_l2_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="voltage",
                 )
             ),
             voltage_l3_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="voltage",
                 )
@@ -822,6 +858,14 @@ class ElectricityProConfigFlow(
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure independent or mixed sources manually."""
+        if user_input is not None and (errors := _source_input_errors(self.hass, user_input)):
+            return self.async_show_form(
+                step_id="manual",
+                data_schema=self.add_suggested_values_to_schema(
+                    _entity_schema(hass=self.hass), user_input
+                ),
+                errors=errors,
+            )
         if user_input is not None:
             if not _grid_tariff_input_valid(user_input):
                 return self.async_show_form(
@@ -1008,6 +1052,17 @@ class ElectricityProOptionsFlow(OptionsFlow):
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Manage source entity options."""
+        if user_input is not None and (errors := _source_input_errors(self.hass, user_input)):
+            return self.async_show_form(
+                step_id="init",
+                data_schema=self.add_suggested_values_to_schema(
+                    _tibber_settings_schema()
+                    if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
+                    else _entity_schema(hass=self.hass),
+                    user_input,
+                ),
+                errors=errors,
+            )
         if user_input is not None and not _grid_tariff_input_valid(user_input):
             return self.async_show_form(
                 step_id="init",

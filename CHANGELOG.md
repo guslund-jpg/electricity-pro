@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Hide Electricity Pro outputs from all source sensor selectors, including
+  renamed entities, and reject self-referencing sources when saving settings.
+
 - Add Current Supplier Price for VAT-inclusive market energy plus supplier
   markup, and use it in the example price charts. Preserve Current Price as the
   original source value. Existing copied dashboards need the new supplier

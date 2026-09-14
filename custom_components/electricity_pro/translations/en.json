@@ -144,6 +144,7 @@
       }
     },
     "error": {
+      "electricity_pro_source": "Choose a source from another integration, not an Electricity Pro output. Leave optional sources empty if none is available.",
       "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
@@ -235,6 +236,7 @@
       }
     },
     "error": {
+      "electricity_pro_source": "Choose a source from another integration, not an Electricity Pro output. Leave optional sources empty if none is available.",
       "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected."

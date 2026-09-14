@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers.selector import EntitySelector
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.config_flow import (
@@ -94,8 +95,8 @@ def test_custom_settings_group_price_with_supplier_markup() -> None:
     assert keys.index(CONF_PRICE_VAT_RATE) + 1 == keys.index(CONF_ENERGY_ENTITY)
 
 
-async def test_cost_selector_excludes_renamed_integration_outputs(hass) -> None:
-    """Exclude our own outputs while allowing an external daily cost sensor."""
+async def test_source_selectors_exclude_renamed_integration_outputs(hass) -> None:
+    """All sensor source fields exclude our outputs but allow external sources."""
     registry = er.async_get(hass)
     own = registry.async_get_or_create(
         "sensor", DOMAIN, "fixed-fee", suggested_object_id="renamed_monthly_fee"
@@ -104,13 +105,48 @@ async def test_cost_selector_excludes_renamed_integration_outputs(hass) -> None:
         "sensor", "tibber", "daily-cost", suggested_object_id="supplier_daily_cost"
     )
     schema = _entity_schema(hass=hass)
-    cost_selector = next(
+    source_selectors = [
         value for key, value in schema.schema.items()
-        if key.schema == CONF_ACCUMULATED_COST_TODAY_ENTITY
+        if isinstance(value, EntitySelector)
+        and key.schema != CONF_GRID_FEE_WORKDAY_ENTITY
+    ]
+    assert len(source_selectors) == 12
+    for source_selector in source_selectors:
+        excluded = source_selector.config["exclude_entities"]
+        assert own.entity_id in excluded
+        assert external.entity_id not in excluded
+
+
+async def test_manual_rejects_own_source(hass) -> None:
+    """Reject an output registered after the form's exclusion list was built."""
+    result = await _start_manual_flow(hass)
+    own = er.async_get(hass).async_get_or_create(
+        "sensor", DOMAIN, "power", suggested_object_id="renamed_output"
     )
-    excluded = cost_selector.config["exclude_entities"]
-    assert own.entity_id in excluded
-    assert external.entity_id not in excluded
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_POWER_ENTITY: own.entity_id}
+    )
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["errors"] == {CONF_POWER_ENTITY: "electricity_pro_source"}
+
+
+async def test_options_rejects_own_source_without_changing_entry(hass) -> None:
+    """Do not save a price source pointing to our own calculated output."""
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_POWER_ENTITY: "sensor.external_power"}
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    own = er.async_get(hass).async_get_or_create(
+        "sensor", DOMAIN, "price", suggested_object_id="renamed_price"
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_POWER_ENTITY: "sensor.external_power", CONF_PRICE_ENTITY: own.entity_id},
+    )
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["errors"] == {CONF_PRICE_ENTITY: "electricity_pro_source"}
+    assert entry.options == {}
 
 
 async def test_tibber_initial_setup_stores_nordpool_forecast(hass) -> None:
