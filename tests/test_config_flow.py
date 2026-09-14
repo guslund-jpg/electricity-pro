@@ -11,6 +11,7 @@ from custom_components.electricity_pro.config_flow import (
     _tibber_settings_schema,
 )
 from custom_components.electricity_pro.const import (
+    CONF_ACCUMULATED_COST_TODAY_ENTITY,
     CONF_ADAPTIVE_PRICE_CEILING,
     CONF_ADAPTIVE_TARGET_PERCENTILE,
     CONF_CURRENT_L1_ENTITY,
@@ -79,12 +80,34 @@ def test_tibber_settings_offer_optional_nordpool_forecast() -> None:
     assert keys[2] == CONF_GRID_FEE_PER_KWH
 
 
-def test_custom_settings_group_forecast_with_supplier_markup() -> None:
-    """The custom form should keep forecast markup beside its source."""
+def test_custom_settings_group_price_with_supplier_markup() -> None:
+    """Keep markup with price semantics before the energy source."""
     keys = [key.schema for key in _entity_schema().schema]
 
     assert keys[0] == CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
-    assert keys[1] == CONF_SUPPLIER_MARKUP_PER_KWH
+    assert keys.index(CONF_PRICE_VAT_TREATMENT) + 1 == keys.index(
+        CONF_SUPPLIER_MARKUP_PER_KWH
+    )
+    assert keys.index(CONF_SUPPLIER_MARKUP_PER_KWH) + 1 == keys.index(CONF_ENERGY_ENTITY)
+
+
+async def test_cost_selector_excludes_renamed_integration_outputs(hass) -> None:
+    """Exclude our own outputs while allowing an external daily cost sensor."""
+    registry = er.async_get(hass)
+    own = registry.async_get_or_create(
+        "sensor", DOMAIN, "fixed-fee", suggested_object_id="renamed_monthly_fee"
+    )
+    external = registry.async_get_or_create(
+        "sensor", "tibber", "daily-cost", suggested_object_id="supplier_daily_cost"
+    )
+    schema = _entity_schema(hass=hass)
+    cost_selector = next(
+        value for key, value in schema.schema.items()
+        if key.schema == CONF_ACCUMULATED_COST_TODAY_ENTITY
+    )
+    excluded = cost_selector.config["exclude_entities"]
+    assert own.entity_id in excluded
+    assert external.entity_id not in excluded
 
 
 async def test_tibber_initial_setup_stores_nordpool_forecast(hass) -> None:

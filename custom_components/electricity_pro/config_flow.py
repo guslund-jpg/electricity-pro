@@ -13,7 +13,7 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
@@ -359,6 +359,7 @@ def _tibber_settings_schema(
 
 def _entity_schema(
     *,
+    hass: HomeAssistant | None = None,
     power_default: str | None = None,
     price_default: str | None = None,
     pricing_strategy_default: str | None = None,
@@ -584,13 +585,6 @@ def _entity_schema(
                     integration="nordpool",
                 )
             ),
-            supplier_markup_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
             power_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
@@ -621,6 +615,13 @@ def _entity_schema(
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
+            supplier_markup_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            ),
             energy_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
@@ -636,6 +637,15 @@ def _entity_schema(
                 selector.EntitySelectorConfig(
                     domain="sensor",
                     device_class="monetary",
+                    exclude_entities=(
+                        [
+                            entity.entity_id
+                            for entity in er.async_get(hass).entities.values()
+                            if entity.platform == DOMAIN
+                        ]
+                        if hass is not None
+                        else []
+                    ),
                 )
             ),
             monthly_peak_hour_consumption_key: selector.EntitySelector(
@@ -811,19 +821,19 @@ class ElectricityProConfigFlow(
             if not _grid_tariff_input_valid(user_input):
                 return self.async_show_form(
                     step_id="manual",
-                    data_schema=_entity_schema(),
+                    data_schema=_entity_schema(hass=self.hass),
                     errors={"base": "invalid_grid_tariff"},
                 )
             if not _good_price_input_valid(user_input):
                 return self.async_show_form(
                     step_id="manual",
-                    data_schema=_entity_schema(),
+                    data_schema=_entity_schema(hass=self.hass),
                     errors={"base": "invalid_good_price_settings"},
                 )
             if not _prepare_pricing_metadata(user_input):
                 return self.async_show_form(
                     step_id="manual",
-                    data_schema=_entity_schema(),
+                    data_schema=_entity_schema(hass=self.hass),
                     errors={"base": "pricing_metadata_required"},
                 )
             nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
@@ -847,7 +857,9 @@ class ElectricityProConfigFlow(
                 data=user_input,
             )
 
-        return self.async_show_form(step_id="manual", data_schema=_entity_schema())
+        return self.async_show_form(
+            step_id="manual", data_schema=_entity_schema(hass=self.hass)
+        )
 
     async def async_step_tibber(
         self,
@@ -997,7 +1009,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 data_schema=(
                     _tibber_settings_schema()
                     if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
-                    else _entity_schema()
+                    else _entity_schema(hass=self.hass)
                 ),
                 errors={"base": "invalid_grid_tariff"},
             )
@@ -1007,7 +1019,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 data_schema=(
                     _tibber_settings_schema()
                     if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
-                    else _entity_schema()
+                    else _entity_schema(hass=self.hass)
                 ),
                 errors={"base": "invalid_good_price_settings"},
             )
@@ -1128,7 +1140,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
             if not _prepare_pricing_metadata(user_input):
                 return self.async_show_form(
                     step_id="init",
-                    data_schema=_entity_schema(),
+                    data_schema=_entity_schema(hass=self.hass),
                     errors={"base": "pricing_metadata_required"},
                 )
             nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
@@ -1298,6 +1310,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=_entity_schema(
+                hass=self.hass,
                 power_default=current_power,
                 price_default=current_price,
                 pricing_strategy_default=current_pricing_strategy,
