@@ -5,9 +5,59 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+import pytest
+from homeassistant.helpers.template import Template
 
 
 DASHBOARD_EXAMPLES = Path(__file__).parents[1] / "examples" / "dashboards"
+
+
+@pytest.mark.parametrize("coverage", ["partial", "unverified", "tracked"])
+async def test_dashboard_coverage_notes_render(hass, coverage) -> None:
+    """Render both dashboards against real HA templates and representative states."""
+    hass.states.async_set("sensor.electricity_pro_cost_today", "0.48", {
+        "source": "local_estimate", "priced_energy_kwh": "0.2",
+    })
+    hass.states.async_set("sensor.electricity_pro_cost_this_month", "0.48", {
+        "source": "local_estimate", "priced_energy_kwh": "0.2",
+    })
+    hass.states.async_set("sensor.electricity_pro_consumption_weighted_average_price_today", "2.97", {
+        "source": "local_estimate", "priced_energy_kwh": "0.18",
+    })
+    hass.states.async_set("sensor.electricity_pro_energy_this_month", "0.55", {
+        "coverage": coverage, "tracking_started_at": "2026-09-14T12:00:00+00:00",
+    })
+    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+        dashboard = yaml.safe_load(path.read_text())
+        cards = [item for item in _walk(dashboard)
+                 if isinstance(item, dict) and item.get("type") == "markdown"]
+        rendered = "\n".join(
+            str(Template(card["content"], hass).async_render(parse_result=False))
+            for card in cards
+        )
+        assert "Partial cost estimate" in rendered
+        assert "0.2" in rendered
+        assert "0.18" in rendered
+        assert "Energy and cost may cover different periods" in rendered
+        assert ("Partial monthly energy" in rendered) == (coverage == "partial")
+        assert ("Unverified monthly energy" in rendered) == (coverage == "unverified")
+        names = {item.get("name") for item in _walk(dashboard) if isinstance(item, dict)}
+        assert "Supplier cost today" in names
+        assert "Supplier cost this month" in names
+        assert "Cost today" not in names
+
+
+async def test_dashboard_notes_do_not_call_external_costs_local_estimates(hass) -> None:
+    """Absent attributes and provider totals render without misleading warnings."""
+    hass.states.async_set("sensor.electricity_pro_cost_today", "50")
+    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+        dashboard = yaml.safe_load(path.read_text())
+        for card in _walk(dashboard):
+            if isinstance(card, dict) and card.get("type") == "markdown":
+                rendered = Template(card["content"], hass).async_render(parse_result=False)
+                assert "Partial cost estimate" not in rendered
+                assert "Partial monthly cost estimate" not in rendered
+                assert "Unverified monthly energy" not in rendered
 
 
 def _walk(value: Any) -> Iterator[Any]:

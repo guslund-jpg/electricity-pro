@@ -95,6 +95,24 @@ views:
         heading: Today
         icon: mdi:calendar-today
 
+      - type: markdown
+        content: >-
+          Supplier costs include supplier markup and VAT, but exclude grid charges
+          and fixed fees. The effective average also includes configured variable
+          grid charges and energy tax.
+
+          {% if state_attr('sensor.electricity_pro_cost_today', 'source') == 'local_estimate' %}
+          **Partial cost estimate:** based on
+          {{ state_attr('sensor.electricity_pro_cost_today', 'priced_energy_kwh') | float(0) | round(2) }}
+          kWh of priced consumption, not necessarily all Energy today.
+          {% endif %}
+
+          {% if state_attr('sensor.electricity_pro_consumption_weighted_average_price_today', 'source') == 'local_estimate' %}
+          The effective average covers
+          {{ state_attr('sensor.electricity_pro_consumption_weighted_average_price_today', 'priced_energy_kwh') | float(0) | round(2) }}
+          kWh with complete effective prices.
+          {% endif %}
+
       - type: grid
         columns: 2
         square: false
@@ -125,7 +143,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_cost_today
-              name: Cost today
+              name: Supplier cost today
               icon: mdi:cash
               color: green
 
@@ -140,7 +158,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_consumption_weighted_average_price_today
-              name: Average price paid today
+              name: Average effective price today
               icon: mdi:chart-line
               color: green
 
@@ -260,6 +278,24 @@ views:
         heading: Today’s totals
         icon: mdi:calendar-today
 
+      - type: markdown
+        content: >-
+          Supplier costs include supplier markup and VAT, but exclude grid charges
+          and fixed fees. The effective average also includes configured variable
+          grid charges and energy tax.
+
+          {% if state_attr('sensor.electricity_pro_cost_today', 'source') == 'local_estimate' %}
+          **Partial cost estimate:** based on
+          {{ state_attr('sensor.electricity_pro_cost_today', 'priced_energy_kwh') | float(0) | round(2) }}
+          kWh of priced consumption, not necessarily all Energy today.
+          {% endif %}
+
+          {% if state_attr('sensor.electricity_pro_consumption_weighted_average_price_today', 'source') == 'local_estimate' %}
+          The effective average covers
+          {{ state_attr('sensor.electricity_pro_consumption_weighted_average_price_today', 'priced_energy_kwh') | float(0) | round(2) }}
+          kWh with complete effective prices.
+          {% endif %}
+
       - type: grid
         columns: 2
         square: false
@@ -290,7 +326,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_cost_today
-              name: Cost today
+              name: Supplier cost today
               icon: mdi:cash
               color: green
 
@@ -305,7 +341,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_consumption_weighted_average_price_today
-              name: Average price paid today
+              name: Average effective price today
               icon: mdi:chart-line
               color: green
 
@@ -388,6 +424,28 @@ views:
         heading: This month
         icon: mdi:calendar-month
 
+      - type: markdown
+        content: >-
+          Monthly supplier cost excludes grid charges and fixed fees.
+
+          {% set coverage = state_attr('sensor.electricity_pro_energy_this_month', 'coverage') %}
+          {% if coverage == 'partial' %}
+          **Partial monthly energy:** counted since tracking started or was reset.
+          {% set started = as_datetime(state_attr('sensor.electricity_pro_energy_this_month', 'tracking_started_at'), none) %}
+          {% if started is not none %}
+          Started {{ as_local(started).strftime('%d %b %Y, %H:%M') }}.
+          {% endif %}
+          {% elif coverage == 'unverified' %}
+          **Unverified monthly energy:** restored from an older version.
+          Check the total before relying on it.
+          {% endif %}
+
+          {% if state_attr('sensor.electricity_pro_cost_this_month', 'source') == 'local_estimate' %}
+          **Partial monthly cost estimate:** covers
+          {{ state_attr('sensor.electricity_pro_cost_this_month', 'priced_energy_kwh') | float(0) | round(2) }}
+          kWh of priced consumption. Energy and cost may cover different periods.
+          {% endif %}
+
       - type: grid
         columns: 2
         square: false
@@ -418,7 +476,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_cost_this_month
-              name: Cost this month
+              name: Supplier cost this month
               icon: mdi:calendar-month-outline
               color: green
 

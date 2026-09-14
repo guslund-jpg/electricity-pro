@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Clarify supplier-cost labels and effective-price definitions in both example
+  dashboards. Show partial cost coverage, monthly tracking/reset times, and
+  warnings for unverified legacy monthly energy.
+
 - Estimate supplier costs locally when no daily cost sensor is configured,
   using observed energy deltas and normalized prices. Provide matching-coverage
   effective average prices, with explicit partial-estimate metadata.
