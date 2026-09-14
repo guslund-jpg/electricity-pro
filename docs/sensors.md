@@ -272,6 +272,14 @@ after the month has started. Subsequent full months are complete.
 
 ### Cost this month
 
+Without an external daily cost source, this sensor estimates supplier costs from
+observed energy deltas and VAT-inclusive supplier prices. It starts with observed
+consumption only and reports partial coverage. See
+[local cost estimates](local-cost-estimates.md) for daily totals, matching-coverage
+effective average prices, and limits on gaps and sparse readings.
+
+With an external daily cost source, the behavior below is unchanged.
+
 This sensor accumulates changes from the configured Cost Today source,
 persists its state across Home Assistant restarts, and handles the source's
 daily reset. It resets at the start of the local calendar month and preserves

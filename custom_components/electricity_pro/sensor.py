@@ -158,6 +158,10 @@ def consumption_weighted_average_price(
     data: ElectricityProData,
 ) -> Decimal | None:
     """Return today's achieved average effective price per kWh."""
+    if data.local_cost_estimate:
+        if data.local_priced_energy_today and data.local_effective_cost_today is not None:
+            return data.local_effective_cost_today / data.local_priced_energy_today
+        return None
     if not data.energy_today_period_complete:
         return None
     return calculate_consumption_weighted_average_price(
@@ -510,6 +514,16 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Electricity Pro sensors."""
+    settings = {**entry.data, **entry.options}
+    local_cost_configured = (
+        not settings.get(CONF_ACCUMULATED_COST_TODAY_ENTITY)
+        and bool(settings.get(CONF_ENERGY_ENTITY))
+        and bool(settings.get(CONF_PRICE_ENTITY))
+    )
+    local_cost_keys = {
+        "cost_today", "cost_this_month", "consumption_weighted_average_price_today",
+        "total_supplier_cost_this_month",
+    }
     entities = [
         ElectricityProSensor(
             coordinator=entry.runtime_data,
@@ -517,7 +531,7 @@ async def async_setup_entry(
             description=description,
         )
         for description in SENSOR_DESCRIPTIONS
-        if (
+        if (local_cost_configured and description.key in local_cost_keys) or ((
             description.required_config_key is None
             or description.required_config_key in entry.options
             or description.required_config_key in entry.data
@@ -525,6 +539,7 @@ async def async_setup_entry(
         and all(
             key in entry.options or key in entry.data
             for key in description.required_config_keys
+        )
         )
     ]
 
@@ -730,6 +745,23 @@ class ElectricityProSensor(
                 "vat_treatment": "included" if self.native_value is not None else "unknown",
                 "vat_configuration_required": (
                     vat == "unknown" or (vat == "excluded" and metadata.vat_rate is None)
+                ),
+            }
+        if self.entity_description.key in {
+            "cost_today", "cost_this_month", "consumption_weighted_average_price_today",
+            "total_supplier_cost_this_month",
+        } and self.coordinator.data.local_cost_estimate:
+            data = self.coordinator.data
+            return {
+                "source": "local_estimate",
+                "coverage": "partial",
+                "method": "meter_delta_uniform_allocation_over_observed_prices",
+                "priced_energy_kwh": _decimal_string(
+                    data.local_supplier_energy_month
+                    if self.entity_description.key in {"cost_this_month", "total_supplier_cost_this_month"}
+                    else data.local_priced_energy_today
+                    if self.entity_description.key == "consumption_weighted_average_price_today"
+                    else data.local_supplier_energy_today
                 ),
             }
         if self.entity_description.key == "energy_this_month":

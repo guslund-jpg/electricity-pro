@@ -44,9 +44,11 @@ from .base_load import (
     calculate_daily_base_load,
 )
 from .calculations import (
+    calculate_supplier_price,
     calculate_declared_effective_price,
     effective_price_metadata,
 )
+from .cost_ledger import CostLedger
 from .const import (
     CONF_ENERGY_TAX_PER_KWH,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
@@ -163,6 +165,7 @@ class ElectricityProCoordinator(
         )
 
         self._entry = entry
+        self._local_costs = CostLedger()
         self._local_timezone = ZoneInfo(hass.config.time_zone)
         self._provider = ElectricityProEntityProvider(
             hass=hass,
@@ -642,11 +645,30 @@ class ElectricityProCoordinator(
         ))
         await self._store.async_save(self._statistics_data())
 
+    @property
+    def _local_cost_scope(self) -> dict[str, Any]:
+        """Tie estimates to source, pricing configuration and timezone."""
+        settings = {**self._entry.data, **self._entry.options}
+        return {
+            "settings": {
+                key: value for key, value in settings.items()
+                if key in _ADAPTIVE_SCOPE_CONFIG_KEYS
+                or key in ("energy_entity", "energy_source_type", "accumulated_cost_today_entity")
+            },
+            "timezone": str(self._local_timezone),
+        }
+
     async def _async_restore_statistics(self) -> None:
         """Restore persisted statistics state when available."""
         stored = await self._store.async_load()
         if stored is None:
             return
+
+        if stored.get("local_cost_scope") == self._local_cost_scope:
+            try:
+                self._local_costs = CostLedger.from_dict(stored["local_costs"])
+            except (KeyError, ValueError, TypeError, ArithmeticError):
+                _LOGGER.warning("Ignoring invalid local cost estimate state")
 
         month_scope = stored.get("monthly_energy_source")
         if _ENERGY_THIS_MONTH in stored and (
@@ -850,7 +872,49 @@ class ElectricityProCoordinator(
 
         cost = data.accumulated_cost_today
         cost_unit = data.accumulated_cost_today_unit
-        if cost is None or cost_unit is None:
+        settings = {**self._entry.data, **self._entry.options}
+        use_local_cost = not settings.get("accumulated_cost_today_entity")
+        if use_local_cost:
+            supplier = calculate_supplier_price(
+                data.current_price, data.pricing_metadata, data.supplier_markup_per_kwh,
+            )
+            effective = calculate_declared_effective_price(
+                data.current_price, data.pricing_metadata, data.grid_fee_per_kwh,
+                data.energy_tax_per_kwh, data.supplier_markup_per_kwh,
+            )
+            if data.pricing_metadata is None or effective_price_metadata(
+                data.pricing_metadata, data.grid_fee_per_kwh,
+                data.energy_tax_per_kwh, data.supplier_markup_per_kwh,
+            ).completeness.value != "complete":
+                effective = None
+            before = self._local_costs.as_dict()
+            self._local_costs.update(
+                now, source_energy_kwh, supplier, effective,
+                _currency_from_price_unit(data.current_price_unit),
+                lifetime=self._provider.energy_source_is_lifetime_total,
+            )
+            ledger = self._local_costs
+            known = ledger.unit is not None and (
+                ledger.monthly_supplier_energy > 0
+                or (supplier is not None and source_energy_kwh is not None)
+            )
+            known_today = ledger.unit is not None and (
+                ledger.daily_supplier_energy > 0
+                or (supplier is not None and source_energy_kwh is not None)
+            )
+            updates.update(
+                local_cost_estimate=True,
+                accumulated_cost_today=ledger.daily_supplier if known_today else None,
+                accumulated_cost_today_unit=ledger.unit if known_today else None,
+                cost_this_month=ledger.monthly_supplier if known else None,
+                cost_this_month_unit=ledger.unit if known else None,
+                local_effective_cost_today=ledger.daily_effective,
+                local_priced_energy_today=ledger.daily_energy,
+                local_supplier_energy_today=ledger.daily_supplier_energy,
+                local_supplier_energy_month=ledger.monthly_supplier_energy,
+            )
+            should_save |= before != ledger.as_dict()
+        elif cost is None or cost_unit is None:
             updates["cost_this_month"] = None
             updates["cost_this_month_unit"] = None
         else:
@@ -1279,6 +1343,8 @@ class ElectricityProCoordinator(
     def _statistics_data(self) -> dict[str, Any]:
         """Return serializable statistics state."""
         data: dict[str, Any] = {}
+        data["local_costs"] = self._local_costs.as_dict()
+        data["local_cost_scope"] = self._local_cost_scope
         if (snapshot := self._energy_this_month.snapshot) is not None:
             data[_ENERGY_THIS_MONTH] = snapshot.as_dict()
             data["monthly_energy_source"] = self._monthly_energy_source
