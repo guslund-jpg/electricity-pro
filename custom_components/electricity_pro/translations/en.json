@@ -135,6 +135,18 @@
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider."
         }
       },
+      "tibber_forecast_pricing": {
+        "title": "Nord Pool forecast pricing",
+        "description": "These settings apply only to Nord Pool forecasts. Tibber's live contracted price already includes VAT and supplier markup and is unchanged.",
+        "data": {
+          "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
+          "price_vat_rate": "VAT percentage for Nord Pool forecasts"
+        },
+        "data_description": {
+          "supplier_markup_per_kwh": "Optional: Enter your VAT-inclusive supplier markup in the same currency per kWh as your price. Use 0 if your contract has no markup.",
+          "price_vat_rate": "Enter the applicable VAT percentage, or 0 for zero VAT. Without a rate, VAT-dependent forecast calculations are unavailable."
+        }
+      },
       "forecast_area": {
         "title": "Select forecast price area",
         "description": "The selected Nord Pool integration contains several price areas. Select the one Electricity Pro should use.",
@@ -225,6 +237,18 @@
           "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
           "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
+        }
+      },
+      "tibber_forecast_pricing": {
+        "title": "Nord Pool forecast pricing",
+        "description": "These settings apply only to Nord Pool forecasts. Tibber's live contracted price already includes VAT and supplier markup and is unchanged.",
+        "data": {
+          "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
+          "price_vat_rate": "VAT percentage for Nord Pool forecasts"
+        },
+        "data_description": {
+          "supplier_markup_per_kwh": "Optional: Enter your VAT-inclusive supplier markup in the same currency per kWh as your price. Use 0 if your contract has no markup.",
+          "price_vat_rate": "Enter the applicable VAT percentage, or 0 for zero VAT. Without a rate, VAT-dependent forecast calculations are unavailable."
         }
       },
       "forecast_area": {

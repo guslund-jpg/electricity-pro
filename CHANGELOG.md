@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Show Tibber forecast VAT and markup on a separate step only when Nord Pool
+  forecasting is selected; retain saved values when forecasts are disabled.
+
 - Hide Electricity Pro outputs from all source sensor selectors, including
   renamed entities, and reject self-referencing sources when saving settings.
 

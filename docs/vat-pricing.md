@@ -16,8 +16,11 @@ The native Home Assistant Nord Pool integration supplies market prices without
 VAT. See the [Nord Pool documentation](https://www.home-assistant.io/integrations/nordpool/).
 Its raw market chart and forecast action continue to expose those market prices.
 Calculated cheapest-window prices use the configured VAT rate and gross fees.
-The Tibber settings also offer the rate for these forecasts; Tibber live prices
-declared VAT-inclusive are not taxed again.
+In Tibber fast track, selecting Nord Pool forecasting opens a separate
+**Nord Pool forecast pricing** step for VAT and supplier markup. These fields
+are hidden when forecasting is not selected, and saved values are retained
+when forecasting is disabled. Tibber live prices are not taxed or marked up
+again. Custom or mixed-source settings retain their live-price inputs.
 
 ## Existing installations
 

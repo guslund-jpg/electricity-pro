@@ -224,8 +224,22 @@ def _setup_method_schema() -> vol.Schema:
     )
 
 
+def _tibber_forecast_pricing_schema(values: dict[str, Any]) -> vol.Schema:
+    """Show forecast-only price inputs separately from Tibber live settings."""
+    schema = _tibber_settings_schema(
+        include_forecast_pricing=True,
+        vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
+        supplier_markup_default=values.get(CONF_SUPPLIER_MARKUP_PER_KWH),
+    )
+    return vol.Schema({
+        key: value for key, value in schema.schema.items()
+        if key.schema in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH)
+    })
+
+
 def _tibber_settings_schema(
     *,
+    include_forecast_pricing: bool = False,
     forecast_nordpool_config_entry_default: str | None = None,
     vat_rate_default: float | None = None,
     grid_fee_default: float | None = None,
@@ -310,6 +324,7 @@ def _tibber_settings_schema(
             forecast_entry_key: selector.ConfigEntrySelector(
                 selector.ConfigEntrySelectorConfig(integration="nordpool")
             ),
+            **({
             supplier_markup_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
@@ -318,6 +333,7 @@ def _tibber_settings_schema(
                 )
             ),
             **_vat_rate_field(vat_rate_default),
+            } if include_forecast_pricing else {}),
             grid_fee_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
@@ -822,6 +838,8 @@ class ElectricityProConfigFlow(
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._pending_user_input: dict[str, Any] | None = None
+        self._pending_forecast_settings: dict[str, Any] | None = None
+        self._forecast_pricing_confirmed = False
         self._forecast_areas: list[str] = []
         self._tibber_sources: dict[str, DiscoveredSource] = {}
         self._selected_tibber_source: DiscoveredSource | None = None
@@ -985,6 +1003,12 @@ class ElectricityProConfigFlow(
                     data_schema=_tibber_settings_schema(),
                     errors={"base": "invalid_good_price_settings"},
                 )
+            if (
+                user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+                and not self._forecast_pricing_confirmed
+            ):
+                self._pending_forecast_settings = dict(user_input)
+                return await self.async_step_tibber_forecast_pricing()
             nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
             if isinstance(nordpool_entry_id, str):
                 nordpool_entry = self.hass.config_entries.async_get_entry(
@@ -1024,6 +1048,23 @@ class ElectricityProConfigFlow(
             },
         )
 
+    async def async_step_tibber_forecast_pricing(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm pricing only when Nord Pool forecasting is selected."""
+        pending = self._pending_forecast_settings
+        if pending is None:
+            return await self.async_step_tibber_settings()
+        if user_input is not None:
+            for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
+                pending[key] = user_input.get(key)
+            self._forecast_pricing_confirmed = True
+            return await self.async_step_tibber_settings(pending)
+        return self.async_show_form(
+            step_id="tibber_forecast_pricing",
+            data_schema=_tibber_forecast_pricing_schema(pending),
+        )
+
     async def async_step_forecast_area(
         self,
         user_input: dict[str, Any] | None = None,
@@ -1045,6 +1086,8 @@ class ElectricityProOptionsFlow(OptionsFlow):
     def __init__(self) -> None:
         """Initialize the options flow."""
         self._pending_user_input: dict[str, Any] | None = None
+        self._pending_forecast_settings: dict[str, Any] | None = None
+        self._forecast_pricing_confirmed = False
         self._forecast_areas: list[str] = []
 
     async def async_step_init(
@@ -1085,6 +1128,16 @@ class ElectricityProOptionsFlow(OptionsFlow):
             )
         if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER:
             if user_input is not None:
+                saved = {**self.config_entry.data, **self.config_entry.options}
+                for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
+                    if key not in user_input and key in saved:
+                        user_input[key] = saved[key]
+                if (
+                    user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+                    and not self._forecast_pricing_confirmed
+                ):
+                    self._pending_forecast_settings = dict(user_input)
+                    return await self.async_step_tibber_forecast_pricing()
                 if (
                     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY not in user_input
                     and CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in self.config_entry.data
@@ -1422,6 +1475,23 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 fixed_supplier_fee_monthly_default=current_fixed_supplier_fee,
                 fixed_grid_fee_monthly_default=current_fixed_grid_fee,
             ),
+        )
+
+    async def async_step_tibber_forecast_pricing(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm pricing only when Nord Pool forecasting is selected."""
+        pending = self._pending_forecast_settings
+        if pending is None:
+            return await self.async_step_init()
+        if user_input is not None:
+            for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
+                pending[key] = user_input.get(key)
+            self._forecast_pricing_confirmed = True
+            return await self.async_step_init(pending)
+        return self.async_show_form(
+            step_id="tibber_forecast_pricing",
+            data_schema=_tibber_forecast_pricing_schema(pending),
         )
 
     async def async_step_forecast_area(
