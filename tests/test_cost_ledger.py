@@ -126,4 +126,4 @@ def test_storage_is_bounded():
         c.update(START + timedelta(milliseconds=index), D(100),
                  D(index), D(index), "SEK", lifetime=True)
     assert len(c._segments) <= 256
-    assert len(c.as_dict()) == 9
+    assert len(c.as_dict()) == 11
