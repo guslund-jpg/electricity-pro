@@ -12,6 +12,7 @@ from .pricing import (
     PriceComponent,
     PriceComponentScope,
     PricingMetadata,
+    PricingStrategy,
     VatTreatment,
 )
 
@@ -68,7 +69,10 @@ def calculate_normalized_effective_price(
         ):
             return None
 
-    return base_price + sum(additions.values(), start=Decimal(0))
+    gross_price = vat_inclusive_price(base_price, metadata)
+    if gross_price is None:
+        return None
+    return gross_price + sum(additions.values(), start=Decimal(0))
 
 
 def calculate_declared_effective_price(
@@ -104,6 +108,34 @@ def calculate_declared_effective_price(
     )
 
 
+def calculate_supplier_price(
+    base_price: Decimal | None,
+    metadata: PricingMetadata | None,
+    supplier_markup_per_kwh: Decimal | None = None,
+) -> Decimal | None:
+    """Return VAT-inclusive market energy plus supplier markup only.
+
+    A complete household price cannot safely be split into supplier and grid
+    parts. Missing markup must be configured explicitly, including zero.
+    """
+    if (
+        metadata is None
+        or base_price is None
+        or metadata.strategy is PricingStrategy.EXTERNAL_COMPLETE_PRICE
+        or not metadata.scope.includes(PriceComponent.MARKET_ENERGY)
+        or metadata.scope.includes(PriceComponent.VARIABLE_GRID_FEE)
+        or metadata.scope.includes(PriceComponent.ENERGY_TAX)
+    ):
+        return None
+    if metadata.scope.includes(PriceComponent.SUPPLIER_MARKUP):
+        return vat_inclusive_price(base_price, metadata)
+    if supplier_markup_per_kwh is None:
+        return None
+    return calculate_declared_effective_price(
+        base_price, metadata, supplier_markup_per_kwh=supplier_markup_per_kwh
+    )
+
+
 def effective_price_metadata(
     metadata: PricingMetadata,
     grid_fee_per_kwh: Decimal | None = None,
@@ -125,7 +157,7 @@ def effective_price_metadata(
     completeness = metadata.completeness
     if (
         frozenset(included) == all_components
-        and metadata.scope.vat is not VatTreatment.UNKNOWN
+        and vat_inclusive_price(Decimal(0), metadata) is not None
     ):
         completeness = PriceCompleteness.COMPLETE
 
@@ -133,7 +165,11 @@ def effective_price_metadata(
         strategy=metadata.strategy,
         scope=PriceComponentScope(
             included=frozenset(included),
-            vat=metadata.scope.vat,
+            vat=(
+                VatTreatment.INCLUDED
+                if vat_inclusive_price(Decimal(0), metadata) is not None
+                else VatTreatment.UNKNOWN
+            ),
         ),
         completeness=completeness,
     )
@@ -177,3 +213,20 @@ def calculate_consumption_weighted_average_price(
         + (grid_fee_per_kwh or Decimal(0))
         + (energy_tax_per_kwh or Decimal(0))
     )
+
+
+def vat_inclusive_price(price: Decimal, metadata: PricingMetadata) -> Decimal | None:
+    """Convert only the source price; configured additions already include VAT."""
+    if not price.is_finite():
+        return None
+    if metadata.scope.vat is VatTreatment.INCLUDED:
+        return price
+    rate = metadata.vat_rate
+    if (
+        metadata.scope.vat is not VatTreatment.EXCLUDED
+        or rate is None
+        or not rate.is_finite()
+        or not Decimal(0) <= rate <= Decimal(100)
+    ):
+        return None
+    return price * (Decimal(1) + rate / Decimal(100))

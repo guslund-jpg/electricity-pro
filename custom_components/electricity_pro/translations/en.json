@@ -21,6 +21,7 @@
           "pricing_strategy": "Price source type",
           "price_included_components": "Components already included in the price",
           "price_vat_treatment": "VAT treatment of the price",
+          "price_vat_rate": "VAT rate for VAT-excluded prices",
           "energy_entity": "Accumulated energy sensor",
           "energy_source_type": "Energy sensor accumulation period",
           "accumulated_cost_today_entity": "Today's accumulated cost sensor",
@@ -67,6 +68,7 @@
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the selected price sensor, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
+          "price_vat_rate": "Enter the applicable VAT percentage for native Nord Pool forecasts and VAT-excluded live prices. Use 0 for zero VAT. VAT-included live prices are unchanged; configured fees are not taxed again. Without a rate, VAT-excluded calculated prices are unavailable.",
           "supplier_markup_per_kwh": "Optional: Supplier markup in the same currency per kWh as the selected price sensor, including VAT. It is not added twice when the live price already includes markup, and it can still enrich a market-only forecast.",
           "energy_tax_per_kwh": "Optional: Energy tax per kWh in the local currency, including VAT. For example, 0.45 SEK/kWh in Sweden. Check your grid agreement or bill because rates can change and reduced regional rates may apply.",
           "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
@@ -98,6 +100,7 @@
           "forecast_nordpool_config_entry": "Nord Pool forecast config entry",
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
           "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
+          "price_vat_rate": "VAT rate for VAT-excluded prices",
           "energy_tax_per_kwh": "Energy tax per kWh (including VAT)",
           "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
           "grid_fee_high_start": "High period starts (HH:MM)",
@@ -115,6 +118,7 @@
         "data_description": {
           "forecast_nordpool_config_entry": "Optional: Select the native Nord Pool integration to enable future-price insights such as the cheapest 1h, 2h, and 3h windows. Area and currency are inherited automatically.",
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the Tibber price, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
+          "price_vat_rate": "Enter the applicable VAT percentage for native Nord Pool forecasts and VAT-excluded live prices. Use 0 for zero VAT. VAT-included live prices are unchanged; configured fees are not taxed again. Without a rate, VAT-excluded calculated prices are unavailable.",
           "supplier_markup_per_kwh": "Optional: Supplier markup in the same currency per kWh as the price. Tibber's live contracted price already includes its markup, so this value is only needed to include that markup in Nord Pool forecast scheduling prices.",
           "energy_tax_per_kwh": "Optional: Energy tax per kWh in the local currency, including VAT. For example, 0.45 SEK/kWh in Sweden. Check your grid agreement or bill because rates can change and reduced regional rates may apply.",
           "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
@@ -131,6 +135,18 @@
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider."
         }
       },
+      "tibber_forecast_pricing": {
+        "title": "Nord Pool forecast pricing",
+        "description": "These settings apply only to Nord Pool forecasts. Tibber's live contracted price already includes VAT and supplier markup and is unchanged.",
+        "data": {
+          "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
+          "price_vat_rate": "VAT percentage for Nord Pool forecasts"
+        },
+        "data_description": {
+          "supplier_markup_per_kwh": "Optional: Enter your VAT-inclusive supplier markup in the same currency per kWh as your price. Use 0 if your contract has no markup.",
+          "price_vat_rate": "Enter the applicable VAT percentage, or 0 for zero VAT. Without a rate, VAT-dependent forecast calculations are unavailable."
+        }
+      },
       "forecast_area": {
         "title": "Select forecast price area",
         "description": "The selected Nord Pool integration contains several price areas. Select the one Electricity Pro should use.",
@@ -140,6 +156,7 @@
       }
     },
     "error": {
+      "electricity_pro_source": "Choose a source from another integration, not an Electricity Pro output. Leave optional sources empty if none is available.",
       "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
@@ -157,6 +174,7 @@
           "pricing_strategy": "Price source type",
           "price_included_components": "Components already included in the price",
           "price_vat_treatment": "VAT treatment of the price",
+          "price_vat_rate": "VAT rate for VAT-excluded prices",
           "energy_entity": "Accumulated energy sensor",
           "energy_source_type": "Energy sensor accumulation period",
           "accumulated_cost_today_entity": "Today's accumulated cost sensor",
@@ -190,7 +208,8 @@
           "price_entity": "Optional sensor providing the current electricity price.",
           "pricing_strategy": "Required when a price sensor is selected. Saving an older configuration confirms and activates the normalized pricing model.",
           "price_included_components": "Select every variable component already contained in the sensor value; Market energy must be included.",
-          "price_vat_treatment": "State whether the selected price sensor includes VAT.",
+          "price_vat_treatment": "State whether the selected price sensor includes VAT. VAT-excluded prices require a rate below; unknown VAT makes Effective Price unavailable.",
+          "price_vat_rate": "Enter the applicable VAT percentage for native Nord Pool forecasts and VAT-excluded live prices. Use 0 for zero VAT. VAT-included live prices are unchanged; configured fees are not taxed again. Without a rate, VAT-excluded calculated prices are unavailable.",
           "energy_entity": "Optional sensor providing either today's consumption or a total accumulated energy reading.",
           "energy_source_type": "Choose whether the selected energy sensor resets each day or reports total accumulated imported energy. Total accumulated readings start with partial-day coverage until Electricity Pro observes the next local midnight.",
           "accumulated_cost_today_entity": "Optional external sensor reporting electricity cost accumulated since midnight. Leave empty if your provider does not supply one; daily and monthly cost totals will then be unavailable. Do not select a fixed monthly fee.",
@@ -220,6 +239,18 @@
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
         }
       },
+      "tibber_forecast_pricing": {
+        "title": "Nord Pool forecast pricing",
+        "description": "These settings apply only to Nord Pool forecasts. Tibber's live contracted price already includes VAT and supplier markup and is unchanged.",
+        "data": {
+          "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
+          "price_vat_rate": "VAT percentage for Nord Pool forecasts"
+        },
+        "data_description": {
+          "supplier_markup_per_kwh": "Optional: Enter your VAT-inclusive supplier markup in the same currency per kWh as your price. Use 0 if your contract has no markup.",
+          "price_vat_rate": "Enter the applicable VAT percentage, or 0 for zero VAT. Without a rate, VAT-dependent forecast calculations are unavailable."
+        }
+      },
       "forecast_area": {
         "title": "Select forecast price area",
         "description": "The selected Nord Pool integration contains several price areas. Select the one Electricity Pro should use.",
@@ -229,6 +260,7 @@
       }
     },
     "error": {
+      "electricity_pro_source": "Choose a source from another integration, not an Electricity Pro output. Leave optional sources empty if none is available.",
       "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected."

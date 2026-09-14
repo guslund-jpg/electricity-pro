@@ -72,6 +72,7 @@ clear and broadly useful.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Live | Current power | `current_power` | Mirrored | W | Power | Measurement | Available |
 | Live | Current price | `current_price` | Mirrored | Currency/kWh | None | Measurement | Available |
+| Live | Current supplier price | `current_supplier_price` | Calculated | Currency/kWh | None | Measurement | Source dependent |
 | Live | Current market price | `current_market_price` | Forecast-derived | Currency/kWh | None | Measurement | Forecast dependent |
 | Statistic | Average market price today | `average_market_price_today` | Calculated | Currency/kWh | None | Measurement | Forecast dependent |
 | Live | Effective price | `effective_price` | Calculated | Currency/kWh | None | Measurement | Available |
@@ -102,6 +103,22 @@ containing export rather than treating export as household consumption.
 
 Finite negative Current Price and Effective Price values are valid. During
 positive import they may produce a negative Current Cost Rate.
+
+### Current Supplier Price
+
+`current_supplier_price` is the VAT-inclusive market energy plus supplier markup,
+excluding grid fees, energy tax and fixed fees. It is used for the supplier line
+in both example dashboards. For a market-price source, the VAT rate and a markup
+(including an explicit zero) must be configured. A supplier price declared to
+already include markup uses that component once. VAT-included supplier inputs
+are not taxed again.
+
+The sensor remains unavailable if VAT or markup is unknown, or if the source
+includes grid fees or energy tax that cannot safely be separated. Complete
+household-price sources are not reverse-calculated into supplier prices.
+`current_price` continues to expose the original source value for compatibility.
+The new supplier sensor starts its own history when installed; it does not
+rewrite the old source-price history.
 
 ### Current Market Price
 

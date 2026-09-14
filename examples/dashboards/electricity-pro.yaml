@@ -247,7 +247,7 @@ views:
           entities:
             - entity: sensor.electricity_pro_current_market_price
               name: Market price
-            - entity: sensor.electricity_pro_current_price
+            - entity: sensor.electricity_pro_current_supplier_price
               name: Supplier price
             - entity: sensor.electricity_pro_effective_price
               name: Effective price

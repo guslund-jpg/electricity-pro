@@ -2186,7 +2186,7 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
     assert market_price_state.attributes["currency"] == "SEK"
     assert market_price_state.attributes["price_area"] == "SE3"
     assert market_price_state.attributes["price_components"] == ["market_energy"]
-    assert market_price_state.attributes["vat_treatment"] == "unknown"
+    assert market_price_state.attributes["vat_treatment"] == "excluded"
     assert market_price_state.attributes["price_completeness"] == "partial"
     assert len(market_price_state.attributes["forecast"]) == 16
     assert market_price_state.attributes["forecast"][0] == {
@@ -2209,7 +2209,7 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
     assert cheapest_1h_state.attributes["average_market_price"] == "0.84104"
     assert cheapest_1h_state.attributes["average_scheduling_price"] == "0.84104"
     assert cheapest_1h_state.attributes["price_components"] == ["market_energy"]
-    assert cheapest_1h_state.attributes["vat_treatment"] == "unknown"
+    assert cheapest_1h_state.attributes["vat_treatment"] == "included"
     assert cheapest_1h_state.attributes["price_completeness"] == "partial"
     assert cheapest_1h_state.attributes["currency"] == "SEK"
     assert cheapest_1h_state.attributes["price_area"] == "SE3"

@@ -25,7 +25,9 @@ def test_calculate_normalized_effective_price_adds_missing_components() -> None:
     """The normalized path should add only declared missing components."""
     metadata = PricingMetadata(
         strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
-        scope=PriceComponentScope(frozenset({PriceComponent.MARKET_ENERGY})),
+        scope=PriceComponentScope(
+            frozenset({PriceComponent.MARKET_ENERGY}), vat=VatTreatment.INCLUDED
+        ),
         completeness=PriceCompleteness.PARTIAL,
     )
 
@@ -46,7 +48,8 @@ def test_calculate_normalized_effective_price_rejects_overlap() -> None:
         scope=PriceComponentScope(
             frozenset(
                 {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
-            )
+            ),
+            vat=VatTreatment.INCLUDED,
         ),
         completeness=PriceCompleteness.PARTIAL,
     )
@@ -73,7 +76,8 @@ def test_calculate_normalized_effective_price_respects_complete_source() -> None
                     PriceComponent.ENERGY_TAX,
                     PriceComponent.VARIABLE_GRID_FEE,
                 }
-            )
+            ),
+            vat=VatTreatment.INCLUDED,
         ),
         completeness=PriceCompleteness.COMPLETE,
     )
@@ -107,7 +111,9 @@ def test_calculate_normalized_effective_price_rejects_invalid_values(
     """Invalid prices and adjustments should produce no result."""
     metadata = PricingMetadata(
         strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
-        scope=PriceComponentScope(frozenset({PriceComponent.MARKET_ENERGY})),
+        scope=PriceComponentScope(
+            frozenset({PriceComponent.MARKET_ENERGY}), vat=VatTreatment.INCLUDED
+        ),
     )
 
     assert calculate_normalized_effective_price(
@@ -119,7 +125,9 @@ def test_calculate_normalized_effective_price_accepts_negative_base() -> None:
     """Non-negative tariff components should be added to a signed base price."""
     metadata = PricingMetadata(
         strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
-        scope=PriceComponentScope(frozenset({PriceComponent.MARKET_ENERGY})),
+        scope=PriceComponentScope(
+            frozenset({PriceComponent.MARKET_ENERGY}), vat=VatTreatment.INCLUDED
+        ),
     )
 
     assert calculate_normalized_effective_price(
@@ -146,7 +154,8 @@ def test_explicit_energy_tax_is_added_to_effective_prices() -> None:
         scope=PriceComponentScope(
             frozenset(
                 {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
-            )
+            ),
+            vat=VatTreatment.INCLUDED,
         ),
         completeness=PriceCompleteness.PARTIAL,
     )
@@ -159,7 +168,9 @@ def test_supplier_markup_is_added_only_when_missing_from_source() -> None:
     """Configured supplier markup should enrich raw market prices only once."""
     market_metadata = PricingMetadata(
         strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
-        scope=PriceComponentScope(frozenset({PriceComponent.MARKET_ENERGY})),
+        scope=PriceComponentScope(
+            frozenset({PriceComponent.MARKET_ENERGY}), vat=VatTreatment.INCLUDED
+        ),
         completeness=PriceCompleteness.PARTIAL,
     )
     contracted_metadata = PricingMetadata(
@@ -167,7 +178,8 @@ def test_supplier_markup_is_added_only_when_missing_from_source() -> None:
         scope=PriceComponentScope(
             frozenset(
                 {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
-            )
+            ),
+            vat=VatTreatment.INCLUDED,
         ),
         completeness=PriceCompleteness.PARTIAL,
     )

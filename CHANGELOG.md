@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Show Tibber forecast VAT and markup on a separate step only when Nord Pool
+  forecasting is selected; retain saved values when forecasts are disabled.
+
+- Hide Electricity Pro outputs from all source sensor selectors, including
+  renamed entities, and reject self-referencing sources when saving settings.
+
+- Add Current Supplier Price for VAT-inclusive market energy plus supplier
+  markup, and use it in the example price charts. Preserve Current Price as the
+  original source value. Existing copied dashboards need the new supplier
+  entity; its recorded history starts at installation.
+
+- Convert VAT-excluded live and forecast prices using an explicit VAT percentage
+  before adding VAT-included fees. Included prices are not taxed twice.
+- Mark native Nord Pool market data as VAT-excluded. Configure the new VAT rate
+  in Electricity Pro settings to restore calculated forecast windows after
+  upgrading. Effective Price also requires this rate for VAT-excluded sources;
+  unknown VAT treatment must be clarified. Raw market charts remain available.
+
 ## [1.5.0] - 2026-09-05
 
 ### Added

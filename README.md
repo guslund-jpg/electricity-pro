@@ -250,7 +250,9 @@ create a manual dashboard, copy an example, and verify its entity IDs.
 4. Choose **Tibber fast track** when Tibber provides both the contract price and
    Pulse measurements. Otherwise choose **Custom or mixed sources**, select the
    compatible Home Assistant entities, and declare the selected price source's
-   included components and VAT treatment.
+   included components and VAT treatment. VAT-excluded prices and native Nord
+   Pool forecasts also need an explicit VAT percentage; see
+   [VAT configuration and upgrade guidance](docs/vat-pricing.md).
 
 See the [configuration guide](docs/README.md#configuration) for source examples,
 grid-tariff settings, and optional Nord Pool and Workday features.

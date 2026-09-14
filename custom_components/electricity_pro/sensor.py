@@ -35,6 +35,7 @@ from .calculations import (
     calculate_consumption_weighted_average_price,
     calculate_current_cost_rate,
     calculate_declared_effective_price,
+    calculate_supplier_price,
 )
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
@@ -129,6 +130,13 @@ def effective_price(data: ElectricityProData) -> Decimal | None:
         data.grid_fee_per_kwh,
         data.energy_tax_per_kwh,
         data.supplier_markup_per_kwh,
+    )
+
+
+def supplier_price(data: ElectricityProData) -> Decimal | None:
+    """Return the supplier-only price when its components can be identified."""
+    return calculate_supplier_price(
+        data.current_price, data.pricing_metadata, data.supplier_markup_per_kwh
     )
 
 
@@ -268,6 +276,19 @@ SENSOR_DESCRIPTIONS: tuple[
         unit_fn=lambda data: data.current_price_unit,
         available_fn=lambda data: (
             data.current_price is not None and data.current_price_unit is not None
+        ),
+        required_config_key=CONF_PRICE_ENTITY,
+    ),
+    ElectricityProSensorEntityDescription(
+        key="current_supplier_price",
+        name="Current supplier price",
+        icon="mdi:currency-usd",
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        value_fn=supplier_price,
+        unit_fn=lambda data: data.current_price_unit,
+        available_fn=lambda data: (
+            supplier_price(data) is not None and data.current_price_unit is not None
         ),
         required_config_key=CONF_PRICE_ENTITY,
     ),
@@ -689,7 +710,28 @@ class ElectricityProSensor(
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Expose energy-source semantics for Energy today."""
+        """Expose source coverage and VAT requirements."""
+        if self.entity_description.key == "current_supplier_price":
+            if self.native_value is None:
+                return {"price_completeness": "unknown"}
+            return {
+                "price_components": ["market_energy", "supplier_markup"],
+                "vat_treatment": "included",
+                "price_completeness": "partial",
+            }
+        if self.entity_description.key == "effective_price":
+            metadata = self.coordinator.data.pricing_metadata
+            if metadata is None:
+                return None
+            vat = metadata.scope.vat.value
+            return {
+                "source_vat_treatment": vat,
+                "vat_rate_percent": _decimal_string(metadata.vat_rate),
+                "vat_treatment": "included" if self.native_value is not None else "unknown",
+                "vat_configuration_required": (
+                    vat == "unknown" or (vat == "excluded" and metadata.vat_rate is None)
+                ),
+            }
         if self.entity_description.key != "current_energy":
             return None
         return {

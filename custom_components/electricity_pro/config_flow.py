@@ -48,6 +48,7 @@ from .const import (
     CONF_PRICE_ENTITY,
     CONF_PRICE_INCLUDED_COMPONENTS,
     CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICE_VAT_RATE,
     CONF_PRICING_STRATEGY,
     CONF_SETUP_METHOD,
     CONF_SOURCE_PROFILE,
@@ -123,6 +124,38 @@ _GOOD_PRICE_MODE_OPTIONS = [
 ]
 
 
+def _own_source_entities(hass: HomeAssistant | None) -> list[str]:
+    """Identify our outputs by registry ownership, including renamed entities."""
+    if hass is None:
+        return []
+    return [
+        entity.entity_id
+        for entity in er.async_get(hass).entities.values()
+        if entity.platform == DOMAIN
+    ]
+
+
+def _source_input_errors(
+    hass: HomeAssistant, user_input: dict[str, Any]
+) -> dict[str, str]:
+    """Prevent our outputs from feeding back into source inputs."""
+    own_entities = set(_own_source_entities(hass))
+    source_fields = (
+        CONF_POWER_ENTITY, CONF_PRICE_ENTITY, CONF_ENERGY_ENTITY,
+        CONF_ACCUMULATED_COST_TODAY_ENTITY,
+        CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+        CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
+        CONF_CURRENT_L1_ENTITY, CONF_CURRENT_L2_ENTITY, CONF_CURRENT_L3_ENTITY,
+        CONF_VOLTAGE_L1_ENTITY, CONF_VOLTAGE_L2_ENTITY, CONF_VOLTAGE_L3_ENTITY,
+        CONF_GRID_FEE_WORKDAY_ENTITY,
+    )
+    return {
+        field: "electricity_pro_source"
+        for field in source_fields
+        if user_input.get(field) in own_entities
+    }
+
+
 def _time_of_use_tariff_fields(
     *,
     high_fee_default: float | None = None,
@@ -191,9 +224,24 @@ def _setup_method_schema() -> vol.Schema:
     )
 
 
+def _tibber_forecast_pricing_schema(values: dict[str, Any]) -> vol.Schema:
+    """Show forecast-only price inputs separately from Tibber live settings."""
+    schema = _tibber_settings_schema(
+        include_forecast_pricing=True,
+        vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
+        supplier_markup_default=values.get(CONF_SUPPLIER_MARKUP_PER_KWH),
+    )
+    return vol.Schema({
+        key: value for key, value in schema.schema.items()
+        if key.schema in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH)
+    })
+
+
 def _tibber_settings_schema(
     *,
+    include_forecast_pricing: bool = False,
     forecast_nordpool_config_entry_default: str | None = None,
+    vat_rate_default: float | None = None,
     grid_fee_default: float | None = None,
     supplier_markup_default: float | None = None,
     energy_tax_default: float | None = None,
@@ -276,6 +324,7 @@ def _tibber_settings_schema(
             forecast_entry_key: selector.ConfigEntrySelector(
                 selector.ConfigEntrySelectorConfig(integration="nordpool")
             ),
+            **({
             supplier_markup_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
@@ -283,6 +332,8 @@ def _tibber_settings_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
+            **_vat_rate_field(vat_rate_default),
+            } if include_forecast_pricing else {}),
             grid_fee_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
@@ -365,6 +416,7 @@ def _entity_schema(
     pricing_strategy_default: str | None = None,
     price_included_components_default: list[str] | None = None,
     price_vat_treatment_default: str | None = None,
+    vat_rate_default: float | None = None,
     energy_default: str | None = None,
     energy_source_type_default: str = ENERGY_SOURCE_DAILY,
     accumulated_cost_today_default: str | None = None,
@@ -394,6 +446,7 @@ def _entity_schema(
     fixed_grid_fee_monthly_default: float | None = None,
 ) -> vol.Schema:
     """Return the source entity selection schema."""
+    excluded_sources = _own_source_entities(hass)
 
     if power_default is None:
         power_key = vol.Required(CONF_POWER_ENTITY)
@@ -587,12 +640,14 @@ def _entity_schema(
             ),
             power_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="power",
                 )
             ),
             price_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                 )
             ),
@@ -622,8 +677,10 @@ def _entity_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
+            **_vat_rate_field(vat_rate_default),
             energy_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                 )
             ),
@@ -635,27 +692,21 @@ def _entity_schema(
             ),
             accumulated_cost_today_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="monetary",
-                    exclude_entities=(
-                        [
-                            entity.entity_id
-                            for entity in er.async_get(hass).entities.values()
-                            if entity.platform == DOMAIN
-                        ]
-                        if hass is not None
-                        else []
-                    ),
                 )
             ),
             monthly_peak_hour_consumption_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="energy",
                 )
             ),
             monthly_peak_hour_time_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="timestamp",
                 )
@@ -732,36 +783,42 @@ def _entity_schema(
             ),
             current_l1_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="current",
                 )
             ),
             current_l2_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="current",
                 )
             ),
             current_l3_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="current",
                 )
             ),
             voltage_l1_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="voltage",
                 )
             ),
             voltage_l2_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="voltage",
                 )
             ),
             voltage_l3_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
+                    exclude_entities=excluded_sources,
                     domain="sensor",
                     device_class="voltage",
                 )
@@ -781,6 +838,8 @@ class ElectricityProConfigFlow(
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._pending_user_input: dict[str, Any] | None = None
+        self._pending_forecast_settings: dict[str, Any] | None = None
+        self._forecast_pricing_confirmed = False
         self._forecast_areas: list[str] = []
         self._tibber_sources: dict[str, DiscoveredSource] = {}
         self._selected_tibber_source: DiscoveredSource | None = None
@@ -817,6 +876,14 @@ class ElectricityProConfigFlow(
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure independent or mixed sources manually."""
+        if user_input is not None and (errors := _source_input_errors(self.hass, user_input)):
+            return self.async_show_form(
+                step_id="manual",
+                data_schema=self.add_suggested_values_to_schema(
+                    _entity_schema(hass=self.hass), user_input
+                ),
+                errors=errors,
+            )
         if user_input is not None:
             if not _grid_tariff_input_valid(user_input):
                 return self.async_show_form(
@@ -936,6 +1003,12 @@ class ElectricityProConfigFlow(
                     data_schema=_tibber_settings_schema(),
                     errors={"base": "invalid_good_price_settings"},
                 )
+            if (
+                user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+                and not self._forecast_pricing_confirmed
+            ):
+                self._pending_forecast_settings = dict(user_input)
+                return await self.async_step_tibber_forecast_pricing()
             nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
             if isinstance(nordpool_entry_id, str):
                 nordpool_entry = self.hass.config_entries.async_get_entry(
@@ -975,6 +1048,23 @@ class ElectricityProConfigFlow(
             },
         )
 
+    async def async_step_tibber_forecast_pricing(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm pricing only when Nord Pool forecasting is selected."""
+        pending = self._pending_forecast_settings
+        if pending is None:
+            return await self.async_step_tibber_settings()
+        if user_input is not None:
+            for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
+                pending[key] = user_input.get(key)
+            self._forecast_pricing_confirmed = True
+            return await self.async_step_tibber_settings(pending)
+        return self.async_show_form(
+            step_id="tibber_forecast_pricing",
+            data_schema=_tibber_forecast_pricing_schema(pending),
+        )
+
     async def async_step_forecast_area(
         self,
         user_input: dict[str, Any] | None = None,
@@ -996,6 +1086,8 @@ class ElectricityProOptionsFlow(OptionsFlow):
     def __init__(self) -> None:
         """Initialize the options flow."""
         self._pending_user_input: dict[str, Any] | None = None
+        self._pending_forecast_settings: dict[str, Any] | None = None
+        self._forecast_pricing_confirmed = False
         self._forecast_areas: list[str] = []
 
     async def async_step_init(
@@ -1003,6 +1095,17 @@ class ElectricityProOptionsFlow(OptionsFlow):
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Manage source entity options."""
+        if user_input is not None and (errors := _source_input_errors(self.hass, user_input)):
+            return self.async_show_form(
+                step_id="init",
+                data_schema=self.add_suggested_values_to_schema(
+                    _tibber_settings_schema()
+                    if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
+                    else _entity_schema(hass=self.hass),
+                    user_input,
+                ),
+                errors=errors,
+            )
         if user_input is not None and not _grid_tariff_input_valid(user_input):
             return self.async_show_form(
                 step_id="init",
@@ -1025,6 +1128,16 @@ class ElectricityProOptionsFlow(OptionsFlow):
             )
         if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER:
             if user_input is not None:
+                saved = {**self.config_entry.data, **self.config_entry.options}
+                for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
+                    if key not in user_input and key in saved:
+                        user_input[key] = saved[key]
+                if (
+                    user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+                    and not self._forecast_pricing_confirmed
+                ):
+                    self._pending_forecast_settings = dict(user_input)
+                    return await self.async_step_tibber_forecast_pricing()
                 if (
                     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY not in user_input
                     and CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in self.config_entry.data
@@ -1094,6 +1207,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
             return self.async_show_form(
                 step_id="init",
                 data_schema=_tibber_settings_schema(
+                    vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
                     grid_fee_default=current_grid_fee,
                     forecast_nordpool_config_entry_default=values.get(
                         CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
@@ -1316,6 +1430,9 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 pricing_strategy_default=current_pricing_strategy,
                 price_included_components_default=current_price_components,
                 price_vat_treatment_default=current_vat_treatment,
+                vat_rate_default=self.config_entry.options.get(
+                    CONF_PRICE_VAT_RATE, self.config_entry.data.get(CONF_PRICE_VAT_RATE)
+                ),
                 energy_default=current_energy,
                 energy_source_type_default=current_energy_source_type,
                 accumulated_cost_today_default=current_accumulated_cost_today,
@@ -1358,6 +1475,23 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 fixed_supplier_fee_monthly_default=current_fixed_supplier_fee,
                 fixed_grid_fee_monthly_default=current_fixed_grid_fee,
             ),
+        )
+
+    async def async_step_tibber_forecast_pricing(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm pricing only when Nord Pool forecasting is selected."""
+        pending = self._pending_forecast_settings
+        if pending is None:
+            return await self.async_step_init()
+        if user_input is not None:
+            for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
+                pending[key] = user_input.get(key)
+            self._forecast_pricing_confirmed = True
+            return await self.async_step_init(pending)
+        return self.async_show_form(
+            step_id="tibber_forecast_pricing",
+            data_schema=_tibber_forecast_pricing_schema(pending),
         )
 
     async def async_step_forecast_area(
@@ -1499,3 +1633,23 @@ def _prepare_pricing_metadata(user_input: dict[str, Any]) -> bool:
     user_input[CONF_PRICE_VAT_TREATMENT] = vat.value
     user_input[CONF_PRICE_COMPLETENESS] = completeness.value
     return True
+
+
+def _vat_rate_field(default: float | None) -> dict[Any, Any]:
+    """Offer an explicit percentage for VAT-exclusive live and forecast prices."""
+    key = (
+        vol.Optional(CONF_PRICE_VAT_RATE)
+        if default is None
+        else vol.Optional(CONF_PRICE_VAT_RATE, default=default)
+    )
+    return {
+        key: selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0,
+                max=100,
+                step=0.01,
+                mode=selector.NumberSelectorMode.BOX,
+                unit_of_measurement="%",
+            )
+        )
+    }

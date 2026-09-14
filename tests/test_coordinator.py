@@ -770,6 +770,7 @@ def mock_entry() -> MockConfigEntry:
             CONF_FORECAST_PRICE_AREA: "SE3",
             CONF_FORECAST_CURRENCY: "SEK",
             CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id",
+            "price_vat_rate": 0,
         },
         entry_id="test-entry-id",
     )
@@ -1145,6 +1146,7 @@ async def test_async_start_caches_next_inexpensive_1h_window_when_threshold_conf
             CONF_FORECAST_PRICE_AREA: "SE3",
             CONF_FORECAST_CURRENCY: "SEK",
             CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id",
+            "price_vat_rate": 0,
             "good_price_threshold": 0.70,
         },
         entry_id="test-entry-id-threshold",

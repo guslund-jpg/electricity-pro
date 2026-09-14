@@ -8,7 +8,9 @@ from decimal import Decimal
 from typing import Callable
 
 from .forecast import ForecastInterval
+from .calculations import vat_inclusive_price
 from .pricing import (
+    VatTreatment,
     PriceComponent,
     PriceComponentScope,
     PricingMetadata,
@@ -99,6 +101,11 @@ def find_cheapest_continuous_window(
     supplier_markup_per_kwh: Decimal | None = None,
 ) -> ForecastWindowInsight | None:
     """Return the cheapest upcoming continuous window with the exact duration."""
+    if any(
+        vat_inclusive_price(i.market_price, i.pricing_metadata) is None
+        for i in intervals
+    ):
+        return None
     upcoming = sorted(
         (interval for interval in intervals if interval.start >= now),
         key=lambda interval: interval.start,
@@ -176,6 +183,11 @@ def find_price_direction(
     supplier_markup_per_kwh: Decimal | None = None,
 ) -> ForecastDirectionInsight | None:
     """Return the near-term price direction from the normalized forecast."""
+    if any(
+        vat_inclusive_price(i.market_price, i.pricing_metadata) is None
+        for i in intervals
+    ):
+        return None
     sorted_intervals = sorted(intervals, key=lambda interval: interval.start)
 
     for index in range(len(sorted_intervals) - 1):
@@ -260,8 +272,11 @@ def _scheduling_price(
         if pricing_metadata.scope.includes(PriceComponent.SUPPLIER_MARKUP)
         else supplier_markup_per_kwh or Decimal("0")
     )
+    gross_price = vat_inclusive_price(market_price, pricing_metadata)
+    if gross_price is None:
+        raise ValueError("Scheduling requires a known VAT-inclusive price")
     return (
-        market_price
+        gross_price
         + grid_adjustment
         + tax_adjustment
         + markup_adjustment
@@ -315,6 +330,11 @@ def find_next_inexpensive_1h_window(
     price_is_comparable: bool = True,
 ) -> NextInexpensive1hWindowInsight | None:
     """Return the earliest comparable 1-hour window at or below threshold."""
+    if any(
+        vat_inclusive_price(i.market_price, i.pricing_metadata) is None
+        for i in intervals
+    ):
+        return None
     if not price_is_comparable:
         return None
     upcoming = sorted(
@@ -410,7 +430,7 @@ def _scheduling_price_metadata(
         strategy=interval.pricing_metadata.strategy,
         scope=PriceComponentScope(
             included=frozenset(included),
-            vat=interval.pricing_metadata.scope.vat,
+            vat=VatTreatment.INCLUDED,
         ),
         completeness=interval.pricing_metadata.completeness,
     )

@@ -4,13 +4,14 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from custom_components.electricity_pro.forecast import ForecastInterval
+from custom_components.electricity_pro.forecast import ForecastInterval, NORDPOOL_MARKET_PRICE_METADATA
 from custom_components.electricity_pro.forecast_insights import (
     find_cheapest_continuous_window,
     find_next_inexpensive_1h_window,
     find_price_direction,
 )
 from custom_components.electricity_pro.pricing import (
+    VatTreatment,
     PriceComponent,
     PriceComponentScope,
     PricingMetadata,
@@ -28,6 +29,7 @@ def _interval(
 ) -> ForecastInterval:
     """Create a normalized forecast interval for tests."""
     return ForecastInterval(
+        pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
         start=start,
         end=start + timedelta(minutes=minutes),
         market_price=Decimal(market_price),
@@ -196,8 +198,9 @@ def test_forecast_supplier_markup_is_not_added_twice() -> None:
             scope=PriceComponentScope(
                 frozenset(
                     {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
-                )
-            ),
+                ),
+            vat=VatTreatment.INCLUDED,
+        ),
         ),
     )
 
@@ -666,6 +669,7 @@ def test_find_cheapest_continuous_window_dst_spring_forward_adjacent_slots() -> 
     slot_after  = datetime(2025, 3, 30, 3, 0, tzinfo=tz_plus2)
     intervals = [
         ForecastInterval(
+            pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
             start=slot_before,
             end=slot_before + timedelta(hours=1),   # 02:00+01:00 = 01:00 UTC
             market_price=Decimal("0.20"),
@@ -674,6 +678,7 @@ def test_find_cheapest_continuous_window_dst_spring_forward_adjacent_slots() -> 
             published_at=datetime(2025, 3, 29, 11, 0, tzinfo=UTC),
         ),
         ForecastInterval(
+            pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
             start=slot_after,                        # 03:00+02:00 = 01:00 UTC
             end=slot_after + timedelta(hours=1),
             market_price=Decimal("0.30"),
@@ -716,6 +721,7 @@ def test_find_cheapest_continuous_window_dst_fall_back_extra_hour() -> None:
         start = datetime(2025, 10, 25, 23, 0, tzinfo=_UTC) + timedelta(hours=hour)
         intervals.append(
             ForecastInterval(
+                pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
                 start=start,
                 end=start + timedelta(hours=1),
                 market_price=Decimal(str(round(1.00 - hour * 0.04, 2))),
@@ -757,6 +763,7 @@ def test_find_price_direction_across_dst_spring_forward_boundary() -> None:
     slot_after  = datetime(2025, 3, 30, 3, 0, tzinfo=tz_plus2)   # 01:00 UTC
 
     first = ForecastInterval(
+        pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
         start=slot_before,
         end=slot_before + timedelta(hours=1),   # 02:00+01:00 = 01:00 UTC
         market_price=Decimal("0.30"),
@@ -765,6 +772,7 @@ def test_find_price_direction_across_dst_spring_forward_boundary() -> None:
         published_at=datetime(2025, 3, 29, 11, 0, tzinfo=UTC),
     )
     second = ForecastInterval(
+        pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
         start=slot_after,                        # 03:00+02:00 = 01:00 UTC
         end=slot_after + timedelta(hours=1),
         market_price=Decimal("0.50"),
@@ -793,6 +801,7 @@ def test_find_next_inexpensive_1h_window_uses_interval_boundaries_not_fixed_inde
     # 30+15+15 = 60 minutes exactly — qualifies
     intervals = [
         ForecastInterval(
+            pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
             start=datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
             end=datetime(2026, 8, 13, 10, 30, tzinfo=UTC),
             market_price=Decimal("0.20"),
@@ -801,6 +810,7 @@ def test_find_next_inexpensive_1h_window_uses_interval_boundaries_not_fixed_inde
             published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
         ),
         ForecastInterval(
+            pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
             start=datetime(2026, 8, 13, 10, 30, tzinfo=UTC),
             end=datetime(2026, 8, 13, 10, 45, tzinfo=UTC),
             market_price=Decimal("0.20"),
@@ -809,6 +819,7 @@ def test_find_next_inexpensive_1h_window_uses_interval_boundaries_not_fixed_inde
             published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
         ),
         ForecastInterval(
+            pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
             start=datetime(2026, 8, 13, 10, 45, tzinfo=UTC),
             end=datetime(2026, 8, 13, 11, 0, tzinfo=UTC),
             market_price=Decimal("0.20"),
