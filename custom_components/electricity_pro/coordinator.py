@@ -169,6 +169,8 @@ class ElectricityProCoordinator(
             entry=entry,
         )
         self._energy_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
+        self._monthly_energy_started: str | None = None
+        self._monthly_energy_legacy = False
         self._energy_today_from_total = DailyConsumptionFromTotal()
         self._energy_today_period_complete = False
         self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
@@ -597,13 +599,59 @@ class ElectricityProCoordinator(
             _LOGGER.warning("Unable to publish market-price forecast series: %s", err)
             self._forecast_intervals = []
 
+    @property
+    def _monthly_energy_source(self) -> dict[str, Any]:
+        """Scope monthly baselines to their source and accumulation semantics."""
+        return {
+            "entity_id": self._provider.energy_entity_id,
+            "lifetime_total": self._provider.energy_source_is_lifetime_total,
+        }
+
+    @property
+    def monthly_energy_attributes(self) -> dict[str, Any]:
+        """Describe coverage without claiming reconstructed monthly history."""
+        snapshot = self._energy_this_month.snapshot
+        partial = (
+            snapshot is None
+            or not isinstance(self._monthly_energy_started, str)
+            or self._monthly_energy_started[:7] == snapshot.period_start.isoformat()[:7]
+        )
+        return {
+            "tracking_started_at": self._monthly_energy_started,
+            "coverage": (
+                "unverified" if self._monthly_energy_legacy
+                else "partial" if partial else "tracked"
+            ),
+            "source_entity": self._provider.energy_entity_id,
+        }
+
+    async def async_reset_monthly_energy(self) -> None:
+        """Discard only this entry's monthly energy total and establish a baseline."""
+        data = self._read()
+        energy = _energy_in_kwh(data.current_energy, data.current_energy_unit)
+        if energy is None:
+            raise ValueError("A valid energy reading is required before resetting")
+        now = dt_util.now().astimezone(self._local_timezone)
+        self._energy_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
+        self._energy_this_month.update(energy, now)
+        self._monthly_energy_started = now.isoformat()
+        self._monthly_energy_legacy = False
+        self.async_set_updated_data(replace(
+            data, energy_this_month=Decimal(0),
+            energy_this_month_unit=UnitOfEnergy.KILO_WATT_HOUR,
+        ))
+        await self._store.async_save(self._statistics_data())
+
     async def _async_restore_statistics(self) -> None:
         """Restore persisted statistics state when available."""
         stored = await self._store.async_load()
         if stored is None:
             return
 
-        if _ENERGY_THIS_MONTH in stored:
+        month_scope = stored.get("monthly_energy_source")
+        if _ENERGY_THIS_MONTH in stored and (
+            month_scope is None or month_scope == self._monthly_energy_source
+        ):
             try:
                 snapshot = StatisticsSnapshot.from_dict(stored[_ENERGY_THIS_MONTH])
             except ValueError:
@@ -613,6 +661,10 @@ class ElectricityProCoordinator(
                     CalendarPeriod.MONTH,
                     snapshot,
                 )
+                self._monthly_energy_legacy = (
+                    month_scope is None or stored.get("monthly_energy_legacy") is True
+                )
+                self._monthly_energy_started = stored.get("monthly_energy_started")
 
         if (
             self._provider.energy_source_is_lifetime_total
@@ -781,6 +833,14 @@ class ElectricityProCoordinator(
             updates["energy_this_month"] = None
             updates["energy_this_month_unit"] = None
         else:
+            if self._monthly_energy_started is None:
+                self._monthly_energy_started = now.isoformat()
+            previous_month = self._energy_this_month.snapshot
+            if (
+                previous_month is not None
+                and previous_month.period_start != now.date().replace(day=1)
+            ):
+                self._monthly_energy_legacy = False
             updates["energy_this_month"] = self._energy_this_month.update(
                 energy_kwh,
                 now,
@@ -1221,6 +1281,9 @@ class ElectricityProCoordinator(
         data: dict[str, Any] = {}
         if (snapshot := self._energy_this_month.snapshot) is not None:
             data[_ENERGY_THIS_MONTH] = snapshot.as_dict()
+            data["monthly_energy_source"] = self._monthly_energy_source
+            data["monthly_energy_started"] = self._monthly_energy_started
+            data["monthly_energy_legacy"] = self._monthly_energy_legacy
         if (
             self._provider.energy_source_is_lifetime_total
             and (snapshot := self._energy_today_from_total.snapshot) is not None

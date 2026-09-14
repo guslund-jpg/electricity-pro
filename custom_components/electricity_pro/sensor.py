@@ -732,6 +732,8 @@ class ElectricityProSensor(
                     vat == "unknown" or (vat == "excluded" and metadata.vat_rate is None)
                 ),
             }
+        if self.entity_description.key == "energy_this_month":
+            return self.coordinator.monthly_energy_attributes
         if self.entity_description.key != "current_energy":
             return None
         return {
