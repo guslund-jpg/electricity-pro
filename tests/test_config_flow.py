@@ -38,6 +38,7 @@ from custom_components.electricity_pro.const import (
     CONF_PRICE_ENTITY,
     CONF_PRICE_INCLUDED_COMPONENTS,
     CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICE_VAT_RATE,
     CONF_PRICING_STRATEGY,
     CONF_SETUP_METHOD,
     CONF_SOURCE_PROFILE,
@@ -77,7 +78,8 @@ def test_tibber_settings_offer_optional_nordpool_forecast() -> None:
 
     assert keys[0] == CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
     assert keys[1] == CONF_SUPPLIER_MARKUP_PER_KWH
-    assert keys[2] == CONF_GRID_FEE_PER_KWH
+    assert keys[2] == CONF_PRICE_VAT_RATE
+    assert keys[3] == CONF_GRID_FEE_PER_KWH
 
 
 def test_custom_settings_group_price_with_supplier_markup() -> None:
@@ -88,7 +90,8 @@ def test_custom_settings_group_price_with_supplier_markup() -> None:
     assert keys.index(CONF_PRICE_VAT_TREATMENT) + 1 == keys.index(
         CONF_SUPPLIER_MARKUP_PER_KWH
     )
-    assert keys.index(CONF_SUPPLIER_MARKUP_PER_KWH) + 1 == keys.index(CONF_ENERGY_ENTITY)
+    assert keys.index(CONF_SUPPLIER_MARKUP_PER_KWH) + 1 == keys.index(CONF_PRICE_VAT_RATE)
+    assert keys.index(CONF_PRICE_VAT_RATE) + 1 == keys.index(CONF_ENERGY_ENTITY)
 
 
 async def test_cost_selector_excludes_renamed_integration_outputs(hass) -> None:
@@ -646,3 +649,36 @@ async def test_incomplete_entry_options_require_price_confirmation(hass) -> None
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
     assert result["errors"] == {"base": "pricing_metadata_required"}
+
+
+async def test_custom_setup_persists_vat_rate(hass) -> None:
+    """An excluded market price retains the explicitly selected VAT rate."""
+    result = await _start_manual_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_POWER_ENTITY: "sensor.test_power",
+            CONF_PRICE_ENTITY: "sensor.test_price",
+            CONF_PRICING_STRATEGY: PricingStrategy.MARKET_PRICE_PLUS_TARIFF.value,
+            CONF_PRICE_INCLUDED_COMPONENTS: [PriceComponent.MARKET_ENERGY.value],
+            CONF_PRICE_VAT_TREATMENT: VatTreatment.EXCLUDED.value,
+            CONF_PRICE_VAT_RATE: 25,
+        },
+    )
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_PRICE_VAT_RATE] == 25
+
+
+async def test_options_present_saved_zero_vat_rate(hass) -> None:
+    """Zero VAT is a configured rate, not a missing default."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_POWER_ENTITY: "sensor.test_power", CONF_PRICE_VAT_RATE: 0},
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    rate_key = next(
+        key for key in result["data_schema"].schema
+        if key.schema == CONF_PRICE_VAT_RATE
+    )
+    assert rate_key.default() == 0

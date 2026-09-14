@@ -39,7 +39,7 @@ def test_forecast_interval_valid() -> None:
     assert interval.pricing_metadata.scope.included == frozenset(
         {PriceComponent.MARKET_ENERGY}
     )
-    assert interval.pricing_metadata.scope.vat is VatTreatment.UNKNOWN
+    assert interval.pricing_metadata.scope.vat is VatTreatment.EXCLUDED
     assert interval.pricing_metadata.completeness is PriceCompleteness.PARTIAL
 
 
@@ -326,7 +326,7 @@ def test_serialize_market_price_forecast_returns_json_safe_series() -> None:
         "currency": "SEK",
         "area": "SE3",
         "price_components": ["market_energy"],
-        "vat_treatment": "unknown",
+        "vat_treatment": "excluded",
         "price_completeness": "partial",
         "published_at": "2026-08-12T11:00:00+00:00",
         "intervals": [

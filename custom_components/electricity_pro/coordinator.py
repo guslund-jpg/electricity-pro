@@ -62,6 +62,7 @@ from .const import (
     CONF_PRICE_ENTITY,
     CONF_PRICE_INCLUDED_COMPONENTS,
     CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICE_VAT_RATE,
     CONF_PRICING_STRATEGY,
     CONF_SUPPLIER_MARKUP_PER_KWH,
     DOMAIN,
@@ -83,6 +84,7 @@ from .forecast_insights import (
     find_price_direction,
 )
 from .nordpool import async_get_nordpool_forecast_intervals_for_date
+from .pricing_config import vat_rate_from_mapping
 from .provider import (
     ElectricityProData,
     ElectricityProEntityProvider,
@@ -129,6 +131,7 @@ _ADAPTIVE_SCOPE_CONFIG_KEYS = (
     CONF_PRICING_STRATEGY,
     CONF_PRICE_INCLUDED_COMPONENTS,
     CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICE_VAT_RATE,
     CONF_PRICE_COMPLETENESS,
     CONF_SUPPLIER_MARKUP_PER_KWH,
     CONF_ENERGY_TAX_PER_KWH,
@@ -1090,10 +1093,18 @@ class ElectricityProCoordinator(
 
     def _recalculate_forecast_insights(self) -> None:
         """Recalculate cached forecast insight results from current intervals."""
+        rate = vat_rate_from_mapping({**self._entry.data, **self._entry.options})
+        intervals = [
+            replace(
+                interval,
+                pricing_metadata=replace(interval.pricing_metadata, vat_rate=rate),
+            )
+            for interval in self._forecast_intervals
+        ]
         now = dt_util.now()
         provider_data = self._provider.read()
         self._cheapest_1h_window = find_cheapest_continuous_window(
-            self._forecast_intervals,
+            intervals,
             now=now,
             duration_minutes=60,
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
@@ -1102,7 +1113,7 @@ class ElectricityProCoordinator(
             supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
         )
         self._cheapest_2h_window = find_cheapest_continuous_window(
-            self._forecast_intervals,
+            intervals,
             now=now,
             duration_minutes=120,
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
@@ -1111,7 +1122,7 @@ class ElectricityProCoordinator(
             supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
         )
         self._cheapest_3h_window = find_cheapest_continuous_window(
-            self._forecast_intervals,
+            intervals,
             now=now,
             duration_minutes=180,
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
@@ -1121,13 +1132,13 @@ class ElectricityProCoordinator(
         )
         threshold = provider_data.good_price_threshold
         forecast_metadata = (
-            self._forecast_intervals[0].pricing_metadata
-            if self._forecast_intervals
+            intervals[0].pricing_metadata
+            if intervals
             else None
         )
         forecast_grid_fee = (
-            self._provider.grid_fee_at(self._forecast_intervals[0].start)
-            if self._forecast_intervals
+            self._provider.grid_fee_at(intervals[0].start)
+            if intervals
             else provider_data.grid_fee_per_kwh
         )
         effective_forecast_metadata = (
@@ -1143,13 +1154,13 @@ class ElectricityProCoordinator(
         live_scope = self._adaptive_scope(provider_data)
         forecast_scope = (
             AdaptivePriceScope.from_metadata(
-                currency=self._forecast_intervals[0].currency,
-                unit=f"{self._forecast_intervals[0].currency}/kWh",
+                currency=intervals[0].currency,
+                unit=f"{intervals[0].currency}/kWh",
                 metadata=effective_forecast_metadata,
                 tariff_signature=self._adaptive_tariff_signature,
             )
             if effective_forecast_metadata is not None
-            and self._forecast_intervals
+            and intervals
             else None
         )
         self._forecast_prices_are_comparable = bool(
@@ -1166,7 +1177,7 @@ class ElectricityProCoordinator(
                     effective_price=price,
                     scope=forecast_scope,
                 )
-                for interval in self._forecast_intervals
+                for interval in intervals
                 if (
                     price := calculate_declared_effective_price(
                         interval.market_price,
@@ -1183,7 +1194,7 @@ class ElectricityProCoordinator(
         )
         self._next_inexpensive_1h_window = (
             find_next_inexpensive_1h_window(
-                self._forecast_intervals,
+                intervals,
                 now=now,
                 threshold=threshold,
                 grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
@@ -1196,7 +1207,7 @@ class ElectricityProCoordinator(
             else None
         )
         self._price_direction = find_price_direction(
-            self._forecast_intervals,
+            intervals,
             now=now,
             grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,

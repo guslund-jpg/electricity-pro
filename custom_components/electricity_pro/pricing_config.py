@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
+from decimal import Decimal, InvalidOperation
 
 from .const import (
+    CONF_PRICE_VAT_RATE,
     CONF_PRICE_COMPLETENESS,
     CONF_PRICE_INCLUDED_COMPONENTS,
     CONF_PRICE_VAT_TREATMENT,
@@ -57,6 +59,7 @@ def pricing_metadata_from_mapping(
         strategy=strategy,
         scope=PriceComponentScope(components, vat=vat),
         completeness=completeness,
+        vat_rate=vat_rate_from_mapping(settings),
     )
 
 
@@ -67,3 +70,15 @@ def resolve_pricing_metadata(
     """Resolve pricing metadata with options taking precedence over entry data."""
     settings = {**data, **options}
     return pricing_metadata_from_mapping(settings)
+
+
+def vat_rate_from_mapping(settings: Mapping[str, Any]) -> Decimal | None:
+    """Read an explicitly configured percentage; never infer a tax rate."""
+    raw = settings.get(CONF_PRICE_VAT_RATE)
+    if raw is None or isinstance(raw, bool):
+        return None
+    try:
+        rate = Decimal(str(raw))
+    except (InvalidOperation, ValueError):
+        return None
+    return rate if rate.is_finite() and Decimal(0) <= rate <= Decimal(100) else None

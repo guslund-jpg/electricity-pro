@@ -22,7 +22,7 @@ NORDPOOL_MARKET_PRICE_METADATA = PricingMetadata(
     strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
     scope=PriceComponentScope(
         included=frozenset({PriceComponent.MARKET_ENERGY}),
-        vat=VatTreatment.UNKNOWN,
+        vat=VatTreatment.EXCLUDED,
     ),
     completeness=PriceCompleteness.PARTIAL,
 )

@@ -689,7 +689,20 @@ class ElectricityProSensor(
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Expose energy-source semantics for Energy today."""
+        """Expose source coverage and VAT requirements."""
+        if self.entity_description.key == "effective_price":
+            metadata = self.coordinator.data.pricing_metadata
+            if metadata is None:
+                return None
+            vat = metadata.scope.vat.value
+            return {
+                "source_vat_treatment": vat,
+                "vat_rate_percent": _decimal_string(metadata.vat_rate),
+                "vat_treatment": "included" if self.native_value is not None else "unknown",
+                "vat_configuration_required": (
+                    vat == "unknown" or (vat == "excluded" and metadata.vat_rate is None)
+                ),
+            }
         if self.entity_description.key != "current_energy":
             return None
         return {

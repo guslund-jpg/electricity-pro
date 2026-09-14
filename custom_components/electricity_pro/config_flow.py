@@ -48,6 +48,7 @@ from .const import (
     CONF_PRICE_ENTITY,
     CONF_PRICE_INCLUDED_COMPONENTS,
     CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICE_VAT_RATE,
     CONF_PRICING_STRATEGY,
     CONF_SETUP_METHOD,
     CONF_SOURCE_PROFILE,
@@ -194,6 +195,7 @@ def _setup_method_schema() -> vol.Schema:
 def _tibber_settings_schema(
     *,
     forecast_nordpool_config_entry_default: str | None = None,
+    vat_rate_default: float | None = None,
     grid_fee_default: float | None = None,
     supplier_markup_default: float | None = None,
     energy_tax_default: float | None = None,
@@ -283,6 +285,7 @@ def _tibber_settings_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
+            **_vat_rate_field(vat_rate_default),
             grid_fee_key: selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0,
@@ -365,6 +368,7 @@ def _entity_schema(
     pricing_strategy_default: str | None = None,
     price_included_components_default: list[str] | None = None,
     price_vat_treatment_default: str | None = None,
+    vat_rate_default: float | None = None,
     energy_default: str | None = None,
     energy_source_type_default: str = ENERGY_SOURCE_DAILY,
     accumulated_cost_today_default: str | None = None,
@@ -622,6 +626,7 @@ def _entity_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
+            **_vat_rate_field(vat_rate_default),
             energy_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain="sensor",
@@ -1094,6 +1099,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
             return self.async_show_form(
                 step_id="init",
                 data_schema=_tibber_settings_schema(
+                    vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
                     grid_fee_default=current_grid_fee,
                     forecast_nordpool_config_entry_default=values.get(
                         CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
@@ -1316,6 +1322,9 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 pricing_strategy_default=current_pricing_strategy,
                 price_included_components_default=current_price_components,
                 price_vat_treatment_default=current_vat_treatment,
+                vat_rate_default=self.config_entry.options.get(
+                    CONF_PRICE_VAT_RATE, self.config_entry.data.get(CONF_PRICE_VAT_RATE)
+                ),
                 energy_default=current_energy,
                 energy_source_type_default=current_energy_source_type,
                 accumulated_cost_today_default=current_accumulated_cost_today,
@@ -1499,3 +1508,23 @@ def _prepare_pricing_metadata(user_input: dict[str, Any]) -> bool:
     user_input[CONF_PRICE_VAT_TREATMENT] = vat.value
     user_input[CONF_PRICE_COMPLETENESS] = completeness.value
     return True
+
+
+def _vat_rate_field(default: float | None) -> dict[Any, Any]:
+    """Offer an explicit percentage for VAT-exclusive live and forecast prices."""
+    key = (
+        vol.Optional(CONF_PRICE_VAT_RATE)
+        if default is None
+        else vol.Optional(CONF_PRICE_VAT_RATE, default=default)
+    )
+    return {
+        key: selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0,
+                max=100,
+                step=0.01,
+                mode=selector.NumberSelectorMode.BOX,
+                unit_of_measurement="%",
+            )
+        )
+    }

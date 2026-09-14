@@ -143,6 +143,7 @@ def setup_electricity_pro(hass):
             entry_data[CONF_FORECAST_CURRENCY] = forecast_currency
 
         if forecast_nordpool_config_entry is not None:
+            entry_data["price_vat_rate"] = 0
             entry_data[CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] = (
                 forecast_nordpool_config_entry
             )

@@ -146,9 +146,14 @@ suggested default, but must not silently reinterpret a stored configuration.
 Every price or cost value must have a known component scope. Components may be
 added only when they are not already included.
 
-Inputs declare whether they are gross or net of VAT. Electricity Pro does not
-extract or add a separate VAT component automatically because regional tax
-behavior is outside the provider-independent core.
+Inputs declare whether they are gross or net of VAT. VAT-excluded prices require
+an explicitly configured percentage (including an explicit zero when applicable).
+Convert the source value to include VAT before adding configured VAT-included
+fees. Never infer a rate from currency or country, or tax those fees twice.
+Unknown VAT treatment or a missing required rate leaves Effective Price and
+dependent calculations unavailable. Raw source and market prices remain visible.
+The same conversion applies to native Nord Pool forecast scheduling; those
+market intervals exclude VAT. VAT-included supplier prices remain unchanged.
 
 ### Cost provenance
 

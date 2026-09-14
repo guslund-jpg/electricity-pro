@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Convert VAT-excluded live and forecast prices using an explicit VAT percentage
+  before adding VAT-included fees. Included prices are not taxed twice.
+- Mark native Nord Pool market data as VAT-excluded. Configure the new VAT rate
+  in Electricity Pro settings to restore calculated forecast windows after
+  upgrading. Effective Price also requires this rate for VAT-excluded sources;
+  unknown VAT treatment must be clarified. Raw market charts remain available.
+
 ## [1.5.0] - 2026-09-05
 
 ### Added

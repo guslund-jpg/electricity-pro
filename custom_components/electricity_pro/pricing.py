@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from decimal import Decimal
 
 
 class PricingStrategy(StrEnum):
@@ -76,6 +77,8 @@ class PricingMetadata:
     strategy: PricingStrategy
     scope: PriceComponentScope
     completeness: PriceCompleteness = PriceCompleteness.UNKNOWN
+
+    vat_rate: Decimal | None = None
 
     @property
     def is_complete(self) -> bool:
