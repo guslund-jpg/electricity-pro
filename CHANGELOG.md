@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Shorten both dashboards' cost explanations to compact coverage notes with
+  a documentation link; retain missing-setting and unverified-energy warnings.
+
 - Add separate daily/monthly household cost estimates combining observed
   effective variable costs with accrued fixed supplier/grid fees. Preserve
   supplier totals and make household estimates primary in both dashboards.

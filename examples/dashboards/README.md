@@ -7,8 +7,8 @@ The enhanced dashboard never changes Electricity Pro calculations or entity
 semantics. It is an optional presentation layer only.
 
 Both examples label daily and monthly costs as supplier costs. Context notes
-explain that effective average prices also include configured variable grid
-charges and energy tax. For local estimates, the notes show priced consumption;
+link to the full cost definitions instead of repeating them above the cards.
+For local estimates, the notes show priced consumption and fixed-fee timing;
 for partial monthly energy they show the tracking/reset timestamp. Older
 unverified monthly totals are flagged without claiming that they are incorrect.
 
