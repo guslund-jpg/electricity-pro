@@ -91,6 +91,11 @@ class ElectricityProData:
     supplier_markup_per_kwh: Decimal | None
     energy_tax_per_kwh: Decimal | None
     good_price_threshold: Decimal | None
+    local_cost_estimate: bool = False
+    local_effective_cost_today: Decimal | None = None
+    local_priced_energy_today: Decimal | None = None
+    local_supplier_energy_today: Decimal | None = None
+    local_supplier_energy_month: Decimal | None = None
 
 
 class ElectricityProEntityProvider:

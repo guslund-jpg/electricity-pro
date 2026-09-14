@@ -79,6 +79,7 @@ def setup_electricity_pro(hass):
         monthly_peak_hour_consumption_unit: str = "kWh",
         monthly_peak_hour_time_value: str | None = None,
         grid_fee_per_kwh: float | None = None,
+        energy_tax_per_kwh: float | None = None,
         supplier_markup_per_kwh: float | None = None,
         fixed_supplier_fee_monthly: float | None = None,
         fixed_grid_fee_monthly: float | None = None,
@@ -110,6 +111,8 @@ def setup_electricity_pro(hass):
 
         if grid_fee_per_kwh is not None:
             entry_data[CONF_GRID_FEE_PER_KWH] = grid_fee_per_kwh
+        if energy_tax_per_kwh is not None:
+            entry_data["energy_tax_per_kwh"] = energy_tax_per_kwh
 
         if supplier_markup_per_kwh is not None:
             entry_data[CONF_SUPPLIER_MARKUP_PER_KWH] = supplier_markup_per_kwh

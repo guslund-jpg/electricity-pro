@@ -36,5 +36,7 @@ explains that an external daily cost sensor is optional. Other integrations'
 monetary sensors still need user verification: monetary units alone cannot
 establish that a sensor represents today's variable electricity cost.
 
-Local cost accumulation and recovery of existing incorrect totals are not
-implemented by this configuration change.
+Local supplier cost accumulation and matching-coverage effective averages are
+now described in [local cost estimates](local-cost-estimates.md). Monthly energy
+recovery is covered in [monthly energy recovery](monthly-energy-recovery.md).
+Monthly peak-hour derivation and historical cost reconstruction remain follow-ups.

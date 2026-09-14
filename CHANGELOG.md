@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- Estimate supplier costs locally when no daily cost sensor is configured,
+  using observed energy deltas and normalized prices. Provide matching-coverage
+  effective average prices, with explicit partial-estimate metadata.
+  See [local cost estimates](docs/local-cost-estimates.md).
+
 - Associate monthly energy baselines with their source and accumulation mode.
   Add a confirmed, per-configuration reset action for incorrect monthly energy;
   expose partial/unverified coverage without deleting Recorder history.
