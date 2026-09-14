@@ -12,6 +12,7 @@ from .pricing import (
     PriceComponent,
     PriceComponentScope,
     PricingMetadata,
+    PricingStrategy,
     VatTreatment,
 )
 
@@ -104,6 +105,34 @@ def calculate_declared_effective_price(
         base_price,
         metadata,
         adjustments or None,
+    )
+
+
+def calculate_supplier_price(
+    base_price: Decimal | None,
+    metadata: PricingMetadata | None,
+    supplier_markup_per_kwh: Decimal | None = None,
+) -> Decimal | None:
+    """Return VAT-inclusive market energy plus supplier markup only.
+
+    A complete household price cannot safely be split into supplier and grid
+    parts. Missing markup must be configured explicitly, including zero.
+    """
+    if (
+        metadata is None
+        or base_price is None
+        or metadata.strategy is PricingStrategy.EXTERNAL_COMPLETE_PRICE
+        or not metadata.scope.includes(PriceComponent.MARKET_ENERGY)
+        or metadata.scope.includes(PriceComponent.VARIABLE_GRID_FEE)
+        or metadata.scope.includes(PriceComponent.ENERGY_TAX)
+    ):
+        return None
+    if metadata.scope.includes(PriceComponent.SUPPLIER_MARKUP):
+        return vat_inclusive_price(base_price, metadata)
+    if supplier_markup_per_kwh is None:
+        return None
+    return calculate_declared_effective_price(
+        base_price, metadata, supplier_markup_per_kwh=supplier_markup_per_kwh
     )
 
 

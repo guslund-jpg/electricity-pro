@@ -305,7 +305,7 @@ views:
               group_by:
                 duration: 15min
                 func: avg
-            - entity: sensor.electricity_pro_current_price
+            - entity: sensor.electricity_pro_current_supplier_price
               name: Current supplier price
               type: line
               color: "#42a5f5"

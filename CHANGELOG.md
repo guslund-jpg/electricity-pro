@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- Add Current Supplier Price for VAT-inclusive market energy plus supplier
+  markup, and use it in the example price charts. Preserve Current Price as the
+  original source value. Existing copied dashboards need the new supplier
+  entity; its recorded history starts at installation.
+
 - Convert VAT-excluded live and forecast prices using an explicit VAT percentage
   before adding VAT-included fees. Included prices are not taxed twice.
 - Mark native Nord Pool market data as VAT-excluded. Configure the new VAT rate

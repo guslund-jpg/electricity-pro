@@ -144,9 +144,13 @@ wrapped in built-in conditional cards and are hidden when their entities are
 When a Nord Pool forecast source is configured, the Trends price chart adds the
 raw market price alongside the contracted supplier price and Electricity Pro's
 effective price. These lines deliberately represent different scopes: market
-price is the underlying exchange price, supplier price is the contracted price
-reported by the configured provider, and effective price adds configured costs
-such as grid fees and energy tax.
+price is the underlying exchange price, supplier price includes VAT and supplier
+markup, and effective price adds configured costs such as grid fees and energy
+tax. The supplier line uses `sensor.electricity_pro_current_supplier_price`.
+Its history starts when that sensor is installed. Update an existing manually
+copied dashboard to use this entity instead of `sensor.electricity_pro_current_price`.
+If the input includes inseparable grid charges or lacks VAT/markup information,
+the supplier sensor is unavailable instead of showing the source as supplier price.
 
 The Forecast view plots every market-price interval retained by Electricity Pro
 from the start of today through tomorrow, with a red **Now** marker. Before Nord

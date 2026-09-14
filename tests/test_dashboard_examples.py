@@ -49,7 +49,7 @@ def test_standard_dashboard_covers_core_measurements_and_insights() -> None:
     assert {
         "sensor.electricity_pro_current_power",
         "sensor.electricity_pro_current_market_price",
-        "sensor.electricity_pro_current_price",
+        "sensor.electricity_pro_current_supplier_price",
         "sensor.electricity_pro_effective_price",
         "sensor.electricity_pro_current_cost_rate",
         "sensor.electricity_pro_energy_today",
@@ -97,7 +97,7 @@ def test_standard_dashboard_covers_core_measurements_and_insights() -> None:
     }
     assert not {
         "sensor.electricity_pro_current_market_price",
-        "sensor.electricity_pro_current_price",
+        "sensor.electricity_pro_current_supplier_price",
     } & live_tile_entity_ids
 
     advice_tiles = {
@@ -140,7 +140,7 @@ def test_enhanced_dashboard_live_header_precision() -> None:
     )
     for entity_id in (
         "sensor.electricity_pro_current_market_price",
-        "sensor.electricity_pro_current_price",
+        "sensor.electricity_pro_current_supplier_price",
         "sensor.electricity_pro_effective_price",
     ):
         assert series_by_entity[entity_id]["float_precision"] == 2
@@ -187,7 +187,7 @@ def test_enhanced_dashboard_market_price_presentation() -> None:
     assert comparison["yaxis"][0]["min"] == "~0"
     assert [series["entity"] for series in comparison["series"]] == [
         "sensor.electricity_pro_current_market_price",
-        "sensor.electricity_pro_current_price",
+        "sensor.electricity_pro_current_supplier_price",
         "sensor.electricity_pro_effective_price",
     ]
 
