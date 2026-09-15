@@ -4,6 +4,14 @@
 
 ### Fixed
 
+- Place the fixed good-price threshold directly below Good Time method in
+  both custom/mixed and Tibber configuration forms.
+
+- Reject backward lifetime energy readings without lowering the trusted baseline,
+  including across outages, midnight and restarts. Do not bill recovery jumps.
+  Add an explicitly confirmed action for genuine meter replacement/reset;
+  preserve existing totals. See [meter reading protection](docs/meter-reading-protection.md).
+
 - Shorten both dashboards' cost explanations to compact coverage notes with
   a documentation link; retain missing-setting and unverified-energy warnings.
 

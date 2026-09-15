@@ -370,13 +370,6 @@ def _tibber_settings_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
-            threshold_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
             vol.Required(
                 CONF_GOOD_PRICE_MODE,
                 default=good_price_mode_default,
@@ -384,6 +377,13 @@ def _tibber_settings_schema(
                 selector.SelectSelectorConfig(
                     options=_GOOD_PRICE_MODE_OPTIONS,
                     mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            threshold_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
                 )
             ),
             vol.Required(
@@ -747,13 +747,6 @@ def _entity_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
-            good_price_threshold_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
             vol.Required(
                 CONF_GOOD_PRICE_MODE,
                 default=good_price_mode_default,
@@ -761,6 +754,13 @@ def _entity_schema(
                 selector.SelectSelectorConfig(
                     options=_GOOD_PRICE_MODE_OPTIONS,
                     mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            good_price_threshold_key: selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    step=0.001,
+                    mode=selector.NumberSelectorMode.BOX,
                 )
             ),
             vol.Required(

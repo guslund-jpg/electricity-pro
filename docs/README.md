@@ -175,12 +175,26 @@ current local day or the meter's total accumulated import reading. Electricity
 Pro uses a daily value directly. For a total accumulated reading, it persists a
 baseline and publishes the increase observed during the local day as **Energy
 today**. The first day starts at zero when the integration is configured, so it
-represents only consumption observed from that point; after the next local
-midnight the full day is covered. This calculation does not require Recorder,
+represents only consumption observed from that point. A subsequent day can have
+full coverage when the midnight baseline and source readings are valid; a
+restart across midnight or rejected readings can leave it partial. This calculation does not require Recorder,
 and excluding the source from Recorder does not break it. The Energy today
-attributes expose `source_type` and `period_complete`; achieved average-price
-calculations remain unavailable while a day derived from a total reading is
-only partial.
+attributes expose `source_type` and `period_complete`. Locally estimated average
+prices use only consumption with matching price coverage, so they can be
+available during a partial day; they do not represent the missing hours.
+
+For a meter such as P1IB that provides power and lifetime import energy but no
+daily cost, leave **Today's accumulated cost sensor** empty. Do not select a
+fixed monthly fee or an Electricity Pro output as that source. Electricity Pro
+derives daily energy and estimates costs locally when the required prices are
+configured. See [local cost estimates](local-cost-estimates.md) and
+[household totals and fixed fees](household-cost-estimates.md).
+
+Backward lifetime readings are rejected rather than counted again on recovery.
+Only a genuine meter replacement/reset requires explicit confirmation; ordinary
+outages do not. See [meter reading protection](meter-reading-protection.md),
+[monthly energy recovery](monthly-energy-recovery.md), and the
+[installation verification checklist](installation-verification.md).
 
 ### Verify a source before selecting it
 
