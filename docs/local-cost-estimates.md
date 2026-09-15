@@ -30,15 +30,18 @@ observed price intervals between readings. This estimates when energy was used;
 the meter does not reveal its exact distribution within an interval.
 
 Intervals are split at local day/month boundaries using actual elapsed time.
-Negative prices can reduce costs. Daily-counter rollover and decreasing lifetime
-meters are handled separately.
+Negative prices can reduce costs. Daily-counter rollover is handled separately
+from lifetime meters: a backward lifetime reading is rejected, and its recovery
+is not billed as new consumption. Genuine meter replacement/reset requires
+explicit confirmation. See [meter reading protection](meter-reading-protection.md).
 
 Missing prices leave the corresponding energy unpriced. Meter outages, restart
 gaps, and intervals longer than 15 minutes are excluded; the next suitable
 reading establishes a fresh baseline. There is no historical backfill. Very
 slow-updating meters may therefore provide insufficient cost coverage.
 
-Only bounded totals are persisted. Open intervals are not restored after a
+Bounded totals and the trusted lifetime-meter baseline are persisted. Open
+pricing intervals are not restored after a
 restart. Source, currency, timezone or pricing-configuration changes start new
 compatible totals rather than mixing different cost definitions.
 

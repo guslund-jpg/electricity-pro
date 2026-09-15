@@ -1,12 +1,15 @@
 # Meter-independent consumption and cost follow-up
 
-Status: proposed implementation scope following P1IB installation review.
+Status: implementation review for the 1.5.1 stabilisation candidate. Local cost
+estimates, household totals, pricing normalization and monthly source scoping
+are implemented. Backward-reading protection is in PR #267; live overnight
+verification remains pending. This is not a release announcement.
 
 A meter with current import power and total imported energy already supports
-daily and monthly energy. It should also support local cost totals when a
-supplier does not provide daily accumulated cost.
+daily and monthly energy, plus local cost totals when a supplier does not
+provide daily accumulated cost.
 
-## Required behavior
+## Implemented scope
 
 - Accumulate consumption against the price applicable to each interval.
 - Normalize VAT consistently before combining market price and configured
@@ -25,7 +28,6 @@ supplier does not provide daily accumulated cost.
   Define a recovery path for totals contaminated by a previous configuration.
 - Correct the supplier-price dashboard label or supply an explicitly calculated
   supplier price for market-source configurations.
-- Derive monthly peak-hour consumption and its time from suitable readings.
 - Keep storage bounded and avoid unnecessary Recorder and persistence writes.
 
 ## Configuration improvement in this change
@@ -39,4 +41,15 @@ establish that a sensor represents today's variable electricity cost.
 Local supplier cost accumulation and matching-coverage effective averages are
 now described in [local cost estimates](local-cost-estimates.md). Monthly energy
 recovery is covered in [monthly energy recovery](monthly-energy-recovery.md).
-Monthly peak-hour derivation and historical cost reconstruction remain follow-ups.
+Household estimates are covered in [household cost estimates](household-cost-estimates.md).
+Backward-reading handling and genuine meter resets are covered in
+[meter reading protection](meter-reading-protection.md).
+
+## Remaining follow-ups
+
+- Derive monthly peak-hour consumption and its time from suitable readings.
+- Review recovery of already-inflated daily energy and cost totals separately;
+  no automatic historical cost reconstruction is currently provided.
+- Complete the [installation verification checklist](installation-verification.md),
+  including live overnight rollover. Normal 15-minute accumulation has been
+  checked; it is not proof of recovery from a naturally occurring meter dip.

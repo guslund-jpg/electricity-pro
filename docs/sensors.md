@@ -79,15 +79,24 @@ clear and broadly useful.
 | Live | Current cost rate | `current_cost_rate` | Calculated | Currency/h | None | Measurement | Available |
 | Daily | Energy today | `current_energy` | Mirrored or total-accumulated-derived | kWh for derived values; source unit otherwise | Energy | Total increasing | Available |
 | Monthly | Energy this month | `energy_this_month` | Calculated | kWh | Energy | Total | Available |
-| Daily | Cost today | `cost_today` | Mirrored | Currency | Monetary | Total | Available |
+| Daily | Cost today | `cost_today` | External supplier total or local supplier estimate | Currency | Monetary | Total | Source/coverage dependent |
 | Daily | Consumption-weighted average price today | `consumption_weighted_average_price_today` | Calculated | Currency/kWh | None | Measurement | Available |
 | Monthly | Cost this month | `cost_this_month` | Calculated | Currency | Monetary | Total | Available |
+| Daily | Total cost estimate today | `total_cost_today` | Local effective variable cost plus accrued fixed fees | Currency | Monetary | Total | Price/coverage dependent |
+| Monthly | Total cost estimate this month | `total_cost_this_month` | Local effective variable cost plus accrued fixed fees | Currency | Monetary | Total | Price/coverage dependent |
 | Daily | Remaining cost today | `remaining_cost_today` | Calculated | Currency | None | Measurement | Available |
 | Daily | Peak power today | `peak_power_today` | Calculated | W | Power | Measurement | Available |
 | Daily | Peak power time today | `peak_power_time_today` | Calculated | Timestamp | Timestamp | None | Available |
 | Daily | Average power today | `average_power_today` | Calculated | W | Power | Measurement | Coverage dependent |
 | Rolling | Estimated base load | `estimated_base_load` | Calculated | W | Power | Measurement | Available after 5 eligible days |
 | Monthly | Monthly peak-hour time | `monthly_peak_hour_time` | Mirrored | Timestamp | Timestamp | None | Available |
+
+The example dashboards label the existing Cost today/Cost this month sensors
+as supplier costs. Their primary totals use the separate household estimates;
+those include configured variable grid charges, energy tax and accrued fixed
+fees. The consumption-weighted effective average excludes fixed fees and uses
+matching priced-energy coverage, not necessarily all Energy today.
+See [household cost estimates](household-cost-estimates.md).
 
 ### Current Power and signed flow
 

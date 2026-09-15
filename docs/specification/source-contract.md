@@ -181,6 +181,12 @@ aligned full-day totals remain unavailable during partial coverage. The
 internal entity key remains `current_energy` for compatibility with recorded
 history.
 
+For lifetime sources, backward readings do not lower the trusted baseline.
+Recovery is not new consumption. This protection persists across restarts and
+local midnight; an explicitly confirmed genuine meter reset can establish a
+new baseline without clearing known totals. See
+[meter reading protection](../meter-reading-protection.md).
+
 ### Cost today
 
 | Property | Contract |
@@ -277,6 +283,7 @@ the dependent capability.
 
 ## Future extensions
 
-Potential additions include export measurements, local interval cost
-accumulation, detailed monthly cost composition, capacity tariffs, complete
+Local interval cost estimation and household totals with accrued fixed fees
+are implemented; see [household cost estimates](../household-cost-estimates.md).
+Potential additions include export measurements, capacity tariffs, complete
 supplier forecast adapters, and regional tariff adapters.
