@@ -1,3 +1,21 @@
+confirm_meter_reset:
+  name: Confirm lifetime meter replacement or reset
+  description: >-
+    Accept the current lifetime energy reading as a new baseline only after a
+    genuine meter replacement or reset. Existing energy and cost totals are
+    preserved. Do not use for temporary drops, outages or incorrect totals.
+  fields:
+    config_entry_id:
+      name: Electricity Pro configuration
+      required: true
+      selector:
+        config_entry:
+          integration: electricity_pro
+    confirm_reset:
+      name: Confirm genuine meter replacement or reset
+      required: true
+      selector:
+        boolean:
 reset_monthly_energy:
   name: Reset monthly energy
   description: >-

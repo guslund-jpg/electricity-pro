@@ -215,6 +215,14 @@ class DailyConsumptionFromTotal:
 
     def reset(self, measurement: Decimal | None, now: datetime) -> None:
         """Start a new local day from the latest available meter reading."""
+        if measurement is not None:
+            self._validate_measurement(measurement)
+        rejected = self._snapshot is not None and (
+            measurement is None or measurement < self._snapshot.last_value
+        )
+        if self._snapshot is not None:
+            if measurement is None or measurement < self._snapshot.last_value:
+                measurement = self._snapshot.last_value
         if measurement is None:
             self._snapshot = None
             self._source_reset_detected = False
@@ -224,6 +232,17 @@ class DailyConsumptionFromTotal:
             period_start=CalendarPeriod.DAY.start(now),
             last_value=measurement,
             value=Decimal(0),
+        )
+        self._source_reset_detected = rejected
+
+    def confirm_meter_reset(self, measurement: Decimal, now: datetime) -> None:
+        """Explicitly accept a replacement meter without changing known energy."""
+        self._validate_measurement(measurement)
+        previous = self._snapshot
+        period = CalendarPeriod.DAY.start(now)
+        self._snapshot = StatisticsSnapshot(
+            period_start=period, last_value=measurement,
+            value=previous.value if previous and previous.period_start == period else Decimal(0),
         )
         self._source_reset_detected = False
 
@@ -235,7 +254,9 @@ class DailyConsumptionFromTotal:
 
         if previous is None or previous.period_start != period_start:
             value = Decimal(0)
-            self._source_reset_detected = False
+            self._source_reset_detected = (
+                previous is not None and measurement < previous.last_value
+            )
         elif measurement < previous.last_value:
             value = previous.value
             self._source_reset_detected = True
@@ -245,7 +266,7 @@ class DailyConsumptionFromTotal:
 
         self._snapshot = StatisticsSnapshot(
             period_start=period_start,
-            last_value=measurement,
+            last_value=max(measurement, previous.last_value) if previous else measurement,
             value=value,
         )
         return value

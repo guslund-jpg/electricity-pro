@@ -79,6 +79,25 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
         }),
     )
+    async def async_confirm_meter_reset(call: ServiceCall) -> None:
+        """Accept a genuine meter replacement only with explicit confirmation."""
+        entry = hass.config_entries.async_get_entry(call.data[ATTR_CONFIG_ENTRY_ID])
+        if entry is None or entry.domain != DOMAIN:
+            raise ServiceValidationError("Electricity Pro config entry not found")
+        if entry.state is not ConfigEntryState.LOADED:
+            raise ServiceValidationError("Electricity Pro config entry is not loaded")
+        try:
+            await entry.runtime_data.async_confirm_meter_reset()
+        except ValueError as err:
+            raise ServiceValidationError(str(err)) from err
+
+    hass.services.async_register(
+        DOMAIN, "confirm_meter_reset", async_confirm_meter_reset,
+        schema=vol.Schema({
+            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+            vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
+        }),
+    )
     return True
 
 

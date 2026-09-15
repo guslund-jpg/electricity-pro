@@ -345,7 +345,10 @@ class ElectricityProCoordinator(
         )
         if self._provider.energy_source_is_lifetime_total:
             self._energy_today_from_total.reset(energy_kwh, local_now)
-            self._energy_today_period_complete = energy_kwh is not None
+            self._energy_today_period_complete = (
+                energy_kwh is not None
+                and not self._energy_today_from_total.source_reset_detected
+            )
         self._update_timing_history(data, local_now, power_observed=False)
         self._update_base_load_history(data, local_now, power_observed=False)
         self._update_adaptive_price_history(data, local_now)
@@ -629,6 +632,21 @@ class ElectricityProCoordinator(
             "source_entity": self._provider.energy_entity_id,
         }
 
+    async def async_confirm_meter_reset(self) -> None:
+        """Accept a known lifetime meter replacement, retaining existing totals."""
+        if not self._provider.energy_source_is_lifetime_total:
+            raise ValueError("This action requires a lifetime accumulated energy source")
+        data = self._provider.read()
+        energy = _energy_in_kwh(data.current_energy, data.current_energy_unit)
+        if energy is None or not energy.is_finite() or energy < 0:
+            raise ValueError("A valid energy reading is required before confirming")
+        now = dt_util.now().astimezone(self._local_timezone)
+        self._energy_today_from_total.confirm_meter_reset(energy, now)
+        self._energy_today_period_complete = False
+        self._local_costs.confirm_meter_reset(energy)
+        self.async_set_updated_data(self._read())
+        await self._store.async_save(self._statistics_data())
+
     async def async_reset_monthly_energy(self) -> None:
         """Discard only this entry's monthly energy total and establish a baseline."""
         data = self._read()
@@ -821,6 +839,8 @@ class ElectricityProCoordinator(
                 )
                 if self._energy_today_from_total.source_reset_detected:
                     self._energy_today_period_complete = False
+                    # Do not feed a rejected reading into a freshly scoped ledger.
+                    source_energy_kwh = None
                 updates["current_energy"] = energy_kwh
                 updates["current_energy_unit"] = UnitOfEnergy.KILO_WATT_HOUR
                 should_save = True

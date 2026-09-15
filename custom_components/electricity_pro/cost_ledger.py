@@ -28,6 +28,7 @@ class CostLedger:
         self._at: datetime | None = None
         self._segments: list[tuple[datetime, Decimal | None, Decimal | None]] = []
         self._discard_next_delta = False
+        self._lifetime_high_water: Decimal | None = None
 
     def update(
         self, now: datetime, meter: Decimal | None, supplier: Decimal | None,
@@ -48,6 +49,14 @@ class CostLedger:
             self.monthly_effective = self.monthly_energy = Decimal(0)
         if unit is None:
             supplier = effective = None
+        if lifetime and meter is not None and meter.is_finite() and meter >= 0:
+            if self._lifetime_high_water is not None and meter < self._lifetime_high_water:
+                # Reject stale/backward readings before any gap can rebaseline us.
+                # Pricing across the suspect interval is deliberately omitted.
+                self._meter = self._at = None
+                self._segments = []
+                return
+            self._lifetime_high_water = meter
         if meter is None or not meter.is_finite() or meter < 0:
             self._meter = self._at = None
             self._segments = []
@@ -128,10 +137,22 @@ class CostLedger:
         self._meter, self._at = meter, now
         self._segments = [(now, supplier, effective)]
 
+    def confirm_meter_reset(self, meter: Decimal) -> None:
+        """Accept an explicitly confirmed replacement; preserve known totals."""
+        if not meter.is_finite() or meter < 0:
+            raise ValueError("A valid lifetime meter reading is required")
+        self._lifetime_high_water = meter
+        self._meter = self._at = None
+        self._segments = []
+        self._discard_next_delta = False
+
     def as_dict(self) -> dict[str, Any]:
         """Persist bounded totals, never an open pricing interval."""
         return {
             "day": self.day, "month": self.month, "unit": self.unit,
+            "lifetime_high_water": (
+                str(self._lifetime_high_water) if self._lifetime_high_water is not None else None
+            ),
             **{name: str(getattr(self, name)) for name in (
                 "daily_supplier", "monthly_supplier", "daily_effective",
                 "daily_energy", "daily_supplier_energy", "monthly_supplier_energy",
@@ -143,6 +164,12 @@ class CostLedger:
     def from_dict(cls, data: dict[str, Any]) -> "CostLedger":
         """Validate totals before restoring; signed costs support negative prices."""
         ledger = cls()
+        high_water = data.get("lifetime_high_water")
+        if high_water is not None:
+            high_water = Decimal(high_water)
+            if not high_water.is_finite() or high_water < 0:
+                raise ValueError("Invalid lifetime meter baseline")
+            ledger._lifetime_high_water = high_water
         for key in ("day", "month", "unit"):
             value = data.get(key)
             if value is not None and not isinstance(value, str):

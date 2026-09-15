@@ -61,6 +61,21 @@ from custom_components.electricity_pro.pricing import (
 )
 
 
+def test_good_time_method_precedes_threshold_in_both_forms():
+    """Keep method and its threshold adjacent in custom and Tibber settings."""
+    for factory in (_entity_schema, _tibber_settings_schema):
+        for threshold in (None, 1.35):
+            schema = factory(good_price_threshold_default=threshold)
+            keys = [key.schema for key in schema.schema]
+            start = keys.index(CONF_GOOD_PRICE_MODE)
+            assert keys[start:start + 4] == [
+                CONF_GOOD_PRICE_MODE,
+                CONF_GOOD_PRICE_THRESHOLD,
+                CONF_ADAPTIVE_TARGET_PERCENTILE,
+                CONF_ADAPTIVE_PRICE_CEILING,
+            ]
+
+
 async def _start_manual_flow(hass):
     """Start setup and enter the custom or mixed source path."""
     result = await hass.config_entries.flow.async_init(

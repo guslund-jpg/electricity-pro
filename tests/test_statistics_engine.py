@@ -154,8 +154,33 @@ def test_daily_consumption_from_total_survives_restart_and_meter_reset() -> None
     assert statistic.update(Decimal("1202"), dt(2026, 8, 3)) == Decimal(2)
     assert statistic.update(Decimal("0.5"), dt(2026, 8, 3)) == Decimal(2)
     assert statistic.source_reset_detected
-    assert statistic.update(Decimal("0.75"), dt(2026, 8, 3)) == Decimal("2.25")
+    assert statistic.update(Decimal("0.75"), dt(2026, 8, 3)) == Decimal(2)
+    statistic.confirm_meter_reset(Decimal("0.75"), dt(2026, 8, 3))
+    assert statistic.update(Decimal("1"), dt(2026, 8, 3)) == Decimal("2.25")
     assert not statistic.source_reset_detected
+
+
+def test_lifetime_dips_do_not_count_recovery_after_restart_or_midnight():
+    statistic = DailyConsumptionFromTotal()
+    now = dt(2026, 8, 3)
+    statistic.update(Decimal("54705"), now)
+    for reading in ("54701", "54702", "54701", "54705"):
+        assert statistic.update(Decimal(reading), now) == 0
+    assert statistic.update(Decimal("54706"), now) == 1
+    statistic.update(Decimal("54701"), now)
+    statistic = DailyConsumptionFromTotal(statistic.snapshot)
+    tomorrow = dt(2026, 8, 4)
+    statistic.reset(Decimal("54701"), tomorrow)
+    assert statistic.update(Decimal("54706"), tomorrow) == 0
+    assert statistic.update(Decimal("54707"), tomorrow) == 1
+
+
+def test_lifetime_unavailable_at_midnight_keeps_trusted_baseline():
+    statistic = DailyConsumptionFromTotal()
+    statistic.update(Decimal(100), dt(2026, 8, 3))
+    statistic.reset(None, dt(2026, 8, 4))
+    assert statistic.update(Decimal(90), dt(2026, 8, 4)) == 0
+    assert statistic.update(Decimal(101), dt(2026, 8, 4)) == 1
 
 
 def test_daily_consumption_from_total_can_reset_at_midnight() -> None:

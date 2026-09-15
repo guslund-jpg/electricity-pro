@@ -82,3 +82,37 @@ async def test_reset_unavailable_energy_preserves_total(hass):
         with pytest.raises(ValueError, match="valid energy"):
             await c.async_reset_monthly_energy()
     assert c._energy_this_month.value == Decimal(5)
+
+
+async def test_confirm_meter_replacement_preserves_totals_and_resumes(hass):
+    hass.config.time_zone = "UTC"
+    c = ElectricityProCoordinator(hass, make_entry(mode="lifetime"))
+    now = datetime(2026, 9, 14, 12, tzinfo=UTC)
+    with (
+        patch("custom_components.electricity_pro.coordinator.dt_util.now", return_value=now),
+        patch.object(c._store, "async_delay_save"),
+        patch.object(c._store, "async_save") as save,
+    ):
+        for value in ("100", "102", "90", "91", "102", "103"):
+            hass.states.async_set("sensor.energy", value, {"unit_of_measurement": "kWh"})
+            data = c._read()
+        assert data.current_energy == Decimal(3)
+        assert data.energy_this_month == Decimal(3)
+        hass.states.async_set("sensor.energy", "1", {"unit_of_measurement": "kWh"})
+        await c.async_confirm_meter_reset()
+        assert c.data.current_energy == Decimal(3)
+        assert c.data.energy_this_month == Decimal(3)
+        assert not c.data.energy_today_period_complete
+        save.assert_awaited_once()
+        hass.states.async_set("sensor.energy", "2", {"unit_of_measurement": "kWh"})
+        data = c._read()
+        assert data.current_energy == Decimal(4)
+        assert data.energy_this_month == Decimal(4)
+
+
+@pytest.mark.parametrize("mode,value", [("daily", "10"), ("lifetime", "unavailable")])
+async def test_confirm_meter_reset_rejects_invalid_source(hass, mode, value):
+    c = ElectricityProCoordinator(hass, make_entry(mode=mode))
+    hass.states.async_set("sensor.energy", value, {"unit_of_measurement": "kWh"})
+    with pytest.raises(ValueError):
+        await c.async_confirm_meter_reset()
