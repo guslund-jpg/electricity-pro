@@ -256,7 +256,7 @@ legacy HACS Nord Pool integration is not required or supported as a forecast sou
 ## Documentation
 
 - [Configuration and project guide](docs/README.md#configuration)
-- [Optional production and grid export (unreleased)](docs/production-export.md)
+- [Optional production, export and household demand (unreleased)](docs/production-export.md)
 - [Recorder and database-write guidance](docs/README.md#recorder-and-database-writes)
 - [Roadmap](ROADMAP.md)
 - [Architecture](docs/architecture.md)

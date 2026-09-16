@@ -1,4 +1,4 @@
-"""Explicit, independent AC generation and grid export source bindings."""
+"""Explicit, independent AC generation, export and non-storage load sources."""
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 
 from homeassistant.core import HomeAssistant
 
-CHANNELS = ("production", "grid_export")
+CHANNELS = ("production", "grid_export", "household")
 FLOW_KEYS = tuple(
     f"{channel}_{quantity}_entity"
     for channel in CHANNELS

@@ -163,19 +163,21 @@
   "options": {
     "step": {
       "energy_flows": {
-        "title": "Optional production and grid export",
-        "description": "Select only separate, non-negative AC measurements. Production must exclude battery discharge; export must be a directional grid measurement, not signed net power. Energy sources must be lifetime import-independent registers, not daily-reset counters or DC battery/inverter totals. Leave unsupported or unavailable channels unconfigured. No household balance, battery attribution or export revenue is calculated.",
+        "title": "Optional production, export and household demand",
+        "description": "Select only separate, non-negative whole-site AC measurements. Production must exclude battery discharge; export must be a directional grid measurement, not signed net power. Household demand must measure non-storage loads, including ordinary EV charging and distribution losses but excluding battery charging. Do not use grid import as household demand. Energy sources must be lifetime registers, not daily-reset counters or DC battery/inverter totals. Leave unsupported channels unconfigured. No household balance, battery attribution or export revenue is calculated.",
         "data": {
           "production_power_entity": "AC production power",
           "production_energy_entity": "Lifetime AC production energy",
           "grid_export_power_entity": "Directional grid-export power",
           "grid_export_energy_entity": "Lifetime grid-export energy",
+          "household_power_entity": "Measured household demand power (excluding battery charging)",
+          "household_energy_entity": "Lifetime household energy (excluding battery charging)",
           "confirm_flow_semantics": "I confirm the selected sources have these meanings"
         }
       },
       "init": {
         "data": {
-          "configure_energy_flows": "Configure optional production and grid-export sources",
+          "configure_energy_flows": "Configure optional production, export and household sources",
           "power_entity": "Power sensor",
           "price_entity": "Electricity price sensor",
           "pricing_strategy": "Price source type",
@@ -272,7 +274,7 @@
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
       "invalid_flow_source": "Choose distinct external power (W/kW) or lifetime energy (Wh/kWh) sources. Do not reuse an import source.",
-      "confirm_flow_semantics": "Confirm that these are separate AC production or directional grid-export sources with lifetime energy registers."
+      "confirm_flow_semantics": "Confirm the selected whole-site AC source meanings, including household load excluding battery charging, and lifetime energy registers."
     }
   }
 }

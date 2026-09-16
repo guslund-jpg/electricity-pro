@@ -4,6 +4,14 @@
 
 ### Added
 
+- Add optional directly measured Household demand power and partial daily/monthly
+  Household energy sensors, plus an optional group in both Overview dashboards.
+  Require separate whole-site AC non-storage load sources; exclude battery charging,
+  reject import-source reuse and provide no inferred balance or outage fallback.
+  Reuse isolated lifetime-counter protection and the confirmed optional-meter reset
+  action. Existing net-grid/import statistics and costs remain unchanged.
+  See [source requirements](docs/production-export.md#household-demand-is-not-grid-import).
+
 - Add optional Production and Grid export groups to both dashboard Overview
   views, using built-in tiles for power and partial daily/monthly energy.
   Hide absent/unknown entities but keep zero and unavailable readings visible.
