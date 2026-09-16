@@ -2,10 +2,11 @@
 
 ## Status
 
-Proposed — design for [#239](https://github.com/guslund-jpg/electricity-pro/issues/239).
-No runtime changes or new entities are introduced by this ADR. Acceptance is
-required before implementing production analytics in #240. Export-price and
-revenue contracts remain separate work in #241.
+Accepted via PR #270 — design for
+[#239](https://github.com/guslund-jpg/electricity-pro/issues/239).
+The ADR itself introduced no runtime changes. Implementation is incremental
+under #240; see [currently implemented sources and limits](../production-export.md).
+Export-price and revenue contracts remain separate work in #241.
 
 ## Context
 
@@ -18,7 +19,7 @@ nor the difference between two lifetime net-energy readings identifies all flows
 The first implementation must remain useful to import-only homes, preserve
 1.5.1 counter protection, and be testable without solar or battery hardware.
 
-## Proposed decision
+## Decision
 
 ### Measurement boundary and channels
 

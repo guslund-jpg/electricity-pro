@@ -4,6 +4,19 @@ Status: proposed alongside [ADR-0013](../adr/0013-production-and-bidirectional-e
 These are required fixtures for subsequent implementation, not tests already run.
 No solar or battery hardware is currently available to the maintainer.
 
+## First implementation coverage
+
+The first #240 increment implements independent AC production/export sources
+and partial lifetime-counter totals only. Automated coverage is in
+`tests/test_energy_flows.py`, `tests/test_flow_options.py` and
+`tests/test_flow_sensors.py`: normalization, missing/invalid/stale sources,
+zero, dips, restoration, scoped reset, calendar boundaries, source changes,
+optional configuration and unchanged import-only entities.
+
+The balance, topology, ratios, source-acquisition timestamps and daily-reset
+contracts below remain future requirements, not completed tests.
+See [the current feature limits](../production-export.md).
+
 ## Deterministic balance fixtures
 
 Values below are W for synchronized live inputs or kWh for complete aligned

@@ -1,3 +1,37 @@
+confirm_flow_meter_reset:
+  name: Confirm production or export meter reset
+  description: >-
+    Only after a genuine meter replacement/reset, accept the selected channel's
+    current lifetime reading. Other channels and known totals are preserved.
+    Do not use for temporary drops or outages.
+  fields:
+    config_entry_id:
+      name: Electricity Pro configuration
+      required: true
+      selector:
+        config_entry:
+          integration: electricity_pro
+    channel:
+      name: Channel
+      required: true
+      selector:
+        select:
+          options:
+            - production
+            - grid_export
+    source_entity:
+      name: Currently configured lifetime energy source
+      required: true
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: energy
+    confirm_reset:
+      name: Confirm genuine meter replacement or reset
+      required: true
+      selector:
+        boolean:
 confirm_meter_reset:
   name: Confirm lifetime meter replacement or reset
   description: >-

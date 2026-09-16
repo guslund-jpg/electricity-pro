@@ -72,6 +72,14 @@ from .pricing import (
 )
 from .grid_tariff import HighLowGridTariff
 from .source_adapters import DiscoveredSource, discover_tibber_sources
+from .flow_sources import FLOW_KEYS, CONF_CONFIGURE_FLOWS
+
+
+def _with_flow_settings(schema: vol.Schema) -> vol.Schema:
+    """Offer an optional follow-up without expanding the initial setup path."""
+    return schema.extend({
+        vol.Optional(CONF_CONFIGURE_FLOWS, default=False): selector.BooleanSelector(),
+    })
 
 _SETUP_TIBBER = "tibber"
 _SETUP_CUSTOM = "custom"
@@ -148,12 +156,18 @@ def _source_input_errors(
         CONF_CURRENT_L1_ENTITY, CONF_CURRENT_L2_ENTITY, CONF_CURRENT_L3_ENTITY,
         CONF_VOLTAGE_L1_ENTITY, CONF_VOLTAGE_L2_ENTITY, CONF_VOLTAGE_L3_ENTITY,
         CONF_GRID_FEE_WORKDAY_ENTITY,
+        *FLOW_KEYS,
     )
-    return {
+    errors = {
         field: "electricity_pro_source"
         for field in source_fields
         if user_input.get(field) in own_entities
     }
+    flows = [user_input.get(key) for key in FLOW_KEYS if user_input.get(key)]
+    imports = {user_input.get(CONF_POWER_ENTITY), user_input.get(CONF_ENERGY_ENTITY)}
+    if len(flows) != len(set(flows)) or any(source in imports for source in flows):
+        errors["base"] = "invalid_flow_source"
+    return errors
 
 
 def _time_of_use_tariff_fields(
@@ -1089,12 +1103,22 @@ class ElectricityProOptionsFlow(OptionsFlow):
         self._pending_forecast_settings: dict[str, Any] | None = None
         self._forecast_pricing_confirmed = False
         self._forecast_areas: list[str] = []
+        self._pending_flow_settings: dict[str, Any] | None = None
 
     async def async_step_init(
         self,
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Manage source entity options."""
+        if user_input is not None:
+            user_input = dict(user_input)
+            saved = {**self.config_entry.data, **self.config_entry.options}
+            for key in FLOW_KEYS:
+                if key not in user_input and key in saved:
+                    user_input[key] = saved[key]
+            if user_input.pop(CONF_CONFIGURE_FLOWS, False):
+                self._pending_flow_settings = user_input
+                return await self.async_step_energy_flows()
         if user_input is not None and (errors := _source_input_errors(self.hass, user_input)):
             return self.async_show_form(
                 step_id="init",
@@ -1206,7 +1230,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
             values = {**self.config_entry.data, **self.config_entry.options}
             return self.async_show_form(
                 step_id="init",
-                data_schema=_tibber_settings_schema(
+                data_schema=_with_flow_settings(_tibber_settings_schema(
                     vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
                     grid_fee_default=current_grid_fee,
                     forecast_nordpool_config_entry_default=values.get(
@@ -1246,7 +1270,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
                     fixed_grid_fee_default=values.get(
                         CONF_FIXED_GRID_FEE_MONTHLY
                     ),
-                ),
+                )),
                 description_placeholders={"source_profile": "Tibber fast track"},
             )
 
@@ -1423,7 +1447,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=_entity_schema(
+            data_schema=_with_flow_settings(_entity_schema(
                 hass=self.hass,
                 power_default=current_power,
                 price_default=current_price,
@@ -1474,7 +1498,61 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 ),
                 fixed_supplier_fee_monthly_default=current_fixed_supplier_fee,
                 fixed_grid_fee_monthly_default=current_fixed_grid_fee,
-            ),
+            )),
+        )
+
+    async def async_step_energy_flows(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Bind independent directional sources only after explicit confirmation."""
+        if self._pending_flow_settings is None:
+            return await self.async_step_init()
+        pending = self._pending_flow_settings
+        errors = {}
+        if user_input is not None:
+            selected = {key: user_input.get(key) or None for key in FLOW_KEYS}
+            errors = _source_input_errors(self.hass, selected)
+            sources = [value for value in selected.values() if value]
+            saved = {**self.config_entry.data, **self.config_entry.options, **pending}
+            existing = {saved.get(CONF_POWER_ENTITY), saved.get(CONF_ENERGY_ENTITY)}
+            if len(sources) != len(set(sources)) or any(
+                source in existing for source in sources
+            ):
+                errors["base"] = "invalid_flow_source"
+            for key, entity_id in selected.items():
+                state = self.hass.states.get(entity_id) if entity_id else None
+                is_power = "_power_" in key
+                expected_class = "power" if is_power else "energy"
+                units = ("W", "kW") if is_power else ("Wh", "kWh")
+                if entity_id and (
+                    state is None
+                    or state.attributes.get("device_class") != expected_class
+                    or state.attributes.get("unit_of_measurement") not in units
+                ):
+                    errors[key] = "invalid_flow_source"
+            if sources and user_input.get("confirm_flow_semantics") is not True:
+                errors["base"] = "confirm_flow_semantics"
+            if not errors:
+                self._pending_flow_settings = None
+                return await self.async_step_init({**pending, **selected})
+        values = user_input if user_input is not None else pending
+        fields = {}
+        for key in FLOW_KEYS:
+            marker = vol.Optional(
+                key, description={"suggested_value": values.get(key)}
+            )
+            fields[marker] = selector.EntitySelector(selector.EntitySelectorConfig(
+                filter={
+                    "domain": "sensor",
+                    "device_class": "power" if "_power_" in key else "energy",
+                },
+                exclude_entities=_own_source_entities(self.hass),
+            ))
+        fields[vol.Optional("confirm_flow_semantics", default=False)] = (
+            selector.BooleanSelector()
+        )
+        return self.async_show_form(
+            step_id="energy_flows", data_schema=vol.Schema(fields), errors=errors
         )
 
     async def async_step_tibber_forecast_pricing(
