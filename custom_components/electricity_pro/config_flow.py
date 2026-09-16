@@ -73,6 +73,10 @@ from .pricing import (
 from .grid_tariff import HighLowGridTariff
 from .source_adapters import DiscoveredSource, discover_tibber_sources
 from .flow_sources import FLOW_KEYS, CONF_CONFIGURE_FLOWS
+from .flow_compatibility import (
+    COMPATIBILITY_KEYS, CONF_CONFIGURE_COMPATIBILITY, CONF_ENABLED,
+    CONF_GENERATION, CONF_STORAGE, PHASE_KEYS, PHASE_OPTIONS, PRESENCE_OPTIONS,
+)
 
 
 def _with_flow_settings(schema: vol.Schema) -> vol.Schema:
@@ -1104,6 +1108,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
         self._forecast_pricing_confirmed = False
         self._forecast_areas: list[str] = []
         self._pending_flow_settings: dict[str, Any] | None = None
+        self._pending_compatibility_settings: dict[str, Any] | None = None
 
     async def async_step_init(
         self,
@@ -1113,7 +1118,7 @@ class ElectricityProOptionsFlow(OptionsFlow):
         if user_input is not None:
             user_input = dict(user_input)
             saved = {**self.config_entry.data, **self.config_entry.options}
-            for key in FLOW_KEYS:
+            for key in (*FLOW_KEYS, *COMPATIBILITY_KEYS):
                 if key not in user_input and key in saved:
                     user_input[key] = saved[key]
             if user_input.pop(CONF_CONFIGURE_FLOWS, False):
@@ -1534,7 +1539,23 @@ class ElectricityProOptionsFlow(OptionsFlow):
                 errors["base"] = "confirm_flow_semantics"
             if not errors:
                 self._pending_flow_settings = None
-                return await self.async_step_init({**pending, **selected})
+                combined = {**pending, **selected}
+                # A replacement power source has no inherited phase declaration.
+                for key in PHASE_KEYS:
+                    source_key = key.replace("_phase_convention", "_entity")
+                    if selected[source_key] != saved.get(source_key):
+                        combined[key] = "unknown"
+                if user_input.get(CONF_CONFIGURE_COMPATIBILITY):
+                    self._pending_compatibility_settings = combined
+                    return await self.async_step_flow_compatibility()
+                if (
+                    combined.get(CONF_GENERATION) == "absent"
+                    and any(combined.get(f"production_{q}_entity") for q in ("power", "energy"))
+                ):
+                    # Let the user correct topology without losing source choices.
+                    self._pending_compatibility_settings = combined
+                    return await self.async_step_flow_compatibility()
+                return await self.async_step_init(combined)
         values = user_input if user_input is not None else pending
         fields = {}
         for key in FLOW_KEYS:
@@ -1551,8 +1572,47 @@ class ElectricityProOptionsFlow(OptionsFlow):
         fields[vol.Optional("confirm_flow_semantics", default=False)] = (
             selector.BooleanSelector()
         )
+        fields[vol.Optional(CONF_CONFIGURE_COMPATIBILITY, default=False)] = (
+            selector.BooleanSelector()
+        )
         return self.async_show_form(
             step_id="energy_flows", data_schema=vol.Schema(fields), errors=errors
+        )
+
+    async def async_step_flow_compatibility(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Declare installation facts separately from measured source bindings."""
+        pending = self._pending_compatibility_settings
+        if pending is None:
+            return await self.async_step_init()
+        errors = {}
+        if user_input is not None:
+            combined = {**pending, **user_input}
+            if (
+                combined.get(CONF_GENERATION) == "absent"
+                and any(combined.get(f"production_{q}_entity") for q in ("power", "energy"))
+            ):
+                errors[CONF_GENERATION] = "contradictory_topology"
+            else:
+                self._pending_compatibility_settings = None
+                return await self.async_step_init(combined)
+        values = {**pending, **(user_input or {})}
+        fields = {
+            vol.Required(CONF_ENABLED, default=values.get(CONF_ENABLED, True)):
+                selector.BooleanSelector(),
+        }
+        for key in (CONF_GENERATION, CONF_STORAGE, *PHASE_KEYS):
+            options = PRESENCE_OPTIONS if key in (CONF_GENERATION, CONF_STORAGE) else PHASE_OPTIONS
+            fields[vol.Required(key, default=values.get(key) or "unknown")] = (
+                selector.SelectSelector(selector.SelectSelectorConfig(
+                    options=list(options), translation_key=(
+                        "flow_presence" if key in (CONF_GENERATION, CONF_STORAGE) else "flow_phase"
+                    ),
+                ))
+            )
+        return self.async_show_form(
+            step_id="flow_compatibility", data_schema=vol.Schema(fields), errors=errors
         )
 
     async def async_step_tibber_forecast_pricing(

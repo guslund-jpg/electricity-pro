@@ -14,7 +14,7 @@ zero, dips, restoration, scoped reset, calendar boundaries, source changes,
 optional configuration and unchanged import-only entities.
 
 The balance, topology, ratios, source-acquisition timestamps and daily-reset
-contracts below remain future requirements, not completed tests.
+contracts below describe the broader target, not a completed balance implementation.
 See [the current feature limits](../production-export.md).
 
 The subsequent measured-household-demand increment reuses the same isolated
@@ -23,6 +23,16 @@ sources, no grid fallback, unchanged import data, opt-in configuration and
 scoped reset. Both dashboards' optional groups are tested in
 `tests/test_dashboard_energy_flows.py`. A direct source does not imply that
 calculated household balances or solar-origin ratios are implemented.
+
+The installation/compatibility increment adds unknown/absent/present
+declarations and per-power-source phase conventions. Tests in
+`tests/test_flow_compatibility.py` and
+`tests/test_flow_compatibility_integration.py` cover optional diagnostics,
+independent readings, conflicting declarations, binding changes, boundary/phase
+mismatch, five-minute freshness, 30-second skew, future/naive timestamps,
+DST elapsed time and stable metadata. Timestamp provenance is HA receipt time;
+complete balances, acquisition-time validation and aligned energy periods
+remain future requirements.
 
 ## Deterministic balance fixtures
 

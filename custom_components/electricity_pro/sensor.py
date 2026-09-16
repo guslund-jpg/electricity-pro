@@ -15,6 +15,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    EntityCategory,
     PERCENTAGE,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
@@ -682,7 +683,41 @@ async def async_setup_entry(
                 entities.append(
                     ElectricityProFlowSensor(entry.runtime_data, entry, channel, period)
                 )
+    if entry.runtime_data._provider.flow_sources.compatibility_enabled:
+        entities.append(ElectricityProFlowCompatibilitySensor(entry.runtime_data, entry))
     async_add_entities(entities)
+
+
+class ElectricityProFlowCompatibilitySensor(
+    CoordinatorEntity[ElectricityProCoordinator], SensorEntity,
+):
+    """Opt-in input diagnostic, explicitly not a site-balance readiness flag."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Flow power compatibility"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:check-network-outline"
+
+    def __init__(
+        self, coordinator: ElectricityProCoordinator, entry: ElectricityProConfigEntry,
+    ) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_flow_power_compatibility"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)}, name="Electricity Pro",
+            manufacturer="Electricity Pro", model="Electricity monitor",
+        )
+
+    @property
+    def native_value(self) -> str:
+        return self.coordinator.flow_compatibility["status"]
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            key: value for key, value in self.coordinator.flow_compatibility.items()
+            if key != "status"
+        }
 
 
 class ElectricityProFlowSensor(CoordinatorEntity[ElectricityProCoordinator], SensorEntity):
