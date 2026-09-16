@@ -70,15 +70,6 @@ use the native Home Assistant Nord Pool integration and its future-price action.
 Whole-home Current Power uses signed net-grid semantics: positive values mean
 import and negative values mean export. Export compensation is not inferred
 from the configured import price.
-The v1.2 pricing and tariff foundation adds explicit price semantics and
-configurable grid and fixed-fee models without provider-specific calculation
-branches. v1.3 adds provider-independent daily power statistics, retrospective
-consumption-timing analysis, and recent base-load estimation. v1.4 adds current
-and forecast market-price intelligence, a complete-day Average Market Price
-statistic, and signed net-power and negative-price support. v1.5 adds opt-in,
-explainable Adaptive Good Time classification, comparable forecast refinement,
-supplier markup, and total accumulated-energy sources. The legacy HACS Nord
-Pool integration is not required or supported as a forecast source.
 
 ## Who is Electricity Pro for?
 
@@ -256,6 +247,9 @@ create a manual dashboard, copy an example, and verify its entity IDs.
 
 See the [configuration guide](docs/README.md#configuration) for source examples,
 grid-tariff settings, and optional Nord Pool and Workday features.
+
+Forecast features use the native Home Assistant Nord Pool integration. The
+legacy HACS Nord Pool integration is not required or supported as a forecast source.
 
 ---
 
