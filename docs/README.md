@@ -372,7 +372,8 @@ Planned development areas include:
 ## Development status
 
 Electricity Pro reached its stable release line with v1.0. The current release
-is v1.5.0, the Adaptive Price Intelligence release.
+is v1.5.1, the Metering and Cost Reliability release. See the
+[release and upgrade notes](releases/1.5.1.md).
 
 Post-1.0 development preserves user-facing entities and configuration wherever
 possible. Any necessary breaking change must be documented with migration

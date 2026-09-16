@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-09-16
+
 ### Fixed
 
 - Place the fixed good-price threshold directly below Good Time method in
