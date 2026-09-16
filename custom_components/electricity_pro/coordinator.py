@@ -49,6 +49,8 @@ from .calculations import (
     effective_price_metadata,
 )
 from .cost_ledger import CostLedger
+from .energy_flows import FlowCounter
+from .flow_sources import CHANNELS
 from .household_cost import accrued_fixed_fees
 from .const import (
     CONF_ENERGY_TAX_PER_KWH,
@@ -167,6 +169,8 @@ class ElectricityProCoordinator(
 
         self._entry = entry
         self._local_costs = CostLedger()
+        self._flow_counters = {channel: FlowCounter() for channel in CHANNELS}
+        self.flow_values: dict[str, tuple[Decimal | None, dict]] = {}
         self._local_timezone = ZoneInfo(hass.config.time_zone)
         self._provider = ElectricityProEntityProvider(
             hass=hass,
@@ -338,6 +342,7 @@ class ElectricityProCoordinator(
     def _async_daily_rollover(self, now: datetime) -> None:
         """Finalize timing history and clear daily state at local midnight."""
         local_now = now.astimezone(self._local_timezone)
+        self._read_flows(local_now)
         data = self._provider.read()
         energy_kwh = _energy_in_kwh(
             data.current_energy,
@@ -683,6 +688,18 @@ class ElectricityProCoordinator(
         if stored is None:
             return
 
+        flow_state = stored.get("directional_flows", {})
+        for channel in CHANNELS:
+            saved = flow_state.get(channel) if isinstance(flow_state, dict) else None
+            if (
+                isinstance(saved, dict)
+                and saved.get("scope") == self._flow_scope(channel)
+            ):
+                try:
+                    self._flow_counters[channel] = FlowCounter.from_dict(saved["counter"])
+                except (KeyError, ValueError, TypeError, ArithmeticError):
+                    _LOGGER.warning("Ignoring invalid %s counter state", channel)
+
         if stored.get("local_cost_scope") == self._local_cost_scope:
             try:
                 self._local_costs = CostLedger.from_dict(stored["local_costs"])
@@ -819,7 +836,7 @@ class ElectricityProCoordinator(
 
         now = dt_util.now().astimezone(self._local_timezone)
         updates: dict[str, Decimal | datetime | str | None] = {}
-        should_save = False
+        should_save = self._read_flows(now)
 
         if self._provider.energy_source_is_lifetime_total:
             if source_energy_kwh is None:
@@ -1388,6 +1405,11 @@ class ElectricityProCoordinator(
     def _statistics_data(self) -> dict[str, Any]:
         """Return serializable statistics state."""
         data: dict[str, Any] = {}
+        data["directional_flows"] = {
+            channel: {"scope": self._flow_scope(channel), "counter": counter.as_dict()}
+            for channel, counter in self._flow_counters.items()
+            if self._flow_scope(channel)["source"]
+        }
         data["local_costs"] = self._local_costs.as_dict()
         data["local_cost_scope"] = self._local_cost_scope
         if (snapshot := self._energy_this_month.snapshot) is not None:
@@ -1426,6 +1448,76 @@ class ElectricityProCoordinator(
         ]
         data[_ADAPTIVE_PRICE_HISTORY] = self._adaptive_price_history.as_dict()
         return data
+
+    def _flow_scope(self, channel: str) -> dict:
+        """Scope each independently accumulated AC lifetime register."""
+        return {
+            "source": self._provider.flow_sources.bindings[f"{channel}_energy_entity"],
+            "channel": channel, "counter_kind": "lifetime", "boundary": "site_ac",
+            "timezone": str(self._local_timezone), "revision": 1,
+        }
+
+    def _read_flows(self, now: datetime) -> bool:
+        """Publish independent flows; never combine them into a site balance."""
+        changed = False
+        for channel in CHANNELS:
+            for quantity in ("power", "energy"):
+                reading = self._provider.flow_sources.read(channel, quantity, now)
+                attrs = {
+                    "source_entity": reading.source, "channel": channel,
+                    "boundary": "site_ac", "origin": "measured",
+                    "timestamp_provenance": "ha_receipt",
+                    "original_unit": reading.original_unit,
+                    "reason": reading.reason,
+                }
+                if quantity == "power":
+                    self.flow_values[f"{channel}_power"] = (reading.value, attrs)
+                    continue
+                counter = self._flow_counters[channel]
+                before = counter.as_dict()
+                # Old-day receipt data cannot establish today's meter baseline.
+                meter = reading.value
+                if (
+                    reading.observed_at
+                    and reading.observed_at.astimezone(
+                        self._local_timezone
+                    ).date() != now.date()
+                ):
+                    meter = None
+                    attrs["reason"] = "previous_day_reading"
+                valid = counter.update(meter, now)
+                changed |= before != counter.as_dict()
+                attrs.update({
+                    "origin": "derived", "counter_kind": "lifetime",
+                    "coverage": "partial", "tracking_started_at": counter.started,
+                    "meter_generation": counter.generation,
+                    "reason": counter.reason if meter is not None else attrs["reason"],
+                })
+                for period, value in (
+                    ("today", counter.today), ("this_month", counter.this_month)
+                ):
+                    period_id = counter.day if period == "today" else counter.month
+                    self.flow_values[f"{channel}_{period}"] = (
+                        value if valid else None,
+                        {**attrs, "period": period_id},
+                    )
+        return changed
+
+    async def async_confirm_flow_meter_reset(self, channel: str, source: str) -> None:
+        """Explicitly rebaseline one unchanged source binding, not all meters."""
+        if channel not in CHANNELS or self._flow_scope(channel)["source"] != source:
+            raise ValueError("Select the currently configured directional energy source")
+        now = dt_util.now().astimezone(self._local_timezone)
+        reading = self._provider.flow_sources.read(channel, "energy", now)
+        if (
+            reading.value is None
+            or reading.observed_at is None
+            or reading.observed_at.astimezone(self._local_timezone).date() != now.date()
+        ):
+            raise ValueError("A valid fresh lifetime energy reading is required")
+        self._flow_counters[channel].confirm_reset(reading.value, now)
+        self.async_set_updated_data(self._read())
+        await self._store.async_save(self._statistics_data())
 
 
 def _energy_in_kwh(

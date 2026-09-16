@@ -98,6 +98,27 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
         }),
     )
+    async def async_confirm_flow_meter_reset(call: ServiceCall) -> None:
+        """Rebaseline only an explicitly confirmed directional source."""
+        entry = hass.config_entries.async_get_entry(call.data[ATTR_CONFIG_ENTRY_ID])
+        if entry is None or entry.domain != DOMAIN or entry.state is not ConfigEntryState.LOADED:
+            raise ServiceValidationError("Electricity Pro configuration must be loaded")
+        try:
+            await entry.runtime_data.async_confirm_flow_meter_reset(
+                call.data["channel"], call.data["source_entity"],
+            )
+        except ValueError as err:
+            raise ServiceValidationError(str(err)) from err
+
+    hass.services.async_register(
+        DOMAIN, "confirm_flow_meter_reset", async_confirm_flow_meter_reset,
+        schema=vol.Schema({
+            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+            vol.Required("channel"): vol.In(["production", "grid_export"]),
+            vol.Required("source_entity"): cv.entity_id,
+            vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
+        }),
+    )
     return True
 
 

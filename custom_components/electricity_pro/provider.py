@@ -47,6 +47,7 @@ from .const import (
     ENERGY_SOURCE_LIFETIME,
 )
 from .grid_tariff import HighLowGridTariff
+from .flow_sources import FlowSources
 from .pricing import PricingMetadata
 from .pricing_config import resolve_pricing_metadata
 
@@ -119,6 +120,7 @@ class ElectricityProEntityProvider:
     ) -> None:
         """Initialize the entity provider."""
         self._hass = hass
+        self.flow_sources = FlowSources(hass, {**entry.data, **entry.options})
         self._local_timezone = ZoneInfo(hass.config.time_zone)
         self._grid_fee_at = grid_fee_at
         self._pricing_metadata = resolve_pricing_metadata(entry.data, entry.options)
@@ -275,7 +277,7 @@ class ElectricityProEntityProvider:
         if self._monthly_peak_hour_time_entity_id is not None:
             entity_ids.append(self._monthly_peak_hour_time_entity_id)
 
-        return tuple(entity_ids)
+        return tuple(dict.fromkeys([*entity_ids, *self.flow_sources.entity_ids]))
 
     def grid_fee_at(self, at: datetime) -> Decimal | None:
         """Return the configured grid fee at a timestamp."""

@@ -60,6 +60,7 @@ from .forecast import DailyAverageMarketPriceResult, ForecastInterval
 from .forecast_insights import ForecastDirectionInsight, ForecastWindowInsight
 from .pricing import PricingMetadata
 from .provider import ElectricityProData
+from .flow_sources import CHANNELS
 from .statistics import remaining_cost_today
 from .timing_score import TimingScoreResult
 
@@ -673,7 +674,58 @@ async def async_setup_entry(
         )
     )
 
+    for channel in CHANNELS:
+        for period in ("power", "today", "this_month"):
+            quantity = "power" if period == "power" else "energy"
+            key = f"{channel}_{quantity}_entity"
+            if entry.runtime_data._provider.flow_sources.bindings[key]:
+                entities.append(
+                    ElectricityProFlowSensor(entry.runtime_data, entry, channel, period)
+                )
     async_add_entities(entities)
+
+
+class ElectricityProFlowSensor(CoordinatorEntity[ElectricityProCoordinator], SensorEntity):
+    """Expose an explicitly configured independent directional flow."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self, coordinator: ElectricityProCoordinator, entry: ElectricityProConfigEntry,
+        channel: str, period: str,
+    ) -> None:
+        super().__init__(coordinator)
+        self._key = f"{channel}_{period}"
+        label = "Production" if channel == "production" else "Grid export"
+        self._attr_name = f"{label} {period.replace('_', ' ')}"
+        self._attr_unique_id = f"{entry.entry_id}_{self._key}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)}, name="Electricity Pro",
+            manufacturer="Electricity Pro", model="Electricity monitor",
+        )
+        self._attr_device_class = (
+            SensorDeviceClass.POWER if period == "power" else SensorDeviceClass.ENERGY
+        )
+        self._attr_state_class = (
+            SensorStateClass.MEASUREMENT
+            if period == "power" else SensorStateClass.TOTAL_INCREASING
+        )
+        self._attr_native_unit_of_measurement = (
+            UnitOfPower.WATT if period == "power" else UnitOfEnergy.KILO_WATT_HOUR
+        )
+        self._attr_suggested_display_precision = 0 if period == "power" else 3
+
+    @property
+    def native_value(self) -> Decimal | None:
+        return self.coordinator.flow_values.get(self._key, (None, {}))[0]
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.native_value is not None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return self.coordinator.flow_values.get(self._key, (None, {}))[1]
 
 
 class ElectricityProSensor(

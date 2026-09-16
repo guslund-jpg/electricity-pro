@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+
+- Optional, independent AC production and grid-export power sources, with
+  lifetime energy counters providing partial daily/monthly totals. Configure
+  them on a separate opt-in options step; import-only and Tibber setup remain
+  unchanged. Protect each counter across dips, outages and restarts, with a
+  confirmed per-source action for genuine meter replacement.
+  See [production and grid export](docs/production-export.md).
+  This is the first increment of #240, not household-demand, battery or
+  export-revenue accounting. Validation uses synthetic data, not solar hardware.
+
 ## [1.5.1] - 2026-09-16
 
 ### Fixed
