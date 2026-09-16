@@ -283,6 +283,12 @@ the dependent capability.
 
 ## Future extensions
 
+The proposed v1.6 extension is [ADR-0013](../adr/0013-production-and-bidirectional-energy-flows.md).
+It defines optional directional production, import/export and storage channels
+without changing existing entity meanings. Its
+[test plan](energy-flow-test-plan.md) distinguishes synthetic validation from
+pending solar/storage beta testing. This proposal is not implemented functionality.
+
 Local interval cost estimation and household totals with accrued fixed fees
 are implemented; see [household cost estimates](../household-cost-estimates.md).
 Potential additions include export measurements, capacity tariffs, complete
