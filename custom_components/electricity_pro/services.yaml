@@ -1,5 +1,5 @@
 confirm_flow_meter_reset:
-  name: Confirm production or export meter reset
+  name: Confirm optional energy meter reset
   description: >-
     Only after a genuine meter replacement/reset, accept the selected channel's
     current lifetime reading. Other channels and known totals are preserved.
@@ -19,6 +19,7 @@ confirm_flow_meter_reset:
           options:
             - production
             - grid_export
+            - household
     source_entity:
       name: Currently configured lifetime energy source
       required: true

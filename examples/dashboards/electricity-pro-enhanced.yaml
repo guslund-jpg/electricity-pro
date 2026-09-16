@@ -458,6 +458,78 @@ views:
                 tap_action:
                   action: more-info
 
+      # Measured load is independent of grid import and storage topology.
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_household_demand_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_household_energy_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_household_energy_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Household demand
+
+                Measured non-storage load, including EV charging but excluding
+                battery charging. Not grid import or a cost estimate.
+                {% if states('sensor.electricity_pro_household_energy_today') != 'unknown'
+                   or states('sensor.electricity_pro_household_energy_this_month') != 'unknown' %}
+                **Partial energy totals:** observed increments only, not complete
+                day/month totals.
+                {% endif %}
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_demand_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_demand_power
+                name: Household demand power
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_today
+                name: Today (partial)
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_this_month
+                name: This month (partial)
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
   - title: Trends
     path: trends
     icon: mdi:chart-areaspline

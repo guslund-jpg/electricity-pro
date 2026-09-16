@@ -97,14 +97,19 @@ on the entities configured in your Home Assistant installation.
 
 ## Requirements
 
-### Optional production and grid export (unreleased v1.6)
+### Optional production, export and household demand (unreleased v1.6)
 
-Both Overview views include independent Production and Grid export groups
+Both Overview views include independent Production, Grid export and Household demand groups
 using built-in cards. They show configured power and partial daily/monthly
 energy sensors; power-only and energy-only configurations are supported.
 Energy tiles explicitly say **partial** and link to
 [source and coverage details](../../docs/production-export.md). Export is not
 labelled solar export, household consumption, savings or revenue.
+
+Household demand is shown only from explicitly selected non-storage load sources.
+Its notes distinguish it from grid import and exclude battery charging.
+These tiles do not substitute household energy for imported energy or alter
+costs, existing statistics or recommendations.
 
 The groups and their individual tiles hide absent or `unknown` entities.
 Valid zero readings stay visible. `unavailable` readings also remain visible,

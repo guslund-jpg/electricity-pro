@@ -698,6 +698,11 @@ class ElectricityProFlowSensor(CoordinatorEntity[ElectricityProCoordinator], Sen
         self._key = f"{channel}_{period}"
         label = "Production" if channel == "production" else "Grid export"
         self._attr_name = f"{label} {period.replace('_', ' ')}"
+        if channel == "household":
+            self._attr_name = (
+                "Household demand power" if period == "power"
+                else f"Household energy {period.replace('_', ' ')}"
+            )
         self._attr_unique_id = f"{entry.entry_id}_{self._key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)}, name="Electricity Pro",

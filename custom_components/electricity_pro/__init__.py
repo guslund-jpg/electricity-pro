@@ -23,6 +23,7 @@ from .const import (
     SERVICE_GET_MARKET_PRICE_FORECAST,
 )
 from .coordinator import ElectricityProCoordinator
+from .flow_sources import CHANNELS
 from .pricing_config import resolve_pricing_metadata
 
 type ElectricityProConfigEntry = ConfigEntry[ElectricityProCoordinator]
@@ -114,7 +115,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         DOMAIN, "confirm_flow_meter_reset", async_confirm_flow_meter_reset,
         schema=vol.Schema({
             vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-            vol.Required("channel"): vol.In(["production", "grid_export"]),
+            vol.Required("channel"): vol.In(CHANNELS),
             vol.Required("source_entity"): cv.entity_id,
             vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
         }),

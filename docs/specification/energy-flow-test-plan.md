@@ -17,6 +17,13 @@ The balance, topology, ratios, source-acquisition timestamps and daily-reset
 contracts below remain future requirements, not completed tests.
 See [the current feature limits](../production-export.md).
 
+The subsequent measured-household-demand increment reuses the same isolated
+counter contract. `tests/test_household_demand.py` checks separate direct-load
+sources, no grid fallback, unchanged import data, opt-in configuration and
+scoped reset. Both dashboards' optional groups are tested in
+`tests/test_dashboard_energy_flows.py`. A direct source does not imply that
+calculated household balances or solar-origin ratios are implemented.
+
 ## Deterministic balance fixtures
 
 Values below are W for synchronized live inputs or kWh for complete aligned

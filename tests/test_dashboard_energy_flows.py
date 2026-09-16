@@ -8,8 +8,15 @@ from homeassistant.helpers.template import Template
 
 
 DASHBOARDS = Path(__file__).parents[1] / "examples" / "dashboards"
-CHANNELS = ("production", "grid_export")
+CHANNELS = ("production", "grid_export", "household")
 PERIODS = ("power", "today", "this_month")
+
+
+def entity_id(channel, period):
+    suffix = period
+    if channel == "household":
+        suffix = "demand_power" if period == "power" else f"energy_{period}"
+    return f"sensor.electricity_pro_{channel}_{suffix}"
 
 
 def matches(conditions, states):
@@ -46,7 +53,7 @@ def groups(request):
             card for card in overview["cards"]
             if card.get("type") == "conditional"
             and card.get("card", {}).get("type") == "vertical-stack"
-            and f"sensor.electricity_pro_{channel}_power" in str(card["conditions"])
+            and entity_id(channel, "power") in str(card["conditions"])
         ]
         assert len(groups) == 1
         result[channel] = groups[0]
@@ -58,15 +65,15 @@ def groups(request):
 @pytest.mark.parametrize("channel", CHANNELS)
 def test_groups_handle_absence_zero_outages_and_independent_sources(groups, state, periods, channel):
     states = {
-        f"sensor.electricity_pro_{channel}_{period}": state
+        entity_id(channel, period): state
         for period in periods if state is not None
     }
     tiles = [tile for group in groups.values() for tile in visible_tiles(group, states)]
     expected = set(states) if state not in (None, "unknown") else set()
     assert {tile["entity"] for tile in tiles} == expected
     assert matches(groups[channel]["conditions"], states) == bool(expected)
-    other = "grid_export" if channel == "production" else "production"
-    assert not matches(groups[other]["conditions"], states)
+    for other in set(CHANNELS) - {channel}:
+        assert not matches(groups[other]["conditions"], states)
 
 
 async def test_notes_are_partial_only_for_energy_and_do_not_infer_origin(hass, groups):
@@ -75,25 +82,28 @@ async def test_notes_are_partial_only_for_energy_and_do_not_infer_origin(hass, g
         assert note["type"] == "markdown"
         for energy_configured in (False, True):
             if energy_configured:
-                hass.states.async_set(f"sensor.electricity_pro_{channel}_today", "unavailable")
+                hass.states.async_set(entity_id(channel, "today"), "unavailable")
             text = Template(note["content"], hass).async_render(parse_result=False)
             assert ("Partial energy totals" in text) == energy_configured
             assert "Flow details" in text
             assert len(text.split()) < 55
             if channel == "production":
                 assert "excluding battery discharge" in text
-            else:
+            elif channel == "grid_export":
                 assert "may include a battery" in text
                 assert "solar export" not in text.lower()
+            else:
+                assert "excluding battery charging" in text
+                assert "Not grid import" in text
 
 
 def test_both_channels_visible_without_new_dependencies_or_calculations(groups):
     states = {
-        f"sensor.electricity_pro_{channel}_{period}": "0"
+        entity_id(channel, period): "0"
         for channel in CHANNELS for period in PERIODS
     }
     tiles = [tile for group in groups.values() for tile in visible_tiles(group, states)]
-    assert len(tiles) == 6
+    assert len(tiles) == 9
     for tile in tiles:
         assert tile["type"] == "tile"
         assert tile["tap_action"] == {"action": "more-info"}
