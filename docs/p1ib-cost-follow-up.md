@@ -2,8 +2,9 @@
 
 Status: implementation review for the 1.5.1 stabilisation candidate. Local cost
 estimates, household totals, pricing normalization and monthly source scoping
-are implemented. Backward-reading protection is in PR #267; live overnight
-verification remains pending. This is not a release announcement.
+are implemented. Backward-reading protection was merged in PR #267. Normal
+15-minute accumulation and overnight energy continuity have been checked on a
+P1IB installation. This is not a release announcement.
 
 A meter with current import power and total imported energy already supports
 daily and monthly energy, plus local cost totals when a supplier does not
@@ -50,6 +51,6 @@ Backward-reading handling and genuine meter resets are covered in
 - Derive monthly peak-hour consumption and its time from suitable readings.
 - Review recovery of already-inflated daily energy and cost totals separately;
   no automatic historical cost reconstruction is currently provided.
-- Complete the [installation verification checklist](installation-verification.md),
-  including live overnight rollover. Normal 15-minute accumulation has been
-  checked; it is not proof of recovery from a naturally occurring meter dip.
+- Continue using the [installation verification checklist](installation-verification.md).
+  Normal accumulation and overnight continuity have been checked; recovery from
+  a naturally occurring dip after the fix has not yet been observed live.

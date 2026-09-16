@@ -274,7 +274,11 @@ grid-tariff settings, and optional Nord Pool and Workday features.
 
 ### Current release
 
-v1.5.0 – Adaptive Price Intelligence
+v1.5.1 – Metering and Cost Reliability
+
+This maintenance release improves lifetime-meter handling, supplier and household
+cost estimates, VAT configuration, and dashboard clarity. Read the
+[release and upgrade notes](docs/releases/1.5.1.md) before upgrading.
 
 Electricity Pro is actively developed with a clear public roadmap.
 
