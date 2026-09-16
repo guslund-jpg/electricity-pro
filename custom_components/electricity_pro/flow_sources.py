@@ -6,6 +6,8 @@ from decimal import Decimal, InvalidOperation
 
 from homeassistant.core import HomeAssistant
 
+from .flow_compatibility import COMPATIBILITY_KEYS, CONF_ENABLED
+
 CHANNELS = ("production", "grid_export", "household")
 FLOW_KEYS = tuple(
     f"{channel}_{quantity}_entity"
@@ -32,6 +34,11 @@ class FlowSources:
     def __init__(self, hass: HomeAssistant, settings: dict) -> None:
         self.hass = hass
         self.bindings = {key: settings.get(key) for key in FLOW_KEYS}
+        self.compatibility_settings = {key: settings.get(key) for key in COMPATIBILITY_KEYS}
+
+    @property
+    def compatibility_enabled(self) -> bool:
+        return self.compatibility_settings.get(CONF_ENABLED) is True
 
     @property
     def entity_ids(self) -> tuple[str, ...]:

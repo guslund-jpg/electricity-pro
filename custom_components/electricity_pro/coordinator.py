@@ -51,6 +51,9 @@ from .calculations import (
 from .cost_ledger import CostLedger
 from .energy_flows import FlowCounter
 from .flow_sources import CHANNELS
+from .flow_compatibility import (
+    CONF_GENERATION, CONF_STORAGE, PowerInput, check_power_compatibility,
+)
 from .household_cost import accrued_fixed_fees
 from .const import (
     CONF_ENERGY_TAX_PER_KWH,
@@ -171,6 +174,7 @@ class ElectricityProCoordinator(
         self._local_costs = CostLedger()
         self._flow_counters = {channel: FlowCounter() for channel in CHANNELS}
         self.flow_values: dict[str, tuple[Decimal | None, dict]] = {}
+        self.flow_compatibility: dict[str, Any] = {"status": "disabled"}
         self._local_timezone = ZoneInfo(hass.config.time_zone)
         self._provider = ElectricityProEntityProvider(
             hass=hass,
@@ -1460,6 +1464,8 @@ class ElectricityProCoordinator(
     def _read_flows(self, now: datetime) -> bool:
         """Publish independent flows; never combine them into a site balance."""
         changed = False
+        power_inputs: list[PowerInput] = []
+        settings = self._provider.flow_sources.compatibility_settings
         for channel in CHANNELS:
             for quantity in ("power", "energy"):
                 reading = self._provider.flow_sources.read(channel, quantity, now)
@@ -1472,6 +1478,14 @@ class ElectricityProCoordinator(
                 }
                 if quantity == "power":
                     self.flow_values[f"{channel}_power"] = (reading.value, attrs)
+                    if reading.source and self._provider.flow_sources.compatibility_enabled:
+                        power_inputs.append(PowerInput(
+                            channel=channel, source=reading.source, value=reading.value,
+                            received_at=reading.observed_at, reason=reading.reason,
+                            phase_convention=settings.get(
+                                f"{channel}_power_phase_convention"
+                            ) or "unknown",
+                        ))
                     continue
                 counter = self._flow_counters[channel]
                 before = counter.as_dict()
@@ -1501,6 +1515,24 @@ class ElectricityProCoordinator(
                         value if valid else None,
                         {**attrs, "period": period_id},
                     )
+        if self._provider.flow_sources.compatibility_enabled:
+            generation = settings.get(CONF_GENERATION) or "unknown"
+            storage = settings.get(CONF_STORAGE) or "unknown"
+            result = check_power_compatibility(
+                tuple(power_inputs), generation, storage, now,
+            )
+            self.flow_compatibility = {
+                "status": result.status,
+                "problem_channels": list(result.problem_channels),
+                "generation": generation, "storage": storage,
+                "checked_sources": {p.channel: p.source for p in power_inputs},
+                "source_reasons": {p.channel: p.reason for p in power_inputs},
+                "phase_conventions": {p.channel: p.phase_convention for p in power_inputs},
+                "timestamp_provenance": "ha_receipt",
+                "quality": "receipt_time_estimate" if result.status == "aligned" else "not_assessed",
+                "assessment_scope": "configured_optional_power_only",
+                "complete_balance_available": False,
+            }
         return changed
 
     async def async_confirm_flow_meter_reset(self, channel: str, source: str) -> None:

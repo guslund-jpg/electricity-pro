@@ -1,4 +1,20 @@
 {
+  "selector": {
+    "flow_presence": {
+      "options": {
+        "unknown": "Unknown / not confirmed",
+        "absent": "Absent",
+        "present": "Present"
+      }
+    },
+    "flow_phase": {
+      "options": {
+        "unknown": "Unknown / not confirmed",
+        "net_across_phases": "Net across phases",
+        "gross_directional": "Gross directional sum across phases"
+      }
+    }
+  },
   "config": {
     "step": {
       "user": {
@@ -172,7 +188,20 @@
           "grid_export_energy_entity": "Lifetime grid-export energy",
           "household_power_entity": "Measured household demand power (excluding battery charging)",
           "household_energy_entity": "Lifetime household energy (excluding battery charging)",
-          "confirm_flow_semantics": "I confirm the selected sources have these meanings"
+          "confirm_flow_semantics": "I confirm the selected sources have these meanings",
+          "configure_flow_compatibility": "Review installation and compatibility"
+        }
+      },
+      "flow_compatibility": {
+        "title": "Installation and compatibility",
+        "description": "Declare known installation facts, not assumptions from missing sensors. Phase conventions apply separately to the selected power sources; leave unverified conventions unknown. Whole-site AC boundaries are declared in the source step. This optional diagnostic checks configured power observations only: it does not calculate household demand, energy ratios or balance readiness. Battery charge/discharge and explicit grid-import power inputs are not yet supported.",
+        "data": {
+          "flow_compatibility_enabled": "Enable Flow power compatibility diagnostic",
+          "flow_generation_presence": "Local generation installed",
+          "flow_storage_presence": "Battery storage installed",
+          "production_power_phase_convention": "Production power phase convention",
+          "grid_export_power_phase_convention": "Grid-export power phase convention",
+          "household_power_phase_convention": "Household demand power phase convention"
         }
       },
       "init": {
@@ -274,6 +303,7 @@
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
       "invalid_flow_source": "Choose distinct external power (W/kW) or lifetime energy (Wh/kWh) sources. Do not reuse an import source.",
+      "contradictory_topology": "Production sources are selected. Declare generation present or unknown, or return and remove those sources before declaring it absent.",
       "confirm_flow_semantics": "Confirm the selected whole-site AC source meanings, including household load excluding battery charging, and lifetime energy registers."
     }
   }

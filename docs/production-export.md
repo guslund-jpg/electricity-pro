@@ -146,7 +146,11 @@ delete Recorder history or change other channels.
 
 ## Still to come
 
-Calculated household-demand balances, topology/storage declarations, synchronized
+Optional [installation declarations and power compatibility checks](flow-compatibility.md)
+are available as a separate diagnostic step. They do not affect the independent
+readings described here and do not establish complete balance readiness.
+
+Calculated household-demand balances, synchronized
 balance checks, self-consumption/self-sufficiency ratios, native daily-reset
 sources and export-price/revenue accounting are not
 provided here. In particular, this increment makes no claim about the origin

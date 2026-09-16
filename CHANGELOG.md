@@ -4,6 +4,14 @@
 
 ### Added
 
+- Add a separate optional installation/compatibility step: generation and
+  storage presence default to unknown, and power-source phase conventions
+  must be explicitly declared. An opt-in diagnostic checks compatible
+  whole-site AC inputs, five-minute freshness and 30-second receipt-time
+  alignment without changing measured channels, import statistics or costs.
+  It does not claim a complete site balance or calculate demand/ratios.
+  See [compatibility diagnostic](docs/flow-compatibility.md).
+
 - Add optional directly measured Household demand power and partial daily/monthly
   Household energy sensors, plus an optional group in both Overview dashboards.
   Require separate whole-site AC non-storage load sources; exclude battery charging,
