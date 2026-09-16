@@ -97,10 +97,32 @@ on the entities configured in your Home Assistant installation.
 
 ## Requirements
 
-The dashboard works best when all optional Electricity Pro source sensors have
-been configured. Built-in conditional cards hide optional entities whose state
-is `unknown` or `unavailable`. Home Assistant always shows conditional cards
-while editing, so exit edit mode when verifying their visibility.
+### Optional production and grid export (unreleased v1.6)
+
+Both Overview views include independent Production and Grid export groups
+using built-in cards. They show configured power and partial daily/monthly
+energy sensors; power-only and energy-only configurations are supported.
+Energy tiles explicitly say **partial** and link to
+[source and coverage details](../../docs/production-export.md). Export is not
+labelled solar export, household consumption, savings or revenue.
+
+The groups and their individual tiles hide absent or `unknown` entities.
+Valid zero readings stay visible. `unavailable` readings also remain visible,
+so an outage is not mistaken for no production/export. Tap a tile for history
+and diagnostic attributes. A retained unavailable entity from a removed
+configuration will still appear until that obsolete entity or its card is
+removed. No additional frontend dependency is needed.
+
+As with other [conditional cards](https://www.home-assistant.io/dashboards/conditional/),
+exit dashboard edit mode before checking visibility. The existing SVG preview
+illustrates an import-only home, so it does not include these optional groups.
+
+### Existing optional measurements
+
+Configure only the optional source sensors relevant to your home.
+Outside the production/export groups, built-in conditional cards hide optional
+entities whose state is `unknown` or `unavailable`. Home Assistant always shows
+conditional cards while editing, so exit edit mode when verifying their visibility.
 
 If Home Assistant assigned a different entity ID, replace that ID throughout
 the YAML. Cards and complete views can be removed or reordered without changing

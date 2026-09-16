@@ -4,6 +4,12 @@
 
 ### Added
 
+- Add optional Production and Grid export groups to both dashboard Overview
+  views, using built-in tiles for power and partial daily/monthly energy.
+  Hide absent/unknown entities but keep zero and unavailable readings visible.
+  Include source/coverage guidance; no household balance or export revenue
+  is inferred. Update manually copied dashboard YAML to see the new groups.
+
 - Optional, independent AC production and grid-export power sources, with
   lifetime energy counters providing partial daily/monthly totals. Configure
   them on a separate opt-in options step; import-only and Tibber setup remain

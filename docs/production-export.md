@@ -25,8 +25,12 @@ displayed as zero. Unconfigured channels do not create new sensors.
 These are independent measurements, not a reconciled site balance. Export
 may include battery discharge; it is not labelled solar export. Existing
 Current Power, import energy, prices and costs keep their existing meanings.
-The supplied dashboards are unchanged in this increment; the new entities
-can be added to your own cards.
+Both example dashboards include optional Production and Grid export groups
+on Overview, with power and partial daily/monthly energy tiles. Absent or
+unknown entities are hidden, while zero and unavailable readings remain
+visible. Tap a tile for history and source/coverage attributes.
+Copy the updated example YAML to your dashboard to see these cards;
+updating the integration alone does not update a manually copied dashboard.
 
 ## Configure
 
@@ -111,7 +115,7 @@ delete Recorder history or change other channels.
 
 Household-demand calculations, topology/storage declarations, synchronized
 balance checks, self-consumption/self-sufficiency ratios, native daily-reset
-sources, dashboard integration and export-price/revenue accounting are not
+sources and export-price/revenue accounting are not
 provided here. In particular, this increment makes no claim about the origin
 of stored or exported energy.
 

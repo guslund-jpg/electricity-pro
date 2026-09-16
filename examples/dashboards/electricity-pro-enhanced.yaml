@@ -316,6 +316,148 @@ views:
               icon_color: amber
               layout: vertical
 
+      # Hide absent/unknown entities, but retain zero and unavailable readings.
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_production_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_production_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_production_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Production
+
+                AC generation, excluding battery discharge.
+                {% if states('sensor.electricity_pro_production_today') != 'unknown'
+                   or states('sensor.electricity_pro_production_this_month') != 'unknown' %}
+                **Partial energy totals:** observed increments only, not complete
+                day/month totals.
+                {% endif %}
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_power
+                name: Production power
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_today
+                name: Today (partial)
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_this_month
+                name: This month (partial)
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+      # Hide absent/unknown entities, but retain zero and unavailable readings.
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Grid export
+
+                Energy delivered to the grid; its source may include a battery.
+                {% if states('sensor.electricity_pro_grid_export_today') != 'unknown'
+                   or states('sensor.electricity_pro_grid_export_this_month') != 'unknown' %}
+                **Partial energy totals:** observed increments only, not complete
+                day/month totals.
+                {% endif %}
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_power
+                name: Grid export power
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_today
+                name: Today (partial)
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_this_month
+                name: This month (partial)
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
   - title: Trends
     path: trends
     icon: mdi:chart-areaspline
