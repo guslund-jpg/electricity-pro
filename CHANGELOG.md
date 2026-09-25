@@ -4,6 +4,12 @@
 
 ### Added
 
+- Optional, user-confirmed Tibber forecast-addition estimate from matching
+  completed Tibber/Nord Pool intervals. Requires explicit VAT and confirmation
+  of the home's price area; refuses insufficient, ambiguous or varying data.
+  Retain manual override and leave Tibber live prices unchanged.
+  See [forecast-addition estimate](docs/vat-pricing.md#optional-tibber-forecast-addition-estimate).
+
 - Add a separate optional installation/compatibility step: generation and
   storage presence default to unknown, and power-source phase conventions
   must be explicitly declared. An opt-in diagnostic checks compatible

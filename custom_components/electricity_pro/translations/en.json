@@ -156,11 +156,13 @@
         "description": "These settings apply only to Nord Pool forecasts. Tibber's live contracted price already includes VAT and supplier markup and is unchanged.",
         "data": {
           "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
-          "price_vat_rate": "VAT percentage for Nord Pool forecasts"
+          "price_vat_rate": "VAT percentage for Nord Pool forecasts",
+          "estimate_supplier_markup": "Estimate from Tibber (review before applying)"
         },
         "data_description": {
           "supplier_markup_per_kwh": "Optional: Enter your VAT-inclusive supplier markup in the same currency per kWh as your price. Use 0 if your contract has no markup.",
-          "price_vat_rate": "Enter the applicable VAT percentage, or 0 for zero VAT. Without a rate, VAT-dependent forecast calculations are unavailable."
+          "price_vat_rate": "Enter the applicable VAT percentage, or 0 for zero VAT. Without a rate, VAT-dependent forecast calculations are unavailable.",
+          "estimate_supplier_markup": "Optional: Compare today's completed Tibber and Nord Pool intervals using the VAT rate above. The result is an observed addition, not a contractual fee breakdown. Your manual value stays unchanged unless you accept the estimate."
         }
       },
       "forecast_area": {
@@ -169,6 +171,22 @@
         "data": {
           "forecast_price_area": "Forecast price area"
         }
+      },
+      "tibber_markup_estimate": {
+        "title": "Compare Tibber and Nord Pool",
+        "description": "Select the Nord Pool area for your Tibber home and confirm that they match. We cannot verify the home's price area automatically. Requires an explicit VAT rate and at least four matching completed intervals covering one hour. Leave confirmation unchecked to return to manual pricing.",
+        "data": {
+          "forecast_price_area": "Nord Pool area for this Tibber home",
+          "confirm_matching_area": "I confirm this area matches my Tibber home; calculate an estimate"
+        }
+      },
+      "tibber_markup_review": {
+        "title": "Review estimated forecast addition",
+        "description": "Compared {count} completed intervals for {area}. Observed spread: {spread} {currency}/kWh. This VAT-inclusive addition can include variable costs beyond contractual markup and may change. Edit the suggestion if needed. It applies only to Nord Pool forecasts, not Tibber live prices or fixed fees. Leave confirmation unchecked to keep your manual value.",
+        "data": {
+          "supplier_markup_per_kwh": "Forecast addition per kWh (including VAT)",
+          "use_estimate": "Use this value for Nord Pool forecasts"
+        }
       }
     },
     "error": {
@@ -176,7 +194,8 @@
       "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
-      "tibber_sources_not_found": "No enabled Tibber home with both a current-power entity and contracted-price entity was found. Return and use Custom or mixed sources, or enable the required Tibber entities first."
+      "tibber_sources_not_found": "No enabled Tibber home with both a current-power entity and contracted-price entity was found. Return and use Custom or mixed sources, or enable the required Tibber entities first.",
+      "markup_estimate_unavailable": "No reliable estimate is available. Check the VAT rate, matching area, source availability, unique Tibber home names and currency. Prices must have at least four exact completed intervals covering one hour, with a nonnegative addition varying by no more than 0.01 per kWh. Multiple Tibber accounts are unsupported. Retry later, or uncheck confirmation to use manual pricing."
     }
   },
   "options": {
@@ -287,11 +306,13 @@
         "description": "These settings apply only to Nord Pool forecasts. Tibber's live contracted price already includes VAT and supplier markup and is unchanged.",
         "data": {
           "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
-          "price_vat_rate": "VAT percentage for Nord Pool forecasts"
+          "price_vat_rate": "VAT percentage for Nord Pool forecasts",
+          "estimate_supplier_markup": "Estimate from Tibber (review before applying)"
         },
         "data_description": {
           "supplier_markup_per_kwh": "Optional: Enter your VAT-inclusive supplier markup in the same currency per kWh as your price. Use 0 if your contract has no markup.",
-          "price_vat_rate": "Enter the applicable VAT percentage, or 0 for zero VAT. Without a rate, VAT-dependent forecast calculations are unavailable."
+          "price_vat_rate": "Enter the applicable VAT percentage, or 0 for zero VAT. Without a rate, VAT-dependent forecast calculations are unavailable.",
+          "estimate_supplier_markup": "Optional: Compare today's completed Tibber and Nord Pool intervals using the VAT rate above. The result is an observed addition, not a contractual fee breakdown. Your manual value stays unchanged unless you accept the estimate."
         }
       },
       "forecast_area": {
@@ -299,6 +320,22 @@
         "description": "The selected Nord Pool integration contains several price areas. Select the one Electricity Pro should use.",
         "data": {
           "forecast_price_area": "Forecast price area"
+        }
+      },
+      "tibber_markup_estimate": {
+        "title": "Compare Tibber and Nord Pool",
+        "description": "Select the Nord Pool area for your Tibber home and confirm that they match. We cannot verify the home's price area automatically. Requires an explicit VAT rate and at least four matching completed intervals covering one hour. Leave confirmation unchecked to return to manual pricing.",
+        "data": {
+          "forecast_price_area": "Nord Pool area for this Tibber home",
+          "confirm_matching_area": "I confirm this area matches my Tibber home; calculate an estimate"
+        }
+      },
+      "tibber_markup_review": {
+        "title": "Review estimated forecast addition",
+        "description": "Compared {count} completed intervals for {area}. Observed spread: {spread} {currency}/kWh. This VAT-inclusive addition can include variable costs beyond contractual markup and may change. Edit the suggestion if needed. It applies only to Nord Pool forecasts, not Tibber live prices or fixed fees. Leave confirmation unchecked to keep your manual value.",
+        "data": {
+          "supplier_markup_per_kwh": "Forecast addition per kWh (including VAT)",
+          "use_estimate": "Use this value for Nord Pool forecasts"
         }
       }
     },
@@ -309,7 +346,8 @@
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
       "invalid_flow_source": "Choose distinct external power (W/kW) or lifetime energy (Wh/kWh) sources. Do not reuse an import source.",
       "contradictory_topology": "Production sources are selected. Declare generation present or unknown, or return and remove those sources before declaring it absent.",
-      "confirm_flow_semantics": "Confirm the selected whole-site AC source meanings, including household load excluding battery charging, and lifetime energy registers."
+      "confirm_flow_semantics": "Confirm the selected whole-site AC source meanings, including household load excluding battery charging, and lifetime energy registers.",
+      "markup_estimate_unavailable": "No reliable estimate is available. Check the VAT rate, matching area, source availability, unique Tibber home names and currency. Prices must have at least four exact completed intervals covering one hour, with a nonnegative addition varying by no more than 0.01 per kWh. Multiple Tibber accounts are unsupported. Retry later, or uncheck confirmation to use manual pricing."
     }
   }
 }
