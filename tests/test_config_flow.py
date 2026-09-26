@@ -216,7 +216,7 @@ async def test_tibber_initial_setup_stores_nordpool_forecast(hass) -> None:
     )
     assert result["step_id"] == "tibber_forecast_pricing"
     keys = [key.schema for key in result["data_schema"].schema]
-    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH}
+    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH, "estimate_supplier_markup"}
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {CONF_PRICE_VAT_RATE: 25, CONF_SUPPLIER_MARKUP_PER_KWH: 0.18},
@@ -259,7 +259,7 @@ async def test_tibber_options_add_single_area_nordpool_entry(hass) -> None:
     )
     assert result["step_id"] == "tibber_forecast_pricing"
     keys = [key.schema for key in result["data_schema"].schema]
-    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH}
+    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH, "estimate_supplier_markup"}
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {CONF_PRICE_VAT_RATE: 25, CONF_SUPPLIER_MARKUP_PER_KWH: 0.18},
@@ -299,7 +299,7 @@ async def test_tibber_options_select_multi_area_nordpool_entry(hass) -> None:
     )
     assert result["step_id"] == "tibber_forecast_pricing"
     keys = [key.schema for key in result["data_schema"].schema]
-    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH}
+    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH, "estimate_supplier_markup"}
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {CONF_PRICE_VAT_RATE: 25, CONF_SUPPLIER_MARKUP_PER_KWH: 0.18},
@@ -344,7 +344,7 @@ async def test_tibber_options_preserve_existing_nordpool_area(hass) -> None:
     )
     assert result["step_id"] == "tibber_forecast_pricing"
     keys = [key.schema for key in result["data_schema"].schema]
-    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH}
+    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH, "estimate_supplier_markup"}
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {CONF_PRICE_VAT_RATE: 25, CONF_SUPPLIER_MARKUP_PER_KWH: 0.18},

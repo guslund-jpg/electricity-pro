@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import time
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -14,6 +15,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
@@ -73,6 +75,7 @@ from .pricing import (
 from .grid_tariff import HighLowGridTariff
 from .source_adapters import DiscoveredSource, discover_tibber_sources
 from .flow_sources import FLOW_KEYS, CONF_CONFIGURE_FLOWS
+from .markup_estimate import CONF_ESTIMATE_MARKUP, async_estimate_markup
 from .flow_compatibility import (
     COMPATIBILITY_KEYS, CONF_CONFIGURE_COMPATIBILITY, CONF_ENABLED,
     CONF_GENERATION, CONF_STORAGE, PHASE_KEYS, PHASE_OPTIONS, PRESENCE_OPTIONS,
@@ -252,6 +255,8 @@ def _tibber_forecast_pricing_schema(values: dict[str, Any]) -> vol.Schema:
     return vol.Schema({
         key: value for key, value in schema.schema.items()
         if key.schema in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH)
+    }).extend({
+        vol.Optional(CONF_ESTIMATE_MARKUP, default=False): selector.BooleanSelector(),
     })
 
 
@@ -845,7 +850,77 @@ def _entity_schema(
     )
 
 
+class _MarkupEstimateFlow:
+    """Shared opt-in estimate and review steps for setup and options."""
+
+    async def async_step_tibber_markup_estimate(self, user_input=None):
+        pending = self._pending_forecast_settings
+        entry = self.hass.config_entries.async_get_entry(
+            pending.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY, "")
+        )
+        areas = entry.data.get("areas", []) if entry else []
+        errors = {}
+        if user_input is not None:
+            if not user_input.get("confirm_matching_area"):
+                return await self.async_step_tibber_forecast_pricing()
+            area = user_input.get(CONF_FORECAST_PRICE_AREA)
+            try:
+                if area not in areas or pending.get(CONF_PRICE_VAT_RATE) is None:
+                    raise ValueError("An area and explicit VAT rate are required")
+                selected = getattr(self, "_selected_tibber_source", None)
+                source = selected.data if selected else {
+                    **self.config_entry.data, **self.config_entry.options,
+                }
+                async with asyncio.timeout(30):
+                    self._markup_estimate = await async_estimate_markup(
+                        self.hass, price_entity=source.get(CONF_PRICE_ENTITY, ""),
+                        nordpool_entry_id=entry.entry_id, area=area,
+                        vat_rate=pending[CONF_PRICE_VAT_RATE],
+                    )
+                self._markup_estimate_area = area
+                return await self.async_step_tibber_markup_review()
+            except (ValueError, HomeAssistantError, TimeoutError):
+                errors["base"] = "markup_estimate_unavailable"
+        return self.async_show_form(
+            step_id="tibber_markup_estimate",
+            data_schema=vol.Schema({
+                vol.Optional(CONF_FORECAST_PRICE_AREA, description={
+                    "suggested_value": pending.get(CONF_FORECAST_PRICE_AREA)
+                    or (areas[0] if len(areas) == 1 else None),
+                }): selector.SelectSelector(selector.SelectSelectorConfig(options=areas)),
+                vol.Optional("confirm_matching_area", default=False): selector.BooleanSelector(),
+            }),
+            errors=errors,
+        )
+
+    async def async_step_tibber_markup_review(self, user_input=None):
+        estimate = self._markup_estimate
+        if user_input is not None:
+            if user_input.get("use_estimate"):
+                self._pending_forecast_settings[CONF_FORECAST_PRICE_AREA] = self._markup_estimate_area
+                return await self.async_step_tibber_forecast_pricing({
+                    CONF_PRICE_VAT_RATE: self._pending_forecast_settings[CONF_PRICE_VAT_RATE],
+                    CONF_SUPPLIER_MARKUP_PER_KWH: user_input[CONF_SUPPLIER_MARKUP_PER_KWH],
+                })
+            return await self.async_step_tibber_forecast_pricing()
+        return self.async_show_form(
+            step_id="tibber_markup_review",
+            description_placeholders={
+                "count": str(estimate.count), "spread": str(estimate.spread),
+                "currency": estimate.currency, "area": self._markup_estimate_area,
+            },
+            data_schema=vol.Schema({
+                vol.Required(CONF_SUPPLIER_MARKUP_PER_KWH, default=float(estimate.value)):
+                    selector.NumberSelector(selector.NumberSelectorConfig(
+                        min=0, step=0.001, mode=selector.NumberSelectorMode.BOX,
+                    )),
+                vol.Optional("use_estimate", default=False): selector.BooleanSelector(),
+            }),
+        )
+
+
 class ElectricityProConfigFlow(
+    _MarkupEstimateFlow,
     config_entries.ConfigFlow,
     domain=DOMAIN,
 ):
@@ -1034,7 +1109,10 @@ class ElectricityProConfigFlow(
                 )
                 if nordpool_entry is not None:
                     areas = nordpool_entry.data.get("areas", [])
-                    if isinstance(areas, list) and len(areas) > 1:
+                    if (
+                        isinstance(areas, list) and len(areas) > 1
+                        and user_input.get(CONF_FORECAST_PRICE_AREA) not in areas
+                    ):
                         self._pending_user_input = {
                             **self._selected_tibber_source.data,
                             **user_input,
@@ -1045,7 +1123,6 @@ class ElectricityProConfigFlow(
                             data_schema=_forecast_area_schema(self._forecast_areas),
                         )
 
-            user_input.pop(CONF_FORECAST_PRICE_AREA, None)
             data = {**self._selected_tibber_source.data, **user_input}
             return self.async_create_entry(title="Electricity Pro", data=data)
 
@@ -1076,6 +1153,8 @@ class ElectricityProConfigFlow(
         if user_input is not None:
             for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
                 pending[key] = user_input.get(key)
+            if user_input.get(CONF_ESTIMATE_MARKUP):
+                return await self.async_step_tibber_markup_estimate()
             self._forecast_pricing_confirmed = True
             return await self.async_step_tibber_settings(pending)
         return self.async_show_form(
@@ -1098,7 +1177,7 @@ class ElectricityProConfigFlow(
         )
 
 
-class ElectricityProOptionsFlow(OptionsFlow):
+class ElectricityProOptionsFlow(_MarkupEstimateFlow, OptionsFlow):
     """Handle Electricity Pro options."""
 
     def __init__(self) -> None:
@@ -1625,6 +1704,8 @@ class ElectricityProOptionsFlow(OptionsFlow):
         if user_input is not None:
             for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
                 pending[key] = user_input.get(key)
+            if user_input.get(CONF_ESTIMATE_MARKUP):
+                return await self.async_step_tibber_markup_estimate()
             self._forecast_pricing_confirmed = True
             return await self.async_step_init(pending)
         return self.async_show_form(
