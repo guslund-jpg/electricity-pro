@@ -1,5 +1,8 @@
 """Optional flow settings stay separate from import and Tibber fast-track."""
 
+import json
+from pathlib import Path
+
 import pytest
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from homeassistant.helpers import entity_registry as er
@@ -7,6 +10,19 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import DOMAIN, CONF_POWER_ENTITY, CONF_SOURCE_PROFILE
 from custom_components.electricity_pro.flow_sources import FLOW_KEYS, CONF_CONFIGURE_FLOWS
+
+
+def test_optional_sources_switch_has_matching_help_text():
+    """The shared options step explains the switch in both translation files."""
+    component = Path(__file__).resolve().parents[1] / "custom_components" / DOMAIN
+    descriptions = []
+    for filename in ("strings.json", "translations/en.json"):
+        data = json.loads((component / filename).read_text())
+        descriptions.append(data["options"]["step"]["init"]["data_description"][CONF_CONFIGURE_FLOWS])
+    assert descriptions[0] == descriptions[1]
+    assert "solar panels" in descriptions[0]
+    assert "Leave it off for ordinary electricity-import monitoring." in descriptions[0]
+    assert "battery" not in descriptions[0].lower()
 
 
 async def start_options(hass, profile="custom", **settings):

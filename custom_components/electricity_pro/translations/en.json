@@ -298,7 +298,8 @@
           "good_price_mode": "Fixed preserves the existing threshold rule. Adaptive compares the current complete Effective Price with comparable historical local hours.",
           "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
           "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
-          "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
+          "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically.",
+          "configure_energy_flows": "Optional: Enable this if you have solar panels or separate sensors for electricity exported to the grid or total household consumption. Leave it off for ordinary electricity-import monitoring."
         }
       },
       "tibber_forecast_pricing": {
