@@ -76,6 +76,7 @@ from .grid_tariff import HighLowGridTariff
 from .source_adapters import DiscoveredSource, discover_tibber_sources
 from .flow_sources import FLOW_KEYS, CONF_CONFIGURE_FLOWS
 from .markup_estimate import CONF_ESTIMATE_MARKUP, async_estimate_markup
+from .vat_suggestions import CONF_SUGGEST_VAT, VatSuggestionFlow, assistance_field
 from .flow_compatibility import (
     COMPATIBILITY_KEYS, CONF_CONFIGURE_COMPATIBILITY, CONF_ENABLED,
     CONF_GENERATION, CONF_STORAGE, PHASE_KEYS, PHASE_OPTIONS, PRESENCE_OPTIONS,
@@ -254,7 +255,7 @@ def _tibber_forecast_pricing_schema(values: dict[str, Any]) -> vol.Schema:
     )
     return vol.Schema({
         key: value for key, value in schema.schema.items()
-        if key.schema in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH)
+        if key.schema in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH, CONF_SUGGEST_VAT)
     }).extend({
         vol.Optional(CONF_ESTIMATE_MARKUP, default=False): selector.BooleanSelector(),
     })
@@ -920,6 +921,7 @@ class _MarkupEstimateFlow:
 
 
 class ElectricityProConfigFlow(
+    VatSuggestionFlow,
     _MarkupEstimateFlow,
     config_entries.ConfigFlow,
     domain=DOMAIN,
@@ -969,6 +971,10 @@ class ElectricityProConfigFlow(
         user_input: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Configure independent or mixed sources manually."""
+        if user_input is not None:
+            result = await self._async_maybe_suggest_vat(user_input, "manual")
+            if result is not None:
+                return result
         if user_input is not None and (errors := _source_input_errors(self.hass, user_input)):
             return self.async_show_form(
                 step_id="manual",
@@ -1151,6 +1157,9 @@ class ElectricityProConfigFlow(
         if pending is None:
             return await self.async_step_tibber_settings()
         if user_input is not None:
+            result = await self._async_maybe_suggest_vat(user_input, "tibber_forecast_pricing", pending)
+            if result is not None:
+                return result
             for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
                 pending[key] = user_input.get(key)
             if user_input.get(CONF_ESTIMATE_MARKUP):
@@ -1177,7 +1186,7 @@ class ElectricityProConfigFlow(
         )
 
 
-class ElectricityProOptionsFlow(_MarkupEstimateFlow, OptionsFlow):
+class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsFlow):
     """Handle Electricity Pro options."""
 
     def __init__(self) -> None:
@@ -1197,6 +1206,10 @@ class ElectricityProOptionsFlow(_MarkupEstimateFlow, OptionsFlow):
         if user_input is not None:
             user_input = dict(user_input)
             saved = {**self.config_entry.data, **self.config_entry.options}
+            if self.config_entry.data.get(CONF_SOURCE_PROFILE) != _SETUP_TIBBER:
+                result = await self._async_maybe_suggest_vat(user_input, "init", saved)
+                if result is not None:
+                    return result
             for key in (*FLOW_KEYS, *COMPATIBILITY_KEYS):
                 if key not in user_input and key in saved:
                     user_input[key] = saved[key]
@@ -1702,6 +1715,9 @@ class ElectricityProOptionsFlow(_MarkupEstimateFlow, OptionsFlow):
         if pending is None:
             return await self.async_step_init()
         if user_input is not None:
+            result = await self._async_maybe_suggest_vat(user_input, "tibber_forecast_pricing", pending)
+            if result is not None:
+                return result
             for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
                 pending[key] = user_input.get(key)
             if user_input.get(CONF_ESTIMATE_MARKUP):
@@ -1870,5 +1886,6 @@ def _vat_rate_field(default: float | None) -> dict[Any, Any]:
                 mode=selector.NumberSelectorMode.BOX,
                 unit_of_measurement="%",
             )
-        )
+        ),
+        **assistance_field(),
     }

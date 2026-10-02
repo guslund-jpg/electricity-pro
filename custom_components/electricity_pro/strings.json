@@ -34,7 +34,7 @@
           "pricing_strategy": "Price source type",
           "price_included_components": "Components already included in the price",
           "price_vat_treatment": "VAT treatment of the price",
-          "price_vat_rate": "VAT rate for VAT-excluded prices",
+          "price_vat_rate": "VAT to add to VAT-exclusive prices (%)",
           "energy_entity": "Accumulated energy sensor",
           "energy_source_type": "Energy sensor accumulation period",
           "accumulated_cost_today_entity": "Today's accumulated cost sensor",
@@ -61,7 +61,8 @@
           "good_price_mode": "Good Time method",
           "adaptive_target_percentile": "Adaptive target percentile",
           "adaptive_price_ceiling": "Optional adaptive price ceiling per kWh",
-          "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
+          "forecast_nordpool_config_entry": "Nord Pool forecast config entry",
+          "suggest_vat_rate": "Suggest VAT from country/region"
         },
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
@@ -81,7 +82,7 @@
           "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
           "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the selected price sensor, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
-          "price_vat_rate": "Enter the applicable VAT percentage for native Nord Pool forecasts and VAT-excluded live prices. Use 0 for zero VAT. VAT-included live prices are unchanged; configured fees are not taxed again. Without a rate, VAT-excluded calculated prices are unavailable.",
+          "price_vat_rate": "Rate added only to VAT-exclusive live prices and Nord Pool forecasts. Already VAT-inclusive prices and configured VAT-inclusive fees are not taxed again. Use the country/region suggestion if unsure; 0 means actual zero VAT, not that the source excludes VAT.",
           "supplier_markup_per_kwh": "Optional: Supplier markup in the same currency per kWh as the selected price sensor, including VAT. It is not added twice when the live price already includes markup, and it can still enrich a market-only forecast.",
           "energy_tax_per_kwh": "Optional: Energy tax per kWh in the local currency, including VAT. For example, 0.45 SEK/kWh in Sweden. Check your grid agreement or bill because rates can change and reduced regional rates may apply.",
           "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
@@ -96,7 +97,8 @@
           "good_price_mode": "Fixed preserves the existing threshold rule. Adaptive compares the current complete Effective Price with comparable historical local hours.",
           "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
           "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
-          "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically."
+          "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically.",
+          "suggest_vat_rate": "Optional: Get an editable household VAT suggestion using your Nord Pool area as a country hint, or select your country manually. Existing values, including zero, change only after you confirm."
         }
       },
       "tibber": {
@@ -113,7 +115,7 @@
           "forecast_nordpool_config_entry": "Nord Pool forecast config entry",
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
           "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
-          "price_vat_rate": "VAT rate for VAT-excluded prices",
+          "price_vat_rate": "VAT to add to VAT-exclusive prices (%)",
           "energy_tax_per_kwh": "Energy tax per kWh (including VAT)",
           "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
           "grid_fee_high_start": "High period starts (HH:MM)",
@@ -126,12 +128,13 @@
           "adaptive_target_percentile": "Adaptive target percentile",
           "adaptive_price_ceiling": "Optional adaptive price ceiling per kWh",
           "fixed_supplier_fee_monthly": "Fixed monthly electricity supplier fee (including VAT)",
-          "fixed_grid_fee_monthly": "Fixed monthly grid-provider fee (including VAT)"
+          "fixed_grid_fee_monthly": "Fixed monthly grid-provider fee (including VAT)",
+          "suggest_vat_rate": "Suggest VAT from country/region"
         },
         "data_description": {
           "forecast_nordpool_config_entry": "Optional: Select the native Nord Pool integration to enable future-price insights such as the cheapest 1h, 2h, and 3h windows. Area and currency are inherited automatically.",
           "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the Tibber price, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
-          "price_vat_rate": "Enter the applicable VAT percentage for native Nord Pool forecasts and VAT-excluded live prices. Use 0 for zero VAT. VAT-included live prices are unchanged; configured fees are not taxed again. Without a rate, VAT-excluded calculated prices are unavailable.",
+          "price_vat_rate": "Rate added only to VAT-exclusive live prices and Nord Pool forecasts. Already VAT-inclusive prices and configured VAT-inclusive fees are not taxed again. Use the country/region suggestion if unsure; 0 means actual zero VAT, not that the source excludes VAT.",
           "supplier_markup_per_kwh": "Optional: Supplier markup in the same currency per kWh as the price. Tibber's live contracted price already includes its markup, so this value is only needed to include that markup in Nord Pool forecast scheduling prices.",
           "energy_tax_per_kwh": "Optional: Energy tax per kWh in the local currency, including VAT. For example, 0.45 SEK/kWh in Sweden. Check your grid agreement or bill because rates can change and reduced regional rates may apply.",
           "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
@@ -145,7 +148,8 @@
           "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
           "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
-          "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider."
+          "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider.",
+          "suggest_vat_rate": "Optional: Get an editable household VAT suggestion using your Nord Pool area as a country hint, or select your country manually. Existing values, including zero, change only after you confirm."
         }
       },
       "tibber_forecast_pricing": {
@@ -153,13 +157,15 @@
         "description": "These settings apply only to Nord Pool forecasts. Tibber's live contracted price already includes VAT and supplier markup and is unchanged.",
         "data": {
           "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
-          "price_vat_rate": "VAT percentage for Nord Pool forecasts",
-          "estimate_supplier_markup": "Estimate from Tibber (review before applying)"
+          "price_vat_rate": "VAT to add to Nord Pool forecasts (%)",
+          "estimate_supplier_markup": "Estimate from Tibber (review before applying)",
+          "suggest_vat_rate": "Suggest VAT from country/region"
         },
         "data_description": {
           "supplier_markup_per_kwh": "Optional: Enter your VAT-inclusive supplier markup in the same currency per kWh as your price. Use 0 if your contract has no markup.",
-          "price_vat_rate": "Enter the applicable VAT percentage, or 0 for zero VAT. Without a rate, VAT-dependent forecast calculations are unavailable.",
-          "estimate_supplier_markup": "Optional: Compare today's completed Tibber and Nord Pool intervals using the VAT rate above. The result is an observed addition, not a contractual fee breakdown. Your manual value stays unchanged unless you accept the estimate."
+          "price_vat_rate": "Nord Pool spot prices exclude VAT. Enter the rate to add when calculating forecasts, or leave blank for a country-based suggestion. This does not add VAT again to Tibber's live price. Enter 0 only if your household supply genuinely has zero VAT.",
+          "estimate_supplier_markup": "Optional: Compare today's completed Tibber and Nord Pool intervals using the VAT rate above. The result is an observed addition, not a contractual fee breakdown. Your manual value stays unchanged unless you accept the estimate.",
+          "suggest_vat_rate": "Optional: Get an editable household VAT suggestion using your Nord Pool area as a country hint, or select your country manually. Existing values, including zero, change only after you confirm."
         }
       },
       "forecast_area": {
@@ -184,6 +190,28 @@
           "supplier_markup_per_kwh": "Forecast addition per kWh (including VAT)",
           "use_estimate": "Use this value for Nord Pool forecasts"
         }
+      },
+      "vat_country": {
+        "title": "Household VAT country",
+        "description": "Nord Pool country hint: {hint}. Confirm the country of this household's electricity supply, not just the forecast market. A price area is not a tax jurisdiction. No rate is saved until you confirm it. Other countries, special territories, businesses and uncertain cases should keep manual settings.",
+        "data": {
+          "vat_country": "Country of the household electricity supply"
+        }
+      },
+      "vat_context": {
+        "title": "Household VAT eligibility",
+        "description": "Norwegian VAT exemptions follow household location, not the NO4 price-area boundary. Icelandic reduced VAT applies only to qualifying heating electricity, not automatically to all household consumption. Choose the context for the selected supply; mixed or uncertain cases need manual configuration.",
+        "data": {
+          "vat_context": "Household location or electricity supply type"
+        }
+      },
+      "vat_review": {
+        "title": "Review household VAT suggestion",
+        "description": "Context: {context}. Previously entered rate: {previous}. Sources last checked: {verified}. [Tax authority guidance]({source}). Check the rate against your bill and edit it if necessary. Confirm only if this context applies to the household supply. It applies to VAT-exclusive live prices and Nord Pool forecasts; Tibber's VAT-inclusive live price and gross fees remain unchanged. This is a one-time saved rate, not automatic future tax updates. Leave confirmation off to keep the previous setting.",
+        "data": {
+          "price_vat_rate": "VAT to add to VAT-exclusive prices (%)",
+          "use_vat_suggestion": "Confirm this rate for my household"
+        }
       }
     },
     "error": {
@@ -192,7 +220,8 @@
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
       "tibber_sources_not_found": "No enabled Tibber home with both a current-power entity and contracted-price entity was found. Return and use Custom or mixed sources, or enable the required Tibber entities first.",
-      "markup_estimate_unavailable": "No reliable estimate is available. Check the VAT rate, matching area, source availability, unique Tibber home names and currency. Prices must have at least four exact completed intervals covering one hour, with a nonnegative addition varying by no more than 0.01 per kWh. Multiple Tibber accounts are unsupported. Retry later, or uncheck confirmation to use manual pricing."
+      "markup_estimate_unavailable": "No reliable estimate is available. Check the VAT rate, matching area, source availability, unique Tibber home names and currency. Prices must have at least four exact completed intervals covering one hour, with a nonnegative addition varying by no more than 0.01 per kWh. Multiple Tibber accounts are unsupported. Retry later, or uncheck confirmation to use manual pricing.",
+      "invalid_vat_suggestion": "Enter a finite VAT percentage between 0 and 100 before confirming, or leave confirmation off to keep the previous setting."
     }
   },
   "options": {
@@ -231,7 +260,7 @@
           "pricing_strategy": "Price source type",
           "price_included_components": "Components already included in the price",
           "price_vat_treatment": "VAT treatment of the price",
-          "price_vat_rate": "VAT rate for VAT-excluded prices",
+          "price_vat_rate": "VAT to add to VAT-exclusive prices (%)",
           "energy_entity": "Accumulated energy sensor",
           "energy_source_type": "Energy sensor accumulation period",
           "accumulated_cost_today_entity": "Today's accumulated cost sensor",
@@ -258,7 +287,8 @@
           "good_price_mode": "Good Time method",
           "adaptive_target_percentile": "Adaptive target percentile",
           "adaptive_price_ceiling": "Optional adaptive price ceiling per kWh",
-          "forecast_nordpool_config_entry": "Nord Pool forecast config entry"
+          "forecast_nordpool_config_entry": "Nord Pool forecast config entry",
+          "suggest_vat_rate": "Suggest VAT from country/region"
         },
         "data_description": {
           "power_entity": "Required sensor providing the current power.",
@@ -266,7 +296,7 @@
           "pricing_strategy": "Required when a price sensor is selected. Saving an older configuration confirms and activates the normalized pricing model.",
           "price_included_components": "Select every variable component already contained in the sensor value; Market energy must be included.",
           "price_vat_treatment": "State whether the selected price sensor includes VAT. VAT-excluded prices require a rate below; unknown VAT makes Effective Price unavailable.",
-          "price_vat_rate": "Enter the applicable VAT percentage for native Nord Pool forecasts and VAT-excluded live prices. Use 0 for zero VAT. VAT-included live prices are unchanged; configured fees are not taxed again. Without a rate, VAT-excluded calculated prices are unavailable.",
+          "price_vat_rate": "Rate added only to VAT-exclusive live prices and Nord Pool forecasts. Already VAT-inclusive prices and configured VAT-inclusive fees are not taxed again. Use the country/region suggestion if unsure; 0 means actual zero VAT, not that the source excludes VAT.",
           "energy_entity": "Optional sensor providing either today's consumption or a total accumulated energy reading.",
           "energy_source_type": "Choose whether the selected energy sensor resets each day or reports total accumulated imported energy. Total accumulated readings start with partial-day coverage until Electricity Pro observes the next local midnight.",
           "accumulated_cost_today_entity": "Optional external supplier-cost sensor reporting cost accumulated since midnight. Leave empty to estimate costs from the configured energy and price sources. Estimates have partial coverage. Do not select a fixed monthly fee.",
@@ -294,7 +324,8 @@
           "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
           "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically.",
-          "configure_energy_flows": "Optional: Enable this if you have solar panels or separate sensors for electricity exported to the grid or total household consumption. Leave it off for ordinary electricity-import monitoring."
+          "configure_energy_flows": "Optional: Enable this if you have solar panels or separate sensors for electricity exported to the grid or total household consumption. Leave it off for ordinary electricity-import monitoring.",
+          "suggest_vat_rate": "Optional: Get an editable household VAT suggestion using your Nord Pool area as a country hint, or select your country manually. Existing values, including zero, change only after you confirm."
         }
       },
       "tibber_forecast_pricing": {
@@ -302,13 +333,15 @@
         "description": "These settings apply only to Nord Pool forecasts. Tibber's live contracted price already includes VAT and supplier markup and is unchanged.",
         "data": {
           "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
-          "price_vat_rate": "VAT percentage for Nord Pool forecasts",
-          "estimate_supplier_markup": "Estimate from Tibber (review before applying)"
+          "price_vat_rate": "VAT to add to Nord Pool forecasts (%)",
+          "estimate_supplier_markup": "Estimate from Tibber (review before applying)",
+          "suggest_vat_rate": "Suggest VAT from country/region"
         },
         "data_description": {
           "supplier_markup_per_kwh": "Optional: Enter your VAT-inclusive supplier markup in the same currency per kWh as your price. Use 0 if your contract has no markup.",
-          "price_vat_rate": "Enter the applicable VAT percentage, or 0 for zero VAT. Without a rate, VAT-dependent forecast calculations are unavailable.",
-          "estimate_supplier_markup": "Optional: Compare today's completed Tibber and Nord Pool intervals using the VAT rate above. The result is an observed addition, not a contractual fee breakdown. Your manual value stays unchanged unless you accept the estimate."
+          "price_vat_rate": "Nord Pool spot prices exclude VAT. Enter the rate to add when calculating forecasts, or leave blank for a country-based suggestion. This does not add VAT again to Tibber's live price. Enter 0 only if your household supply genuinely has zero VAT.",
+          "estimate_supplier_markup": "Optional: Compare today's completed Tibber and Nord Pool intervals using the VAT rate above. The result is an observed addition, not a contractual fee breakdown. Your manual value stays unchanged unless you accept the estimate.",
+          "suggest_vat_rate": "Optional: Get an editable household VAT suggestion using your Nord Pool area as a country hint, or select your country manually. Existing values, including zero, change only after you confirm."
         }
       },
       "forecast_area": {
@@ -333,6 +366,28 @@
           "supplier_markup_per_kwh": "Forecast addition per kWh (including VAT)",
           "use_estimate": "Use this value for Nord Pool forecasts"
         }
+      },
+      "vat_country": {
+        "title": "Household VAT country",
+        "description": "Nord Pool country hint: {hint}. Confirm the country of this household's electricity supply, not just the forecast market. A price area is not a tax jurisdiction. No rate is saved until you confirm it. Other countries, special territories, businesses and uncertain cases should keep manual settings.",
+        "data": {
+          "vat_country": "Country of the household electricity supply"
+        }
+      },
+      "vat_context": {
+        "title": "Household VAT eligibility",
+        "description": "Norwegian VAT exemptions follow household location, not the NO4 price-area boundary. Icelandic reduced VAT applies only to qualifying heating electricity, not automatically to all household consumption. Choose the context for the selected supply; mixed or uncertain cases need manual configuration.",
+        "data": {
+          "vat_context": "Household location or electricity supply type"
+        }
+      },
+      "vat_review": {
+        "title": "Review household VAT suggestion",
+        "description": "Context: {context}. Previously entered rate: {previous}. Sources last checked: {verified}. [Tax authority guidance]({source}). Check the rate against your bill and edit it if necessary. Confirm only if this context applies to the household supply. It applies to VAT-exclusive live prices and Nord Pool forecasts; Tibber's VAT-inclusive live price and gross fees remain unchanged. This is a one-time saved rate, not automatic future tax updates. Leave confirmation off to keep the previous setting.",
+        "data": {
+          "price_vat_rate": "VAT to add to VAT-exclusive prices (%)",
+          "use_vat_suggestion": "Confirm this rate for my household"
+        }
       }
     },
     "error": {
@@ -343,7 +398,8 @@
       "invalid_flow_source": "Choose distinct external power (W/kW) or lifetime energy (Wh/kWh) sources. Do not reuse an import source.",
       "contradictory_topology": "Production sources are selected. Declare generation present or unknown, or return and remove those sources before declaring it absent.",
       "confirm_flow_semantics": "Confirm the selected whole-site AC source meanings, including household load excluding battery charging, and lifetime energy registers.",
-      "markup_estimate_unavailable": "No reliable estimate is available. Check the VAT rate, matching area, source availability, unique Tibber home names and currency. Prices must have at least four exact completed intervals covering one hour, with a nonnegative addition varying by no more than 0.01 per kWh. Multiple Tibber accounts are unsupported. Retry later, or uncheck confirmation to use manual pricing."
+      "markup_estimate_unavailable": "No reliable estimate is available. Check the VAT rate, matching area, source availability, unique Tibber home names and currency. Prices must have at least four exact completed intervals covering one hour, with a nonnegative addition varying by no more than 0.01 per kWh. Multiple Tibber accounts are unsupported. Retry later, or uncheck confirmation to use manual pricing.",
+      "invalid_vat_suggestion": "Enter a finite VAT percentage between 0 and 100 before confirming, or leave confirmation off to keep the previous setting."
     }
   }
 }

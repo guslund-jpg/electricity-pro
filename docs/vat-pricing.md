@@ -2,9 +2,10 @@
 
 Electricity Pro uses VAT-inclusive Effective Price values. In custom settings,
 declare whether the selected price sensor already includes VAT. Enter the
-applicable **VAT rate for VAT-excluded prices** as a percentage when the source
-excludes VAT. Enter `0` explicitly for zero VAT. No rate is inferred from the
-currency, country, dongle or supplier.
+applicable **VAT to add to VAT-exclusive prices (%)** when the source excludes
+VAT. Enter `0` only for actual zero VAT, not to indicate that the source excludes
+VAT. An optional country/region assistant can suggest a rate for confirmation;
+no rate is silently applied from the currency, country, dongle or supplier.
 
 For example, a source price of 2.00 with a configured 25 percent rate becomes
 2.50. A configured VAT-inclusive supplier markup of 0.18 then produces 2.68
@@ -21,6 +22,62 @@ In Tibber fast track, selecting Nord Pool forecasting opens a separate
 are hidden when forecasting is not selected, and saved values are retained
 when forecasting is disabled. Tibber live prices are not taxed or marked up
 again. Custom or mixed-source settings retain their live-price inputs.
+
+## Country and regional VAT suggestions
+
+Both standard/custom setup and Tibber forecast pricing offer **Suggest VAT from
+country/region**. With an unset VAT rate and an unambiguous supported Nord Pool
+country hint, submitting the form opens the assistant automatically. Existing
+rates, including explicit zero, are not replaced on upgrades or source changes.
+To replace one, explicitly request a suggestion and confirm the replacement.
+The Tibber assistant appears only inside optional Nord Pool forecast pricing,
+never as a requirement for Tibber's VAT-inclusive live price.
+
+Nord Pool supplies VAT-exclusive market prices, not your household's VAT rate.
+Its selected area is a country hint only. Confirm the country of the actual
+household supply, particularly with mixed sources. Multiple areas in different
+countries provide no hint unless one is explicitly selected. Currency is never
+used to infer a country. Without Nord Pool, choose the country yourself.
+
+Current household suggestions, verified **2026-10-02**:
+
+| Context | Suggested VAT | Authority |
+| --- | --- | --- |
+| Sweden | 25% | [Skatteverket](https://www4.skatteverket.se/rattsligvagledning/edition/2026.14/429414.html) |
+| Denmark, excluding Greenland/Faroe Islands | 25% | [Skattestyrelsen](https://skat.dk/media/q0wnhot2/en_vejledning_refusion-af-energiafgifter_2024_a4.pdf) |
+| Finland | 25.5% | [Vero](https://www.vero.fi/en/businesses-and-corporations/taxes-and-charges/vat/rates-of-vat/the-changes-to-VAT-rates/) |
+| Norway: households in Nordland, Troms or Finnmark | 0% | [Skatteetaten exemption](https://www.skatteetaten.no/en/rettskilder/type/handboker/merverdiavgiftshandboken/gjeldende/M-6/M-6-6/) |
+| Norway: households elsewhere on the mainland | 25% | [Skatteetaten rates](https://www.skatteetaten.no/satser/merverdiavgift/) |
+| Iceland: general electricity supply | 24% | [Skatturinn](https://www.skatturinn.is/atvinnurekstur/virdisaukaskattur/skattskylda-og-skattprosentur/) |
+| Iceland: separately identified qualifying heating electricity only | 11% | [Skatturinn](https://www.skatturinn.is/atvinnurekstur/virdisaukaskattur/skattskylda-og-skattprosentur/) |
+
+Norway always asks for household location; **NO4 does not automatically mean
+zero VAT**. Iceland asks about supply type: a heating exemption cannot be applied
+to all electricity or a mixed supply. For uncertain cases, businesses, special
+territories such as Svalbard, or unsupported countries, keep manual settings and
+check the bill. The assistant does not determine eligibility from your address.
+
+The review shows the context, authority source, verification date and previously
+entered rate. Edit the suggested percentage if necessary and explicitly confirm
+it, or leave confirmation off to keep the previous value. No suggestion is saved
+before confirmation and final completion of the configuration flow.
+
+### Maintenance and scope
+
+Rules live in `custom_components/electricity_pro/vat_suggestions.py`, with a
+source URL, verification date and earliest supported effective date. Finland's
+25.5% rule starts on 2024-09-01; other rules use 2026-10-02 as the verified
+current-setup baseline, not a claim about when their legislation began. This
+table is not a historical tax calculator. Before the supported date or more than
+366 days after verification, no default is offered; manual entry remains usable.
+Maintainers must recheck authority guidance and update rules and date-boundary
+tests when rates change. Updated rules are offered for new confirmations only.
+
+The confirmed numeric rate is saved like a manual choice. It is not automatically
+changed later and does not rewrite historical costs or readings. Existing
+inclusive/exclusive pricing semantics remain unchanged: VAT-inclusive supplier
+prices, markup and grid fees are never taxed again. Electricity excise tax stays
+separate; these import-price suggestions do not define export-compensation VAT.
 
 ## Optional Tibber forecast-addition estimate
 

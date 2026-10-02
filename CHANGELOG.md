@@ -4,6 +4,13 @@
 
 ### Added
 
+- Confirmed, editable Nordic household VAT suggestions in standard setup and
+  Tibber's optional forecast pricing. Use Nord Pool only as a country hint;
+  ask about Norwegian household location and Icelandic supply type. Preserve
+  saved rates (including zero), provide manual fallbacks and clarify that the
+  forecast VAT field is the rate to add, not VAT already included in spot prices.
+  See [VAT suggestions](docs/vat-pricing.md#country-and-regional-vat-suggestions).
+
 - Optional, user-confirmed Tibber forecast-addition estimate from matching
   completed Tibber/Nord Pool intervals. Requires explicit VAT and confirmation
   of the home's price area; refuses insufficient, ambiguous or varying data.
