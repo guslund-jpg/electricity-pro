@@ -54,9 +54,10 @@ def test_assistance_visibility_and_translations():
     strings = json.loads((root / "strings.json").read_text())
     english = json.loads((root / "translations/en.json").read_text())
     for flow in ("config", "options"):
-        for step in ("vat_country", "vat_context", "vat_review"):
+        for step in ("vat_country", "vat_context", "vat_review", "tibber_forecast_pricing"):
             assert strings[flow]["step"][step] == english[flow]["step"][step]
         assert strings[flow]["step"]["tibber_forecast_pricing"]["data"]["price_vat_rate"] == "VAT to add to Nord Pool forecasts (%)"
+        assert "spot prices without VAT" in strings[flow]["step"]["tibber_forecast_pricing"]["description"]
 
 
 async def start(hass, profile, **data):
@@ -81,16 +82,15 @@ async def test_automatic_hint_requires_confirmation(hass, freezer, profile):
     flow = await submit(flow["flow_id"], values)
     if profile == "tibber":
         assert flow["step_id"] == "tibber_forecast_pricing"
-        flow = await submit(flow["flow_id"], {})
-    assert flow["step_id"] == "vat_country"
-    assert flow["description_placeholders"]["hint"] == "FI"
-    assert not entry.options
-    flow = await submit(flow["flow_id"], {"vat_country": "FI"})
-    assert flow["step_id"] == "vat_review"
+    else:
+        assert flow["step_id"] == "vat_review"
     schema_values = flow["data_schema"]({})
     assert schema_values["price_vat_rate"] == 25.5
     assert not entry.options
-    flow = await submit(flow["flow_id"], {"price_vat_rate": 25.5, "use_vat_suggestion": True})
+    confirm = {"price_vat_rate": 25.5}
+    if profile == "custom":
+        confirm["use_vat_suggestion"] = True
+    flow = await submit(flow["flow_id"], confirm)
     assert flow["type"] == "create_entry"
     assert flow["data"]["price_vat_rate"] == 25.5
     assert "suggest_vat_rate" not in flow["data"]
@@ -154,3 +154,74 @@ async def test_expired_rule_allows_manual_escape(hass, freezer):
     assert "price_vat_rate" not in flow["data_schema"]({})
     flow = await submit(flow["flow_id"], {"use_vat_suggestion": False})
     assert flow["data"]["price_vat_rate"] == 17
+
+
+@pytest.mark.parametrize("profile", ["custom", "tibber"])
+@pytest.mark.parametrize(("area", "expected"), [("SE3", 25), ("DK2", 25), ("FI", 25.5)])
+async def test_configured_area_prefills_editable_rate_without_country_question(hass, freezer, profile, area, expected):
+    freezer.move_to("2026-10-02T12:00:00Z")
+    nordpool = MockConfigEntry(domain="nordpool", data={"areas": [area]})
+    nordpool.add_to_hass(hass)
+    entry, flow = await start(hass, profile, forecast_nordpool_config_entry=nordpool.entry_id)
+    submit = hass.config_entries.options.async_configure
+    if profile == "tibber":
+        flow = await submit(flow["flow_id"], {"forecast_nordpool_config_entry": nordpool.entry_id})
+        assert flow["step_id"] == "tibber_forecast_pricing"
+    assert flow["data_schema"]({})["price_vat_rate"] == expected
+    assert "price_vat_rate" not in entry.data
+    assert not entry.options  # Form rendering never persists the suggestion.
+    values = {"price_vat_rate": 12.3}
+    if profile == "custom":
+        values.update(power_entity="sensor.power", forecast_nordpool_config_entry=nordpool.entry_id)
+    flow = await submit(flow["flow_id"], values)
+    assert flow["type"] == "create_entry"
+    assert flow["data"]["price_vat_rate"] == 12.3
+
+
+@pytest.mark.parametrize("profile", ["custom", "tibber"])
+@pytest.mark.parametrize("saved", [0, 17.2])
+async def test_prefill_never_replaces_saved_rate(hass, freezer, profile, saved):
+    freezer.move_to("2026-10-02T12:00:00Z")
+    nordpool = MockConfigEntry(domain="nordpool", data={"areas": ["FI"]})
+    nordpool.add_to_hass(hass)
+    _, flow = await start(hass, profile, forecast_nordpool_config_entry=nordpool.entry_id, price_vat_rate=saved)
+    if profile == "tibber":
+        flow = await hass.config_entries.options.async_configure(flow["flow_id"], {"forecast_nordpool_config_entry": nordpool.entry_id})
+    assert flow["data_schema"]({})["price_vat_rate"] == saved
+
+
+@pytest.mark.parametrize("profile", ["custom", "tibber"])
+async def test_norwegian_area_skips_country_but_requires_household_context(hass, freezer, profile):
+    freezer.move_to("2026-10-02T12:00:00Z")
+    nordpool = MockConfigEntry(domain="nordpool", data={"areas": ["NO4"]})
+    nordpool.add_to_hass(hass)
+    _, flow = await start(hass, profile, forecast_nordpool_config_entry=nordpool.entry_id)
+    submit = hass.config_entries.options.async_configure
+    values = {"forecast_nordpool_config_entry": nordpool.entry_id}
+    if profile == "custom":
+        values["power_entity"] = "sensor.power"
+        assert "price_vat_rate" not in flow["data_schema"]({})
+    flow = await submit(flow["flow_id"], values)
+    if profile == "tibber":
+        assert "price_vat_rate" not in flow["data_schema"]({})
+        flow = await submit(flow["flow_id"], {})
+    assert flow["step_id"] == "vat_context"
+    flow = await submit(flow["flow_id"], {"vat_context": "north_household"})
+    assert flow["data_schema"]({})["price_vat_rate"] == 0
+
+
+@pytest.mark.parametrize("areas", [["SE3", "FI"], ["EE"], []])
+async def test_ambiguous_or_unknown_area_does_not_prefill(hass, freezer, areas):
+    freezer.move_to("2026-10-02T12:00:00Z")
+    nordpool = MockConfigEntry(domain="nordpool", data={"areas": areas})
+    nordpool.add_to_hass(hass)
+    _, flow = await start(hass, "custom", forecast_nordpool_config_entry=nordpool.entry_id)
+    assert "price_vat_rate" not in flow["data_schema"]({})
+
+
+async def test_expired_rule_does_not_prefill(hass, freezer):
+    freezer.move_to("2028-10-02T12:00:00Z")
+    nordpool = MockConfigEntry(domain="nordpool", data={"areas": ["SE3"]})
+    nordpool.add_to_hass(hass)
+    _, flow = await start(hass, "custom", forecast_nordpool_config_entry=nordpool.entry_id)
+    assert "price_vat_rate" not in flow["data_schema"]({})

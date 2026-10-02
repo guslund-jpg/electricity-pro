@@ -65,14 +65,26 @@ def assistance_field():
 class VatSuggestionFlow:
     """Reusable setup/options steps with explicit confirmation and manual escape."""
 
+    def _vat_country_hint(self, values):
+        entry = self.hass.config_entries.async_get_entry(
+            values.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY, "") or ""
+        )
+        areas = entry.data.get("areas", []) if entry and entry.domain == "nordpool" else []
+        return country_hint(areas, values.get(CONF_FORECAST_PRICE_AREA))
+
+    def _vat_form_values(self, values):
+        """Prefill only an unset rate; rendering never changes stored settings."""
+        result = dict(values)
+        if result.get(CONF_PRICE_VAT_RATE) is None:
+            rule = vat_rule(self._vat_country_hint(values), "standard", dt_util.now().date())
+            if rule is not None:
+                result[CONF_PRICE_VAT_RATE] = rule.rate
+        return result
+
     async def _async_maybe_suggest_vat(self, values, return_step, saved=None):
         requested = values.pop(CONF_SUGGEST_VAT, False)
         effective = {**(saved or {}), **values}
-        entry = self.hass.config_entries.async_get_entry(
-            effective.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY, "") or ""
-        )
-        areas = entry.data.get("areas", []) if entry and entry.domain == "nordpool" else []
-        hint = country_hint(areas, effective.get(CONF_FORECAST_PRICE_AREA))
+        hint = self._vat_country_hint(effective)
         missing = effective.get(CONF_PRICE_VAT_RATE) is None
         if not requested and not (missing and hint and not getattr(self, "_vat_assistance_seen", False)):
             return None
@@ -82,6 +94,9 @@ class VatSuggestionFlow:
             self._vat_values[CONF_PRICE_VAT_RATE] = effective[CONF_PRICE_VAT_RATE]
         self._vat_return_step = return_step
         self._vat_hint = hint
+        if hint:
+            # The selected area already identifies the country: do not ask again.
+            return await self.async_step_vat_country({"vat_country": hint})
         return await self.async_step_vat_country()
 
     async def async_step_vat_country(self, user_input=None):

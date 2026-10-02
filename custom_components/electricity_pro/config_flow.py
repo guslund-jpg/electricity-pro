@@ -1168,7 +1168,7 @@ class ElectricityProConfigFlow(
             return await self.async_step_tibber_settings(pending)
         return self.async_show_form(
             step_id="tibber_forecast_pricing",
-            data_schema=_tibber_forecast_pricing_schema(pending),
+            data_schema=_tibber_forecast_pricing_schema(self._vat_form_values(pending)),
         )
 
     async def async_step_forecast_area(
@@ -1551,9 +1551,9 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
                 pricing_strategy_default=current_pricing_strategy,
                 price_included_components_default=current_price_components,
                 price_vat_treatment_default=current_vat_treatment,
-                vat_rate_default=self.config_entry.options.get(
-                    CONF_PRICE_VAT_RATE, self.config_entry.data.get(CONF_PRICE_VAT_RATE)
-                ),
+                vat_rate_default=self._vat_form_values({
+                    **self.config_entry.data, **self.config_entry.options,
+                }).get(CONF_PRICE_VAT_RATE),
                 energy_default=current_energy,
                 energy_source_type_default=current_energy_source_type,
                 accumulated_cost_today_default=current_accumulated_cost_today,
@@ -1726,7 +1726,7 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
             return await self.async_step_init(pending)
         return self.async_show_form(
             step_id="tibber_forecast_pricing",
-            data_schema=_tibber_forecast_pricing_schema(pending),
+            data_schema=_tibber_forecast_pricing_schema(self._vat_form_values(pending)),
         )
 
     async def async_step_forecast_area(

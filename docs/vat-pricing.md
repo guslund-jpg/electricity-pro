@@ -26,16 +26,21 @@ again. Custom or mixed-source settings retain their live-price inputs.
 ## Country and regional VAT suggestions
 
 Both standard/custom setup and Tibber forecast pricing offer **Suggest VAT from
-country/region**. With an unset VAT rate and an unambiguous supported Nord Pool
-country hint, submitting the form opens the assistant automatically. Existing
+country/region**. When a Swedish, Danish or Finnish Nord Pool area is already
+configured and VAT is unset, the pricing form prefills the editable rate. Saving
+that form confirms the rate; simply opening it does not change configuration.
+When selecting a Nord Pool source for the first time in the standard form,
+the country is not known until submission: the next screen then shows the
+prefilled VAT review directly, without asking for the country again. Existing
 rates, including explicit zero, are not replaced on upgrades or source changes.
 To replace one, explicitly request a suggestion and confirm the replacement.
 The Tibber assistant appears only inside optional Nord Pool forecast pricing,
 never as a requirement for Tibber's VAT-inclusive live price.
 
 Nord Pool supplies VAT-exclusive market prices, not your household's VAT rate.
-Its selected area is a country hint only. Confirm the country of the actual
-household supply, particularly with mixed sources. Multiple areas in different
+Its selected area supplies the country hint directly, avoiding a redundant
+country question. Check that the suggested rate applies to the actual household
+supply, particularly with mixed sources. Multiple areas in different
 countries provide no hint unless one is explicitly selected. Currency is never
 used to infer a country. Without Nord Pool, choose the country yourself.
 
@@ -52,12 +57,12 @@ Current household suggestions, verified **2026-10-02**:
 | Iceland: separately identified qualifying heating electricity only | 11% | [Skatturinn](https://www.skatturinn.is/atvinnurekstur/virdisaukaskattur/skattskylda-og-skattprosentur/) |
 
 Norway always asks for household location; **NO4 does not automatically mean
-zero VAT**. Iceland asks about supply type: a heating exemption cannot be applied
+zero VAT**. Iceland asks about supply type: a reduced heating rate cannot be applied
 to all electricity or a mixed supply. For uncertain cases, businesses, special
 territories such as Svalbard, or unsupported countries, keep manual settings and
 check the bill. The assistant does not determine eligibility from your address.
 
-The review shows the context, authority source, verification date and previously
+The optional suggestion review shows the context, authority source, verification date and previously
 entered rate. Edit the suggested percentage if necessary and explicitly confirm
 it, or leave confirmation off to keep the previous value. No suggestion is saved
 before confirmation and final completion of the configuration flow.
@@ -81,8 +86,9 @@ separate; these import-price suggestions do not define export-compensation VAT.
 
 ## Optional Tibber forecast-addition estimate
 
-In the Tibber fast track's **Nord Pool forecast pricing** step, enter the VAT
-rate and optionally select **Estimate from Tibber (review before applying)**.
+In the Tibber fast track's **Nord Pool forecast pricing** step, review the
+prefilled VAT rate (or enter one if none is suggested) and optionally select
+**Estimate from Tibber (review before applying)**.
 This is available during setup and subsequent settings changes, only with a
 Nord Pool forecast source. Manual configuration remains the default.
 
