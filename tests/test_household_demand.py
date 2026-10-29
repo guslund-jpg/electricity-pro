@@ -66,7 +66,7 @@ async def test_measured_entities_without_topology_or_solar_sources(hass, freezer
 
 async def test_dips_restart_and_reset_never_change_other_channels(hass, freezer):
     freezer.move_to("2026-09-16T12:00:00+00:00")
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     set_source(hass, "sensor.net", 800, "W", "power")
     set_source(hass, "sensor.import_energy", 10, "kWh", "energy")
     set_source(hass, "sensor.production", 200, "kWh", "energy")

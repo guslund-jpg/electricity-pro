@@ -101,7 +101,7 @@ async def test_average_market_price_today_is_complete_day_retrospective_statisti
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """The market mean should publish only as a complete retrospective statistic."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     period_start = datetime(2026, 8, 12, 22, 0, tzinfo=UTC)
     intervals = [
         {
@@ -142,7 +142,7 @@ async def test_average_market_price_today_unavailable_for_partial_day(
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """An incomplete local day must not produce a misleading daily average."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     with patch(
         "custom_components.electricity_pro.coordinator.dt_util.now",
         return_value=datetime(2026, 8, 13, 8, 0, tzinfo=UTC),
@@ -425,7 +425,7 @@ async def test_lifetime_energy_today_resets_at_local_midnight(
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
 ) -> None:
     """The derived lifetime source should reset at local midnight."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     before_midnight = datetime(2026, 9, 4, 21, 55, tzinfo=UTC)
     with patch(
         "custom_components.electricity_pro.coordinator.dt_util.now",

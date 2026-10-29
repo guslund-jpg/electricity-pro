@@ -123,7 +123,7 @@ def flow_entry(**overrides):
 
 async def test_independent_channels_restore_and_source_change(hass, freezer):
     freezer.move_to("2026-09-16T12:00:00+00:00")
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     c = ElectricityProCoordinator(hass, flow_entry())
     for prod, export in ((100, 50), (103, 51), (90, 52)):
         hass.states.async_set("sensor.production", str(prod), {"unit_of_measurement": "kWh"})
@@ -173,7 +173,7 @@ async def test_reset_scoped_to_one_fresh_source(hass, freezer):
 
 async def test_midnight_rejects_old_receipt_then_rebaselines(hass, freezer):
     freezer.move_to("2026-09-16T23:59:00+00:00")
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     c = ElectricityProCoordinator(hass, flow_entry())
     hass.states.async_set("sensor.production", "100", {"unit_of_measurement": "kWh"})
     c._read_flows(dt_util.utcnow())
@@ -192,13 +192,13 @@ async def test_midnight_rejects_old_receipt_then_rebaselines(hass, freezer):
 
 
 async def test_timezone_change_does_not_restore_incompatible_periods(hass):
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     c = ElectricityProCoordinator(hass, flow_entry())
     counter = c._flow_counters["production"]
     counter.update(Decimal(100), datetime(2026, 9, 16, tzinfo=UTC))
     counter.update(Decimal(101), datetime(2026, 9, 16, tzinfo=UTC))
     stored = c._statistics_data()
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     restored = ElectricityProCoordinator(hass, flow_entry())
     with patch.object(restored._store, "async_load", return_value=stored):
         await restored._async_restore_statistics()
