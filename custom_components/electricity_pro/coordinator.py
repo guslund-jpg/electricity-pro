@@ -9,7 +9,6 @@ from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, UnitOfEnergy
@@ -167,7 +166,7 @@ class ElectricityProCoordinator(
 
         self._entry = entry
         self._local_costs = CostLedger()
-        self._local_timezone = ZoneInfo(hass.config.time_zone)
+        self._local_timezone = dt_util.get_default_time_zone()
         self._provider = ElectricityProEntityProvider(
             hass=hass,
             entry=entry,
