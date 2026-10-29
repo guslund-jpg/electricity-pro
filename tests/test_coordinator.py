@@ -115,7 +115,7 @@ def _adaptive_price_entry(
 
 async def test_adaptive_price_history_accumulates_and_restores(hass) -> None:
     """Compatible Effective Price hours should survive a restart."""
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     hass.states.async_set("sensor.test_power", "100", {"unit_of_measurement": "W"})
     hass.states.async_set(
         "sensor.test_price",
@@ -163,7 +163,7 @@ async def test_adaptive_price_history_resets_after_price_configuration_change(
     hass,
 ) -> None:
     """A changed price source must not reuse incompatible stored history."""
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     hass.states.async_set("sensor.test_power", "100", {"unit_of_measurement": "W"})
     hass.states.async_set(
         "sensor.test_price",
@@ -214,9 +214,9 @@ async def test_adaptive_price_history_resets_after_price_configuration_change(
     )
 
 
-def test_adaptive_price_history_rejects_partial_price_semantics(hass) -> None:
+async def test_adaptive_price_history_rejects_partial_price_semantics(hass) -> None:
     """Partial prices must not enter the comparable adaptive history."""
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     hass.states.async_set("sensor.test_power", "100", {"unit_of_measurement": "W"})
     hass.states.async_set(
         "sensor.test_price",
@@ -241,9 +241,9 @@ def test_adaptive_price_history_rejects_partial_price_semantics(hass) -> None:
     assert coordinator.adaptive_price_history.observations == ()
 
 
-def test_adaptive_price_history_accepts_fully_composed_effective_price(hass) -> None:
+async def test_adaptive_price_history_accepts_fully_composed_effective_price(hass) -> None:
     """Configured missing tariffs should form comparable Effective Price history."""
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     hass.states.async_set("sensor.test_power", "100", {"unit_of_measurement": "W"})
     hass.states.async_set(
         "sensor.test_price",
@@ -276,7 +276,7 @@ def test_adaptive_price_history_accepts_fully_composed_effective_price(hass) -> 
 
 async def test_lifetime_energy_baseline_restores_for_same_source(hass) -> None:
     """Continue a derived daily total across an ordinary restart."""
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     hass.states.async_set("sensor.test_power", "100", {"unit_of_measurement": "W"})
     hass.states.async_set(
         "sensor.total_import",
@@ -333,9 +333,9 @@ async def test_lifetime_energy_baseline_restores_for_same_source(hass) -> None:
     assert data.energy_today_period_complete is False
 
 
-def test_timing_runtime_expires_stale_power_after_ten_minutes(hass) -> None:
+async def test_timing_runtime_expires_stale_power_after_ten_minutes(hass) -> None:
     """A quiet source must not turn stale power into fabricated coverage."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     hass.states.async_set("sensor.test_power", "1000", {"unit_of_measurement": "W"})
     hass.states.async_set(
         "sensor.test_price",
@@ -375,9 +375,9 @@ def test_timing_runtime_expires_stale_power_after_ten_minutes(hass) -> None:
     ) == Decimal(1) / Decimal(6)
 
 
-def test_base_load_runtime_tracks_power_without_price(hass) -> None:
+async def test_base_load_runtime_tracks_power_without_price(hass) -> None:
     """Base-load coverage must not depend on a configured price source."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     hass.states.async_set("sensor.test_power", "600", {"unit_of_measurement": "W"})
     coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
     start = datetime(2026, 8, 25, 0, 0, tzinfo=UTC)
@@ -402,9 +402,9 @@ def test_base_load_runtime_tracks_power_without_price(hass) -> None:
     assert intervals[0].covered_duration == timedelta(minutes=5)
 
 
-def test_base_load_runtime_marks_negative_source_power(hass) -> None:
+async def test_base_load_runtime_marks_negative_source_power(hass) -> None:
     """A negative source value should reject the day without being published."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     hass.states.async_set("sensor.test_power", "-100", {"unit_of_measurement": "W"})
     coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
     start = datetime(2026, 8, 25, 0, 0, tzinfo=UTC)
@@ -426,9 +426,9 @@ def test_base_load_runtime_marks_negative_source_power(hass) -> None:
     assert coordinator._base_load_buckets.bidirectional_observed(local_date)  # noqa: SLF001
 
 
-def test_base_load_runtime_publishes_after_five_eligible_days(hass) -> None:
+async def test_base_load_runtime_publishes_after_five_eligible_days(hass) -> None:
     """Five complete recent days should produce the rolling median estimate."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
     timezone = coordinator._local_timezone  # noqa: SLF001
     for day, power in zip(range(20, 25), (180, 190, 200, 210, 220)):
@@ -447,9 +447,9 @@ def test_base_load_runtime_publishes_after_five_eligible_days(hass) -> None:
     assert result.unavailable_reason is None
 
 
-def test_average_power_today_uses_elapsed_local_day(hass) -> None:
+async def test_average_power_today_uses_elapsed_local_day(hass) -> None:
     """The coordinator should calculate against elapsed time since midnight."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
     timezone = coordinator._local_timezone  # noqa: SLF001
     day_start = datetime(2026, 8, 25, tzinfo=timezone)
@@ -485,13 +485,13 @@ def test_average_power_today_uses_elapsed_local_day(hass) -> None:
         (date(2026, 10, 25), 5),
     ],
 )
-def test_average_power_today_uses_actual_dst_elapsed_time(
+async def test_average_power_today_uses_actual_dst_elapsed_time(
     hass,
     day: date,
     elapsed_hours: int,
 ) -> None:
     """Spring and autumn clock changes must use elapsed real time."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
     timezone = coordinator._local_timezone  # noqa: SLF001
     day_start = datetime.combine(day, datetime.min.time(), tzinfo=timezone)
@@ -513,9 +513,9 @@ def test_average_power_today_uses_actual_dst_elapsed_time(
     assert stored[1].coverage_percent == Decimal(100)
 
 
-def test_average_power_today_is_empty_at_local_midnight(hass) -> None:
+async def test_average_power_today_is_empty_at_local_midnight(hass) -> None:
     """The new local day should begin unavailable before any interval."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
     midnight = datetime(2026, 8, 25, tzinfo=coordinator._local_timezone)  # noqa: SLF001
 
@@ -528,7 +528,7 @@ def test_average_power_today_is_empty_at_local_midnight(hass) -> None:
 
 async def test_base_load_runtime_restores_bounded_history(hass) -> None:
     """Restart restoration should preserve buckets and daily summaries."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     original = ElectricityProCoordinator(hass, _daily_peak_entry())
     period_start = date(2026, 8, 24)
     day_start = datetime(2026, 8, 24, tzinfo=original._local_timezone)  # noqa: SLF001
@@ -559,9 +559,9 @@ async def test_base_load_runtime_restores_bounded_history(hass) -> None:
     )
 
 
-def test_timing_runtime_finalizes_a_complete_local_day(hass) -> None:
+async def test_timing_runtime_finalizes_a_complete_local_day(hass) -> None:
     """A completed day should produce the agreed retrospective score."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     coordinator = ElectricityProCoordinator(hass, _timing_entry())
     period_start = date(2026, 8, 24)
     day_start = datetime(2026, 8, 24, tzinfo=coordinator._local_timezone)  # noqa: SLF001
@@ -581,9 +581,9 @@ def test_timing_runtime_finalizes_a_complete_local_day(hass) -> None:
     assert result.score == Decimal(88)
 
 
-def test_timing_runtime_rejects_a_day_containing_export(hass) -> None:
+async def test_timing_runtime_rejects_a_day_containing_export(hass) -> None:
     """A complete priced day is still unsupported when net export occurred."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     coordinator = ElectricityProCoordinator(hass, _timing_entry())
     period_start = date(2026, 8, 24)
     day_start = datetime(2026, 8, 24, tzinfo=coordinator._local_timezone)  # noqa: SLF001
@@ -612,7 +612,7 @@ def test_timing_runtime_rejects_a_day_containing_export(hass) -> None:
 
 async def test_timing_runtime_restores_buckets_and_completed_result(hass) -> None:
     """Restart restoration should preserve aggregate history and the last result."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     original = ElectricityProCoordinator(hass, _timing_entry())
     period_start = date(2026, 8, 24)
     day_start = datetime(2026, 8, 24, tzinfo=original._local_timezone)  # noqa: SLF001
@@ -637,9 +637,9 @@ async def test_timing_runtime_restores_buckets_and_completed_result(hass) -> Non
     assert restored.timing_score_yesterday == original.timing_score_yesterday
 
 
-def test_daily_peak_is_calculated_from_current_power(hass) -> None:
+async def test_daily_peak_is_calculated_from_current_power(hass) -> None:
     """Coordinator should retain only the highest observed power and its time."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     hass.states.async_set("sensor.test_power", "1000", {"unit_of_measurement": "W"})
     coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
     first = datetime(2026, 8, 24, 8, 0, tzinfo=UTC)
@@ -669,7 +669,7 @@ def test_daily_peak_is_calculated_from_current_power(hass) -> None:
 
 async def test_daily_peak_restores_current_day_snapshot(hass) -> None:
     """A restart should preserve a valid peak from the current local day."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     hass.states.async_set("sensor.test_power", "900", {"unit_of_measurement": "W"})
     coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
     now = datetime(2026, 8, 24, 10, 0, tzinfo=UTC)
@@ -699,9 +699,9 @@ async def test_daily_peak_restores_current_day_snapshot(hass) -> None:
     )
 
 
-def test_daily_peak_midnight_rollover_publishes_unavailable(hass) -> None:
+async def test_daily_peak_midnight_rollover_publishes_unavailable(hass) -> None:
     """Local midnight should clear both daily peak entities until a new sample."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     hass.states.async_set("sensor.test_power", "1000", {"unit_of_measurement": "W"})
     coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
     with (
@@ -727,7 +727,7 @@ async def test_unavailable_workday_source_uses_ordinary_weekday_schedule(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Workday failure should conservatively retain the ordinary high fee."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Electricity Pro",

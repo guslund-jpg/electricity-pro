@@ -22,7 +22,7 @@ def make_entry(source="sensor.energy", mode="daily"):
 
 @pytest.mark.parametrize("change", ["none", "entity", "semantics", "legacy"])
 async def test_monthly_restore_scope(hass, change):
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     entry = make_entry()
     original = ElectricityProCoordinator(hass, entry)
     now = datetime(2026, 9, 14, 12, tzinfo=UTC)
@@ -47,7 +47,7 @@ async def test_monthly_restore_scope(hass, change):
 
 
 async def test_reset_rebases_only_month_and_survives_restart(hass):
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     hass.states.async_set("sensor.energy", "59", {"unit_of_measurement": "kWh"})
     entry = make_entry()
     c = ElectricityProCoordinator(hass, entry)
@@ -85,7 +85,7 @@ async def test_reset_unavailable_energy_preserves_total(hass):
 
 
 async def test_confirm_meter_replacement_preserves_totals_and_resumes(hass):
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     c = ElectricityProCoordinator(hass, make_entry(mode="lifetime"))
     now = datetime(2026, 9, 14, 12, tzinfo=UTC)
     with (

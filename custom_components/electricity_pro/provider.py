@@ -6,7 +6,6 @@ from dataclasses import dataclass, replace
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable
-from zoneinfo import ZoneInfo
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -121,7 +120,7 @@ class ElectricityProEntityProvider:
         """Initialize the entity provider."""
         self._hass = hass
         self.flow_sources = FlowSources(hass, {**entry.data, **entry.options})
-        self._local_timezone = ZoneInfo(hass.config.time_zone)
+        self._local_timezone = dt_util.get_default_time_zone()
         self._grid_fee_at = grid_fee_at
         self._pricing_metadata = resolve_pricing_metadata(entry.data, entry.options)
 
