@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Reuse Home Assistant's loaded timezone during setup/reload to avoid blocking
+  timezone-database reads on the event loop, matching the v1.5.2 maintenance fix.
+
 ### Added
 
 - Confirmed, editable Nordic household VAT suggestions in standard setup and
