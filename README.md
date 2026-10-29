@@ -268,11 +268,12 @@ legacy HACS Nord Pool integration is not required or supported as a forecast sou
 
 ### Current release
 
-v1.5.1 – Metering and Cost Reliability
+v1.5.2 – Startup Timezone Fix
 
-This maintenance release improves lifetime-meter handling, supplier and household
-cost estimates, VAT configuration, and dashboard clarity. Read the
-[release and upgrade notes](docs/releases/1.5.1.md) before upgrading.
+This small maintenance release fixes potential blocking timezone loading during
+startup, addressing HACS review feedback. It builds on v1.5.1 without including
+unreleased v1.6 features. Read the
+[release and upgrade notes](docs/releases/1.5.2.md) before upgrading.
 
 Electricity Pro is actively developed with a clear public roadmap.
 

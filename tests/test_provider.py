@@ -146,9 +146,9 @@ def test_grid_fee_at_uses_time_varying_resolver(hass: HomeAssistant) -> None:
     assert provider.grid_fee_at(high_start.replace(hour=5)) == Decimal("0.125")
 
 
-def test_grid_fee_at_uses_configured_high_low_schedule(hass: HomeAssistant) -> None:
+async def test_grid_fee_at_uses_configured_high_low_schedule(hass: HomeAssistant) -> None:
     """Provider should build and apply a high/low schedule from config data."""
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Electricity Pro",
@@ -177,11 +177,11 @@ def test_grid_fee_at_uses_configured_high_low_schedule(hass: HomeAssistant) -> N
     ) == Decimal("0.125")
 
 
-def test_grid_fee_schedule_uses_home_assistant_timezone_across_dst(
+async def test_grid_fee_schedule_uses_home_assistant_timezone_across_dst(
     hass: HomeAssistant,
 ) -> None:
     """Tariff wall-clock hours should follow the configured timezone after DST."""
-    hass.config.time_zone = "Europe/Stockholm"
+    await hass.config.async_set_time_zone("Europe/Stockholm")
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Electricity Pro",

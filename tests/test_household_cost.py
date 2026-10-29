@@ -79,7 +79,7 @@ def test_effective_month_survives_restart_and_rolls_over():
 
 @pytest.mark.parametrize("external", [False, True])
 async def test_household_total_does_not_double_count_supplier(hass, setup_electricity_pro, external):
-    hass.config.time_zone = "UTC"
+    await hass.config.async_set_time_zone("UTC")
     now = datetime(2026, 9, 14, 12, tzinfo=UTC)
     with patch("custom_components.electricity_pro.coordinator.dt_util.now", return_value=now):
         entry = await setup_electricity_pro(

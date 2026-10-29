@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-10-29
+
+### Fixed
+
+- Reuse Home Assistant's loaded timezone during integration setup and reload
+  instead of constructing a timezone on the event loop. This avoids potential
+  blocking timezone-database reads, as requested in the HACS catalogue review.
+  Existing local-day boundaries, daylight-saving handling and tariff schedules
+  retain their configured timezone.
+
+This maintenance release is based on v1.5.1. It does not include unreleased
+v1.6 production, export, household-demand or VAT-assistance features.
+
 ## [1.5.1] - 2026-09-16
 
 ### Fixed
