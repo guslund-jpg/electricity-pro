@@ -4,6 +4,11 @@
 
 ### Changed
 
+- Share saved-settings resolution across runtime setup, provider, coordinator,
+  pricing metadata and entities. Preserve option precedence (including cleared
+  and zero values), entity creation, normalization and persisted scope identities.
+  Configuration forms and calculation rules are unchanged; continues #288.
+
 - Extract fixed/adaptive Good Time decisions into a pure, explicitly timed
   calculation module. Preserve entity identities, availability, explanations,
   configuration and stored history; add before/after characterization tests and

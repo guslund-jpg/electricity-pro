@@ -62,6 +62,7 @@ from .forecast_insights import ForecastWindowInsight
 from .pricing import PricingMetadata
 from .provider import ElectricityProData
 from .flow_sources import CHANNELS
+from .settings import resolve_settings
 from .statistics import remaining_cost_today
 from .timing_score import TimingScoreResult
 
@@ -546,7 +547,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Electricity Pro sensors."""
-    settings = {**entry.data, **entry.options}
+    settings = resolve_settings(entry.data, entry.options)
     local_cost_configured = (
         not settings.get(CONF_ACCUMULATED_COST_TODAY_ENTITY)
         and bool(settings.get(CONF_ENERGY_ENTITY))
@@ -565,26 +566,19 @@ async def async_setup_entry(
         for description in SENSOR_DESCRIPTIONS
         if (local_cost_configured and description.key in local_cost_keys) or ((
             description.required_config_key is None
-            or description.required_config_key in entry.options
-            or description.required_config_key in entry.data
+            or description.required_config_key in settings
         )
         and all(
-            key in entry.options or key in entry.data
+            key in settings
             for key in description.required_config_keys
         )
         )
     ]
 
-    forecast_configured = (
-        CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in entry.options
-        or CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in entry.data
-    )
+    forecast_configured = CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in settings
     expose_next_inexpensive_window = (
         forecast_configured
-        and (
-            CONF_GOOD_PRICE_THRESHOLD in entry.options
-            or CONF_GOOD_PRICE_THRESHOLD in entry.data
-        )
+        and CONF_GOOD_PRICE_THRESHOLD in settings
         and entry.runtime_data.forecast_prices_are_comparable
     )
     _update_next_inexpensive_window_registry(
@@ -654,7 +648,7 @@ async def async_setup_entry(
                 )
             )
 
-    if CONF_PRICE_ENTITY in entry.options or CONF_PRICE_ENTITY in entry.data:
+    if CONF_PRICE_ENTITY in settings:
         entities.append(
             ElectricityProConsumptionTimingScoreSensor(
                 coordinator=entry.runtime_data,

@@ -25,6 +25,7 @@ from .const import (
 from .coordinator import ElectricityProCoordinator
 from .flow_sources import CHANNELS
 from .pricing_config import resolve_pricing_metadata
+from .settings import resolve_settings
 
 type ElectricityProConfigEntry = ConfigEntry[ElectricityProCoordinator]
 
@@ -128,7 +129,7 @@ async def async_setup_entry(
     entry: ElectricityProConfigEntry,
 ) -> bool:
     """Set up Electricity Pro from a config entry."""
-    settings = {**entry.data, **entry.options}
+    settings = resolve_settings(entry.data, entry.options)
     if settings.get(CONF_PRICE_ENTITY) and resolve_pricing_metadata(
         entry.data, entry.options
     ) is None:

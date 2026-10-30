@@ -100,6 +100,7 @@ from .provider import (
     ElectricityProData,
     ElectricityProEntityProvider,
 )
+from .settings import resolve_settings
 from .statistics_engine import (
     CalendarPeriod,
     CumulativeStatistic,
@@ -485,18 +486,16 @@ class ElectricityProCoordinator(
     @property
     def _forecast_configured(self) -> bool:
         """Return whether native Nord Pool forecast retrieval is configured."""
-        config_entry_id = self._entry.options.get(
-            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
-            self._entry.data.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY),
+        config_entry_id = resolve_settings(self._entry.data, self._entry.options).get(
+            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
         )
         return isinstance(config_entry_id, str) and bool(config_entry_id)
 
     @property
     def _workday_entity_id(self) -> str | None:
         """Return the configured Home Assistant Workday entity ID."""
-        entity_id = self._entry.options.get(
-            CONF_GRID_FEE_WORKDAY_ENTITY,
-            self._entry.data.get(CONF_GRID_FEE_WORKDAY_ENTITY),
+        entity_id = resolve_settings(self._entry.data, self._entry.options).get(
+            CONF_GRID_FEE_WORKDAY_ENTITY
         )
         return entity_id if isinstance(entity_id, str) and entity_id else None
 
@@ -574,10 +573,8 @@ class ElectricityProCoordinator(
     ) -> bool:
         """Retrieve forecast intervals for one date and store them."""
         try:
-            nordpool_config_entry_id = self._entry.options.get(
-                CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
-                self._entry.data.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY),
-            )
+            settings = resolve_settings(self._entry.data, self._entry.options)
+            nordpool_config_entry_id = settings.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
             if not isinstance(nordpool_config_entry_id, str) or not nordpool_config_entry_id:
                 raise ValueError("Forecast Nord Pool config entry is required")
 
@@ -585,10 +582,7 @@ class ElectricityProCoordinator(
                 self.hass,
                 config_entry_id=nordpool_config_entry_id,
                 target_date=target_date,
-                area=self._entry.options.get(
-                    CONF_FORECAST_PRICE_AREA,
-                    self._entry.data.get(CONF_FORECAST_PRICE_AREA),
-                ),
+                area=settings.get(CONF_FORECAST_PRICE_AREA),
             )
             if not intervals:
                 if target_date > market_today:
@@ -698,7 +692,7 @@ class ElectricityProCoordinator(
     @property
     def _local_cost_scope(self) -> dict[str, Any]:
         """Tie estimates to source, pricing configuration and timezone."""
-        settings = {**self._entry.data, **self._entry.options}
+        settings = resolve_settings(self._entry.data, self._entry.options)
         return {
             "settings": {
                 key: value for key, value in settings.items()
@@ -936,7 +930,7 @@ class ElectricityProCoordinator(
 
         cost = data.accumulated_cost_today
         cost_unit = data.accumulated_cost_today_unit
-        settings = {**self._entry.data, **self._entry.options}
+        settings = resolve_settings(self._entry.data, self._entry.options)
         use_local_cost = not settings.get("accumulated_cost_today_entity")
         supplier = calculate_supplier_price(
             data.current_price, data.pricing_metadata, data.supplier_markup_per_kwh,
@@ -1305,7 +1299,7 @@ class ElectricityProCoordinator(
 
     def _recalculate_forecast_insights(self) -> None:
         """Recalculate cached forecast insight results from current intervals."""
-        rate = vat_rate_from_mapping({**self._entry.data, **self._entry.options})
+        rate = vat_rate_from_mapping(resolve_settings(self._entry.data, self._entry.options))
         intervals = [
             replace(
                 interval,
@@ -1601,7 +1595,7 @@ def _currency_from_price_unit(unit: str | None) -> str | None:
 
 def _adaptive_tariff_signature(entry: ConfigEntry) -> str:
     """Return a stable fingerprint for price-affecting configuration."""
-    settings = {**entry.data, **entry.options}
+    settings = resolve_settings(entry.data, entry.options)
     relevant_settings = {
         key: settings[key]
         for key in _ADAPTIVE_SCOPE_CONFIG_KEYS
