@@ -4,6 +4,10 @@ Thank you for your interest in contributing to Electricity Pro!
 
 We welcome bug reports, feature requests, documentation improvements, and pull requests.
 
+Start with [local development and test instructions](docs/development.md).
+These describe the pinned test environment and distinguish Python behaviour
+tests from repository and Home Assistant configuration validation.
+
 ## Development Workflow
 
 1. Fork the repository.

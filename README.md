@@ -83,6 +83,18 @@ Electricity Pro is designed for Home Assistant users who want to:
 
 ---
 
+## Release scope
+
+The latest stable release is [v1.5.2](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.5.2).
+It contains the v1.5.1 reliability improvements and a focused startup-timezone
+fix. See the [upgrade notes](docs/releases/1.5.2.md).
+
+Documentation on `main` also describes unreleased development. Optional
+production/export/household sources, compatibility diagnostics, automatic VAT
+suggestions and Tibber forecast-addition estimation are **not in v1.5.2**.
+Use a separate test installation for development code; solar/battery hardware
+validation remains outstanding.
+
 ## Features
 
 ### Live Monitoring
@@ -147,21 +159,22 @@ Monitor your home's energy usage in real time.
 
 Electricity Pro is evolving in carefully planned stages.
 
-| Release  | Focus                             | Status            |
-| -------- | --------------------------------- | ----------------- |
-| **v0.6** | Foundation                        | Released          |
-| **v0.7** | Traditional Sensors & Statistics  | Released          |
-| **v0.8** | Intelligence                      | Released          |
-| **v0.9** | Daily Statistics & Dashboards     | Released          |
-| **v1.0** | Stable Release                    | Released          |
-| **v1.1** | Forecast Prices & Scheduling      | Released          |
-| **v1.2** | Pricing & Tariff Foundation       | Released          |
-| **v1.3** | Recommendation Intelligence       | Released          |
-| **v1.4** | Market Price Intelligence         | Released          |
-| **v1.5** | Adaptive Price Intelligence       | Released          |
-| **v1.6** | Production & Bidirectional Energy | Direction defined |
-| **v1.7** | Flexible-Load Recommendations     | Future            |
-| **v1.8** | Storage & Whole-Home Optimisation | Future            |
+| Release    | Focus                             | Status            |
+| ---------- | --------------------------------- | ----------------- |
+| **v0.6**   | Foundation                        | Released          |
+| **v0.7**   | Traditional Sensors & Statistics  | Released          |
+| **v0.8**   | Intelligence                      | Released          |
+| **v0.9**   | Daily Statistics & Dashboards     | Released          |
+| **v1.0**   | Stable Release                    | Released          |
+| **v1.1**   | Forecast Prices & Scheduling      | Released          |
+| **v1.2**   | Pricing & Tariff Foundation       | Released          |
+| **v1.3**   | Recommendation Intelligence       | Released          |
+| **v1.4**   | Market Price Intelligence         | Released          |
+| **v1.5**   | Adaptive Price Intelligence       | Released          |
+| **v1.5.2** | Startup Timezone Fix              | Released          |
+| **v1.6**   | Production & Bidirectional Energy | In development    |
+| **v1.7**   | Flexible-Load Recommendations     | Future            |
+| **v1.8**   | Storage & Whole-Home Optimisation | Future            |
 
 See [ROADMAP.md](ROADMAP.md) for more details.
 
@@ -175,9 +188,9 @@ Start with the **Standard dashboard**. It uses only cards included with Home
 Assistant and covers live measurements, daily and monthly statistics, Effective
 Price, current market-price context, and scheduling and retrospective insights.
 
-| Example | Recommended for | Additional requirements |
-| ------- | --------------- | ----------------------- |
-| **Standard** | Most users and first-time setup | None |
+| Example      | Recommended for                         | Additional requirements      |
+| ------------ | --------------------------------------- | ---------------------------- |
+| **Standard** | Most users and first-time setup         | None                         |
 | **Enhanced** | Richer presentation and forecast charts | Mushroom and ApexCharts Card |
 
 HACS installs the integration but cannot add a dashboard automatically. The
@@ -270,17 +283,19 @@ legacy HACS Nord Pool integration is not required or supported as a forecast sou
 
 ### Current release
 
-v1.5.1 – Metering and Cost Reliability
+v1.5.2 – Startup Timezone Fix
 
-This maintenance release improves lifetime-meter handling, supplier and household
-cost estimates, VAT configuration, and dashboard clarity. Read the
-[release and upgrade notes](docs/releases/1.5.1.md) before upgrading.
+This focused maintenance release builds on v1.5.1 and reuses Home Assistant's
+loaded timezone during setup/reload. Read the
+[release and upgrade notes](docs/releases/1.5.2.md) before upgrading.
+It does not include the unfinished v1.6 features on `main`.
 
 Electricity Pro is actively developed with a clear public roadmap.
 
-The next roadmap phase is v1.6, focused on explicit production, import, and
-export energy flows. Device-specific optimisation follows only after those
-energy-flow and pricing contracts are reliable.
+The next roadmap phase is v1.6, with independent measured production/export and
+household channels already implemented on main but not yet released.
+Device-specific optimisation follows only after those energy-flow and pricing
+contracts are reliable.
 
 ---
 

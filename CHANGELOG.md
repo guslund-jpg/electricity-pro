@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- Reconcile stable v1.5.2 versus main development scope, architecture ownership,
+  sensor catalogue, ADR status and contributor/repository-layout guidance.
+
 ### Fixed
 
 - Use the Nord Pool CET/CEST market clock for forecast retrieval on startup and
@@ -66,6 +71,17 @@
   See [production and grid export](docs/production-export.md).
   This is the first increment of #240, not household-demand, battery or
   export-revenue accounting. Validation uses synthetic data, not solar hardware.
+
+## [1.5.2] - 2026-10-29
+
+### Fixed
+
+- Reuse Home Assistant's loaded timezone during setup/reload, avoiding potential
+  timezone-database disk reads on the event loop. This focused maintenance
+  release is based on v1.5.1 and excludes the unreleased v1.6 work above.
+  No configuration migration or meter reset is required.
+  See [release and upgrade notes](docs/releases/1.5.2.md) and the
+  [published release](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.5.2).
 
 ## [1.5.1] - 2026-09-16
 

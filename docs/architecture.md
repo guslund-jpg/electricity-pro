@@ -1,571 +1,207 @@
-# Electricity Pro Architecture
+# Electricity Pro architecture
 
-This document describes how Electricity Pro is structured, how data moves through the integration, and where new functionality should be implemented.
+This describes `main`, including **unreleased v1.6 work**. The stable release is
+[v1.5.2](releases/1.5.2.md); optional production/export, household-demand and
+compatibility modules below are not in that release.
 
-Electricity Pro extends Home Assistant with provider-independent electricity measurements, calculations and statistics.
-
-The architecture is designed around four principles:
-
-- keep provider access separate from calculations;
-- keep calculations separate from Home Assistant entities;
-- react to source changes instead of polling unnecessarily;
-- make business logic independently testable.
-
-## Architecture overview
+## Data flow and ownership
 
 ```text
-Configured Home Assistant entities
-        │
-        ▼
-Entity Provider
-        │
-        ▼
-Normalised ElectricityProData
-        │
-        ▼
-DataUpdateCoordinator
-        │
-        ├───────────────┐
-        ▼               ▼
-Calculations        Statistics
-        │               │
-        └───────┬───────┘
-                ▼
-          Sensor entities
-                │
-                ▼
- Home Assistant dashboards,
- history and automations
+Configured HA entities ── provider / flow_sources ─┐
+                                                 ▼
+Native HA actions ── nordpool / workday ──► coordinator
+                                                 │
+                               calculation and history helpers
+                                                 │
+                        ElectricityProData + coordinator-owned results
+                                                 ▼
+                                     sensor / binary_sensor
+                                                 ▼
+                                 dashboards, Recorder, automations
 ```
 
-Electricity Pro currently reads existing Home Assistant entities selected during configuration.
-
-For example, the configured sources may come from:
-
-- Tibber;
-- Nord Pool;
-- a smart meter;
-- another compatible Home Assistant integration.
-
-Electricity Pro does not communicate directly with those external services. It reads their Home Assistant entity states through its provider layer.
-
-## Repository structure
-
-The main integration code is located under:
-
-```text
-custom_components/electricity_pro/
-```
-
-The current structure is:
-
-```text
-custom_components/electricity_pro/
-├── __init__.py
-├── binary_sensor.py
-├── brand/
-│   └── icon.png
-├── calculations.py
-├── config_flow.py
-├── const.py
-├── coordinator.py
-├── forecast.py
-├── forecast_insights.py
-├── manifest.json
-├── nordpool.py
-├── provider.py
-├── sensor.py
-├── statistics.py
-├── statistics_engine.py
-├── strings.json
-└── translations/
-    └── en.json
-```
-
-Supporting project files include:
-
-```text
-tests/                  Automated tests
-scripts/                Repository validation tools
-config/                 Home Assistant test configuration
-docs/                   Detailed project documentation
-examples/               Dashboard YAML examples
-hacs.json               HACS integration metadata
-.github/workflows/      Continuous Integration workflows
-```
-
-## Configuration flow
-
-`config_flow.py` is responsible for creating and updating the Home Assistant config entry.
-
-The user selects existing Home Assistant entities for supported inputs such as:
-
-- current power;
-- current electricity price;
-- accumulated energy;
-- accumulated cost today.
-
-The selected entity IDs are stored in the config entry.
-
-Options take precedence over the original config-entry data, allowing configured entities to be changed later.
-
-The configuration layer should only collect and validate configuration. It should not perform electricity calculations.
-
-## Integration lifecycle
-
-`__init__.py` manages the config-entry lifecycle.
-
-During setup it:
-
-1. creates an `ElectricityProCoordinator`;
-2. stores it in `entry.runtime_data`;
-3. registers the config-entry update listener;
-4. starts the coordinator;
-5. forwards setup to the sensor platform.
-
-When options change, the config entry is reloaded.
-
-During unload, Home Assistant unloads the registered platforms.
-
-## Provider layer
-
-`provider.py` reads and normalises configured Home Assistant source entities.
-
-The main provider is:
-
-```text
-ElectricityProEntityProvider
-```
-
-Its responsibilities are:
-
-- read configured entity states;
-- validate source values;
-- reject unavailable or invalid values;
-- convert supported units;
-- return a consistent immutable data model.
-
-The normalised state is represented by:
-
-```text
-ElectricityProData
-```
-
-It currently contains:
-
-- current power;
-- current electricity price;
-- price unit;
-- current energy;
-- energy unit.
-
-### Normalisation
-
-The provider normalises supported values before they reach calculations or entities.
-
-A shared `_parse_state` helper handles the steps common to every numeric
-measurement: guarding against `None`, `unknown`, `unavailable` and empty
-states, then parsing the state string into a `Decimal`. Each measurement
-normalizer calls this helper first and returns early on `None`, then applies
-its own unit conversion and validation.
-
-Examples of measurement-specific normalisation include:
-
-- converting kilowatts to watts;
-- accepting watt-hours and kilowatt-hours;
-- rejecting unsupported units;
-- rejecting negative or non-finite measurements;
-- treating `unknown` and `unavailable` source states as missing data.
-
-The provider should not:
-
-- calculate electricity cost;
-- perform forecasting;
-- create Home Assistant entities;
-- contain dashboard or presentation logic.
-
-## Coordinator
-
-`coordinator.py` connects the provider to Home Assistant updates.
-
-The coordinator:
-
-- creates the configured provider;
-- subscribes to changes from all configured source entities;
-- reads fresh normalised data when one of those entities changes;
-- publishes the result through `DataUpdateCoordinator`.
-
-The live-measurement update model is event-driven.
-
-```text
-Source entity changes
-        │
-        ▼
-Provider reads all configured sources
-        │
-        ▼
-Coordinator publishes ElectricityProData
-        │
-        ▼
-Coordinator entities update
-```
-
-For optional v1.1 forecasts, the coordinator also calls the native Home
-Assistant Nord Pool action. Startup and the 15-minute timer share a CET/CEST
-market-date schedule, requesting tomorrow from 13:00 market time and retaining
-earlier delivery dates needed for the current HA local day. Expected future
-empty responses remain retryable at debug level; genuine errors warn without
-erasing valid cached prices. See [forecast retrieval](forecast-retrieval.md).
-Cached insights are recalculated so expired windows are not exposed. Native-action failures affect forecast availability
-only; they do not prevent live measurements and statistics from loading.
-
-This keeps live measurements independent of Tibber, Nord Pool and other
-providers while isolating the initial forecast-specific lifecycle.
-
-## Forecast layer
-
-`nordpool.py` is the native Nord Pool adapter. It calls
-`nordpool.get_prices_for_date`, validates the response, converts prices from
-currency per MWh to currency per kWh, and returns ordered normalized intervals.
-
-`forecast.py` defines the provider-neutral `ForecastInterval` model. Negative
-market prices are valid, while timestamps must be timezone-aware and prices
-must be finite. Each interval also carries pricing metadata. Native Nord Pool
-intervals declare market energy only, unknown consumer-VAT treatment, and
-partial completeness.
-
-`forecast_insights.py` contains deterministic scheduling calculations. It does
-not call Home Assistant or Nord Pool directly and operates only on normalized,
-ordered interval boundaries. Its scheduling price is the market forecast plus
-the configured supplier markup, variable grid fee, and Energy Tax. It remains
-distinct from live Effective Price until a forecast source declares a
-comparable complete component scope.
-
-The v1.4 public market-price series is defined by
-[ADR-0011](adr/0011-market-price-series-contract.md). It reuses
-`ForecastInterval`, adds a Current Market Price entity for the interval covering
-the current instant, and exposes the bounded ordered series through a
-response-only action. A Recorder-excluded forecast attribute may bridge that
-response to the enhanced ApexCharts dashboard until the card can consume action
-responses directly. Provider-specific response shapes never cross this
-boundary.
-
-`workday.py` adapts Home Assistant's optional `workday.check_date` action into
-a provider-neutral set of excluded local dates. The coordinator refreshes a
-short rolling horizon and injects it into the grid-tariff schedule used by both
-live and forecast calculations. Workday failures retain the ordinary weekday
-schedule rather than silently assuming a holiday.
-
-## Calculation layer
-
-`calculations.py` contains deterministic electricity calculations.
-
-Proposed historical analytics remain pure and provider-independent. Base-load
-estimation is defined by
-[ADR-0008](adr/0008-base-load-estimation.md) as a bounded power-only history
-pipeline. It deliberately does not depend on price availability, Recorder, or
-provider-specific history APIs.
-
-The current calculation is:
-
-```text
-Current cost rate
-```
-
-Conceptually:
-
-```text
-power in kW × price per kWh = cost per hour
-```
-
-The implementation accepts power in watts and converts it internally to kilowatts.
-
-Calculation functions should:
-
-- accept explicit input values;
-- return explicit results;
-- contain no Home Assistant dependencies;
-- avoid reading entity states directly;
-- handle unavailable and invalid inputs;
-- be covered by focused unit tests.
-
-This allows calculations to be tested without starting Home Assistant.
-
-## Statistics layer
-
-`statistics.py` contains time-dependent and statistical helpers.
-
-The current helper estimates the remaining cost until local midnight:
-
-```text
-current cost rate × remaining hours today
-```
-
-The calculation assumes that the current cost rate remains unchanged until midnight.
-
-It requires a timezone-aware datetime supplied by the caller.
-
-The statistics layer should remain deterministic. Current time should be passed into its functions rather than read internally.
-
-This makes time-dependent behaviour easier to test.
-
-### Daily power statistics
-
-The provider-independent daily-power design is defined by
-[ADR-0006](adr/0006-provider-independent-daily-power-statistics.md). It keeps a
-small pure daily-peak state machine in the statistics engine while assigning
-Home Assistant event handling, local-midnight rollover, and persistence to the
-coordinator.
-
-The first implementation is deliberately limited to Peak Power Today and its
-observation time. It does not query Recorder or establish a generic statistics
-plugin framework. Broader history should be added only when a concrete v1.3
-intelligence feature defines its data requirements.
-
-## Sensor layer
-
-`sensor.py` exposes Electricity Pro data through Home Assistant sensor entities.
-
-The platform uses declarative sensor descriptions containing:
-
-- entity key;
-- name;
-- icon;
-- device class;
-- state class;
-- native unit;
-- value function;
-- availability function;
-- optional dynamic unit function;
-- optional required configuration key.
-
-The same entity implementation is then reused for all sensor descriptions.
-
-Current sensors include:
-
-- Current power;
-- Current price;
-- Current cost rate;
-- Remaining cost today;
-- Energy.
-
-### Sensor responsibilities
-
-Sensors should:
-
-- expose coordinator data;
-- expose results from calculation and statistics functions;
-- provide Home Assistant metadata;
-- determine availability;
-- control presentation details such as suggested display precision.
-
-Sensors should not:
-
-- read provider entities directly;
-- perform substantial business logic;
-- call external APIs;
-- duplicate normalisation already performed by the provider.
-
-### Time-dependent entities
-
-Most sensors update when coordinator data changes.
-
-`Remaining cost today` also depends on the passage of time. It therefore registers a local periodic callback and writes its state approximately once per minute.
-
-This recalculates the value from already available coordinator data.
-
-It does not:
-
-- refresh the coordinator;
-- call Tibber or Nord Pool;
-- perform additional provider I/O.
-
-## Data flow example
-
-A source power update follows this path:
-
-```text
-Tibber power entity changes
-        │
-        ▼
-Home Assistant state-change event
-        │
-        ▼
-ElectricityProCoordinator
-        │
-        ▼
-ElectricityProEntityProvider.read()
-        │
-        ▼
-Power normalised to watts
-        │
-        ▼
-ElectricityProData published
-        │
-        ▼
-Current power sensor updates
-        │
-        ├── Current cost rate recalculates
-        └── Remaining cost today recalculates
-```
-
-A price update follows the same path and updates all dependent calculated sensors.
-
-## Availability behaviour
-
-The provider converts invalid source values into `None`.
-
-Sensor availability functions then determine whether the related entity can produce a valid state.
-
-Examples:
-
-- Current power is unavailable without valid power.
-- Current price is unavailable without both a valid value and unit.
-- Current cost rate is unavailable without valid power, price and price unit.
-- Remaining cost today is unavailable under the same conditions.
-- Energy is unavailable without a supported energy value and unit.
-
-This keeps validation in the provider and presentation state in the entity layer.
-
-## Testing architecture
-
-The test suite is organised around observable behaviour.
-
-### Pure calculation tests
-
-These cover:
-
-- cost-rate calculations;
-- remaining-cost calculations;
-- invalid and unavailable inputs;
-- timezone behaviour;
-- boundary cases.
-
-### Provider tests
-
-These cover:
-
-- source-state normalisation;
-- unit conversion;
-- invalid values;
-- unknown and unavailable states;
-- configured source lists.
-
-### Integration and entity tests
-
-These cover:
-
-- config-entry setup and unload;
-- sensor creation;
-- initial values;
-- state updates;
-- availability;
-- entity metadata;
-- configuration options;
-- periodic time-dependent refreshes.
-
-The test suite should protect public behaviour rather than internal implementation details.
-
-## Architectural rules
-
-New development should follow these rules.
-
-### Providers normalise
-
-Providers read and normalise source data.
-
-They do not perform product calculations.
-
-### Coordinators coordinate
-
-The coordinator manages updates and distributes normalised state.
-
-It does not contain presentation or forecasting logic.
-
-### Calculations remain pure
-
-Business calculations should be implemented as deterministic Python functions wherever practical.
-
-### Entities present
-
-Home Assistant entities expose data and metadata.
-
-They should remain thin.
-
-### Provider independence
-
-Calculations must not depend on Tibber, Nord Pool or another specific source integration.
-
-### No unnecessary polling
-
-Electricity Pro should respond to source events where possible.
-
-Local timers are appropriate only when the passage of time changes an entity value.
-
-### Behaviour is tested
-
-Changes in observable behaviour require corresponding automated tests.
-
-## Future evolution
-
-The current architecture supports future additions without requiring the existing layers to be replaced.
-
-Planned areas include:
-
-```text
-Provider data
-      │
-      ▼
-Normalised measurements
-      │
-      ▼
-Calculations and statistics
-      │
-      ▼
-Forecasting and analysis
-      │
-      ▼
-Home Assistant sensors,
-dashboards and automations
-```
-
-Daily statistics, bounded historical analysis, price forecasting,
-price-aware recommendations and dashboard examples are now implemented. The
-next architectural additions are expected to include:
-
-- adaptive price classification using compact persisted summaries;
-- explicit production, grid-import and grid-export source contracts;
-- export-price and revenue semantics;
-- device capability and constraint models for flexible loads; and
-- storage scheduling built on explicit state-of-charge, efficiency and power
-  limits.
-
-The adaptive Good Time contract is documented in
-[ADR-0012](adr/0012-adaptive-good-price-classification.md). It keeps fixed
-threshold behaviour backward compatible and defines comparable-price history,
-cold-start fallback, bounded persistence, and forecast-suppression rules.
-
-The term **Intelligence Engine** describes the combined calculation,
-statistics, forecasting and analysis capabilities. It is an architectural
-direction rather than a separate subsystem or provider-specific service.
-
-## Design decisions
-
-Important architectural decisions should be documented under:
-
-```text
-docs/adr/
-```
-
-An Architecture Decision Record should explain:
-
-- the context;
-- the decision;
-- alternatives considered;
-- consequences and trade-offs.
-
-This preserves the reasoning behind important changes as the project evolves.
-
-## Guiding principle
-
-> Electricity Pro extends Home Assistant by turning provider-independent energy measurements into reliable, testable and useful Home Assistant entities.
+Live inputs are existing Home Assistant entities, not direct meter connections.
+Forecasts use the native Nord Pool action, and holidays use Workday. The
+user-requested Tibber addition estimate also uses HA actions. Device and external
+API connectivity remain the source integrations' responsibility.
+
+The diagram is an ownership guide, not a claim of completely separated layers.
+`ElectricityProData` is a frozen snapshot defined in `provider.py`. It contains
+both normalized inputs and derived results: power, energy, price scope, phase
+values, daily/monthly totals, fixed fees and local/household cost coverage.
+The provider constructs it; the coordinator enriches it using
+`dataclasses.replace`. Forecasts, histories and optional flow results also live
+separately on the coordinator.
+
+## Module map
+
+Paths are relative to `custom_components/electricity_pro/`.
+
+| Module | Current responsibility |
+| --- | --- |
+| `__init__.py`, `const.py`, `services.yaml` | Config-entry lifecycle, platforms, constants and public actions |
+| `config_flow.py` | Standard/Tibber setup, options, validation, drafts and confirmations |
+| `source_adapters.py` | Guided discovery and provider-specific configuration assistance |
+| `provider.py` | HA state reading, normalization, configured tariffs and snapshot construction |
+| `pricing_config.py`, `vat_suggestions.py` | Price declarations and editable regional VAT suggestions |
+| `markup_estimate.py` | User-requested Tibber/Nord Pool comparison; acquisition and estimator in one module |
+| `coordinator.py` | Events, timers, retrieval, persistence, rollovers and result composition |
+| `pricing.py`, `grid_tariff.py` | Price/component/VAT contracts and variable grid tariffs |
+| `calculations.py`, `statistics.py` | Cost-rate, price, average-price and remaining-cost functions |
+| `statistics_engine.py` | Accumulators, lifetime-meter protection and daily peak state |
+| `cost_ledger.py`, `household_cost.py` | Observed-energy pricing, coverage and accrued fixed fees |
+| `timing_score.py`, `base_load.py`, `adaptive_price.py` | Bounded historical calculations and comparable-price summaries |
+| `forecast.py`, `forecast_insights.py` | Interval contracts, validation and scheduling calculations |
+| `nordpool.py`, `workday.py` | HA action adapters for market delivery dates and non-working dates |
+| `energy_flows.py` | Pure protected lifetime counters for independent partial directional totals |
+| `flow_sources.py` | Explicit optional source bindings, HA state reading, unit/freshness validation |
+| `flow_compatibility.py` | Boundary, declaration, freshness and timestamp-alignment diagnostic |
+| `sensor.py`, `binary_sensor.py` | Entities, metadata, availability and some calculation orchestration |
+| `strings.json`, `translations/en.json`, `manifest.json`, `brand/` | UI text, integration metadata and branding |
+
+## Lifecycle and persistence
+
+Setup merges entry data and options (options win), checks price declarations,
+creates the coordinator in `entry.runtime_data`, restores bounded statistics,
+registers listeners/timers, obtains initial data and forwards both **sensor and
+binary_sensor** platforms. Options changes reload the entry. Unload callbacks
+remove listeners/timers and schedule statistics saving.
+
+Live readings are event-driven: source changes prompt normalized reads and
+dependent calculations. Local timers handle elapsed-time coverage, staleness and
+calendar boundaries; they do not poll the meter. Remaining Cost Today and
+household total displays also refresh with time. Setup uses HA's loaded local
+timezone rather than constructing it synchronously.
+
+HA storage, not Recorder, persists cumulative baselines and bounded histories
+for monthly totals, daily power, timing score, base load, adaptive prices, cost
+estimates and optional flow counters. Source/configuration scope determines
+whether saved state can be reused. Restart does not reconstruct missing readings
+or historical interval costs. See [meter protection](meter-reading-protection.md),
+[monthly recovery](monthly-energy-recovery.md) and
+[local cost coverage](local-cost-estimates.md).
+
+Recorder stores published entity history and eligible long-term statistics.
+Excluding source entities does not stop live calculations, but removes their
+recorded history.
+
+## Measurement and price semantics
+
+- Current Power is **signed whole-home net grid exchange**: import positive,
+  export negative. It is not gross household load or solar production.
+- Energy, phase measurements and independent directional flows have their own
+  validation rules. Finite negative prices and signed net power are valid;
+  there is no blanket rejection of all negative values.
+- Invalid, unsupported or unavailable input becomes missing data, not zero.
+  Dependent entities apply their own availability rules.
+- Price metadata describes strategy, currency, included components, VAT and
+  completeness. Supplier, market and complete-price sources are distinct.
+- Effective Price adds applicable components not already included. Fixed fees
+  never enter a per-kWh price or scheduling threshold.
+- Current Cost Rate uses import power and Effective Price. Export makes it
+  unavailable because export compensation is not implemented.
+- Supplier costs and household estimates are distinct. Household totals price
+  observed import energy locally and add accrued fixed supplier/grid fees;
+  they do not add an external supplier total again. They remain partial
+  estimates, not bills or demand-charge calculations.
+
+See [pricing ADR](adr/0005-pricing-and-tariff-strategies.md),
+[signed values ADR](adr/0010-signed-power-and-negative-values.md),
+[VAT guide](vat-pricing.md) and [household totals](household-cost-estimates.md).
+
+## Forecast retrieval and recommendations
+
+`nordpool.py` calls `nordpool.get_prices_for_date`, normalizing MWh prices to
+currency/kWh. `ForecastInterval` preserves aware boundaries, signed finite
+market prices and metadata. Raw market and enriched scheduling prices remain
+distinct; adding known charges does not establish a complete household forecast.
+
+Startup and the 15-minute timer use the CET/CEST market calendar, requesting
+tomorrow from 13:00 market time and retaining dates needed for the HA local day.
+Expected future empty responses remain retryable; genuine failures warn without
+erasing valid cached data. Forecast failures do not disable live measurements.
+See [forecast retrieval](forecast-retrieval.md) for the exact policy.
+
+The coordinator computes current market price, complete-day average and cheapest
+continuous 1h/2h/3h windows. Absolute-threshold and adaptive future comparisons
+require compatible complete pricing scopes. Raw Nord Pool market data alone
+does not meet that condition.
+
+`electricity_pro.get_market_price_forecast` is the response-only public series
+action and requires an explicit configuration entry. The bounded `forecast`
+attribute on Current Market Price is a Recorder-excluded dashboard bridge,
+not a second authoritative API or a guarantee of 24 future hours.
+
+`workday.py` supplies excluded local dates for tariffs. Failed holiday lookups
+retain the ordinary weekday schedule rather than assuming a holiday.
+
+## Historical analytics and entities
+
+Daily peak import, duration-weighted average power, yesterday's timing score,
+rolling base load and adaptive price history are implemented. Each has coverage
+and compatibility requirements; elapsed days alone do not guarantee results.
+See the [sensor catalogue](sensors.md).
+
+Ordinary sensors use declarative descriptions. Forecast, historical and optional
+flow sensors use dedicated classes. Good Time is a binary sensor supporting
+fixed and adaptive classification. Keys and unique IDs are compatibility
+contracts; dashboard labels need not equal those keys.
+
+Unreleased optional channels publish independent measured AC production,
+directional export and non-storage household demand, with protected partial
+daily/monthly lifetime-meter deltas. They do not replace import costs or net-grid
+analytics. Compatibility checks use HA receipt timestamps; `aligned` does not
+mean a complete site balance. Battery charge/discharge inputs, device control,
+self-consumption ratios and export revenue are not implemented. See
+[optional sources](production-export.md) and [compatibility](flow-compatibility.md).
+
+## Public actions
+
+| Action (prefix `electricity_pro.`) | Scope |
+| --- | --- |
+| `get_market_price_forecast` | Read cached normalized market series for one loaded entry |
+| `reset_monthly_energy` | Confirmed reset of monthly import tracking, not Recorder repair |
+| `confirm_meter_reset` | Accept a verified import-meter replacement/reset |
+| `confirm_flow_meter_reset` | Unreleased: rebaseline one confirmed optional channel/source |
+
+Reset actions are not remedies for temporary dips or outages. Read the recovery
+guides before using them.
+
+## Known architectural debt
+
+The code is not yet a completely separated analytics engine:
+
+- The coordinator owns many histories, persistence formats and calculation paths.
+- Raw normalized inputs and derived outputs share `ElectricityProData`.
+- Sensor helpers invoke calculations; Good Time evaluation lives in
+  `binary_sensor.py` alongside its HA entity.
+- Some entities access private provider state; device metadata is repeated.
+- Setup/options flows and translation strings contain duplicated structures.
+
+These are targets for small, behaviour-preserving changes in
+[#288](https://github.com/guslund-jpg/electricity-pro/issues/288), not a wholesale
+rewrite. Keep acquisition at provider boundaries, pass explicit time/data to
+pure calculations, keep presentation thin, and update this document when
+ownership changes.
+
+## Tests, decisions and repository layout
+
+[Development instructions](development.md) distinguish Python behaviour tests
+from repository, HACS, Hassfest and HA configuration checks. Synthetic tests are
+not real solar/battery validation; see the
+[energy-flow test plan](specification/energy-flow-test-plan.md).
+
+The [ADR index](adr/README.md) separates accepted decisions, proposals and
+unwritten historical placeholders. Implementation does not itself prove formal
+acceptance.
+
+- `tests/`: Python unit and HA integration tests.
+- `examples/dashboards/`: maintained copyable user dashboards.
+- `config/`: minimal HA configuration-validation fixture, not a configured
+  running instance of the Python integration.
+- `packages/`, `dashboards/`: early YAML-layout placeholders; see
+  [layout notes](../packages/README.md).
+- `design/`: proposal template and historical v1.1 material, not today's
+  implementation specification.
+- Root [roadmap](../ROADMAP.md): authoritative release direction;
+  `docs/ROADMAP.MD` is only a forwarding link.

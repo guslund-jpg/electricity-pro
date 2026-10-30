@@ -1,3 +1,6 @@
 # Statistics
 
-Derived historical and aggregate entities live here.
+The historical YAML layout placed derived historical and aggregate entities here.
+
+This is a placeholder, not the active Python integration. See the
+[layout notes](../README.md) for current usage and validation scope.

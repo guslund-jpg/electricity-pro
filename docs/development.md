@@ -31,6 +31,23 @@ remain separate checks. Configuration validation is not a substitute for the
 integration's Python tests. Automated tests also do not replace a smoke test on a
 development Home Assistant instance or real solar/battery validation.
 
+## Check scope and documentation
+
+`./scripts/validate.sh` checks YAML, JSON, Python syntax, unique IDs and repository
+policy. CI additionally runs Markdown lint using the repository's
+`.markdownlint.json` settings. Python formatting, Python linting and static type
+checking are not configured yet; that incremental work is tracked in
+[#287](https://github.com/guslund-jpg/electricity-pro/issues/287).
+
+For documentation-only changes, check relative links and headings, run repository
+validation and require the normal CI checks. Update the architecture and sensor
+catalogue whenever module ownership or entity semantics change.
+
+The HA configuration workflow validates the minimal `config/` fixture and copies
+any YAML under `packages/`. The latter currently contains only layout
+placeholders, so this check does not exercise the Python integration's config
+flow or runtime. Those behaviours belong to pytest and development-instance tests.
+
 ## Development instance
 
 Deploy only to a separate development Home Assistant instance. Before every restart:

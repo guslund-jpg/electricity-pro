@@ -4,6 +4,15 @@
 
 Proposed
 
+Implementation note (documentation review, October 2026): the Current Market
+Price entity, bounded response action, Recorder-excluded dashboard bridge and
+complete-day market average are implemented. See [sensor catalogue](../sensors.md)
+and [forecast retrieval](../forecast-retrieval.md) for current behaviour.
+The original Proposed status is retained: implementation alone does not prove
+formal acceptance, and this cleanup does not record an invented approval.
+The context below describes the problem when the proposal was written, not a
+claim that these public outputs are still missing.
+
 ## Context
 
 Electricity Pro already normalizes native Nord Pool day-ahead data into ordered

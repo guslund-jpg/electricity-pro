@@ -12,10 +12,14 @@ measurements to answer higher-level questions:
 - How much is electricity costing right now?
 - How much will the rest of today cost?
 - What is the estimated total cost for today?
-- Am I likely to exceed my energy budget?
+- What consumption and pricing coverage do those estimates include?
 - When is the cheapest time to use electricity?
 
-Electricity Pro is currently under active development.
+The stable release is [v1.5.2](releases/1.5.2.md). This guide on `main` also
+documents unreleased development; it is not a promise that every option is in
+the installed stable release. Optional production/export/household sources,
+compatibility diagnostics, VAT suggestions and Tibber addition estimation are
+development-only. Budget forecasting and device control are future goals.
 
 ## Current capabilities
 
@@ -25,7 +29,10 @@ Electricity Pro is currently under active development.
 - Normalised provider data
 - Pure, testable analytics
 - Coordinator-based updates
-- Home Assistant sensor entities
+- Daily/monthly import energy and supplier/household cost estimates
+- Peak and average power, timing score and base-load estimates
+- Market forecasts, cheapest windows and fixed/adaptive Good Time
+- Home Assistant sensor and binary sensor entities
 
 ## Roadmap direction
 
@@ -62,7 +69,9 @@ Home Assistant entities
  Sensors and other outputs
 ```
 
-Each layer has a clearly defined responsibility.
+These are intended responsibilities. The current snapshot mixes source and
+calculated fields, and some calculations still live alongside entities; see
+[architecture and known debt](architecture.md).
 
 | Layer       | Responsibility                                  |
 | ----------- | ----------------------------------------------- |
@@ -103,18 +112,19 @@ Values derived from measurements:
 
 - Current cost rate
 - Remaining cost today
-- Estimated cost today
-- Monthly cost projection
+- Partial total cost estimates today and this month
+- Duration-weighted average power and recent base-load estimate
 
 ### Insights
 
 Information that helps users make decisions:
 
-- Whether consumption is unusually high
-- Whether a daily or monthly budget may be exceeded
-- The cheapest remaining usage window
-- Why an estimate has increased
-- Which action may reduce cost
+- Fixed/adaptive Good Time price classification
+- Cheapest upcoming continuous price windows
+- Yesterday's consumption-timing score
+
+Unusual-consumption alerts, budget predictions and appliance-specific advice
+remain future capabilities, not current outputs.
 
 This separation allows the analytics to be reused by sensors, services,
 dashboards, notifications, and automations.
@@ -152,17 +162,17 @@ to contain exactly 24 future hours.
 Choose **Custom or mixed sources** to combine a meter, price provider, and
 forecast source independently. Typical fields are:
 
-| Electricity Pro field | Expected source | Expected unit or class |
-| --- | --- | --- |
-| Nord Pool forecast | Native Nord Pool config entry | Configured area and currency are inherited |
-| Current power | Instantaneous whole-home import power | Power, normally W |
-| Electricity price | Current variable electricity price | Currency/kWh |
-| Accumulated energy | Consumption since local midnight or a total accumulated meter reading | Energy, Wh or kWh |
-| Cost today | Cost accumulated since local midnight | Monetary |
-| Monthly peak hour consumption | Highest hourly energy value this month | Energy, normally kWh |
-| Monthly peak hour time | Time of that monthly peak | Timestamp |
-| Current L1–L3 | Instantaneous phase currents | Current, normally A |
-| Voltage L1–L3 | Instantaneous phase voltages | Voltage, normally V |
+| Electricity Pro field         | Expected source                                                        | Expected unit or class                     |
+| ----------------------------- | ---------------------------------------------------------------------- | ------------------------------------------ |
+| Nord Pool forecast            | Native Nord Pool config entry                                          | Configured area and currency are inherited |
+| Current power                 | Signed whole-home net grid exchange (import positive, export negative) | Power, normally W                          |
+| Electricity price             | Current variable electricity price                                     | Currency/kWh                               |
+| Accumulated energy            | Consumption since local midnight or a total accumulated meter reading  | Energy, Wh or kWh                          |
+| Cost today                    | Cost accumulated since local midnight                                  | Monetary                                   |
+| Monthly peak hour consumption | Highest hourly energy value this month                                 | Energy, normally kWh                       |
+| Monthly peak hour time        | Time of that monthly peak                                              | Timestamp                                  |
+| Current L1–L3                 | Instantaneous phase currents                                           | Current, normally A                        |
+| Voltage L1–L3                 | Instantaneous phase voltages                                           | Voltage, normally V                        |
 
 For Tibber Pulse, representative source names include **Power**,
 **Accumulated consumption**, **Accumulated cost**,
@@ -259,10 +269,12 @@ authoritative monthly cost source already includes the same fee.
 
 The optional **fixed monthly grid-provider fee** is configured and exposed as
 a separate component. It is intentionally not added to **Total supplier cost
-this month**, because that sensor covers the electricity supplier only. An
-overall bill total is not exposed yet: Electricity Pro cannot currently
-reconcile historical variable grid charges and future capacity charges well
-enough to claim that total is complete.
+this month**, because that sensor covers the electricity supplier only.
+The separate **Total cost estimate today/this month** sensors combine locally
+observed effective variable costs with fixed supplier and grid fees accrued
+since the start of the day/month. These are partial estimates, not complete
+bills. They exclude demand charges and other unconfigured charges; energy and
+cost coverage may differ. See [household cost estimates](household-cost-estimates.md).
 
 Depending on the enabled capabilities, configuration may therefore include:
 
@@ -338,17 +350,15 @@ Planned development areas include:
 
 ### Cost analytics
 
-- Current cost rate
-- Remaining cost today
-- Estimated cost today
-- Budget progress
+- Current cost rate and remaining-cost projection (implemented)
+- Partial daily/monthly household total estimates (implemented)
+- Full-day cost prediction and budget progress (future)
 
 ### Consumption analytics
 
-- Daily usage patterns
-- Peak detection
-- Baseline consumption
-- Unusual-consumption detection
+- Daily peak/average power and recent base-load estimation (implemented)
+- Retrospective consumption-timing score (implemented)
+- Unusual-consumption detection (future)
 
 ### Forecasting
 
@@ -358,22 +368,25 @@ Planned development areas include:
 
 ### Optimisation
 
-- Cheapest appliance usage windows
+- Cheapest continuous 1h/2h/3h price windows (implemented; not appliance control)
 - EV charging recommendations (v1.7 direction)
 - Heat-pump optimisation (v1.7 direction)
 - Battery scheduling (v1.8 direction)
 
 ### Production and bidirectional energy
 
-- Explicit grid import and export measurements (v1.6 direction)
-- Solar production and self-consumption statistics (v1.6 direction)
-- Export-price and revenue semantics (v1.6 direction)
+- Independent measured production, export and household demand (implemented on
+  main, unreleased; see [source guide](production-export.md))
+- Optional power compatibility diagnostic (implemented on main, unreleased)
+- Calculated site balances, self-consumption ratios and export revenue (future)
+- Real solar/battery beta validation (outstanding; not implied by synthetic tests)
 
 ## Development status
 
 Electricity Pro reached its stable release line with v1.0. The current release
-is v1.5.1, the Metering and Cost Reliability release. See the
-[release and upgrade notes](releases/1.5.1.md).
+is v1.5.2, the Startup Timezone Fix maintenance release. See the
+[release and upgrade notes](releases/1.5.2.md). The stable maintenance branch
+is deliberately separate from unfinished v1.6 work on main.
 
 Post-1.0 development preserves user-facing entities and configuration wherever
 possible. Any necessary breaking change must be documented with migration
@@ -383,7 +396,7 @@ The stable-release foundation includes:
 
 - A stable measurement model
 - A mature analytics layer
-- Clear separation from Home Assistant framework code
+- Pure calculation helpers with HA orchestration; separation is still evolving
 - Automated testing and quality checks
 - Contributor documentation
 - Stable user-facing entities and configuration
@@ -392,22 +405,25 @@ The stable-release foundation includes:
 
 Documentation is organized as follows:
 
-| Document                                  | Purpose                                      |
-| ----------------------------------------- | -------------------------------------------- |
-| [`README.md`](../README.md)               | Project overview                             |
-| [`architecture.md`](architecture.md)      | Technical architecture and layer boundaries  |
-| [`ROADMAP.md`](../ROADMAP.md)             | Authoritative release roadmap                |
-| [`CONTRIBUTING.md`](../CONTRIBUTING.md)   | Contribution workflow and coding conventions |
-| [`CHANGELOG.md`](../CHANGELOG.md)         | Release history                              |
-| [`design/`](../design)                    | Short design specifications for capabilities |
+| Document                                  | Purpose                                            |
+| ----------------------------------------- | -------------------------------------------------- |
+| [`README.md`](../README.md)               | Project overview                                   |
+| [`architecture.md`](architecture.md)      | Technical architecture and layer boundaries        |
+| [`ROADMAP.md`](../ROADMAP.md)             | Authoritative release roadmap                      |
+| [`CONTRIBUTING.md`](../CONTRIBUTING.md)   | Contribution workflow and coding conventions       |
+| [`CHANGELOG.md`](../CHANGELOG.md)         | Release history                                    |
+| [Sensor catalogue](sensors.md)            | Implemented entities, availability and limitations |
+| [Development](development.md)             | Local tests and CI checks                          |
+| [ADR index](adr/README.md)                | Decisions, proposals and historical placeholders   |
+| [Design archive](../design/README.md)     | Proposal template and historical v1.1 material     |
 
 Contributor decisions are guided by the
 [Design Principles](vision/DESIGN_PRINCIPLES.md).
 
 ## Contributing
 
-Contributions will be welcome once the initial contributor documentation and
-development workflow are in place.
+Contributions are welcome. Follow [development and test instructions](development.md)
+and the [contribution workflow](../CONTRIBUTING.md).
 
 Every new capability should define:
 
