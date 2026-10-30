@@ -82,8 +82,9 @@ The current strict scope is:
 | `grid_tariff.py` | Grid tariff fields, date/time boundaries and fee selection |
 | `adaptive_price.py` | Comparable history, adaptive thresholds and forecast refinement |
 | `good_time.py` | Fixed/adaptive decisions over normalized inputs and explicit time |
+| `settings.py` | Saved-data/options overlay with explicit clearing and no normalization |
 
-These modules form a pure calculation dependency graph: `good_time.py` uses
+These modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`; external dependencies are only
 the standard library. Mypy follows
 imports normally and does not ignore missing imports or errors. Strict mode,

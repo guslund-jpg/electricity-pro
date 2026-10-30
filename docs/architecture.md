@@ -52,6 +52,7 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `cost_ledger.py`, `household_cost.py` | Observed-energy pricing, coverage and accrued fixed fees |
 | `timing_score.py`, `base_load.py`, `adaptive_price.py` | Bounded historical calculations and comparable-price summaries |
 | `good_time.py` | Pure fixed/adaptive Good Time decisions and explanations, including forecast refinement |
+| `settings.py` | Shared saved-settings overlay: options override setup data without normalization |
 | `forecast.py`, `forecast_insights.py` | Interval contracts, validation and scheduling calculations |
 | `nordpool.py`, `workday.py` | HA action adapters for market delivery dates and non-working dates |
 | `energy_flows.py` | Pure protected lifetime counters for independent partial directional totals |
@@ -67,6 +68,16 @@ creates the coordinator in `entry.runtime_data`, restores bounded statistics,
 registers listeners/timers, obtains initial data and forwards both **sensor and
 binary_sensor** platforms. Options changes reload the entry. Unload callbacks
 remove listeners/timers and schedule statistics saving.
+
+Runtime setup, provider, coordinator, pricing metadata and entities share
+`resolve_settings(data, options)`. It returns a fresh shallow mapping: options
+win by key presence, including explicit `None`, zero, `False` and empty values.
+It does not fill defaults, validate values, merge nested mappings or mutate
+either input. Callers retain normalization and presence-versus-value checks,
+including unavailable entities for existing configured keys. Dynamic coordinator
+reads resolve settings again; this is not a settings cache. Stored cost scopes
+and adaptive tariff signatures use the same effective values as before.
+Configuration-form drafts and their retry/clearing rules remain separate.
 
 Live readings are event-driven: source changes prompt normalized reads and
 dependent calculations. Local timers handle elapsed-time coverage, staleness and

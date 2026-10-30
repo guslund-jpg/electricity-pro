@@ -33,6 +33,7 @@ from .const import (
 from .coordinator import ElectricityProCoordinator
 from .good_time import GoodTimeEvaluation, evaluate_good_time as _evaluate_good_time
 from .provider import ElectricityProData
+from .settings import resolve_settings
 
 
 def evaluate_good_time(
@@ -85,10 +86,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Electricity Pro insight binary sensors."""
-    settings = {**entry.data, **entry.options}
+    settings = resolve_settings(entry.data, entry.options)
     if (
-        CONF_GOOD_PRICE_THRESHOLD not in entry.options
-        and CONF_GOOD_PRICE_THRESHOLD not in entry.data
+        CONF_GOOD_PRICE_THRESHOLD not in settings
         and settings.get(CONF_GOOD_PRICE_MODE) != GOOD_PRICE_MODE_ADAPTIVE
     ):
         return
@@ -116,7 +116,7 @@ class GoodTimeToUseElectricityBinarySensor(
             manufacturer="Electricity Pro",
             model="Electricity monitor",
         )
-        settings = {**entry.data, **entry.options}
+        settings = resolve_settings(entry.data, entry.options)
         configured_mode = settings.get(
             CONF_GOOD_PRICE_MODE,
             GOOD_PRICE_MODE_FIXED,

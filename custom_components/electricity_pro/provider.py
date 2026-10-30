@@ -49,6 +49,7 @@ from .grid_tariff import HighLowGridTariff
 from .flow_sources import FlowSources
 from .pricing import PricingMetadata
 from .pricing_config import resolve_pricing_metadata
+from .settings import resolve_settings
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,28 +120,23 @@ class ElectricityProEntityProvider:
     ) -> None:
         """Initialize the entity provider."""
         self._hass = hass
-        self.flow_sources = FlowSources(hass, {**entry.data, **entry.options})
+        settings = resolve_settings(entry.data, entry.options)
+        self.flow_sources = FlowSources(hass, settings)
         self._local_timezone = dt_util.get_default_time_zone()
         self._grid_fee_at = grid_fee_at
         self._pricing_metadata = resolve_pricing_metadata(entry.data, entry.options)
 
-        self._power_entity_id: str = entry.options.get(
+        # Preserve the required setup-data key contract, even with an override.
+        self._power_entity_id: str = settings.get(
             CONF_POWER_ENTITY,
             entry.data[CONF_POWER_ENTITY],
         )
 
-        self._price_entity_id: str | None = entry.options.get(
-            CONF_PRICE_ENTITY,
-            entry.data.get(CONF_PRICE_ENTITY),
-        )
+        self._price_entity_id: str | None = settings.get(CONF_PRICE_ENTITY)
 
-        self._energy_entity_id: str | None = entry.options.get(
-            CONF_ENERGY_ENTITY,
-            entry.data.get(CONF_ENERGY_ENTITY),
-        )
-        configured_energy_source_type = entry.options.get(
-            CONF_ENERGY_SOURCE_TYPE,
-            entry.data.get(CONF_ENERGY_SOURCE_TYPE, ENERGY_SOURCE_DAILY),
+        self._energy_entity_id: str | None = settings.get(CONF_ENERGY_ENTITY)
+        configured_energy_source_type = settings.get(
+            CONF_ENERGY_SOURCE_TYPE, ENERGY_SOURCE_DAILY
         )
         self._energy_source_type = (
             configured_energy_source_type
@@ -149,78 +145,39 @@ class ElectricityProEntityProvider:
             else ENERGY_SOURCE_DAILY
         )
 
-        self._accumulated_cost_today_entity_id: str | None = entry.options.get(
-            CONF_ACCUMULATED_COST_TODAY_ENTITY,
-            entry.data.get(CONF_ACCUMULATED_COST_TODAY_ENTITY),
+        self._accumulated_cost_today_entity_id: str | None = settings.get(
+            CONF_ACCUMULATED_COST_TODAY_ENTITY
         )
-        self._current_l1_entity_id: str | None = entry.options.get(
-            CONF_CURRENT_L1_ENTITY,
-            entry.data.get(CONF_CURRENT_L1_ENTITY),
+        self._current_l1_entity_id: str | None = settings.get(CONF_CURRENT_L1_ENTITY)
+        self._current_l2_entity_id: str | None = settings.get(CONF_CURRENT_L2_ENTITY)
+        self._current_l3_entity_id: str | None = settings.get(CONF_CURRENT_L3_ENTITY)
+        self._voltage_l1_entity_id: str | None = settings.get(CONF_VOLTAGE_L1_ENTITY)
+        self._voltage_l2_entity_id: str | None = settings.get(CONF_VOLTAGE_L2_ENTITY)
+        self._voltage_l3_entity_id: str | None = settings.get(CONF_VOLTAGE_L3_ENTITY)
+        self._monthly_peak_hour_consumption_entity_id: str | None = settings.get(
+            CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY
         )
-        self._current_l2_entity_id: str | None = entry.options.get(
-            CONF_CURRENT_L2_ENTITY,
-            entry.data.get(CONF_CURRENT_L2_ENTITY),
-        )
-        self._current_l3_entity_id: str | None = entry.options.get(
-            CONF_CURRENT_L3_ENTITY,
-            entry.data.get(CONF_CURRENT_L3_ENTITY),
-        )
-        self._voltage_l1_entity_id: str | None = entry.options.get(
-            CONF_VOLTAGE_L1_ENTITY,
-            entry.data.get(CONF_VOLTAGE_L1_ENTITY),
-        )
-        self._voltage_l2_entity_id: str | None = entry.options.get(
-            CONF_VOLTAGE_L2_ENTITY,
-            entry.data.get(CONF_VOLTAGE_L2_ENTITY),
-        )
-        self._voltage_l3_entity_id: str | None = entry.options.get(
-            CONF_VOLTAGE_L3_ENTITY,
-            entry.data.get(CONF_VOLTAGE_L3_ENTITY),
-        )
-        self._monthly_peak_hour_consumption_entity_id: str | None = entry.options.get(
-            CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
-            entry.data.get(CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY),
-        )
-        self._monthly_peak_hour_time_entity_id: str | None = entry.options.get(
-            CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
-            entry.data.get(CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY),
+        self._monthly_peak_hour_time_entity_id: str | None = settings.get(
+            CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY
         )
         self._grid_fee_per_kwh = self._normalize_adjustment(
-            entry.options.get(
-                CONF_GRID_FEE_PER_KWH,
-                entry.data.get(CONF_GRID_FEE_PER_KWH),
-            )
+            settings.get(CONF_GRID_FEE_PER_KWH)
         )
         self._supplier_markup_per_kwh = self._normalize_adjustment(
-            entry.options.get(
-                CONF_SUPPLIER_MARKUP_PER_KWH,
-                entry.data.get(CONF_SUPPLIER_MARKUP_PER_KWH),
-            )
+            settings.get(CONF_SUPPLIER_MARKUP_PER_KWH)
         )
         self._energy_tax_per_kwh = self._normalize_adjustment(
-            entry.options.get(
-                CONF_ENERGY_TAX_PER_KWH,
-                entry.data.get(CONF_ENERGY_TAX_PER_KWH),
-            )
+            settings.get(CONF_ENERGY_TAX_PER_KWH)
         )
         self._scheduled_grid_tariff = _scheduled_grid_tariff(entry)
         self._good_price_threshold = self._normalize_adjustment(
-            entry.options.get(
-                CONF_GOOD_PRICE_THRESHOLD,
-                entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
-            )
+            settings.get(CONF_GOOD_PRICE_THRESHOLD)
         )
         self._fixed_supplier_fee_monthly = self._normalize_adjustment(
-            entry.options.get(
-                CONF_FIXED_SUPPLIER_FEE_MONTHLY,
-                entry.data.get(CONF_FIXED_SUPPLIER_FEE_MONTHLY),
-            )
+            settings.get(CONF_FIXED_SUPPLIER_FEE_MONTHLY)
         )
         self._fixed_grid_fee_monthly = self._normalize_adjustment(
-            entry.options.get(
-                CONF_FIXED_GRID_FEE_MONTHLY,
-                entry.data.get(CONF_FIXED_GRID_FEE_MONTHLY),
-            )
+            settings.get(CONF_FIXED_GRID_FEE_MONTHLY)
         )
 
     @property
@@ -596,7 +553,7 @@ class ElectricityProEntityProvider:
 
 def _scheduled_grid_tariff(entry: ConfigEntry) -> HighLowGridTariff | None:
     """Build an optional high/low grid tariff from entry settings."""
-    values = {**entry.data, **entry.options}
+    values = resolve_settings(entry.data, entry.options)
     low_fee = ElectricityProEntityProvider._normalize_adjustment(
         values.get(CONF_GRID_FEE_PER_KWH)
     )

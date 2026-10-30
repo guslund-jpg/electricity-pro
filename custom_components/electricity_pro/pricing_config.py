@@ -21,6 +21,7 @@ from .pricing import (
     PricingStrategy,
     VatTreatment,
 )
+from .settings import resolve_settings
 
 
 def pricing_metadata_from_mapping(
@@ -68,7 +69,7 @@ def resolve_pricing_metadata(
     options: Mapping[str, Any],
 ) -> PricingMetadata | None:
     """Resolve pricing metadata with options taking precedence over entry data."""
-    settings = {**data, **options}
+    settings = resolve_settings(data, options)
     return pricing_metadata_from_mapping(settings)
 
 
