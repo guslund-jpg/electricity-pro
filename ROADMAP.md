@@ -367,7 +367,27 @@ can afford.
 
 ---
 
+### v1.5.1 / v1.5.2 — Reliability maintenance ✅
+
+v1.5.1 delivered meter-reading protection, partial cost/energy coverage and
+clearer household totals. [v1.5.2](docs/releases/1.5.2.md) is a focused timezone
+setup/reload fix based on that stable line, published separately from the
+unfinished v1.6 code on main.
+
+---
+
 ### v1.6 — Production & Bidirectional Energy Foundation 🔭
+
+In development, not released. Main already includes independent measured AC
+production/export/household channels, protected partial counters and opt-in
+power compatibility diagnostics. It also includes VAT suggestions and reviewed
+Tibber forecast-addition estimation. These are not in v1.5.2.
+
+Calculated site balances, self-consumption/self-sufficiency and export revenue
+remain future work, not delivered by those independent channels. Solar/battery
+hardware validation is still outstanding; track release evidence in
+[#290](https://github.com/guslund-jpg/electricity-pro/issues/290) and the
+[validation plan](docs/specification/energy-flow-test-plan.md).
 
 #### Goal
 

@@ -1,5 +1,9 @@
 # VAT in live prices and forecasts
 
+This guide describes main development. Explicit VAT configuration is in the
+stable release; country/region suggestions and Tibber addition estimation are
+unreleased and are not included in [v1.5.2](releases/1.5.2.md).
+
 Electricity Pro uses VAT-inclusive Effective Price values. In custom settings,
 declare whether the selected price sensor already includes VAT. Enter the
 applicable **VAT to add to VAT-exclusive prices (%)** when the source excludes

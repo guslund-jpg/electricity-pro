@@ -1,6 +1,17 @@
 # Electricity Pro Sensor Catalog
 
-This document defines the current and planned Electricity Pro sensors.
+This catalogue describes implemented entities on `main`. The stable release is
+[v1.5.2](releases/1.5.2.md); optional flow/compatibility entities below are
+**unreleased v1.6 development**, not hardware-validated features.
+
+Keys identify implementation/unique-ID suffixes, not guaranteed entity IDs.
+Home Assistant derives IDs from names and retains user renames. For example,
+Energy Today retains key `current_energy`; dashboard labels can also differ.
+
+Configured inputs control entity creation, while valid data and sufficient
+coverage control availability. “Available” below means implemented, not that
+every installation always has a reading. See the focused guides for coverage
+attributes and reset rules.
 
 Its purpose is to keep sensor naming, semantics, units, Home Assistant metadata,
 and implementation strategy consistent as the integration grows.
@@ -21,7 +32,6 @@ Examples:
 - Current power
 - Current price
 - Cost today
-- Peak power today
 - Phase current
 
 ### Calculated sensors
@@ -43,10 +53,10 @@ patterns to estimate future outcomes or recommend actions.
 
 Examples:
 
-- Estimated cost today
-- Projected demand charge
-- Cheapest remaining hours
-- Peak warning
+- Consumption Timing Score Yesterday
+- Estimated Base Load
+- Cheapest continuous price windows
+- Fixed/adaptive Good Time
 
 ## Design rules
 
@@ -66,7 +76,7 @@ Provider-specific names should not appear in Electricity Pro entity names.
 A provider value should only be mirrored when its semantics are sufficiently
 clear and broadly useful.
 
-## Current sensors
+## Core sensors (stable release line)
 
 | Category | Sensor | Entity key | Type | Unit | Device class | State class | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -177,8 +187,8 @@ configured effective-price scope.
 `next_inexpensive_1h_window_start` is an absolute-threshold recommendation. It
 is exposed only when the configured live and forecast Effective Prices are
 complete and have matching component and VAT semantics. The currently
-supported native Nord Pool forecast is intentionally market-only with unknown
-VAT treatment, so this recommendation is not created from that source.
+supported native Nord Pool forecast is market-only and VAT-excluded with partial
+component coverage, so this recommendation is not created from that source.
 
 This safety rule does not affect Cheapest 1h, 2h, and 3h Window. Those sensors
 rank the available forecast scheduling prices relative to one another and do
@@ -189,35 +199,54 @@ integration rather than left as a permanently unavailable state. Its registry
 identity is retained so Electricity Pro can restore it if a future forecast
 source supplies compatible complete pricing.
 
-| Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
-| ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
-| Current L1 | `current_l1`        | Mirrored | A           | Current      | Measurement | High     |
-| Current L2 | `current_l2`        | Mirrored | A           | Current      | Measurement | High.    |
-| Current L3 | `current_l3`        | Mirrored | A           | Current      | Measurement | High     |
+## Other implemented entities (stable release line)
 
-| Sensor     | Proposed entity key | Type     | Native unit | Device class | State class | Priority |
-| ---------- | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
-| Voltage L1 | `voltage_l1`        | Mirrored | V           | Voltage      | Measurement | Medium   |
-| Voltage L2 | `voltage_l2`        | Mirrored | V           | Voltage      | Measurement | Medium   |
-| Voltage L3 | `voltage_l3`        | Mirrored | V           | Voltage      | Measurement | Medium   |
+| Entity key(s) | Meaning and prerequisites | Unit | Device class / state class |
+| --- | --- | --- | --- |
+| `current_l1`, `current_l2`, `current_l3` | Optional mirrored phase currents; each needs its own source | A | Current / Measurement |
+| `voltage_l1`, `voltage_l2`, `voltage_l3` | Optional mirrored phase voltages | V | Voltage / Measurement |
+| `monthly_peak_hour_consumption` | Provider's highest hourly energy this month; not instantaneous power | Source energy unit | Energy / Total |
+| `fixed_supplier_fee_this_month` | Full configured monthly supplier fee, not accrued fraction | Currency | Monetary / Total |
+| `fixed_grid_fee_this_month` | Full configured monthly grid fee, separate from supplier cost | Currency | Monetary / Total |
+| `total_supplier_cost_this_month` | Monthly supplier variable cost plus full configured supplier fee; excludes grid | Currency | Monetary / Total |
+| `consumption_timing_score_yesterday` | Yesterday's consumption/price timing; coverage rules below | % | None / Measurement |
+| `cheapest_1h_window_start`, `cheapest_2h_window_start`, `cheapest_3h_window_start` | Forecast-derived continuous-window starts, with a sufficiently long gap-free horizon | Timestamp | Timestamp / None |
+| `cheapest_1h_window_average_effective_price`, `cheapest_2h_window_average_effective_price`, `cheapest_3h_window_average_effective_price` | Average **scheduling price** for each window; historical keys retained, not a complete household Effective Price claim | Currency/kWh | None / None |
+| `price_direction` | Forecast-based rising/falling/stable classification | None | None / None |
+| `next_inexpensive_1h_window_start` | Complete comparable forecast plus configured threshold required; not exposed for current partial Nord Pool scope | Timestamp | Timestamp / None |
+| `good_time_to_use_electricity` | **Binary sensor** created for fixed-threshold or adaptive configuration; incomplete inputs can leave it unknown | On/off | None / Not applicable |
 
-## Planned live electrical measurements
+Forecast entities require a configured native Nord Pool entry. Window averages
+use the configured VAT rate and applicable per-kWh additions; no fixed fees.
+Missing/short/gapped forecasts can make individual insights unavailable.
+[Forecast retrieval](forecast-retrieval.md) explains publication and retry timing.
 
-### Power factor
+## Optional flow entities (unreleased v1.6)
 
-| Sensor       | Proposed entity key | Type.    | Native unit | Device class | State class | Priority |
-| ------------ | ------------------- | -------- | ----------- | ------------ | ----------- | -------- |
-| Power factor | `power_factor`      | Mirrored | None or %   | Power factor | Measurement | Medium   |
+These are independent measured channels, not derived balances or battery controls.
+Power sources create power entities; lifetime energy sources independently create
+daily/monthly totals. Unconfigured channels create no new entities.
 
-Purpose:
+| Entity key(s) | Displayed meaning | Unit | Device class / state class |
+| --- | --- | --- | --- |
+| `production_power` | AC production excluding battery discharge | W | Power / Measurement |
+| `production_today`, `production_this_month` | Observed partial AC production energy | kWh | Energy / Total increasing |
+| `grid_export_power` | Directional grid export, possibly including storage discharge | W | Power / Measurement |
+| `grid_export_today`, `grid_export_this_month` | Observed partial exported energy; not necessarily solar | kWh | Energy / Total increasing |
+| `household_power` | Household demand power, excluding battery charging | W | Power / Measurement |
+| `household_today`, `household_this_month` | Household energy for the same non-storage load boundary | kWh | Energy / Total increasing |
+| `flow_power_compatibility` | Opt-in diagnostic of configured optional power inputs; not balance readiness | None | None / None |
 
-- expose an advanced electrical diagnostic value;
-- support motors, heat pumps, chargers, solar, and other reactive loads;
-- provide an input for future diagnostics.
+Flow counters preserve high-water marks across temporary dips and restore
+compatible saved totals. They always report partial coverage in this increment;
+daily rollover excludes the ambiguous boundary increment. Sources use HA receipt
+timestamps, not verified acquisition times. Power is stale after five minutes,
+energy after fifteen. See [sources and reset rules](production-export.md).
 
-The source semantics and normalized representation must be reviewed before
-implementation because integrations may expose power factor as either a ratio
-or a percentage.
+The compatibility sensor reports declaration/freshness/alignment reasons and
+`quality: receipt_time_estimate`; even `aligned` always carries
+`complete_balance_available: false`. It neither verifies energy conservation nor
+changes existing import costs or analytics. See [diagnostic scope](flow-compatibility.md).
 
 ## Daily and monthly statistics
 
@@ -229,15 +258,20 @@ be inferred from signed net Current Power alone.
 
 ### Consumption-weighted average price today
 
-This calculated sensor shows the average effective price achieved by the
-household's actual consumption pattern today:
+This sensor has two paths:
 
-> Cost Today / Energy Today + configured variable grid fee + configured Energy Tax
+- Without an external daily supplier-cost source, it divides locally observed
+  complete-effective variable cost by the energy covered by those same prices.
+  It can be available for a partial day; its denominator is not necessarily
+  all Energy Today.
+- With an external daily supplier-cost source, it uses Cost Today / Energy Today
+  (energy converted to kWh), plus configured variable grid fee and Energy Tax.
+  It requires complete daily energy coverage and a positive denominator.
+  The external cost and energy must represent the same day and compatible scope.
 
-Energy is normalized to kWh before division. The configured VAT-inclusive
-per-kWh adjustments are then applied exactly once. The sensor is unavailable
-when either daily source is unavailable, the energy unit is unsupported, or
-Energy Today is zero.
+Fixed fees are excluded. Missing or unsupported inputs make the result
+unavailable. See [local estimates](local-cost-estimates.md) and
+[household totals](household-cost-estimates.md).
 
 The value is retrospective and is not a recommendation to consume electricity
 now. It differs from Average Market Price Today, which would average the day's
@@ -259,8 +293,8 @@ confirmed in integration options.
 
 This sensor is relevant for demand-based grid tariffs.
 
-The initial implementation may mirror a provider sensor when its semantics are
-clear.
+The current implementation mirrors a configured provider sensor; it does not
+calculate a demand tariff or billing peak from interval history.
 
 The sensor should represent:
 
@@ -277,7 +311,9 @@ the local calendar month. Values are normalized to kWh.
 
 The first reading establishes the baseline. The first month may therefore be
 partial when Electricity Pro is installed or the energy source is configured
-after the month has started. Subsequent full months are complete.
+after the month has started. Later months are not automatically guaranteed
+complete: rejected readings, gaps or resets can affect coverage. Inspect
+period attributes and the [monthly recovery guide](monthly-energy-recovery.md).
 
 ### Cost this month
 
@@ -296,8 +332,8 @@ the source currency.
 
 On first setup, the current Cost Today value seeds the monthly total so Cost
 This Month includes the whole current day. The first month may still be partial
-because costs from earlier days are unavailable. Subsequent full months are
-complete.
+because costs from earlier days are unavailable. Completeness depends on source
+continuity and coverage, not simply reaching the next month.
 
 A future provider-independent implementation may calculate billing peaks from
 historical interval data and configurable tariff rules.
@@ -385,81 +421,14 @@ the currently supported partial Nord Pool market forecast never suppresses the
 result. Attributes expose the comparison status and any materially better
 interval.
 
-## Planned intelligence sensors
+## Not implemented / future work
 
-| Sensor                       | Proposed entity key        | Type         | Priority |
-| ---------------------------- | -------------------------- | ------------ | -------- |
-| Estimated cost today         | `estimated_cost_today`     | Intelligence | High     |
-| Estimated energy today       | `estimated_energy_today`   | Intelligence | High     |
-| Projected demand charge      | `projected_demand_charge`  | Intelligence | Future   |
-| Cheapest remaining hours     | `cheapest_remaining_hours` | Intelligence | Future   |
-| Peak warning                 | `peak_warning`             | Intelligence | Future   |
-| Phase imbalance              | `phase_imbalance`          | Calculated   | Future   |
+Power factor, phase imbalance, projected demand charges, budget forecasts,
+whole-day consumption prediction and automatic device control are not current
+entities. Neither are calculated household balances, self-consumption or
+self-sufficiency ratios, export revenue and battery charge/discharge scheduling.
 
-These sensors require additional architecture for history, forecasting,
-tariffs, or recommendations and are outside the scope of simple mirrored
-sensor additions.
-
-## Configuration growth
-
-As the number of optional sources grows, a single configuration form may
-become difficult to use.
-
-Future configuration may be divided into sections such as:
-
-### Basic
-
-- Current power
-- Current price
-- Energy
-- Accumulated cost
-
-### Electrical measurements
-
-- Current L1, L2, and L3
-- Voltage L1, L2, and L3
-- Power factor
-
-### Provider-supplied statistics
-
-- Monthly peak-hour consumption
-- Monthly cost
-- Monthly energy
-
-The configuration experience should remain understandable even when only the
-required power source is selected.
-
-## Priorities for v0.7
-
-The remaining recommended sensor work for v0.7 is:
-
-1. Phase current sensors L1, L2, and L3
-2. Phase voltage sensors L1, L2, and L3
-3. Monthly peak-hour consumption
-4. Power factor
-
-Each group should be implemented in a separate issue and pull request.
-
-## Future provider-independent work
-
-Mirrored sensors are a pragmatic first implementation.
-
-Electricity Pro should gradually replace provider dependence where doing so
-adds meaningful consistency or coverage.
-
-Future work may include:
-
-- calculating daily and monthly statistics from generic source sensors;
-- restoring statistics after Home Assistant restarts;
-- using Recorder history safely and efficiently;
-- supporting configurable billing periods;
-- supporting configurable demand-tariff rules;
-- calculating phase imbalance;
-- representing production, grid import and grid export as distinct flows;
-- calculating solar self-consumption and self-sufficiency when sufficient
-  source measurements exist;
-- modelling export compensation without reusing an import price;
-- comparing provider values with calculated values.
-
-These improvements should be tracked as enhancement issues rather than mixed
-into the initial mirrored-sensor pull requests.
+Daily/monthly measurements and partial accumulated cost estimates must not be
+confused with predictions of the rest of the day or a complete future bill.
+See the authoritative [roadmap](../ROADMAP.md) and
+[energy-flow design](adr/0013-production-and-bidirectional-energy-flows.md).
