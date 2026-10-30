@@ -1,0 +1,14 @@
+# Keep this baseline small; add rule families in separate reviewed changes.
+target-version = "py314"
+line-length = 88
+
+[lint]
+# Import placement / statement errors and Pyflakes (including unused imports,
+# undefined names and unused locals). No integration/test-wide suppressions.
+select = ["E4", "E7", "E9", "F"]
+
+[format]
+# Policy for a later formatting-only pass; formatting is not a CI gate yet.
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

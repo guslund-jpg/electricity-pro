@@ -16,9 +16,6 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from custom_components.electricity_pro.const import (
-    CONF_FORECAST_CURRENCY,
-    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
-    CONF_FORECAST_PRICE_AREA,
     DOMAIN,
     ENERGY_SOURCE_LIFETIME,
 )

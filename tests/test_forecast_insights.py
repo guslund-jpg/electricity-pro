@@ -709,7 +709,6 @@ def test_find_cheapest_continuous_window_dst_fall_back_extra_hour() -> None:
     day has 25 hourly slots.  A 3-hour window request over those slots must work
     correctly on actual interval boundaries without assuming 24 slots.
     """
-    import zoneinfo
     from datetime import UTC as _UTC
 
     # 2025-10-26 is the fall-back day for Europe/Stockholm.

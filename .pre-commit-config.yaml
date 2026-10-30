@@ -15,6 +15,13 @@ repos:
 
   - repo: local
     hooks:
+      - id: electricity-pro-python-lint
+        name: Electricity Pro Python lint
+        entry: python -m ruff check custom_components tests scripts
+        language: system
+        pass_filenames: false
+        always_run: true
+
       - id: electricity-pro-validation
         name: Electricity Pro validation
         entry: ./scripts/validate.sh
