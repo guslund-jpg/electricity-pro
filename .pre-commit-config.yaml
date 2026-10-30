@@ -27,3 +27,10 @@ repos:
         entry: ./scripts/validate.sh
         language: system
         pass_filenames: false
+
+      - id: electricity-pro-calculation-types
+        name: Electricity Pro calculation types (pilot)
+        entry: python -m mypy --config-file mypy.ini
+        language: system
+        pass_filenames: false
+        always_run: true

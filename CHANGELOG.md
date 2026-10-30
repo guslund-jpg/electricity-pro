@@ -23,6 +23,10 @@
 
 ### Added
 
+- Add a pinned strict mypy pilot for statistics, pricing contracts and grid
+  tariffs in local checks, pre-commit and CI. Document the exact checked scope,
+  the startup-module boundary and remaining typing work; runtime code is unchanged.
+
 - Add pinned Ruff lint checks for integration code, tests and Python scripts
   locally, in pre-commit and in CI. Remove seven unused imports without changing
   calculations; document separate formatting and incremental typing follow-ups.
