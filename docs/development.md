@@ -33,6 +33,12 @@ remain separate checks. Configuration validation is not a substitute for the
 integration's Python tests. Automated tests also do not replace a smoke test on a
 development Home Assistant instance or real solar/battery validation.
 
+For v1.6, use the existing [energy-flow test plan](specification/energy-flow-test-plan.md#v16-test-system-release-checklist),
+[disposable synthetic package](../examples/testing/README.md) and
+[evidence record](validation/v1.6.md). The package is tested with real HA helpers
+and templates in `tests/test_validation_fixture.py`; manual test-system and
+hardware results remain separate. Repository YAML checks include `examples/testing/`.
+
 ## Check scope and documentation
 
 `./scripts/validate.sh` checks YAML, JSON, Python syntax, unique IDs and repository

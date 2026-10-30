@@ -46,6 +46,11 @@
 
 ### Added
 
+- Add a disposable Home Assistant simulation package and executable v1.6
+  validation checklist under #290, with automated package tests, a manual evidence
+  record and redacted hardware-beta mapping guidance. Manual/hardware runs remain
+  pending; optional flow features are explicitly experimental, not hardware-verified.
+
 - Add a pinned strict mypy pilot for statistics, pricing contracts and grid
   tariffs in local checks, pre-commit and CI. Document the exact checked scope,
   the startup-module boundary and remaining typing work; runtime code is unchanged.
