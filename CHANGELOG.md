@@ -4,6 +4,11 @@
 
 ### Changed
 
+- Expose read-only flow-source configuration queries through the coordinator,
+  removing sensor-platform access to private provider bindings. Preserve optional
+  entity creation, identities, availability and diagnostic opt-in behaviour;
+  continues the small architecture refactors in #288.
+
 - Share saved-settings resolution across runtime setup, provider, coordinator,
   pricing metadata and entities. Preserve option precedence (including cleared
   and zero values), entity creation, normalization and persisted scope identities.

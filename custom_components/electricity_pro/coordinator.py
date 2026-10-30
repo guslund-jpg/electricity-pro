@@ -478,6 +478,21 @@ class ElectricityProCoordinator(
         """Return whether a forecast source is configured."""
         return self._forecast_configured
 
+    def is_flow_source_configured(self, channel: str, quantity: str) -> bool:
+        """Return whether a supported channel/quantity has a selected source.
+
+        This describes configuration, not live reading availability. Accepts
+        CHANNELS with power or energy; unsupported pairs raise KeyError.
+        Provider bindings remain private and are not exposed for mutation.
+        """
+        key = f"{channel}_{quantity}_entity"
+        return bool(self._provider.flow_sources.bindings[key])
+
+    @property
+    def flow_compatibility_enabled(self) -> bool:
+        """Return whether the optional input diagnostic is explicitly enabled."""
+        return self._provider.flow_sources.compatibility_enabled
+
     @property
     def price_direction(self) -> ForecastDirectionInsight | None:
         """Return the currently calculated near-term price direction."""

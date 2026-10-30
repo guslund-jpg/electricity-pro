@@ -167,6 +167,13 @@ the entity retains settings resolution, availability and history attributes.
 Mode constants remain available through `const.py`. Stored histories and
 configuration keys are unchanged.
 
+Optional flow entity creation uses the coordinator's public
+`is_flow_source_configured(channel, quantity)` and `flow_compatibility_enabled`
+queries. They expose configuration booleans, not mutable provider bindings or
+live availability. A configured but unavailable source still creates its
+existing entities; clearing its binding prevents creation. Sensor platforms do
+not access private coordinator/provider members.
+
 Unreleased optional channels publish independent measured AC production,
 directional export and non-storage household demand, with protected partial
 daily/monthly lifetime-meter deltas. They do not replace import costs or net-grid
@@ -195,7 +202,7 @@ The code is not yet a completely separated analytics engine:
 - Raw normalized inputs and derived outputs share `ElectricityProData`.
 - Sensor helpers still invoke calculations and normalize inputs; the extracted
   Good Time decision module is one bounded separation, not an entity-layer rewrite.
-- Some entities access private provider state; device metadata is repeated.
+- Device metadata is still repeated across entity classes.
 - Setup/options flows and translation strings contain duplicated structures.
 
 These are targets for small, behaviour-preserving changes in
