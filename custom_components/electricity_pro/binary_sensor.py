@@ -8,7 +8,6 @@ from typing import Any
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -26,11 +25,11 @@ from .const import (
     CONF_GOOD_PRICE_MODE,
     CONF_GOOD_PRICE_THRESHOLD,
     DEFAULT_ADAPTIVE_TARGET_PERCENTILE,
-    DOMAIN,
     GOOD_PRICE_MODE_ADAPTIVE,
     GOOD_PRICE_MODE_FIXED,
 )
 from .coordinator import ElectricityProCoordinator
+from .device import device_info_for_entry
 from .good_time import GoodTimeEvaluation, evaluate_good_time as _evaluate_good_time
 from .provider import ElectricityProData
 from .settings import resolve_settings
@@ -110,12 +109,7 @@ class GoodTimeToUseElectricityBinarySensor(
         """Initialize the insight."""
         super().__init__(entry.runtime_data)
         self._attr_unique_id = f"{entry.entry_id}_good_time_to_use_electricity"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="Electricity Pro",
-            manufacturer="Electricity Pro",
-            model="Electricity monitor",
-        )
+        self._attr_device_info = device_info_for_entry(entry.entry_id)
         settings = resolve_settings(entry.data, entry.options)
         configured_mode = settings.get(
             CONF_GOOD_PRICE_MODE,

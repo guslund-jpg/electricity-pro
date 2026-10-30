@@ -24,7 +24,6 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -57,6 +56,7 @@ from .const import (
     DOMAIN,
 )
 from .coordinator import ElectricityProCoordinator
+from .device import device_info_for_entry
 from .forecast import DailyAverageMarketPriceResult, ForecastInterval
 from .forecast_insights import ForecastWindowInsight
 from .pricing import PricingMetadata
@@ -696,10 +696,7 @@ class ElectricityProFlowCompatibilitySensor(
     ) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_flow_power_compatibility"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)}, name="Electricity Pro",
-            manufacturer="Electricity Pro", model="Electricity monitor",
-        )
+        self._attr_device_info = device_info_for_entry(entry.entry_id)
 
     @property
     def native_value(self) -> str:
@@ -732,10 +729,7 @@ class ElectricityProFlowSensor(CoordinatorEntity[ElectricityProCoordinator], Sen
                 else f"Household energy {period.replace('_', ' ')}"
             )
         self._attr_unique_id = f"{entry.entry_id}_{self._key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)}, name="Electricity Pro",
-            manufacturer="Electricity Pro", model="Electricity monitor",
-        )
+        self._attr_device_info = device_info_for_entry(entry.entry_id)
         self._attr_device_class = (
             SensorDeviceClass.POWER if period == "power" else SensorDeviceClass.ENERGY
         )
@@ -781,12 +775,7 @@ class ElectricityProSensor(
 
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="Electricity Pro",
-            manufacturer="Electricity Pro",
-            model="Electricity monitor",
-        )
+        self._attr_device_info = device_info_for_entry(entry.entry_id)
 
     async def async_added_to_hass(self) -> None:
         """Register entity update listeners."""
@@ -929,12 +918,7 @@ class ElectricityProForecastInsightSensor(
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_name = name
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="Electricity Pro",
-            manufacturer="Electricity Pro",
-            model="Electricity monitor",
-        )
+        self._attr_device_info = device_info_for_entry(entry.entry_id)
 
 
 class ElectricityProCurrentMarketPriceSensor(
@@ -1111,12 +1095,7 @@ class ElectricityProConsumptionTimingScoreSensor(
         """Initialize the timing-score sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_consumption_timing_score_yesterday"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="Electricity Pro",
-            manufacturer="Electricity Pro",
-            model="Electricity monitor",
-        )
+        self._attr_device_info = device_info_for_entry(entry.entry_id)
 
     @property
     def _result(self) -> tuple[date, TimingScoreResult] | None:
@@ -1178,12 +1157,7 @@ class ElectricityProEstimatedBaseLoadSensor(
         """Initialize the estimated base-load sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_estimated_base_load"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="Electricity Pro",
-            manufacturer="Electricity Pro",
-            model="Electricity monitor",
-        )
+        self._attr_device_info = device_info_for_entry(entry.entry_id)
 
     @property
     def _result(self) -> BaseLoadEstimateResult | None:
@@ -1241,12 +1215,7 @@ class ElectricityProAveragePowerTodaySensor(
         """Initialize the average-power sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_average_power_today"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="Electricity Pro",
-            manufacturer="Electricity Pro",
-            model="Electricity monitor",
-        )
+        self._attr_device_info = device_info_for_entry(entry.entry_id)
 
     async def async_added_to_hass(self) -> None:
         """Publish the daily average on a bounded schedule."""
