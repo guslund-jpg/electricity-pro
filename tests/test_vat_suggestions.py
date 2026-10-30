@@ -9,7 +9,7 @@ from homeassistant import config_entries
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.config_flow import _entity_schema, _tibber_settings_schema, _tibber_forecast_pricing_schema
-from custom_components.electricity_pro.vat_suggestions import RULES, VERIFIED_ON, country_hint, vat_rule
+from custom_components.electricity_pro.vat_suggestions import VERIFIED_ON, country_hint, vat_rule
 
 
 @pytest.mark.parametrize(("areas", "selected", "expected"), [

@@ -12,7 +12,6 @@ from custom_components.electricity_pro.config_flow import (
     _tibber_settings_schema,
 )
 from custom_components.electricity_pro.const import (
-    CONF_ACCUMULATED_COST_TODAY_ENTITY,
     CONF_ADAPTIVE_PRICE_CEILING,
     CONF_ADAPTIVE_TARGET_PERCENTILE,
     CONF_CURRENT_L1_ENTITY,

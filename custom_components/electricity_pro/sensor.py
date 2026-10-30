@@ -58,7 +58,7 @@ from .const import (
 )
 from .coordinator import ElectricityProCoordinator
 from .forecast import DailyAverageMarketPriceResult, ForecastInterval
-from .forecast_insights import ForecastDirectionInsight, ForecastWindowInsight
+from .forecast_insights import ForecastWindowInsight
 from .pricing import PricingMetadata
 from .provider import ElectricityProData
 from .flow_sources import CHANNELS

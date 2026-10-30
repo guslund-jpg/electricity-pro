@@ -23,6 +23,10 @@
 
 ### Added
 
+- Add pinned Ruff lint checks for integration code, tests and Python scripts
+  locally, in pre-commit and in CI. Remove seven unused imports without changing
+  calculations; document separate formatting and incremental typing follow-ups.
+
 - Run the full Python test suite on every pull request and on main/maintenance
   branch pushes, retaining JUnit results and documenting local test execution.
 
