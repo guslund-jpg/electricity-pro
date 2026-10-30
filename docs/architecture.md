@@ -211,10 +211,12 @@ Coordinator entities update
 ```
 
 For optional v1.1 forecasts, the coordinator also calls the native Home
-Assistant Nord Pool action. It retrieves the current delivery date on startup,
-retrieves tomorrow after its normal publication time, retries unavailable
-tomorrow data, and recalculates cached insights every 15 minutes so expired
-windows are not exposed. Native-action failures affect forecast availability
+Assistant Nord Pool action. Startup and the 15-minute timer share a CET/CEST
+market-date schedule, requesting tomorrow from 13:00 market time and retaining
+earlier delivery dates needed for the current HA local day. Expected future
+empty responses remain retryable at debug level; genuine errors warn without
+erasing valid cached prices. See [forecast retrieval](forecast-retrieval.md).
+Cached insights are recalculated so expired windows are not exposed. Native-action failures affect forecast availability
 only; they do not prevent live measurements and statistics from loading.
 
 This keeps live measurements independent of Tibber, Nord Pool and other

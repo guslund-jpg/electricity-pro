@@ -1021,7 +1021,8 @@ async def test_empty_forecast_response_remains_retryable(
     )
 
     assert coordinator.forecast_intervals == []
-    assert async_get.await_count == 2
+    # 12:00 UTC is already after the 13:00 CEST publication gate.
+    assert async_get.await_count == 3
 
 
 async def test_async_start_degrades_gracefully_on_native_action_failure(
@@ -1082,7 +1083,9 @@ async def test_forecast_tick_retries_tomorrow_and_expires_insights(
             area="SE3",
         )
     ]
-    async_get = AsyncMock(return_value=today_intervals)
+    async_get = AsyncMock(side_effect=lambda *args, **kwargs: (
+        today_intervals if kwargs["target_date"] == date(2026, 8, 13) else []
+    ))
     monkeypatch.setattr(
         "custom_components.electricity_pro.coordinator.async_get_nordpool_forecast_intervals_for_date",
         async_get,

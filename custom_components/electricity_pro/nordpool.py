@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta, tzinfo
 from decimal import Decimal
 from typing import Any
 
@@ -13,6 +13,29 @@ from .forecast import ForecastInterval
 
 _MWH_TO_KWH = Decimal("0.001")
 _NORDPOOL_GET_PRICES_FOR_DATE = "get_prices_for_date"
+NORDPOOL_TIME_ZONE = "Europe/Stockholm"
+_TOMORROW_PUBLICATION_TIME = time(13)
+
+
+def forecast_delivery_dates(
+    now: datetime, *, local_timezone: tzinfo, market_timezone: tzinfo
+) -> tuple[date, ...]:
+    """Request market delivery days, retaining coverage of the HA local day.
+
+    The native action typically exposes tomorrow around 13:00 CET/CEST.
+    This is a retrieval gate, not a publication guarantee. See
+    docs/forecast-retrieval.md for the upstream contract and retry policy.
+    """
+    market_now = now.astimezone(market_timezone)
+    local_start = datetime.combine(now.astimezone(local_timezone).date(), time(), local_timezone)
+    first_date = local_start.astimezone(market_timezone).date()
+    last_date = market_now.date()
+    if market_now.time() >= _TOMORROW_PUBLICATION_TIME:
+        last_date += timedelta(days=1)
+    return tuple(
+        first_date + timedelta(days=offset)
+        for offset in range((last_date - first_date).days + 1)
+    )
 
 
 def normalize_nordpool_forecast_intervals(
@@ -119,10 +142,11 @@ async def async_get_nordpool_forecast_intervals_for_date(
         area, area_intervals = next(iter(response.items()))
     else:
         area_intervals = response.get(area)
-        if not isinstance(area_intervals, list):
-            raise ValueError(
-                "Nord Pool action response must include a list for the requested area"
-            )
+
+    if not isinstance(area_intervals, list):
+        raise ValueError(
+            "Nord Pool action response must include a list for the requested area"
+        )
 
     if not all(isinstance(interval, dict) for interval in area_intervals):
         raise ValueError("Nord Pool action area payload must contain interval mappings")
