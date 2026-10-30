@@ -1,0 +1,269 @@
+# TEST SYSTEM ONLY. Never bind these sources to a real installation's accounting.
+# Install under homeassistant: packages: using !include_dir_named.
+# Helpers restore their values; run Initialize only for a NEW test entry.
+input_number:
+  ep_lab_import_power:
+    name: "EP Lab import power input"
+    min: -10000
+    max: 10000
+    step: 1
+    mode: box
+    unit_of_measurement: "W"
+  ep_lab_import_energy:
+    name: "EP Lab import energy input"
+    min: 0
+    max: 1000000
+    step: 0.01
+    mode: box
+    unit_of_measurement: "kWh"
+  ep_lab_price:
+    name: "EP Lab price input"
+    min: -10
+    max: 100
+    step: 0.01
+    mode: box
+    unit_of_measurement: "SEK/kWh"
+  ep_lab_production_power:
+    name: "EP Lab production power input"
+    min: -10
+    max: 100
+    step: 0.01
+    mode: box
+    unit_of_measurement: "kW"
+  ep_lab_production_energy:
+    name: "EP Lab production energy input"
+    min: 0
+    max: 10000000
+    step: 1
+    mode: box
+    unit_of_measurement: "Wh"
+  ep_lab_grid_export_power:
+    name: "EP Lab grid export power input"
+    min: -10000
+    max: 100000
+    step: 1
+    mode: box
+    unit_of_measurement: "W"
+  ep_lab_grid_export_energy:
+    name: "EP Lab grid export energy input"
+    min: 0
+    max: 1000000
+    step: 0.01
+    mode: box
+    unit_of_measurement: "kWh"
+  ep_lab_household_power:
+    name: "EP Lab household power input"
+    min: -10000
+    max: 100000
+    step: 1
+    mode: box
+    unit_of_measurement: "W"
+  ep_lab_household_energy:
+    name: "EP Lab household energy input"
+    min: 0
+    max: 1000000
+    step: 0.01
+    mode: box
+    unit_of_measurement: "kWh"
+
+input_boolean:
+  ep_lab_heartbeat:
+    name: EP Lab heartbeat
+    initial: false
+  ep_lab_production_available:
+    name: "EP Lab production available"
+  ep_lab_grid_export_available:
+    name: "EP Lab grid export available"
+  ep_lab_household_available:
+    name: "EP Lab household available"
+
+script:
+  ep_lab_publish_all:
+    alias: EP Lab publish all
+    mode: single
+    sequence:
+      - event: ep_lab_publish
+        event_data:
+          channel: all
+  ep_lab_initialize:
+    alias: EP Lab initialize NEW test
+    description: Only for a new disposable test entry; rewinds synthetic counters.
+    mode: single
+    sequence:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.ep_lab_heartbeat
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.ep_lab_import_power
+        data:
+          value: 800
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.ep_lab_import_energy
+        data:
+          value: 200
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.ep_lab_price
+        data:
+          value: 1
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.ep_lab_production_power
+        data:
+          value: 1.2
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.ep_lab_production_energy
+        data:
+          value: 100000
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.ep_lab_grid_export_power
+        data:
+          value: 200
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.ep_lab_grid_export_energy
+        data:
+          value: 50
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.ep_lab_household_power
+        data:
+          value: 1800
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.ep_lab_household_energy
+        data:
+          value: 300
+      - action: input_boolean.turn_on
+        target:
+          entity_id:
+            - input_boolean.ep_lab_production_available
+            - input_boolean.ep_lab_grid_export_available
+            - input_boolean.ep_lab_household_available
+      - action: script.ep_lab_publish_all
+
+automation:
+  - id: ep_lab_heartbeat
+    alias: EP Lab heartbeat
+    triggers:
+      - trigger: time_pattern
+        seconds: "/10"
+    conditions:
+      - condition: state
+        entity_id: input_boolean.ep_lab_heartbeat
+        state: "on"
+    actions:
+      - action: script.ep_lab_publish_all
+    mode: single
+
+template:
+  - sensor:
+      - name: "EP Lab import power"
+        unique_id: ep_lab_import_power
+        device_class: power
+        unit_of_measurement: "W"
+        state_class: measurement
+        state: "{{ states('input_number.ep_lab_import_power') }}"
+        availability: "{{ is_number(states('input_number.ep_lab_import_power')) }}"
+      - name: "EP Lab import energy"
+        unique_id: ep_lab_import_energy
+        device_class: energy
+        unit_of_measurement: "kWh"
+        state_class: total_increasing
+        state: "{{ states('input_number.ep_lab_import_energy') }}"
+        availability: "{{ is_number(states('input_number.ep_lab_import_energy')) }}"
+      - name: "EP Lab price"
+        unique_id: ep_lab_price
+        device_class: monetary
+        unit_of_measurement: "SEK/kWh"
+        state_class: measurement
+        state: "{{ states('input_number.ep_lab_price') }}"
+        availability: "{{ is_number(states('input_number.ep_lab_price')) }}"
+  - triggers:
+      - trigger: event
+        event_type: ep_lab_publish
+        event_data:
+          channel: all
+      - trigger: event
+        event_type: ep_lab_publish
+        event_data:
+          channel: production
+    sensor:
+      - name: "EP Lab production power"
+        unique_id: ep_lab_production_power
+        device_class: power
+        unit_of_measurement: "kW"
+        state_class: measurement
+        state: "{{ states('input_number.ep_lab_production_power') }}"
+        availability: >-
+          {{ is_state('input_boolean.ep_lab_production_available', 'on')
+             and is_number(states('input_number.ep_lab_production_power')) }}
+      - name: "EP Lab production energy"
+        unique_id: ep_lab_production_energy
+        device_class: energy
+        unit_of_measurement: "Wh"
+        state_class: total_increasing
+        state: "{{ states('input_number.ep_lab_production_energy') }}"
+        availability: >-
+          {{ is_state('input_boolean.ep_lab_production_available', 'on')
+             and is_number(states('input_number.ep_lab_production_energy')) }}
+  - triggers:
+      - trigger: event
+        event_type: ep_lab_publish
+        event_data:
+          channel: all
+      - trigger: event
+        event_type: ep_lab_publish
+        event_data:
+          channel: grid_export
+    sensor:
+      - name: "EP Lab grid export power"
+        unique_id: ep_lab_grid_export_power
+        device_class: power
+        unit_of_measurement: "W"
+        state_class: measurement
+        state: "{{ states('input_number.ep_lab_grid_export_power') }}"
+        availability: >-
+          {{ is_state('input_boolean.ep_lab_grid_export_available', 'on')
+             and is_number(states('input_number.ep_lab_grid_export_power')) }}
+      - name: "EP Lab grid export energy"
+        unique_id: ep_lab_grid_export_energy
+        device_class: energy
+        unit_of_measurement: "kWh"
+        state_class: total_increasing
+        state: "{{ states('input_number.ep_lab_grid_export_energy') }}"
+        availability: >-
+          {{ is_state('input_boolean.ep_lab_grid_export_available', 'on')
+             and is_number(states('input_number.ep_lab_grid_export_energy')) }}
+  - triggers:
+      - trigger: event
+        event_type: ep_lab_publish
+        event_data:
+          channel: all
+      - trigger: event
+        event_type: ep_lab_publish
+        event_data:
+          channel: household
+    sensor:
+      - name: "EP Lab household power"
+        unique_id: ep_lab_household_power
+        device_class: power
+        unit_of_measurement: "W"
+        state_class: measurement
+        state: "{{ states('input_number.ep_lab_household_power') }}"
+        availability: >-
+          {{ is_state('input_boolean.ep_lab_household_available', 'on')
+             and is_number(states('input_number.ep_lab_household_power')) }}
+      - name: "EP Lab household energy"
+        unique_id: ep_lab_household_energy
+        device_class: energy
+        unit_of_measurement: "kWh"
+        state_class: total_increasing
+        state: "{{ states('input_number.ep_lab_household_energy') }}"
+        availability: >-
+          {{ is_state('input_boolean.ep_lab_household_available', 'on')
+             and is_number(states('input_number.ep_lab_household_energy')) }}

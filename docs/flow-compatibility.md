@@ -3,6 +3,8 @@
 Status: unreleased v1.6 work under #240. This is a diagnostic foundation,
 not calculated household demand, energy ratios or a complete site balance.
 There has been no solar/battery hardware beta validation.
+This opt-in diagnostic is experimental / not hardware-verified; see the
+[v1.6 validation evidence](validation/v1.6.md).
 
 ## Enable the optional diagnostic
 
