@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Preserve submitted settings and optional-source controls after configuration
+  errors in standard and Tibber flows. Retain confirmed source/declaration
+  drafts through retries, honour cleared values, and discard drafts on cancellation.
+
 - Reuse Home Assistant's loaded timezone during setup/reload to avoid blocking
   timezone-database reads on the event loop, matching the v1.5.2 maintenance fix.
 

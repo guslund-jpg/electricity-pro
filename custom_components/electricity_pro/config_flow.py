@@ -987,19 +987,25 @@ class ElectricityProConfigFlow(
             if not _grid_tariff_input_valid(user_input):
                 return self.async_show_form(
                     step_id="manual",
-                    data_schema=_entity_schema(hass=self.hass),
+                    data_schema=self.add_suggested_values_to_schema(
+                        _entity_schema(hass=self.hass), user_input
+                    ),
                     errors={"base": "invalid_grid_tariff"},
                 )
             if not _good_price_input_valid(user_input):
                 return self.async_show_form(
                     step_id="manual",
-                    data_schema=_entity_schema(hass=self.hass),
+                    data_schema=self.add_suggested_values_to_schema(
+                        _entity_schema(hass=self.hass), user_input
+                    ),
                     errors={"base": "invalid_good_price_settings"},
                 )
             if not _prepare_pricing_metadata(user_input):
                 return self.async_show_form(
                     step_id="manual",
-                    data_schema=_entity_schema(hass=self.hass),
+                    data_schema=self.add_suggested_values_to_schema(
+                        _entity_schema(hass=self.hass), user_input
+                    ),
                     errors={"base": "pricing_metadata_required"},
                 )
             nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
@@ -1090,18 +1096,13 @@ class ElectricityProConfigFlow(
             return await self.async_step_tibber()
 
         if user_input is not None:
+            errors = {}
             if not _grid_tariff_input_valid(user_input):
-                return self.async_show_form(
-                    step_id="tibber_settings",
-                    data_schema=_tibber_settings_schema(),
-                    errors={"base": "invalid_grid_tariff"},
-                )
-            if not _good_price_input_valid(user_input):
-                return self.async_show_form(
-                    step_id="tibber_settings",
-                    data_schema=_tibber_settings_schema(),
-                    errors={"base": "invalid_good_price_settings"},
-                )
+                errors = {"base": "invalid_grid_tariff"}
+            elif not _good_price_input_valid(user_input):
+                errors = {"base": "invalid_good_price_settings"}
+            if errors:
+                return self._show_tibber_settings(user_input, errors)
             if (
                 user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
                 and not self._forecast_pricing_confirmed
@@ -1132,10 +1133,22 @@ class ElectricityProConfigFlow(
             data = {**self._selected_tibber_source.data, **user_input}
             return self.async_create_entry(title="Electricity Pro", data=data)
 
+        return self._show_tibber_settings()
+
+    def _show_tibber_settings(
+        self,
+        user_input: dict[str, Any] | None = None,
+        errors: dict[str, str] | None = None,
+    ) -> ConfigFlowResult:
+        """Keep discovered-source explanations and submitted settings on retry."""
+        assert self._selected_tibber_source is not None
         data = self._selected_tibber_source.data
         return self.async_show_form(
             step_id="tibber_settings",
-            data_schema=_tibber_settings_schema(),
+            data_schema=self.add_suggested_values_to_schema(
+                _tibber_settings_schema(), user_input
+            ),
+            errors=errors,
             description_placeholders={
                 "power_entity": str(data[CONF_POWER_ENTITY]),
                 "price_entity": str(data[CONF_PRICE_ENTITY]),
@@ -1197,6 +1210,24 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
         self._forecast_areas: list[str] = []
         self._pending_flow_settings: dict[str, Any] | None = None
         self._pending_compatibility_settings: dict[str, Any] | None = None
+        self._source_settings_draft: dict[str, Any] = {}
+
+    def _show_init_error(
+        self, user_input: dict[str, Any], errors: dict[str, str]
+    ) -> ConfigFlowResult:
+        """Redisplay submitted values with the same track-specific controls."""
+        tibber = self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(
+                _with_flow_settings(
+                    _tibber_settings_schema() if tibber else _entity_schema(hass=self.hass)
+                ),
+                user_input,
+            ),
+            errors=errors,
+            description_placeholders={"source_profile": "Tibber fast track"} if tibber else None,
+        )
 
     async def async_step_init(
         self,
@@ -1205,7 +1236,25 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
         """Manage source entity options."""
         if user_input is not None:
             user_input = dict(user_input)
-            saved = {**self.config_entry.data, **self.config_entry.options}
+            saved = {
+                **self.config_entry.data, **self.config_entry.options,
+                **self._source_settings_draft,
+            }
+            schema = (
+                _tibber_settings_schema()
+                if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
+                else _entity_schema(hass=self.hass)
+            )
+            for marker in schema.schema:
+                if (
+                    isinstance(marker, vol.Optional)
+                    and marker.default is vol.UNDEFINED
+                    and marker.schema in saved
+                    and marker.schema not in user_input
+                ):
+                    # An omitted editable value is a clear, not permission to
+                    # resurrect its initial config-entry data on the next save.
+                    user_input[marker.schema] = None
             if self.config_entry.data.get(CONF_SOURCE_PROFILE) != _SETUP_TIBBER:
                 result = await self._async_maybe_suggest_vat(user_input, "init", saved)
                 if result is not None:
@@ -1213,40 +1262,21 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
             for key in (*FLOW_KEYS, *COMPATIBILITY_KEYS):
                 if key not in user_input and key in saved:
                     user_input[key] = saved[key]
+            # These fields live on follow-up forms. Keep confirmed changes (and
+            # explicit clears) through main-form errors, without saving the entry.
+            self._source_settings_draft = {
+                key: user_input[key] for key in (*FLOW_KEYS, *COMPATIBILITY_KEYS)
+                if key in user_input
+            }
             if user_input.pop(CONF_CONFIGURE_FLOWS, False):
                 self._pending_flow_settings = user_input
                 return await self.async_step_energy_flows()
         if user_input is not None and (errors := _source_input_errors(self.hass, user_input)):
-            return self.async_show_form(
-                step_id="init",
-                data_schema=self.add_suggested_values_to_schema(
-                    _tibber_settings_schema()
-                    if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
-                    else _entity_schema(hass=self.hass),
-                    user_input,
-                ),
-                errors=errors,
-            )
+            return self._show_init_error(user_input, errors)
         if user_input is not None and not _grid_tariff_input_valid(user_input):
-            return self.async_show_form(
-                step_id="init",
-                data_schema=(
-                    _tibber_settings_schema()
-                    if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
-                    else _entity_schema(hass=self.hass)
-                ),
-                errors={"base": "invalid_grid_tariff"},
-            )
+            return self._show_init_error(user_input, {"base": "invalid_grid_tariff"})
         if user_input is not None and not _good_price_input_valid(user_input):
-            return self.async_show_form(
-                step_id="init",
-                data_schema=(
-                    _tibber_settings_schema()
-                    if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
-                    else _entity_schema(hass=self.hass)
-                ),
-                errors={"base": "invalid_good_price_settings"},
-            )
+            return self._show_init_error(user_input, {"base": "invalid_good_price_settings"})
         if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER:
             if user_input is not None:
                 saved = {**self.config_entry.data, **self.config_entry.options}
@@ -1373,11 +1403,7 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
 
         if user_input is not None:
             if not _prepare_pricing_metadata(user_input):
-                return self.async_show_form(
-                    step_id="init",
-                    data_schema=_entity_schema(hass=self.hass),
-                    errors={"base": "pricing_metadata_required"},
-                )
+                return self._show_init_error(user_input, {"base": "pricing_metadata_required"})
             nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
             if isinstance(nordpool_entry_id, str):
                 nordpool_entry = self.hass.config_entries.async_get_entry(
@@ -1668,7 +1694,9 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
             selector.BooleanSelector()
         )
         return self.async_show_form(
-            step_id="energy_flows", data_schema=vol.Schema(fields), errors=errors
+            step_id="energy_flows",
+            data_schema=self.add_suggested_values_to_schema(vol.Schema(fields), user_input),
+            errors=errors,
         )
 
     async def async_step_flow_compatibility(
