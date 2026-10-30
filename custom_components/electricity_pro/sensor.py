@@ -672,12 +672,11 @@ async def async_setup_entry(
     for channel in CHANNELS:
         for period in ("power", "today", "this_month"):
             quantity = "power" if period == "power" else "energy"
-            key = f"{channel}_{quantity}_entity"
-            if entry.runtime_data._provider.flow_sources.bindings[key]:
+            if entry.runtime_data.is_flow_source_configured(channel, quantity):
                 entities.append(
                     ElectricityProFlowSensor(entry.runtime_data, entry, channel, period)
                 )
-    if entry.runtime_data._provider.flow_sources.compatibility_enabled:
+    if entry.runtime_data.flow_compatibility_enabled:
         entities.append(ElectricityProFlowCompatibilitySensor(entry.runtime_data, entry))
     async_add_entities(entities)
 
