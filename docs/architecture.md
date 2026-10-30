@@ -51,6 +51,7 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `statistics_engine.py` | Accumulators, lifetime-meter protection and daily peak state |
 | `cost_ledger.py`, `household_cost.py` | Observed-energy pricing, coverage and accrued fixed fees |
 | `timing_score.py`, `base_load.py`, `adaptive_price.py` | Bounded historical calculations and comparable-price summaries |
+| `good_time.py` | Pure fixed/adaptive Good Time decisions and explanations, including forecast refinement |
 | `forecast.py`, `forecast_insights.py` | Interval contracts, validation and scheduling calculations |
 | `nordpool.py`, `workday.py` | HA action adapters for market delivery dates and non-working dates |
 | `energy_flows.py` | Pure protected lifetime counters for independent partial directional totals |
@@ -147,6 +148,14 @@ flow sensors use dedicated classes. Good Time is a binary sensor supporting
 fixed and adaptive classification. Keys and unique IDs are compatibility
 contracts; dashboard labels need not equal those keys.
 
+Good Time decision logic lives in `good_time.py`, with explicit normalized
+effective price, settings, history, scope, forecasts and evaluation time. It
+does not read the clock, Home Assistant state or persistence. The compatibility
+helper in `binary_sensor.py` composes the effective price and supplies time;
+the entity retains settings resolution, availability and history attributes.
+Mode constants remain available through `const.py`. Stored histories and
+configuration keys are unchanged.
+
 Unreleased optional channels publish independent measured AC production,
 directional export and non-storage household demand, with protected partial
 daily/monthly lifetime-meter deltas. They do not replace import costs or net-grid
@@ -173,8 +182,8 @@ The code is not yet a completely separated analytics engine:
 
 - The coordinator owns many histories, persistence formats and calculation paths.
 - Raw normalized inputs and derived outputs share `ElectricityProData`.
-- Sensor helpers invoke calculations; Good Time evaluation lives in
-  `binary_sensor.py` alongside its HA entity.
+- Sensor helpers still invoke calculations and normalize inputs; the extracted
+  Good Time decision module is one bounded separation, not an entity-layer rewrite.
 - Some entities access private provider state; device metadata is repeated.
 - Setup/options flows and translation strings contain duplicated structures.
 

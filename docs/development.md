@@ -73,24 +73,28 @@ The **Repository quality** job and local pre-commit hook also run
 Do not append file paths to the normal command: the reviewed scope is listed
 once in `mypy.ini`.
 
-The initial strict scope is:
+The current strict scope is:
 
 | Module under `custom_components/electricity_pro/` | Checked contract |
 | --- | --- |
 | `statistics.py` | Remaining-cost projection and optional Decimal values |
 | `pricing.py` | Price/component/VAT enums and immutable metadata |
 | `grid_tariff.py` | Grid tariff fields, date/time boundaries and fee selection |
+| `adaptive_price.py` | Comparable history, adaptive thresholds and forecast refinement |
+| `good_time.py` | Fixed/adaptive decisions over normalized inputs and explicit time |
 
-These modules currently depend only on the standard library. Mypy follows
+These modules form a pure calculation dependency graph: `good_time.py` uses
+`adaptive_price.py`, which uses `pricing.py`; external dependencies are only
+the standard library. Mypy follows
 imports normally and does not ignore missing imports or errors. Strict mode,
 `disallow_any_unimported` and unused-configuration warnings are enabled; the
-small pilot runs without an incremental cache. No application annotations or
-calculation logic needed changing to pass.
+small pilot runs without an incremental cache. The extracted Good Time result
+uses an explicit attribute-value union; calculation behaviour is unchanged.
 
 There is one explicit boundary: the exact parent module
 `custom_components.electricity_pro` (`__init__.py`) has `follow_imports = skip`.
 Mypy otherwise discovers that parent while resolving these files and follows
-its HA startup imports into the coordinator. The three pilot modules do not
+its HA startup imports into the coordinator. The checked modules do not
 use the parent's exported types. This is **not** a wildcard exclusion of its
 submodules: their bodies and imported dependencies remain checked normally.
 Explicit namespace-package bases keep module names consistent with repository
