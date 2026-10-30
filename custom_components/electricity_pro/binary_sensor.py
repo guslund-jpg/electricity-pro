@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -16,14 +15,9 @@ from homeassistant.util import dt as dt_util
 
 from . import ElectricityProConfigEntry
 from .adaptive_price import (
-    AdaptiveEvaluationMethod,
     AdaptiveForecastPrice,
-    AdaptivePriceReason,
     AdaptivePriceScope,
-    ForecastComparisonStatus,
     HistoricalPriceObservation,
-    evaluate_adaptive_forecast,
-    evaluate_adaptive_good_price,
 )
 from .calculations import calculate_declared_effective_price
 from .const import (
@@ -37,15 +31,8 @@ from .const import (
     GOOD_PRICE_MODE_FIXED,
 )
 from .coordinator import ElectricityProCoordinator
+from .good_time import GoodTimeEvaluation, evaluate_good_time as _evaluate_good_time
 from .provider import ElectricityProData
-
-
-@dataclass(frozen=True, slots=True)
-class GoodTimeEvaluation:
-    """Explain one fixed or adaptive Good Time evaluation."""
-
-    is_good: bool | None
-    attributes: dict[str, Any]
 
 
 def evaluate_good_time(
@@ -62,141 +49,28 @@ def evaluate_good_time(
     forecast_available: bool = False,
     forecast_prices_comparable: bool = False,
 ) -> GoodTimeEvaluation:
-    """Evaluate Good Time using the selected explicit method."""
-    evaluation_time = evaluation_time or dt_util.now()
-    effective_price = calculate_declared_effective_price(
-        data.current_price,
-        data.pricing_metadata,
-        data.grid_fee_per_kwh,
-        data.energy_tax_per_kwh,
-        data.supplier_markup_per_kwh,
-    )
-    common_attributes: dict[str, Any] = {
-        "configured_mode": mode,
-        "current_price": _decimal_attribute(effective_price),
-        "fixed_threshold": _decimal_attribute(data.good_price_threshold),
-    }
-    if mode != GOOD_PRICE_MODE_ADAPTIVE:
-        if effective_price is None:
-            return GoodTimeEvaluation(
-                is_good=None,
-                attributes={
-                    **common_attributes,
-                    "evaluation_method": GOOD_PRICE_MODE_FIXED,
-                    "reason": AdaptivePriceReason.INVALID_CURRENT_PRICE.value,
-                },
-            )
-        if data.good_price_threshold is None:
-            return GoodTimeEvaluation(
-                is_good=None,
-                attributes={
-                    **common_attributes,
-                    "evaluation_method": GOOD_PRICE_MODE_FIXED,
-                    "reason": "fixed_threshold_not_configured",
-                },
-            )
-        is_good = effective_price <= data.good_price_threshold
-        return GoodTimeEvaluation(
-            is_good=is_good,
-            attributes={
-                **common_attributes,
-                "evaluation_method": GOOD_PRICE_MODE_FIXED,
-                "reason": (
-                    "within_fixed_threshold"
-                    if is_good
-                    else "above_fixed_threshold"
-                ),
-            },
-        )
-
-    adaptive = evaluate_adaptive_good_price(
-        current_price=effective_price,
-        current_scope=current_scope,
+    """Adapt the coordinator snapshot to the pure Good Time decision contract."""
+    # Preserve the legacy helper's optional clock argument at the HA boundary.
+    now = evaluation_time or dt_util.now()
+    return _evaluate_good_time(
+        effective_price=calculate_declared_effective_price(
+            data.current_price,
+            data.pricing_metadata,
+            data.grid_fee_per_kwh,
+            data.energy_tax_per_kwh,
+            data.supplier_markup_per_kwh,
+        ),
+        fixed_threshold=data.good_price_threshold,
+        evaluation_time=now,
+        mode=mode,
         observations=observations,
-        evaluation_time=evaluation_time,
+        current_scope=current_scope,
         target_percentile=target_percentile,
-        fixed_fallback=data.good_price_threshold,
         absolute_ceiling=absolute_ceiling,
-    )
-    forecast_status = ForecastComparisonStatus.NOT_APPLICABLE
-    forecast = None
-    if (
-        adaptive.method is AdaptiveEvaluationMethod.ADAPTIVE
-        and adaptive.is_good is True
-    ):
-        if not forecast_configured:
-            forecast_status = ForecastComparisonStatus.NOT_CONFIGURED
-        elif not forecast_available:
-            forecast_status = ForecastComparisonStatus.WITHHELD_UNAVAILABLE
-        elif not forecast_prices_comparable:
-            forecast_status = ForecastComparisonStatus.WITHHELD_INCOMPATIBLE
-        elif effective_price is not None and current_scope is not None:
-            forecast = evaluate_adaptive_forecast(
-                current_result=adaptive,
-                current_price=effective_price,
-                current_scope=current_scope,
-                observations=observations,
-                forecast_prices=forecast_prices,
-                evaluation_time=evaluation_time,
-                target_percentile=target_percentile,
-                absolute_ceiling=absolute_ceiling,
-            )
-            forecast_status = forecast.status
-
-    is_good = False if forecast is not None and forecast.suppress else adaptive.is_good
-    reason = (
-        AdaptivePriceReason.BETTER_PRICE_FORECAST
-        if forecast is not None and forecast.suppress
-        else adaptive.reason
-    )
-    return GoodTimeEvaluation(
-        is_good=is_good,
-        attributes={
-            **common_attributes,
-            "evaluation_method": (
-                adaptive.method.value if adaptive.method is not None else None
-            ),
-            "reason": reason.value,
-            "adaptive_threshold": _decimal_attribute(adaptive.threshold),
-            "absolute_ceiling": _decimal_attribute(absolute_ceiling),
-            "target_percentile": _decimal_attribute(target_percentile),
-            "current_percentile": _decimal_attribute(adaptive.current_percentile),
-            "cohort_type": (
-                adaptive.cohort_type.value
-                if adaptive.cohort_type is not None
-                else None
-            ),
-            "historical_days": adaptive.historical_days,
-            "sample_count": adaptive.sample_count,
-            "required_sample_count": adaptive.required_sample_count,
-            "forecast_look_ahead_hours": 6,
-            "forecast_comparison_status": forecast_status.value,
-            "next_better_interval_start": (
-                forecast.interval.start.isoformat()
-                if forecast is not None and forecast.interval is not None
-                else None
-            ),
-            "next_better_interval_end": (
-                forecast.interval.end.isoformat()
-                if forecast is not None and forecast.interval is not None
-                else None
-            ),
-            "next_better_price": (
-                _decimal_attribute(forecast.interval.effective_price)
-                if forecast is not None and forecast.interval is not None
-                else None
-            ),
-            "forecast_price_difference": (
-                _decimal_attribute(forecast.price_difference)
-                if forecast is not None
-                else None
-            ),
-            "forecast_reference_range": (
-                _decimal_attribute(forecast.reference_range)
-                if forecast is not None
-                else None
-            ),
-        },
+        forecast_prices=forecast_prices,
+        forecast_configured=forecast_configured,
+        forecast_available=forecast_available,
+        forecast_prices_comparable=forecast_prices_comparable,
     )
 
 
@@ -328,8 +202,3 @@ def _percentile_setting(value: Any) -> Decimal:
     if percentage is None or not Decimal(0) < percentage <= Decimal(100):
         percentage = Decimal(DEFAULT_ADAPTIVE_TARGET_PERCENTILE)
     return percentage / Decimal(100)
-
-
-def _decimal_attribute(value: Decimal | None) -> str | None:
-    """Serialize a Decimal for stable Home Assistant attributes."""
-    return str(value) if value is not None else None

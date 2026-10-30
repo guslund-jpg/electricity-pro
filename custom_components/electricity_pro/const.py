@@ -2,6 +2,11 @@
 
 from homeassistant.const import Platform
 
+from .good_time import (
+    GOOD_PRICE_MODE_ADAPTIVE as GOOD_PRICE_MODE_ADAPTIVE,
+    GOOD_PRICE_MODE_FIXED as GOOD_PRICE_MODE_FIXED,
+)
+
 DOMAIN = "electricity_pro"
 SERVICE_GET_MARKET_PRICE_FORECAST = "get_market_price_forecast"
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
@@ -39,8 +44,6 @@ CONF_GOOD_PRICE_THRESHOLD = "good_price_threshold"
 CONF_GOOD_PRICE_MODE = "good_price_mode"
 CONF_ADAPTIVE_TARGET_PERCENTILE = "adaptive_target_percentile"
 CONF_ADAPTIVE_PRICE_CEILING = "adaptive_price_ceiling"
-GOOD_PRICE_MODE_FIXED = "fixed"
-GOOD_PRICE_MODE_ADAPTIVE = "adaptive"
 DEFAULT_ADAPTIVE_TARGET_PERCENTILE = 25
 CONF_FORECAST_PRICE_AREA = "forecast_price_area"
 CONF_FORECAST_CURRENCY = "forecast_currency"

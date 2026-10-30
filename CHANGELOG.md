@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Extract fixed/adaptive Good Time decisions into a pure, explicitly timed
+  calculation module. Preserve entity identities, availability, explanations,
+  configuration and stored history; add before/after characterization tests and
+  expand strict type checks to Good Time and adaptive pricing. First increment
+  of architecture issue #288, not a change to pricing or classification rules.
+
 ### Documentation
 
 - Reconcile stable v1.5.2 versus main development scope, architecture ownership,
