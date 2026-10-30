@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- Use the Nord Pool CET/CEST market clock for forecast retrieval on startup and
+  timer ticks, retaining delivery dates needed by local-day statistics. Retry
+  empty future responses quietly, keep genuine errors diagnosable, and preserve
+  valid cached prices when refreshes fail. See [forecast retrieval](docs/forecast-retrieval.md).
+
 - Preserve submitted settings and optional-source controls after configuration
   errors in standard and Tibber flows. Retain confirmed source/declaration
   drafts through retries, honour cleared values, and discard drafts on cancellation.

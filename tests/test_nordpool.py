@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from homeassistant.exceptions import ServiceValidationError
 
 from custom_components.electricity_pro.nordpool import (
     async_get_nordpool_forecast_intervals_for_date,
@@ -241,3 +242,35 @@ async def test_async_get_nordpool_forecast_intervals_for_date_rejects_invalid_re
             area="SE3",
             currency="SEK",
         )
+
+
+@pytest.mark.parametrize("payload", [None, {}, "unavailable"])
+async def test_inferred_area_rejects_malformed_payload_instead_of_empty_publication(payload):
+    """Area inference must not turn malformed responses into a quiet retry."""
+    hass = SimpleNamespace(services=SimpleNamespace(
+        async_call=AsyncMock(return_value={"SE3": payload})
+    ))
+    with pytest.raises(ValueError, match="must include a list"):
+        await async_get_nordpool_forecast_intervals_for_date(
+            hass, config_entry_id="test", target_date=date(2026, 7, 15), currency="SEK"
+        )
+
+
+async def test_native_empty_response_is_preserved():
+    hass = SimpleNamespace(services=SimpleNamespace(
+        async_call=AsyncMock(return_value={"SE3": []})
+    ))
+    assert await async_get_nordpool_forecast_intervals_for_date(
+        hass, config_entry_id="test", target_date=date(2026, 7, 15), area="SE3", currency="SEK"
+    ) == []
+
+
+@pytest.mark.parametrize("key", ["authentication_error", "connection_error"])
+async def test_native_service_errors_are_not_treated_as_empty_publication(key):
+    error = ServiceValidationError(translation_domain="nordpool", translation_key=key)
+    hass = SimpleNamespace(services=SimpleNamespace(async_call=AsyncMock(side_effect=error)))
+    with pytest.raises(ServiceValidationError) as raised:
+        await async_get_nordpool_forecast_intervals_for_date(
+            hass, config_entry_id="test", target_date=date(2026, 7, 15), area="SE3", currency="SEK"
+        )
+    assert raised.value is error

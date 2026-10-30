@@ -90,7 +90,11 @@ from .forecast_insights import (
     find_next_inexpensive_1h_window,
     find_price_direction,
 )
-from .nordpool import async_get_nordpool_forecast_intervals_for_date
+from .nordpool import (
+    NORDPOOL_TIME_ZONE,
+    async_get_nordpool_forecast_intervals_for_date,
+    forecast_delivery_dates,
+)
 from .pricing_config import vat_rate_from_mapping
 from .provider import (
     ElectricityProData,
@@ -130,7 +134,6 @@ _KWH_PER_WH = Decimal("0.001")
 _FORECAST_REFRESH_INTERVAL = timedelta(minutes=15)
 _WORKDAY_REFRESH_INTERVAL = timedelta(hours=6)
 _HOLIDAY_LOOKAHEAD_DAYS = 32
-_TOMORROW_PUBLICATION_HOUR = 13
 _TIMING_TICK_INTERVAL = timedelta(minutes=5)
 _TIMING_POWER_MAX_HOLD = timedelta(minutes=10)
 _ADAPTIVE_SCOPE_CONFIG_KEYS = (
@@ -206,6 +209,7 @@ class ElectricityProCoordinator(
         self._adaptive_tariff_signature = _adaptive_tariff_signature(entry)
         self._cost_this_month_unit: str | None = None
         self._forecast_intervals_by_date: dict[date, list[ForecastInterval]] = {}
+        self._forecast_failures: dict[date, str] = {}
         self._forecast_intervals: list[ForecastInterval] = []
         self._cheapest_1h_window: ForecastWindowInsight | None = None
         self._cheapest_2h_window: ForecastWindowInsight | None = None
@@ -258,12 +262,7 @@ class ElectricityProCoordinator(
                 )
             )
         if self._forecast_configured:
-            now = dt_util.now()
-            await self._async_refresh_forecast_intervals(now.date())
-            if now.hour >= _TOMORROW_PUBLICATION_HOUR:
-                await self._async_refresh_forecast_intervals(
-                    now.date() + timedelta(days=1)
-                )
+            await self._async_forecast_tick(dt_util.now())
 
             self._entry.async_on_unload(
                 async_track_time_interval(
@@ -539,33 +538,40 @@ class ElectricityProCoordinator(
 
     async def _async_forecast_tick(self, now: datetime) -> None:
         """Refresh published dates and expire cached insights as time advances."""
-        local_now = dt_util.as_local(now)
-        today = local_now.date()
+        # Load through HA's asynchronous timezone helper, never blocking the loop.
+        market_timezone = await dt_util.async_get_time_zone(NORDPOOL_TIME_ZONE)
+        if market_timezone is None:
+            _LOGGER.error("Unable to load Nord Pool market timezone %s", NORDPOOL_TIME_ZONE)
+            return
+        dates = forecast_delivery_dates(
+            now, local_timezone=self._local_timezone, market_timezone=market_timezone
+        )
+        market_today = now.astimezone(market_timezone).date()
 
         stale_dates = [
             stored_date
             for stored_date in self._forecast_intervals_by_date
-            if stored_date < today
+            if stored_date < dates[0]
         ]
         for stale_date in stale_dates:
             del self._forecast_intervals_by_date[stale_date]
+        self._forecast_failures = {
+            day: failure for day, failure in self._forecast_failures.items()
+            if day >= dates[0]
+        }
 
-        if today not in self._forecast_intervals_by_date:
-            await self._async_refresh_forecast_intervals(today)
-
-        tomorrow = today + timedelta(days=1)
-        if (
-            local_now.hour >= _TOMORROW_PUBLICATION_HOUR
-            and tomorrow not in self._forecast_intervals_by_date
-        ):
-            await self._async_refresh_forecast_intervals(tomorrow)
+        for target_date in dates:
+            if target_date not in self._forecast_intervals_by_date:
+                await self._async_refresh_forecast_intervals(target_date, market_today=market_today)
 
         self._rebuild_forecast_intervals()
         self._recalculate_forecast_insights()
         if self.data is not None:
             self.async_set_updated_data(self.data)
 
-    async def _async_refresh_forecast_intervals(self, target_date: date) -> bool:
+    async def _async_refresh_forecast_intervals(
+        self, target_date: date, *, market_today: date
+    ) -> bool:
         """Retrieve forecast intervals for one date and store them."""
         try:
             nordpool_config_entry_id = self._entry.options.get(
@@ -585,18 +591,35 @@ class ElectricityProCoordinator(
                 ),
             )
             if not intervals:
+                if target_date > market_today:
+                    # The native action maps NordPoolEmptyResponseError to an
+                    # empty area list. Do not infer this from arbitrary errors.
+                    _LOGGER.debug(
+                        "Nord Pool has no forecast intervals for future delivery date %s; retrying later",
+                        target_date,
+                    )
+                    self._forecast_failures.pop(target_date, None)
+                    return False
                 raise ValueError("Nord Pool returned no forecast intervals")
+            # Validate before replacing a cache entry: malformed refreshes must
+            # not destroy an otherwise usable series from this or another day.
+            validate_forecast_series([
+                *(interval for day, cached in self._forecast_intervals_by_date.items()
+                  if day != target_date for interval in cached),
+                *intervals,
+            ])
         except (HomeAssistantError, TimeoutError, ValueError) as err:
-            _LOGGER.warning(
+            failure = f"{type(err).__name__}:{getattr(err, 'translation_key', None)}:{err}"
+            log = _LOGGER.debug if self._forecast_failures.get(target_date) == failure else _LOGGER.warning
+            log(
                 "Unable to refresh Nord Pool forecast intervals for %s: %s",
                 target_date,
                 err,
             )
-            self._forecast_intervals_by_date.pop(target_date, None)
-            self._rebuild_forecast_intervals()
-            self._recalculate_forecast_insights()
+            self._forecast_failures[target_date] = failure
             return False
 
+        self._forecast_failures.pop(target_date, None)
         self._forecast_intervals_by_date[target_date] = intervals
         self._rebuild_forecast_intervals()
         self._recalculate_forecast_insights()

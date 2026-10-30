@@ -141,11 +141,13 @@ must state that the lines can have different component and VAT scopes.
 
 The existing coordinator lifecycle remains responsible for retrieval. It loads
 the current delivery date on startup, retries tomorrow after the source's normal
-publication period, refreshes on the existing forecast timer, and drops dates
-older than the local current date.
+publication period, and refreshes on the existing forecast timer. The current
+[retrieval policy](../forecast-retrieval.md) uses CET/CEST market dates and retains
+earlier delivery dates while their intervals contribute to the HA local day.
 
 The active interval is selected using absolute timezone-aware instants. Local
-dates determine retrieval and retention only. A daylight-saving day may contain
+dates determine daily-statistic coverage; market dates determine API requests.
+A daylight-saving day may contain
 23 or 25 hourly intervals, or the corresponding number of sub-hourly intervals;
 no fixed interval count is required.
 
