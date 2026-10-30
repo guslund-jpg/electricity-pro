@@ -6,6 +6,7 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 ./scripts/validate.sh
 python -m ruff check custom_components tests scripts
+python -m mypy --config-file mypy.ini
 python -m pytest -q --tb=short
 ```
 
@@ -64,10 +65,51 @@ unused imports can register fixtures; preserve intentional side effects.
 See [Ruff's rule-selection guidance](https://docs.astral.sh/ruff/linter/#rule-selection).
 These checks complement, not replace, pytest.
 
-### Formatting and staged type checking
+### Strict type-checking pilot
 
-Formatting and static type checking are **not CI gates yet**. Remaining work
-stays tracked in [#287](https://github.com/guslund-jpg/electricity-pro/issues/287):
+The **Repository quality** job and local pre-commit hook also run
+`python -m mypy --config-file mypy.ini`. The checker is pinned in
+`requirements-dev.txt`; use Python 3.14 and run from the repository root.
+Do not append file paths to the normal command: the reviewed scope is listed
+once in `mypy.ini`.
+
+The initial strict scope is:
+
+| Module under `custom_components/electricity_pro/` | Checked contract |
+| --- | --- |
+| `statistics.py` | Remaining-cost projection and optional Decimal values |
+| `pricing.py` | Price/component/VAT enums and immutable metadata |
+| `grid_tariff.py` | Grid tariff fields, date/time boundaries and fee selection |
+
+These modules currently depend only on the standard library. Mypy follows
+imports normally and does not ignore missing imports or errors. Strict mode,
+`disallow_any_unimported` and unused-configuration warnings are enabled; the
+small pilot runs without an incremental cache. No application annotations or
+calculation logic needed changing to pass.
+
+There is one explicit boundary: the exact parent module
+`custom_components.electricity_pro` (`__init__.py`) has `follow_imports = skip`.
+Mypy otherwise discovers that parent while resolving these files and follows
+its HA startup imports into the coordinator. The three pilot modules do not
+use the parent's exported types. This is **not** a wildcard exclusion of its
+submodules: their bodies and imported dependencies remain checked normally.
+Explicit namespace-package bases keep module names consistent with repository
+imports, so the exception cannot accidentally target a different package name.
+See [mypy import handling](https://mypy.readthedocs.io/en/stable/running_mypy.html).
+
+This does not check HA setup, callers in the coordinator/entities, tests, or the
+whole integration. The initial broader scan found work outside the pilot:
+typed counter/source dictionaries (`energy_flows.py`, `flow_sources.py`),
+ledger parameter/reset typing (`cost_ledger.py`), action-response narrowing
+(`nordpool.py`), snapshot/update dictionaries (`coordinator.py`), and HA
+action schema/return typing (`__init__.py`). These findings require review;
+they are not by themselves proof of runtime failures and have not been fixed
+or suppressed as if the whole integration were clean.
+
+### Formatting and further typing
+
+Formatting is **not a CI gate yet**. Remaining work stays tracked in
+[#287](https://github.com/guslund-jpg/electricity-pro/issues/287):
 
 1. **Formatting-only PR:** use the pinned Ruff formatter with the policy in
    `ruff.toml` (88 columns, double quotes, spaces, LF). Review a mechanical
@@ -75,15 +117,13 @@ stays tracked in [#287](https://github.com/guslund-jpg/electricity-pro/issues/28
    enable `ruff format --check` for the agreed scope in CI and pre-commit.
    Until then, preserve surrounding style and do not reformat whole files
    as part of a bug fix.
-2. **Small typing pilot:** assess `statistics.py`, `pricing.py` and
-   `grid_tariff.py` first. Pin the chosen checker, list exactly which modules
-   it checks, include their relevant dependencies and fix reported errors
-   before adding a local/CI command. Do not claim the whole integration is
-   checked or use blanket ignores to manufacture a green result.
-3. **Expand typing gradually:** calculation/history modules next, then HA-facing
+2. **Expand typing gradually:** calculation/history modules next, then HA-facing
    provider/coordinator/entities and configuration flows as their boundaries
-   improve. Record uncovered modules and narrowly justified exceptions in that
-   follow-up. Strict whole-integration typing is not a v1.6 prerequisite.
+   improve. Add modules to the explicit list, include their dependencies, and
+   resolve errors before expanding the gate. Address the findings above and
+   remove the parent-module boundary when setup joins the checked scope.
+   Record remaining uncovered modules and any narrowly justified exceptions.
+   Strict whole-integration typing is not a v1.6 prerequisite.
 
 Keep each stage reviewable, retain the behavioural test gate, and document
 commands only once the corresponding check is actually configured.
