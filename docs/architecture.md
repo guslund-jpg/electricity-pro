@@ -53,6 +53,7 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `timing_score.py`, `base_load.py`, `adaptive_price.py` | Bounded historical calculations and comparable-price summaries |
 | `good_time.py` | Pure fixed/adaptive Good Time decisions and explanations, including forecast refinement |
 | `settings.py` | Shared saved-settings overlay: options override setup data without normalization |
+| `device.py` | Fresh shared device metadata with stable entry-scoped identifiers |
 | `forecast.py`, `forecast_insights.py` | Interval contracts, validation and scheduling calculations |
 | `nordpool.py`, `workday.py` | HA action adapters for market delivery dates and non-working dates |
 | `energy_flows.py` | Pure protected lifetime counters for independent partial directional totals |
@@ -167,6 +168,12 @@ the entity retains settings resolution, availability and history attributes.
 Mode constants remain available through `const.py`. Stored histories and
 configuration keys are unchanged.
 
+Both entity platforms use `device_info_for_entry(entry_id)` from `device.py`
+for device metadata. Each call returns a fresh mapping and identifiers set,
+with the unchanged `(DOMAIN, entry_id)` identifier, name, manufacturer and model.
+Entity unique IDs and class inheritance are unchanged. Registry tests cover
+separate installations, reload stability and preservation of user-assigned names.
+
 Optional flow entity creation uses the coordinator's public
 `is_flow_source_configured(channel, quantity)` and `flow_compatibility_enabled`
 queries. They expose configuration booleans, not mutable provider bindings or
@@ -202,7 +209,6 @@ The code is not yet a completely separated analytics engine:
 - Raw normalized inputs and derived outputs share `ElectricityProData`.
 - Sensor helpers still invoke calculations and normalize inputs; the extracted
   Good Time decision module is one bounded separation, not an entity-layer rewrite.
-- Device metadata is still repeated across entity classes.
 - Setup/options flows and translation strings contain duplicated structures.
 
 These are targets for small, behaviour-preserving changes in

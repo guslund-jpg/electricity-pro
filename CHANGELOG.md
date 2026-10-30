@@ -4,6 +4,11 @@
 
 ### Changed
 
+- Consolidate entity device metadata into one helper while retaining device and
+  entity identifiers, names, manufacturer and model. Keep metadata independently
+  allocated per entity; test separate installations and registry stability on
+  reload. Continues the bounded architecture refactors in #288.
+
 - Expose read-only flow-source configuration queries through the coordinator,
   removing sensor-platform access to private provider bindings. Preserve optional
   entity creation, identities, availability and diagnostic opt-in behaviour;
