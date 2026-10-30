@@ -9,6 +9,9 @@
 
 ### Added
 
+- Run the full Python test suite on every pull request and on main/maintenance
+  branch pushes, retaining JUnit results and documenting local test execution.
+
 - Confirmed, editable Nordic household VAT suggestions in standard setup and
   Tibber's optional forecast pricing. Prefill unset rates from known Swedish,
   Danish and Finnish areas without a redundant country-selection step.
