@@ -1,85 +1,58 @@
 # Electricity Pro
 
-![Electricity Pro icon](docs/assets/electricity-pro-icon.svg)
+**Understand your electricity use, see what it costs, and find better times to use it.**
 
-> **Turn your Home Assistant energy data into actionable insights.**
+Electricity Pro brings live power, energy totals, price insights and cost estimates
+together in Home Assistant. It works with compatible sensors you already have
+and complements the native Energy Dashboard—you do not need solar panels or a
+battery to get started.
 
-Electricity Pro extends Home Assistant with intelligent sensors, statistics and forecasting that help homeowners understand **what is happening, why it is happening, and what they can do next**.
+[Install with HACS](#hacs-installation-recommended) ·
+[Configure your sources](docs/README.md#configuration) ·
+[Add a dashboard](examples/dashboards/README.md#quick-installation)
 
-Built on Home Assistant's native Energy platform, Electricity Pro feels like a natural extension of your smart home, providing deeper analysis today while laying the foundation for future energy intelligence.
+**Stable: [v1.5.2](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.5.2).**
+This README also covers unreleased development; see [release scope](#release-scope)
+before installing code or examples from `main`.
 
----
+[![Enhanced dashboard showing live power, effective price, cost rate and daily and monthly readings](docs/assets/screenshots/enhanced-overview.png)](docs/assets/screenshots/enhanced-overview.png)
 
-## Project Vision
-
-Electricity Pro aims to turn fragmented household electricity data into one
-provider-independent view of usage and cost. It is designed to be:
-
-- **P1/HAN meter and dongle independent.** Electricity Pro consumes compatible
-  Home Assistant entities instead of tying its analytics to one meter product.
-  Tibber Pulse, P1IB, HomeWizard P1 Meter, and Athom Homey Energy Dongle are
-  examples of possible sources when their Home Assistant integrations expose
-  measurements with the required meaning and units.
-- **Electricity-supplier independent.** Supplier prices, per-kWh markups, and
-  fixed supplier fees are treated as explicit inputs rather than assumptions
-  about one retailer.
-- **Grid-provider independent.** Variable grid charges, time-of-use schedules,
-  fixed grid fees, and holiday rules can be described without provider-specific
-  calculation branches.
-- **Spot-market independent in its data model.** Live market prices can come
-  from any compatible Home Assistant price entity. Forecast insights currently
-  use Home Assistant's native Nord Pool integration; support for other markets,
-  such as EPEX SPOT, requires a compatible forecast source.
-
-The path from meter to electricity bill differs by country and household.
-Meters, suppliers, grid operators, and spot markets expose different sensors,
-APIs, tariffs, markups, and fixed charges. Regulated taxes and VAT add another
-layer. Electricity Pro normalizes these inputs and combines only components
-whose meaning is known, aiming to get as close as the available data permits to
-the household's true electricity cost.
-
-That cost model supports clearer statistics, better scheduling insights, and
-reliable inputs for Home Assistant automations. Most price and tariff details
-are optional: Electricity Pro remains useful with a compatible power source and
-spot price, which is often the largest time-varying component. Adding the
-applicable supplier, grid, and tax information makes cost-based results more
-complete. Missing components remain explicit rather than being silently
-guessed.
-
-For the most accurate setup, have a recent electricity-supplier bill and grid
-provider bill available during configuration. They usually contain the rates
-and fixed charges needed for the optional pricing fields.
-
-Some capabilities may initially support a narrower source when that allows a
-reliable first implementation, but the underlying contracts should remain
-provider-independent.
-
----
-
-## Why Electricity Pro?
-
-Home Assistant already provides an excellent Energy Dashboard.
-
-Electricity Pro does **not** replace it.
-
-Instead, it builds an intelligence layer on top of your existing energy integrations, adding calculations, statistics, forecasting and insights that complement Home Assistant's native capabilities.
-
-Existing live measurements work with compatible Home Assistant entities from
-providers such as Tibber, Nord Pool and smart meters. Forecast insight sensors
-use the native Home Assistant Nord Pool integration and its future-price action.
-Whole-home Current Power uses signed net-grid semantics: positive values mean
-import and negative values mean export. Export compensation is not inferred
-from the configured import price.
+*A real, user-configured Enhanced dashboard. It requires Mushroom and ApexCharts
+Card; the [Standard dashboard](#dashboard) uses only built-in Home Assistant cards.
+This installation retains older labels: “Cost today/month” shows supplier costs,
+not total household costs. Current examples distinguish supplier costs from total
+cost estimates. Layout, language and readings vary by installation.*
 
 ## Who is Electricity Pro for?
 
-Electricity Pro is designed for Home Assistant users who want to:
+For Home Assistant users who want to answer practical questions:
 
-- Better understand their household energy usage
-- Build richer dashboards
-- Create smarter automations
-- Analyse historical trends
-- Use forecast-based insights for better electricity scheduling
+- **What am I using and spending?** See live power, today's and this month's
+  energy, and cost estimates based on the sources and charges you configure.
+  Partial coverage and excluded charges remain explicit; estimates are not bills.
+- **Is now a good time to use electricity?** Use a fixed price threshold or
+  opt-in Adaptive Good Time, and compare upcoming cheapest 1h, 2h and 3h windows
+  when a native Nord Pool forecast is available.
+- **How can I act on this?** Add the sensors to a dashboard or use them in your
+  own Home Assistant notifications and automations. Electricity Pro does not
+  start appliances or control a battery for you.
+
+## Why Electricity Pro?
+
+Keep the Energy Dashboard for its overview and use Electricity Pro for live
+cost context, timing insights and sensors you can build on. Compatible Home
+Assistant entities provide the inputs; the calculations are not tied to one
+meter or electricity supplier.
+
+Choose **Tibber fast track** when Tibber supplies both your contracted price and
+Pulse measurements, or **Custom or mixed sources** for other compatible entities.
+Forecast insights use Home Assistant's native Nord Pool integration. Grid fees,
+taxes and fixed fees are optional inputs: adding the applicable charges makes
+cost estimates more complete.
+
+Have a recent electricity-supplier bill and grid-provider bill available during
+configuration. See the [configuration guide](docs/README.md#configuration) for
+source requirements and price-component definitions.
 
 ---
 
@@ -104,6 +77,9 @@ They are not a release announcement.
 ### Live Monitoring
 
 Monitor your home's energy usage in real time.
+
+Current Power represents signed net-grid power: positive means import and
+negative means export. Export compensation is not inferred from import prices.
 
 - Current Power
 - Energy Today
@@ -186,8 +162,6 @@ See [ROADMAP.md](ROADMAP.md) for more details.
 
 ## Dashboard
 
-![Electricity Pro standard dashboard preview](examples/dashboards/electricity-pro-preview.svg)
-
 Start with the **Standard dashboard**. It uses only cards included with Home
 Assistant and covers live measurements, daily and monthly statistics, Effective
 Price, current market-price context, and scheduling and retrospective insights.
@@ -200,6 +174,23 @@ Price, current market-price context, and scheduling and retrospective insights.
 HACS installs the integration but cannot add a dashboard automatically. The
 [one-minute dashboard guide](examples/dashboards/README.md#quick-installation)
 links directly to both ready-to-copy YAML examples.
+
+### Explore prices and timing
+
+These real Enhanced dashboard screenshots show two complementary views. Select
+an image to open it at full size.
+
+| Recorded power and price comparison | Upcoming prices and cheapest windows |
+| ---------------------------------- | ------------------------------------ |
+| [![Recorded power above a comparison of market, supplier and effective prices](docs/assets/screenshots/enhanced-trends.png)](docs/assets/screenshots/enhanced-trends.png) | [![Nord Pool market-price forecast and cheapest 1h, 2h and 3h window cards](docs/assets/screenshots/enhanced-forecast.png)](docs/assets/screenshots/enhanced-forecast.png) |
+
+The power chart uses Current Power (net grid import/export), despite the older
+“Household power” title; it is not the separate optional household-demand sensor.
+The forecast chart shows market prices, while window averages include configured
+supplier additions, variable grid fees and energy tax. They need not match the
+chart's market-price level. Price direction compares individual intervals, not
+a smoothed hourly trend. Screenshots show one installation's readings and
+Swedish formatting, not guaranteed costs or savings.
 
 ---
 
@@ -281,6 +272,48 @@ legacy HACS Nord Pool integration is not required or supported as a forecast sou
 - [Architecture](docs/architecture.md)
 - [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)
+
+---
+
+## Project Vision
+
+Electricity Pro aims to turn fragmented household electricity data into one
+provider-independent view of usage and cost. It is designed to be:
+
+- **P1/HAN meter and dongle independent.** Electricity Pro consumes compatible
+  Home Assistant entities instead of tying its analytics to one meter product.
+  Tibber Pulse, P1IB, HomeWizard P1 Meter, and Athom Homey Energy Dongle are
+  examples of possible sources when their Home Assistant integrations expose
+  measurements with the required meaning and units.
+- **Electricity-supplier independent.** Supplier prices, per-kWh markups, and
+  fixed supplier fees are treated as explicit inputs rather than assumptions
+  about one retailer.
+- **Grid-provider independent.** Variable grid charges, time-of-use schedules,
+  fixed grid fees, and holiday rules can be described without provider-specific
+  calculation branches.
+- **Spot-market independent in its data model.** Live market prices can come
+  from any compatible Home Assistant price entity. Forecast insights currently
+  use Home Assistant's native Nord Pool integration; support for other markets,
+  such as EPEX SPOT, requires a compatible forecast source.
+
+The path from meter to electricity bill differs by country and household.
+Meters, suppliers, grid operators, and spot markets expose different sensors,
+APIs, tariffs, markups, and fixed charges. Regulated taxes and VAT add another
+layer. Electricity Pro normalizes these inputs and combines only components
+whose meaning is known, aiming to get as close as the available data permits to
+the household's true electricity cost.
+
+That cost model supports clearer statistics, better scheduling insights, and
+reliable inputs for Home Assistant automations. Most price and tariff details
+are optional: Electricity Pro remains useful with a compatible power source and
+spot price, which is often the largest time-varying component. Adding the
+applicable supplier, grid, and tax information makes cost-based results more
+complete. Missing components remain explicit rather than being silently
+guessed.
+
+Some capabilities may initially support a narrower source when that allows a
+reliable first implementation, but the underlying contracts should remain
+provider-independent.
 
 ---
 

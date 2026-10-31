@@ -32,6 +32,11 @@
 
 ### Documentation
 
+- Bring real Enhanced dashboard screenshots, practical use cases and setup links
+  into the README; move the longer project vision below the setup guidance.
+  Explain dashboard dependencies, older screenshot labels and price scopes,
+  and retain stable/development boundaries. Runtime behaviour is unchanged.
+
 - Add draft v1.6 release notes and a release checklist, separating implemented
   changes from proposed README, automation-example and smoothed-trend work.
   Release approval, overnight checks and hardware validation remain pending.
