@@ -78,7 +78,7 @@ from .flow_sources import FLOW_KEYS, CONF_CONFIGURE_FLOWS
 from .markup_estimate import CONF_ESTIMATE_MARKUP, async_estimate_markup
 from .vat_suggestions import CONF_SUGGEST_VAT, VatSuggestionFlow, assistance_field
 from .flow_compatibility import (
-    COMPATIBILITY_KEYS, CONF_CONFIGURE_COMPATIBILITY, CONF_ENABLED,
+    COMPATIBILITY_KEYS, CONF_ENABLED,
     CONF_GENERATION, CONF_STORAGE, PHASE_KEYS, PHASE_OPTIONS, PRESENCE_OPTIONS,
 )
 
@@ -1663,14 +1663,9 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
                     source_key = key.replace("_phase_convention", "_entity")
                     if selected[source_key] != saved.get(source_key):
                         combined[key] = "unknown"
-                if user_input.get(CONF_CONFIGURE_COMPATIBILITY):
-                    self._pending_compatibility_settings = combined
-                    return await self.async_step_flow_compatibility()
-                if (
-                    combined.get(CONF_GENERATION) == "absent"
-                    and any(combined.get(f"production_{q}_entity") for q in ("power", "energy"))
-                ):
-                    # Let the user correct topology without losing source choices.
+                if sources:
+                    # Review facts for every optional-source configuration;
+                    # enabling the diagnostic remains a separate opt-in.
                     self._pending_compatibility_settings = combined
                     return await self.async_step_flow_compatibility()
                 return await self.async_step_init(combined)
@@ -1688,9 +1683,6 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
                 exclude_entities=_own_source_entities(self.hass),
             ))
         fields[vol.Optional("confirm_flow_semantics", default=False)] = (
-            selector.BooleanSelector()
-        )
-        fields[vol.Optional(CONF_CONFIGURE_COMPATIBILITY, default=False)] = (
             selector.BooleanSelector()
         )
         return self.async_show_form(
@@ -1719,7 +1711,7 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
                 return await self.async_step_init(combined)
         values = {**pending, **(user_input or {})}
         fields = {
-            vol.Required(CONF_ENABLED, default=values.get(CONF_ENABLED, True)):
+            vol.Required(CONF_ENABLED, default=values.get(CONF_ENABLED, False)):
                 selector.BooleanSelector(),
         }
         for key in (CONF_GENERATION, CONF_STORAGE, *PHASE_KEYS):

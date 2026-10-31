@@ -67,7 +67,8 @@ Real Tibber fast-track regression is a separate checklist item.
 
 Initially configure import sources only. After checking no optional entities
 appear, add the six optional sources and confirm their **synthetic** meanings.
-For the diagnostic, declare generation present, storage absent, all three optional
+The installation-facts review then opens automatically. For the diagnostic,
+declare generation present, storage absent, all three optional
 power sources net across phases, then explicitly enable the diagnostic. Expected
 status after publishing all sources is `aligned`, with
 `complete_balance_available: false`. These declarations do not verify hardware.

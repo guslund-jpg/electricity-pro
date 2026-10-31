@@ -95,7 +95,6 @@ async def to_compatibility_step(hass, profile="custom", options=None):
     })
     result = await hass.config_entries.options.async_configure(result["flow_id"], {
         "production_power_entity": "sensor.production", "confirm_flow_semantics": True,
-        "configure_flow_compatibility": True,
     })
     assert result["step_id"] == "flow_compatibility"
     return entry, result, submission
@@ -107,6 +106,7 @@ async def test_defaults_confirmation_contradictions_preservation_and_disable(has
     defaults = result["data_schema"]({})
     assert defaults[CONF_GENERATION] == defaults[CONF_STORAGE] == "unknown"
     assert defaults["production_power_phase_convention"] == "unknown"
+    assert defaults[CONF_ENABLED] is False
     result = await hass.config_entries.options.async_configure(result["flow_id"], {
         CONF_GENERATION: "absent",
     })
@@ -125,7 +125,6 @@ async def test_defaults_confirmation_contradictions_preservation_and_disable(has
     })
     result = await hass.config_entries.options.async_configure(result["flow_id"], {
         "production_power_entity": "sensor.production", "confirm_flow_semantics": True,
-        "configure_flow_compatibility": True,
     })
     result = await hass.config_entries.options.async_configure(result["flow_id"], {
         **declarations(), CONF_ENABLED: False,
@@ -177,6 +176,12 @@ async def test_replacing_source_invalidates_only_its_phase_declaration(hass):
         "grid_export_power_entity": "sensor.export",
         "confirm_flow_semantics": True,
     })
+    assert result["step_id"] == "flow_compatibility"
+    defaults = result["data_schema"]({})
+    assert defaults["production_power_phase_convention"] == "unknown"
+    assert defaults["grid_export_power_phase_convention"] == "net_across_phases"
+    assert defaults[CONF_ENABLED] is True
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["production_power_phase_convention"] == "unknown"
     assert result["data"]["grid_export_power_phase_convention"] == "net_across_phases"
