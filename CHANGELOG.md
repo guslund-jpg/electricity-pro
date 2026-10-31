@@ -4,6 +4,15 @@
 
 ### Changed
 
+- Replace the existing `price_direction` sensor's next-interval comparison with
+  a rolling two-hour trend: duration-weighted next-hour versus following-hour
+  scheduling prices, with an inclusive symmetric 2% stable tolerance. Preserve
+  entity identity, replace interval attributes with explicit hourly averages,
+  and label both dashboards "Price trend — next 2 hours". Require complete,
+  comparable time coverage, split configured tariff transitions and use elapsed
+  UTC time across DST. Personal automations using the old meaning/attributes
+  need review; Good Time, costs and cheapest windows are unchanged.
+
 - Automatically review installation facts after configuring optional production,
   export or household sources. Keep unknown answers valid and the compatibility
   diagnostic optional (off by default for new configurations). Preserve saved

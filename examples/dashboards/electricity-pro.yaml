@@ -898,6 +898,6 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_price_direction
-              name: Price direction
+              name: Price trend — next 2 hours
               icon: mdi:trending-up
               color: amber

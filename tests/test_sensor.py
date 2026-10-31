@@ -7,6 +7,8 @@ from types import CoroutineType
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
@@ -2299,11 +2301,25 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
 
     assert direction_state is not None
     assert direction_state.state == "rising"
-    assert direction_state.attributes["current_interval_start"] == "2026-08-13T20:00:00+00:00"
-    assert direction_state.attributes["next_interval_start"] == "2026-08-13T20:15:00+00:00"
-    assert direction_state.attributes["current_scheduling_price"] == "0.59104"
-    assert direction_state.attributes["next_scheduling_price"] == "0.69104"
-    assert direction_state.attributes["delta"] == "0.10000"
+    assert direction_state.attributes["first_hour_start"] == "2026-08-13T20:01:00+00:00"
+    assert direction_state.attributes["first_hour_end"] == "2026-08-13T21:01:00+00:00"
+    assert (
+        direction_state.attributes["second_hour_start"] == "2026-08-13T21:01:00+00:00"
+    )
+    assert direction_state.attributes["second_hour_end"] == "2026-08-13T22:01:00+00:00"
+    assert float(
+        direction_state.attributes["first_hour_average_scheduling_price"]
+    ) == pytest.approx(0.7477066667)
+    assert float(
+        direction_state.attributes["second_hour_average_scheduling_price"]
+    ) == pytest.approx(1.1477066667)
+    assert float(direction_state.attributes["delta"]) == pytest.approx(0.4)
+    assert direction_state.attributes["trend_duration_minutes"] == 120
+    assert direction_state.attributes["stable_tolerance_percent"] == 2
+    assert float(direction_state.attributes["stable_tolerance"]) == pytest.approx(
+        1.1477066667 * 0.02
+    )
+    assert "current_interval_start" not in direction_state.attributes
     assert direction_state.attributes["currency"] == "SEK"
     assert direction_state.attributes["price_area"] == "SE3"
 

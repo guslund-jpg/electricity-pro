@@ -1486,7 +1486,7 @@ def _update_next_inexpensive_window_registry(
 
 
 class ElectricityProPriceDirectionSensor(ElectricityProForecastInsightSensor):
-    """Represent a near-term forecast price direction sensor."""
+    """Expose the two-hour trend under the existing price_direction identity."""
 
     def __init__(
         self,
@@ -1520,12 +1520,15 @@ class ElectricityProPriceDirectionSensor(ElectricityProForecastInsightSensor):
             return None
 
         return {
-            "current_interval_start": insight.current_start.isoformat(),
-            "current_interval_end": insight.current_end.isoformat(),
-            "next_interval_start": insight.next_start.isoformat(),
-            "next_interval_end": insight.next_end.isoformat(),
-            "current_scheduling_price": str(insight.current_scheduling_price),
-            "next_scheduling_price": str(insight.next_scheduling_price),
+            "first_hour_start": insight.current_start.isoformat(),
+            "first_hour_end": insight.current_end.isoformat(),
+            "second_hour_start": insight.next_start.isoformat(),
+            "second_hour_end": insight.next_end.isoformat(),
+            "first_hour_average_scheduling_price": str(insight.current_scheduling_price),
+            "second_hour_average_scheduling_price": str(insight.next_scheduling_price),
+            "trend_duration_minutes": 120,
+            "stable_tolerance_percent": 2,
+            "stable_tolerance": str(insight.stable_tolerance),
             "delta": str(insight.delta),
             "currency": insight.currency,
             "price_area": insight.area,

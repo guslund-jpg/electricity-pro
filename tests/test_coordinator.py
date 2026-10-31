@@ -957,6 +957,51 @@ async def test_async_start_stores_forecast_intervals(
     assert coordinator.price_direction.direction == "rising"
 
 
+async def test_price_trend_uses_configured_tariff_boundaries_and_expires(hass) -> None:
+    """Runtime wires local tariff splits and removes a horizon that is too short."""
+    await hass.config.async_set_time_zone("Europe/Stockholm")
+    start = datetime(2026, 11, 2, 4, tzinfo=UTC)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.test_power",
+            "price_vat_rate": 0,
+            CONF_GRID_FEE_PER_KWH: 0,
+            CONF_GRID_FEE_HIGH_PER_KWH: 2,
+            CONF_GRID_FEE_HIGH_START: "06:30",
+            CONF_GRID_FEE_HIGH_END: "22:00",
+            CONF_GRID_FEE_HIGH_SEASON_START: "11-01",
+            CONF_GRID_FEE_HIGH_SEASON_END: "03-31",
+        },
+    )
+    coordinator = ElectricityProCoordinator(hass, entry)
+    coordinator._forecast_intervals = [
+        ForecastInterval(  # noqa: SLF001
+            start=start,
+            end=start + timedelta(hours=2),
+            market_price=Decimal(1),
+            currency="SEK",
+            area="SE3",
+        )
+    ]
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now", return_value=start
+    ):
+        coordinator._recalculate_forecast_insights()  # noqa: SLF001
+    trend = coordinator.price_direction
+    assert trend is not None
+    assert trend.current_scheduling_price == 1
+    assert trend.next_scheduling_price == 2
+    assert trend.direction == "rising"
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        return_value=start + timedelta(minutes=1),
+    ):
+        coordinator._recalculate_forecast_insights()  # noqa: SLF001
+    assert coordinator.price_direction is None
+
+
 async def test_async_start_keeps_empty_forecast_intervals_on_retrieval_failure(
     hass,
     mock_entry: MockConfigEntry,

@@ -212,7 +212,7 @@ source supplies compatible complete pricing.
 | `consumption_timing_score_yesterday` | Yesterday's consumption/price timing; coverage rules below | % | None / Measurement |
 | `cheapest_1h_window_start`, `cheapest_2h_window_start`, `cheapest_3h_window_start` | Forecast-derived continuous-window starts, with a sufficiently long gap-free horizon | Timestamp | Timestamp / None |
 | `cheapest_1h_window_average_effective_price`, `cheapest_2h_window_average_effective_price`, `cheapest_3h_window_average_effective_price` | Average **scheduling price** for each window; historical keys retained, not a complete household Effective Price claim | Currency/kWh | None / None |
-| `price_direction` | Forecast-based rising/falling/stable classification | None | None / None |
+| `price_direction` | Two-hour scheduling-price trend: rising/falling/stable (unreleased v1.6 behaviour) | None | None / None |
 | `next_inexpensive_1h_window_start` | Complete comparable forecast plus configured threshold required; not exposed for current partial Nord Pool scope | Timestamp | Timestamp / None |
 | `good_time_to_use_electricity` | **Binary sensor** created for fixed-threshold or adaptive configuration; incomplete inputs can leave it unknown | On/off | None / Not applicable |
 
@@ -220,6 +220,55 @@ Forecast entities require a configured native Nord Pool entry. Window averages
 use the configured VAT rate and applicable per-kWh additions; no fixed fees.
 Missing/short/gapped forecasts can make individual insights unavailable.
 [Forecast retrieval](forecast-retrieval.md) explains publication and retry timing.
+
+### Price trend — next 2 hours (unreleased v1.6)
+
+The existing `sensor.electricity_pro_price_direction` entity now compares the
+duration-weighted average scheduling price from **now to one hour ahead** with
+the average from **one to two hours ahead**. Its default entity name remains
+Price direction to preserve identity; both example dashboards label it
+**Price trend — next 2 hours**. No additional sensor is created.
+
+Partial forecast intervals are clipped at now, the hour split and the end;
+weights use elapsed seconds in UTC, including across midnight and DST. Configured
+high/low grid-tariff changes split the averages even inside an hourly price interval.
+The trend recalculates with cached forecast insights, including the existing
+15-minute forecast tick and forecast/tariff refreshes; it does not make extra
+forecast requests. The hour-boundary attributes show the last calculation's
+anchor, rather than promising a continuously moving, second-by-second result.
+
+Let A be the first hourly average and B the second. `delta = B - A`.
+The state is `stable` when `abs(delta) <= 0.02 * max(abs(A), abs(B))`;
+otherwise it is `rising` for a positive delta and `falling` for a negative one.
+This inclusive 2% tolerance is symmetric and independent of currency scale.
+Negative prices are not clamped: -2 to -3 is falling. There is no arbitrary
+currency-specific absolute floor; near zero even a small absolute change can
+be rising/falling, while two zero averages are stable. This is a tolerance band,
+not stateful hysteresis or a guarantee that the classification never changes.
+
+Both hours need contiguous, non-overlapping forecast coverage starting at now,
+with matching currency, area and pricing metadata and consistent derived component
+scope. Missing coverage, unresolved VAT, non-finite adjustments or a scope change
+make the sensor unavailable; it does not jump ahead to a later available window.
+Complete **time coverage** does not imply a complete bill: consistently partial
+component scope is allowed and remains labelled partial. Prices include VAT and
+configured supplier markup, variable grid fees and energy tax, without double
+counting components already included. Fixed fees are excluded.
+
+Attributes expose `first_hour_start`, `first_hour_end`, `second_hour_start`,
+`second_hour_end`, `first_hour_average_scheduling_price`,
+`second_hour_average_scheduling_price`, `delta`, `stable_tolerance`,
+`stable_tolerance_percent` (2), `trend_duration_minutes` (120), currency, area
+and price scope. Prices, delta and the absolute tolerance are in currency/kWh.
+`published_at` is the oldest included publication timestamp, or unknown if any
+included timestamp is missing; it is not a guarantee of a fresh upstream fetch.
+
+**Changed meaning:** before v1.6 this entity compared two individual intervals,
+with exact equality required for stable. The old `current_interval_*`,
+`next_interval_*`, `current_scheduling_price` and `next_scheduling_price`
+attributes are replaced by the hourly attributes above. Review personal
+automations using this entity or its attributes. Good Time, costs and cheapest
+windows do not consume its result and retain their existing behaviour.
 
 ## Optional flow entities (unreleased v1.6)
 

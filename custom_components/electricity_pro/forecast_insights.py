@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Callable
 
@@ -17,6 +17,7 @@ from .pricing import (
 )
 
 GridFeeAt = Callable[[datetime], Decimal | None]
+PRICE_TREND_RELATIVE_TOLERANCE = Decimal("0.02")
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,7 +65,7 @@ class ForecastWindowInsight:
 
 @dataclass(frozen=True, slots=True)
 class ForecastDirectionInsight:
-    """A comparison between two nearby forecast intervals."""
+    """A comparison of scheduling-price averages over two elapsed hours."""
 
     direction: str
     current_start: datetime
@@ -74,6 +75,7 @@ class ForecastDirectionInsight:
     current_scheduling_price: Decimal
     next_scheduling_price: Decimal
     delta: Decimal
+    stable_tolerance: Decimal
     currency: str
     area: str
     published_at: datetime | None
@@ -181,68 +183,110 @@ def find_price_direction(
     grid_fee_at: GridFeeAt | None = None,
     energy_tax_per_kwh: Decimal | None = None,
     supplier_markup_per_kwh: Decimal | None = None,
+    grid_fee_change_times: tuple[datetime, ...] = (),
 ) -> ForecastDirectionInsight | None:
-    """Return the near-term price direction from the normalized forecast."""
-    if any(
-        vat_inclusive_price(i.market_price, i.pricing_metadata) is None
-        for i in intervals
-    ):
+    """Compare [now, +1h) with [+1h, +2h), requiring comparable full coverage.
+
+    Arithmetic uses UTC elapsed time, including partial source intervals. A
+    variable tariff callback must supply any intra-interval change boundaries.
+    Consistently partial bill-component scope is allowed; missing time is not.
+    """
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("Price trend requires a timezone-aware timestamp")
+    start = now.astimezone(UTC)
+    middle = start + timedelta(hours=1)
+    end = middle + timedelta(hours=1)
+    relevant = sorted(
+        (
+            i
+            for i in intervals
+            if i.end.astimezone(UTC) > start and i.start.astimezone(UTC) < end
+        ),
+        key=lambda i: i.start.astimezone(UTC),
+    )
+    if not relevant:
         return None
-    sorted_intervals = sorted(intervals, key=lambda interval: interval.start)
-
-    for index in range(len(sorted_intervals) - 1):
-        current = sorted_intervals[index]
-        following = sorted_intervals[index + 1]
-        if following.start < current.end:
-            continue
-        if current.start <= now < current.end or current.start >= now:
-            if current.currency != following.currency or current.area != following.area:
+    first = relevant[0]
+    cursor = start
+    weighted = [Decimal(0), Decimal(0)]
+    metadata: PricingMetadata | None = None
+    boundaries = {middle, *(t.astimezone(UTC) for t in grid_fee_change_times)}
+    for interval in relevant:
+        left = max(start, interval.start.astimezone(UTC))
+        right = min(end, interval.end.astimezone(UTC))
+        if (
+            left != cursor
+            or right <= left
+            or interval.currency != first.currency
+            or interval.area != first.area
+            or interval.pricing_metadata != first.pricing_metadata
+            or vat_inclusive_price(interval.market_price, interval.pricing_metadata)
+            is None
+        ):
+            return None
+        points = [left, *sorted(t for t in boundaries if left < t < right), right]
+        for segment_start, segment_end in zip(points, points[1:]):
+            # Evaluate once so the price and its declared component scope agree.
+            fee = (
+                grid_fee_at(segment_start)
+                if grid_fee_at is not None
+                else grid_fee_per_kwh
+            )
+            if any(
+                value is not None and not value.is_finite()
+                for value in (fee, energy_tax_per_kwh, supplier_markup_per_kwh)
+            ):
                 return None
-            current_scheduling_price = _scheduling_price(
-                current.market_price,
-                pricing_metadata=current.pricing_metadata,
-                at=current.start,
-                grid_fee_per_kwh=grid_fee_per_kwh,
-                grid_fee_at=grid_fee_at,
+            segment_metadata = _scheduling_price_metadata(
+                interval,
+                fee is not None,
+                energy_tax_per_kwh is not None,
+                supplier_markup_per_kwh is not None,
+            )
+            if metadata is not None and segment_metadata != metadata:
+                return None
+            metadata = segment_metadata
+            price = _scheduling_price(
+                interval.market_price,
+                pricing_metadata=interval.pricing_metadata,
+                at=segment_start,
+                grid_fee_per_kwh=fee,
+                grid_fee_at=None,
                 energy_tax_per_kwh=energy_tax_per_kwh,
                 supplier_markup_per_kwh=supplier_markup_per_kwh,
             )
-            next_scheduling_price = _scheduling_price(
-                following.market_price,
-                pricing_metadata=following.pricing_metadata,
-                at=following.start,
-                grid_fee_per_kwh=grid_fee_per_kwh,
-                grid_fee_at=grid_fee_at,
-                energy_tax_per_kwh=energy_tax_per_kwh,
-                supplier_markup_per_kwh=supplier_markup_per_kwh,
-            )
-            delta = next_scheduling_price - current_scheduling_price
-            direction = "stable" if delta == 0 else "rising" if delta > 0 else "falling"
-            return ForecastDirectionInsight(
-                direction=direction,
-                current_start=current.start,
-                current_end=current.end,
-                next_start=following.start,
-                next_end=following.end,
-                current_scheduling_price=current_scheduling_price,
-                next_scheduling_price=next_scheduling_price,
-                delta=delta,
-                currency=current.currency,
-                area=current.area,
-                published_at=current.published_at,
-                pricing_metadata=_scheduling_price_metadata(
-                    current,
-                    _has_grid_fee(
-                        current.start,
-                        grid_fee_per_kwh=grid_fee_per_kwh,
-                        grid_fee_at=grid_fee_at,
-                    ),
-                    energy_tax_per_kwh is not None,
-                    supplier_markup_per_kwh is not None,
-                ),
-            )
-
-    return None
+            if not price.is_finite():
+                return None
+            seconds = Decimal(str((segment_end - segment_start).total_seconds()))
+            weighted[0 if segment_start < middle else 1] += price * seconds
+        cursor = right
+    if cursor != end or metadata is None:
+        return None
+    current, following = (value / Decimal(3600) for value in weighted)
+    delta = following - current
+    tolerance = max(abs(current), abs(following)) * PRICE_TREND_RELATIVE_TOLERANCE
+    direction = (
+        "stable" if abs(delta) <= tolerance else "rising" if delta > 0 else "falling"
+    )
+    return ForecastDirectionInsight(
+        direction=direction,
+        current_start=start,
+        current_end=middle,
+        next_start=middle,
+        next_end=end,
+        current_scheduling_price=current,
+        next_scheduling_price=following,
+        delta=delta,
+        stable_tolerance=tolerance,
+        currency=first.currency,
+        area=first.area,
+        published_at=(
+            min(i.published_at for i in relevant if i.published_at is not None)
+            if all(i.published_at is not None for i in relevant)
+            else None
+        ),
+        pricing_metadata=metadata,
+    )
 
 
 def _scheduling_price(
