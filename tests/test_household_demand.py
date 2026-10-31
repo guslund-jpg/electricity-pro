@@ -124,6 +124,8 @@ async def test_options_confirm_preserve_and_clear_household_bindings(hass, profi
     result = await hass.config_entries.options.async_configure(result["flow_id"], {
         "household_power_entity": "sensor.load_power", "confirm_flow_semantics": True,
     })
+    assert result["step_id"] == "flow_compatibility"
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] == FlowResultType.CREATE_ENTRY
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(result["flow_id"], submission)

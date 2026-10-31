@@ -236,13 +236,12 @@
           "grid_export_energy_entity": "Lifetime grid-export energy",
           "household_power_entity": "Measured household demand power (excluding battery charging)",
           "household_energy_entity": "Lifetime household energy (excluding battery charging)",
-          "confirm_flow_semantics": "I confirm the selected sources have these meanings",
-          "configure_flow_compatibility": "Review installation and compatibility"
+          "confirm_flow_semantics": "I confirm the selected sources have these meanings"
         }
       },
       "flow_compatibility": {
         "title": "Installation and compatibility",
-        "description": "Declare known installation facts, not assumptions from missing sensors. Phase conventions apply separately to the selected power sources; leave unverified conventions unknown. Whole-site AC boundaries are declared in the source step. This optional diagnostic checks configured power observations only: it does not calculate household demand, energy ratios or balance readiness. Battery charge/discharge and explicit grid-import power inputs are not yet supported.",
+        "description": "Review installation facts whenever optional sources are configured. Choose Unknown / not confirmed when unsure; missing sensors do not mean equipment is absent. Phase conventions apply separately to the selected power sources; leave unverified conventions unknown. Whole-site AC boundaries are declared in the source step. You can save these facts without enabling the optional diagnostic. The diagnostic checks configured power observations only: it does not calculate household demand, energy ratios or balance readiness. Battery charge/discharge and explicit grid-import power inputs are not yet supported.",
         "data": {
           "flow_compatibility_enabled": "Enable Flow power compatibility diagnostic",
           "flow_generation_presence": "Local generation installed",

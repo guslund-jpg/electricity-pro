@@ -10,13 +10,18 @@ This opt-in diagnostic is experimental / not hardware-verified; see the
 
 1. Open Electricity Pro **Configure** and select
    **Configure optional production, export and household sources**.
-2. Review the selected sources, confirm their meanings, and select
-   **Review installation and compatibility**.
+2. Review the selected sources, confirm their meanings, and submit. If any
+   optional source is selected, **Installation and compatibility** opens
+   automatically, including for energy-only sources.
 3. Declare generation and battery storage independently as **Unknown / not
    confirmed**, **Absent** or **Present**.
 4. Choose the verified phase convention for each configured power source.
    Leave it unknown if you cannot confirm its meaning.
-5. Enable **Flow power compatibility diagnostic** and submit.
+5. Optionally enable **Flow power compatibility diagnostic** and submit.
+   New diagnostics default off. Reviewing installation facts is required after
+   configuring optional sources, but unknown answers are accepted and the
+   diagnostic is not required. Existing answers and the enabled/disabled choice
+   are preserved; changing a power source clears only its phase convention.
 
 The new diagnostic entity is
 `sensor.electricity_pro_flow_power_compatibility`. Find it under the Electricity
@@ -27,8 +32,9 @@ remain saved.
 
 Existing configurations default to unknown topology/conventions with the
 diagnostic disabled. Initial setup, including Tibber fast track, is unchanged.
-Ordinary options saves preserve declarations. Cancelling the extra step does
-not commit pending changes.
+Ordinary options saves preserve declarations without opening this review.
+Selecting no optional sources (including clearing all bindings) skips the review.
+Cancelling the review does not commit pending changes.
 
 ## What to declare
 

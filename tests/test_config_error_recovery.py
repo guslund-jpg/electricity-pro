@@ -150,12 +150,11 @@ async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel)
     assert result["step_id"] == "energy_flows"
     result = await manager.async_configure(result["flow_id"], {
         "production_power_entity": "sensor.missing", "confirm_flow_semantics": True,
-        "configure_flow_compatibility": True,
     })
     assert result["errors"]["production_power_entity"] == "invalid_flow_source"
     shown = form_values(result)
     assert shown["confirm_flow_semantics"] is True
-    assert shown["configure_flow_compatibility"] is True
+    assert "configure_flow_compatibility" not in result["data_schema"].schema
     assert "grid_export_power_entity" not in shown
     shown["production_power_entity"] = "sensor.production"
     result = await manager.async_configure(result["flow_id"], shown)

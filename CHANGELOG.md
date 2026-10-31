@@ -4,6 +4,11 @@
 
 ### Changed
 
+- Automatically review installation facts after configuring optional production,
+  export or household sources. Keep unknown answers valid and the compatibility
+  diagnostic optional (off by default for new configurations). Preserve saved
+  answers; import-only setup and ordinary options saves remain unchanged.
+
 - Consolidate entity device metadata into one helper while retaining device and
   entity identifiers, names, manufacturer and model. Keep metadata independently
   allocated per entity; test separate installations and registry stability on

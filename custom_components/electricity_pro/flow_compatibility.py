@@ -9,7 +9,6 @@ PHASE_OPTIONS = ("unknown", "net_across_phases", "gross_directional")
 CONF_GENERATION = "flow_generation_presence"
 CONF_STORAGE = "flow_storage_presence"
 CONF_ENABLED = "flow_compatibility_enabled"
-CONF_CONFIGURE_COMPATIBILITY = "configure_flow_compatibility"
 PHASE_KEYS = tuple(
     f"{channel}_power_phase_convention"
     for channel in ("production", "grid_export", "household")

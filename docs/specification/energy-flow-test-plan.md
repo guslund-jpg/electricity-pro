@@ -67,6 +67,9 @@ differences and retain the failing evidence. A skipped/unavailable test is not a
 ### B. Optional measurements (same local day)
 
 - [ ] **B1 Configure:** bind the six lab optional sensors and confirm meanings.
+  Installation-facts review must open automatically, with unknown answers allowed
+  and the diagnostic off for a new configuration. Reopening must retain saved
+  answers and diagnostic choice; cancelling must not commit pending changes.
   Expect power 1200/200/1800 W for production/export/household. Initial optional
   daily and monthly energy totals are 0 kWh, marked partial. Enable the diagnostic
   with the lab declarations: expect `aligned`, receipt-time provenance and
