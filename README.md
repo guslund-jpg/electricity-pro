@@ -95,6 +95,10 @@ suggestions and Tibber forecast-addition estimation are **not in v1.5.2**.
 Use a separate test installation for development code; solar/battery hardware
 validation remains outstanding.
 
+The [draft v1.6 release notes and checklist](docs/releases/1.6.0.md) distinguish
+implemented changes, proposed usability additions and outstanding release gates.
+They are not a release announcement.
+
 ## Features
 
 ### Live Monitoring

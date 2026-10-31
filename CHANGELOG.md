@@ -32,6 +32,10 @@
 
 ### Documentation
 
+- Add draft v1.6 release notes and a release checklist, separating implemented
+  changes from proposed README, automation-example and smoothed-trend work.
+  Release approval, overnight checks and hardware validation remain pending.
+
 - Reconcile stable v1.5.2 versus main development scope, architecture ownership,
   sensor catalogue, ADR status and contributor/repository-layout guidance.
 
