@@ -60,6 +60,13 @@
 
 ### Added
 
+- Extend optional automation examples with an opt-in daily forecast heads-up,
+  a next-inexpensive-hour reminder recipe, and a notification-only humidity/
+  Good Time simulation. Include price/currency and local reporting-age checks,
+  humidity hysteresis, minimum off time, recovery behaviour and HA-engine tests.
+  No integration runtime or installed automations change; real device control
+  and manual/hardware validation remain separate.
+
 - Add separately installed one-shot automation examples for cheapest-window
   reminders and an explicitly requested appliance-action dry run. Require a
   currency and average-price ceiling, cancel revised/missing/stale local inputs,

@@ -1,0 +1,95 @@
+# Optional HA package. This is a SIMULATION, not a real dehumidifier controller.
+# Only internal toggle helpers and persistent notifications are changed.
+# Do not replace a helper target with a mains switch. See README.md boundaries.
+input_boolean:
+  ep_humidity_example_enabled:
+    name: EP Humidity example enabled
+    initial: false
+  ep_humidity_simulated_running:
+    name: EP Humidity simulated running
+    initial: false
+
+automation:
+  - id: ep_humidity_dry_run
+    alias: EP Humidity dry run
+    mode: single
+    max_exceeded: silent
+    triggers:
+      # EDIT entity IDs here AND in the variables below.
+      - trigger: state
+        entity_id:
+          - binary_sensor.electricity_pro_good_time_to_use_electricity
+          - sensor.electricity_pro_effective_price
+          - sensor.living_room_humidity
+          - input_boolean.ep_humidity_example_enabled
+      - trigger: homeassistant
+        event: start
+      - trigger: event
+        event_type: automation_reloaded
+      # Recheck unchanged reports, stale data and the off-time limit. No delay
+      # holds a future stop command in memory. Polling can take up to a minute.
+      - trigger: time_pattern
+        minutes: "/1"
+    actions:
+      - variables:
+          good_source: binary_sensor.electricity_pro_good_time_to_use_electricity
+          price_source: sensor.electricity_pro_effective_price
+          humidity_source: sensor.living_room_humidity
+          # Example values, not recommendations for your home or appliance.
+          expected_price_unit: SEK/kWh
+          price_limit: 2.00
+          start_humidity: 55
+          stop_humidity: 50
+          minimum_off_seconds: 300
+          running: "{{ is_state('input_boolean.ep_humidity_simulated_running', 'on') }}"
+          enabled: "{{ is_state('input_boolean.ep_humidity_example_enabled', 'on') }}"
+          valid: >-
+            {% set g = states[good_source] %}
+            {% set p = states[price_source] %}
+            {% set h = states[humidity_source] %}
+            {{ g is not none and p is not none and h is not none
+               and g.state in ['on', 'off'] and is_number(p.state) and is_number(h.state)
+               and p.attributes.get('unit_of_measurement') == expected_price_unit
+               and h.attributes.get('unit_of_measurement') == '%'
+               and 0 <= (h.state | float(0)) <= 100
+               and 0 <= as_timestamp(now()) - as_timestamp(g.last_reported) <= 300
+               and 0 <= as_timestamp(now()) - as_timestamp(p.last_reported) <= 300
+               and 0 <= as_timestamp(now()) - as_timestamp(h.last_reported) <= 600
+               and is_number(price_limit)
+               and 0 <= stop_humidity < start_humidity <= 100
+               and minimum_off_seconds >= 0 }}
+          reason: >-
+            {% if not enabled %}disabled
+            {% elif not valid %}invalid_or_stale_input
+            {% elif not is_state(good_source, 'on') %}not_good_time
+            {% elif (states(price_source) | float(0)) > price_limit %}price_over_limit
+            {% elif (states(humidity_source) | float(0)) <= stop_humidity %}humidity_low
+            {% elif running %}keep_running
+            {% elif (states(humidity_source) | float(0)) < start_humidity %}
+              humidity_between_thresholds
+            {% elif as_timestamp(now()) - as_timestamp(
+                states.input_boolean.ep_humidity_simulated_running.last_changed) < minimum_off_seconds %}
+              minimum_off_time
+            {% else %}start_conditions_met{% endif %}
+          should_run: "{{ reason in ['keep_running', 'start_conditions_met'] }}"
+      - condition: template
+        value_template: "{{ should_run != running }}"
+      - choose:
+          - conditions: "{{ should_run }}"
+            sequence:
+              - action: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.ep_humidity_simulated_running
+        default:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.ep_humidity_simulated_running
+      - action: persistent_notification.create
+        data:
+          notification_id: ep_humidity_dry_run
+          title: Electricity Pro — humidity DRY RUN
+          message: >-
+            Simulated {{ 'START' if should_run else 'STOP' }}: {{ reason }}.
+            No appliance was controlled. This helper is not the state of a real
+            dehumidifier. Review device-specific controls and restart recovery
+            before implementing any real-device automation.

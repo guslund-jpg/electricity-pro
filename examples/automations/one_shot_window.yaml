@@ -9,8 +9,8 @@ script:
     max_exceeded: silent
     fields:
       window_entity:
-        name: Cheapest window sensor
-        description: Select Electricity Pro's cheapest 1h, 2h or 3h window START sensor.
+        name: Forecast window start sensor
+        description: Select a cheapest 1h/2h/3h or next inexpensive 1h START sensor. See README for reminder usage.
         required: true
         selector:
           entity:

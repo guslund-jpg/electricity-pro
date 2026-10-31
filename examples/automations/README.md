@@ -5,6 +5,11 @@ These are **optional Home Assistant scripts**, deliberately requested once per
 job. They can be called from your own automations, but installing Electricity
 Pro or a dashboard does not install or enable them.
 
+For complementary examples, see [forecast notices and Good Time](followups.md):
+a daily best-known-window notice, a next-inexpensive-hour reminder using the
+same one-shot scripts, and an opt-in humidity/dehumidifier **simulation**.
+The additional packages also ship without real-device commands.
+
 ## Two examples, one small package
 
 [`one_shot_window.yaml`](one_shot_window.yaml) provides:
