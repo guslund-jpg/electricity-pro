@@ -207,6 +207,11 @@ up on missed starts. Review the guide's freshness limitations and test the dry
 run before connecting a real appliance. EV charging control remains future work.
 These examples are not installed or enabled by HACS.
 
+Additional [notification and Good Time examples](examples/automations/followups.md)
+cover a daily best-currently-available window notice, a next-inexpensive-hour
+reminder, and a humidity/dehumidifier simulation with separate start/stop
+thresholds and unavailable-input handling. No real-device control is enabled.
+
 ## Installation
 
 ### HACS installation (recommended)

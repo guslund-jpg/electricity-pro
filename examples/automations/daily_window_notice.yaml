@@ -1,0 +1,54 @@
+# Optional HA package. Read README.md. Notifications only; no appliance control.
+# Disabled at startup. Reload may retain its enabled state; check after edits.
+# Review the source/currency/time, then enable it.
+automation:
+  - id: ep_daily_window_notice
+    alias: EP Daily window notice
+    initial_state: false
+    mode: single
+    triggers:
+      - trigger: time
+        at: "14:00:00"
+    actions:
+      - variables:
+          # EDIT these for your installation. The time above is HA local time.
+          source: sensor.electricity_pro_cheapest_3h_window_start
+          expected_currency: SEK
+          start: "{{ as_timestamp(states(source), 0) }}"
+          end: "{{ as_timestamp(state_attr(source, 'window_end'), 0) }}"
+          duration: "{{ state_attr(source, 'window_duration_minutes') }}"
+          price: "{{ state_attr(source, 'average_scheduling_price') }}"
+          currency: "{{ state_attr(source, 'currency') }}"
+          area: "{{ state_attr(source, 'price_area') }}"
+      - if:
+          - condition: template
+            value_template: >-
+              {% set s = states[source] %}
+              {{ s is none or not has_value(source)
+                 or not is_number(price) or currency != expected_currency or not area
+                 or duration not in [60, 120, 180]
+                 or end - start != (duration | float(0)) * 60
+                 or start < as_timestamp(now())
+                 or not (0 <= as_timestamp(now()) - as_timestamp(s.last_reported) <= 300) }}
+        then:
+          - action: persistent_notification.create
+            data:
+              notification_id: ep_daily_window_notice
+              title: Electricity Pro — forecast notice unavailable
+              message: >-
+                No valid, recently reported future window in {{ expected_currency }}
+                is available from {{ source }}. Check forecast/source health and
+                configuration. No job was scheduled. There is no automatic retry.
+          - stop: No usable window
+      - action: persistent_notification.create
+        data:
+          notification_id: ep_daily_window_notice
+          title: Electricity Pro — best currently available window
+          message: >-
+            {{ duration }} minutes in {{ area }}:
+            {{ start | timestamp_local }} to {{ end | timestamp_local }}.
+            Average scheduling price {{ price }} {{ currency }}/kWh.
+            Based on currently available forecast data; this does not confirm
+            tomorrow's prices are published or a fresh exchange fetch.
+            Cheapest does not necessarily mean inexpensive or include every bill
+            component. This is a heads-up only: no job was scheduled or started.

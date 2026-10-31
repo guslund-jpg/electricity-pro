@@ -15,6 +15,11 @@ from pytest_homeassistant_custom_component.common import (
     async_mock_service,
 )
 
+from custom_components.electricity_pro.pricing import (
+    PriceComponent, PriceComponentScope, PriceCompleteness,
+    PricingMetadata, PricingStrategy, VatTreatment,
+)
+
 PACKAGE = Path(__file__).parents[1] / "examples/automations/one_shot_window.yaml"
 SOURCE = "sensor.electricity_pro_cheapest_2h_window_start"
 REQUEST = "script.ep_window_request"
@@ -266,6 +271,56 @@ async def test_accepts_actual_electricity_pro_sensor_contract(hass, example, set
     assert hass.states.get(REQUEST).state == "on"
     assert notifications[-1].data["title"].endswith("one window armed")
     await hass.services.async_call("script", "ep_window_cancel", blocking=True)
+
+
+async def test_next_inexpensive_reminder_uses_actual_sensor(hass, freezer, example, setup_electricity_pro):
+    _, notifications = example
+    source = "sensor.electricity_pro_next_inexpensive_1h_window_start"
+    start = dt_util.utcnow() + timedelta(minutes=15)
+    await setup_electricity_pro(
+        price_value="1.50", good_price_threshold=2.0,
+        price_completeness=PriceCompleteness.COMPLETE,
+        forecast_pricing_metadata=PricingMetadata(
+            strategy=PricingStrategy.EXTERNAL_COMPLETE_PRICE,
+            scope=PriceComponentScope(frozenset(PriceComponent), vat=VatTreatment.INCLUDED),
+            completeness=PriceCompleteness.COMPLETE,
+        ),
+        forecast_nordpool_config_entry="test_nordpool",
+        forecast_price_area="SE3", forecast_currency="SEK",
+        forecast_intervals=[{
+            "start": (start + timedelta(hours=i)).isoformat(),
+            "end": (start + timedelta(hours=i + 1)).isoformat(),
+            "price": 1500,
+        } for i in range(3)],
+    )
+    state = hass.states.get(source)
+    assert state is not None and state.state != "unavailable"
+    assert state.attributes["window_duration_minutes"] == 60
+    assert float(state.attributes["threshold"]) == 2.0
+    await request(hass, window_entity=source, appliance_start=False)
+    assert hass.states.get(REQUEST).state == "on"
+    freezer.move_to(start)
+    # Refresh the report at dispatch, independently of forecast fetch timing.
+    hass.states.async_set(source, state.state, dict(state.attributes))
+    await advance(hass, freezer, start)
+    assert len(dispatched(notifications)) == 1
+    assert dispatched(notifications)[0].data["title"].endswith("starts now")
+    assert hass.states.get(REQUEST).state == "off"
+
+
+async def test_next_inexpensive_revision_cancels_reminder(hass, example):
+    _, notifications = example
+    source = "sensor.electricity_pro_next_inexpensive_1h_window_start"
+    start = publish(hass, hours=1)
+    attrs = dict(hass.states.get(SOURCE).attributes)
+    attrs["threshold"] = "2.00"
+    hass.states.async_set(source, start.isoformat(), attrs)
+    await request(hass, window_entity=source, appliance_start=False)
+    assert hass.states.get(REQUEST).state == "on"
+    hass.states.async_set(source, "unavailable")
+    await settle(hass)
+    assert hass.states.get(REQUEST).state == "off"
+    assert not dispatched(notifications)
 
 
 async def test_revision_during_arm_notification_is_not_missed(hass, example):

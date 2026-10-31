@@ -40,7 +40,9 @@ and templates in `tests/test_validation_fixture.py`; manual test-system and
 hardware results remain separate. Repository YAML checks include `examples/testing/`
 and `examples/automations/`. `tests/test_automation_examples.py` executes the
 optional one-shot scripts with HA's script engine and simulated timing; it does
-not certify appliance hardware. Manual checks are in the
+not certify appliance hardware. `tests/test_automation_followups.py` exercises
+the optional daily notice and humidity simulation with HA automations and helpers.
+Manual checks are in the
 [automation examples guide](../examples/automations/README.md#test-before-connecting-a-device).
 
 ## Check scope and documentation
