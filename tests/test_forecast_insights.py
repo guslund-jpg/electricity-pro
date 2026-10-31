@@ -258,11 +258,11 @@ def test_find_cheapest_continuous_window_excludes_currently_started_interval() -
 
 
 def test_find_price_direction_rising_for_active_and_next_interval() -> None:
-    """Price direction should be rising when the next interval is more expensive."""
-    now = datetime(2026, 8, 13, 10, 10, tzinfo=UTC)
+    """The second hour being more expensive gives a rising trend."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=15, market_price="0.30"),
+        _interval(now, minutes=60, market_price="0.20"),
+        _interval(now + timedelta(hours=1), minutes=60, market_price="0.30"),
     ]
 
     result = find_price_direction(intervals, now=now)
@@ -273,12 +273,12 @@ def test_find_price_direction_rising_for_active_and_next_interval() -> None:
 
 
 def test_find_price_direction_includes_grid_fee_transition() -> None:
-    """Price direction should include a tariff change between intervals."""
-    now = datetime(2026, 8, 13, 10, 10, tzinfo=UTC)
+    """Price trend should include a tariff change between hours."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     start = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(start, minutes=15, market_price="0.30"),
-        _interval(start + timedelta(minutes=15), minutes=15, market_price="0.30"),
+        _interval(start, minutes=60, market_price="0.30"),
+        _interval(start + timedelta(hours=1), minutes=60, market_price="0.30"),
     ]
 
     result = find_price_direction(
@@ -293,11 +293,11 @@ def test_find_price_direction_includes_grid_fee_transition() -> None:
 
 
 def test_find_price_direction_falling_for_active_and_next_interval() -> None:
-    """Price direction should be falling when the next interval is cheaper."""
-    now = datetime(2026, 8, 13, 10, 10, tzinfo=UTC)
+    """Price trend should be falling when the second hour is cheaper."""
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.40"),
-        _interval(datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=15, market_price="0.20"),
+        _interval(now, minutes=60, market_price="0.40"),
+        _interval(now + timedelta(hours=1), minutes=60, market_price="0.20"),
     ]
 
     result = find_price_direction(intervals, now=now)
@@ -309,10 +309,10 @@ def test_find_price_direction_falling_for_active_and_next_interval() -> None:
 
 def test_find_price_direction_stable_for_equal_prices() -> None:
     """Price direction should be stable when the compared prices are equal."""
-    now = datetime(2026, 8, 13, 10, 10, tzinfo=UTC)
+    now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.25"),
-        _interval(datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=15, market_price="0.25"),
+        _interval(now, minutes=60, market_price="0.25"),
+        _interval(now + timedelta(hours=1), minutes=60, market_price="0.25"),
     ]
 
     result = find_price_direction(intervals, now=now)
@@ -322,8 +322,8 @@ def test_find_price_direction_stable_for_equal_prices() -> None:
     assert result.delta == Decimal("0.00")
 
 
-def test_find_price_direction_uses_first_two_future_intervals_without_active_one() -> None:
-    """Future intervals should be compared when there is no active interval."""
+def test_find_price_direction_requires_coverage_from_now() -> None:
+    """Do not silently move the two-hour horizon into the future."""
     now = datetime(2026, 8, 13, 9, 0, tzinfo=UTC)
     intervals = [
         _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
@@ -332,17 +332,14 @@ def test_find_price_direction_uses_first_two_future_intervals_without_active_one
 
     result = find_price_direction(intervals, now=now)
 
-    assert result is not None
-    assert result.direction == "rising"
-    assert result.current_start == datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
-    assert result.next_start == datetime(2026, 8, 13, 11, 0, tzinfo=UTC)
+    assert result is None
 
 
-def test_find_price_direction_returns_none_when_fewer_than_two_intervals_exist() -> None:
-    """At least two usable intervals are required for price direction."""
+def test_find_price_direction_returns_none_when_less_than_two_hours_exist() -> None:
+    """A single hour cannot cover the rolling two-hour horizon."""
     result = find_price_direction(
         [_interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20")],
-        now=datetime(2026, 8, 13, 9, 0, tzinfo=UTC),
+        now=datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
     )
 
     assert result is None
@@ -746,14 +743,7 @@ def test_find_cheapest_continuous_window_dst_fall_back_extra_hour() -> None:
 
 
 def test_find_price_direction_across_dst_spring_forward_boundary() -> None:
-    """Price direction resolves correctly for intervals that straddle a DST transition.
-
-    Nord Pool uses ISO timestamps with explicit UTC offsets.  When intervals on a
-    spring-forward day are expressed with their respective local offsets (+01:00
-    before the transition, +02:00 after), 'now' inside the first interval should
-    correctly yield a rising direction comparing the pre-transition and
-    post-transition slots.
-    """
+    """Two complete elapsed hours with different UTC offsets yield a valid trend."""
     from datetime import timezone
 
     tz_plus1 = timezone(timedelta(hours=1))
@@ -780,7 +770,7 @@ def test_find_price_direction_across_dst_spring_forward_boundary() -> None:
         published_at=datetime(2025, 3, 29, 11, 0, tzinfo=UTC),
     )
 
-    now = slot_before + timedelta(minutes=15)
+    now = slot_before
     result = find_price_direction([first, second], now=now)
 
     assert result is not None

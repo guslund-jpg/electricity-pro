@@ -253,6 +253,18 @@ class ElectricityProEntityProvider:
                 excluded_dates=excluded_dates,
             )
 
+    def grid_fee_change_times(
+        self, start: datetime, end: datetime
+    ) -> tuple[datetime, ...]:
+        """Expose scheduled tariff boundaries for duration-weighted insights."""
+        if self._scheduled_grid_tariff is None or self._grid_fee_at is not None:
+            return ()
+        return self._scheduled_grid_tariff.change_boundaries(
+            start,
+            end,
+            self._local_timezone,
+        )
+
     @callback
     def read(self) -> ElectricityProData:
         """Read and normalize all configured source entities."""

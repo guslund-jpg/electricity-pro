@@ -1434,6 +1434,9 @@ class ElectricityProCoordinator(
             grid_fee_at=self._provider.grid_fee_at,
             energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
             supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
+            grid_fee_change_times=self._provider.grid_fee_change_times(
+                now, now.astimezone(UTC) + timedelta(hours=2),
+            ),
         )
 
     @callback

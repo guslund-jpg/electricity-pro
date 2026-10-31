@@ -964,7 +964,7 @@ views:
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_price_direction
-              name: Price direction
+              name: Price trend — next 2 hours
               icon: mdi:trending-up
               icon_color: amber
               layout: vertical

@@ -115,7 +115,7 @@ negative means export. Export compensation is not inferred from import prices.
   not a complete household Effective Price.
 - Next inexpensive 1h window start only when the forecast and live Effective
   Price have comparable, complete component scopes
-- Price direction (Nord Pool forecast)
+- Price direction (Nord Pool forecast; two-hour averaged trend in unreleased v1.6)
 
 ### Native Home Assistant Integration
 
@@ -188,8 +188,10 @@ The power chart uses Current Power (net grid import/export), despite the older
 “Household power” title; it is not the separate optional household-demand sensor.
 The forecast chart shows market prices, while window averages include configured
 supplier additions, variable grid fees and energy tax. They need not match the
-chart's market-price level. Price direction compares individual intervals, not
-a smoothed hourly trend. Screenshots show one installation's readings and
+chart's market-price level. The screenshots show the older individual-interval
+Price direction; unreleased v1.6 changes that entity to a
+[two-hour averaged trend](docs/sensors.md#price-trend--next-2-hours-unreleased-v16).
+Screenshots show one installation's readings and
 Swedish formatting, not guaranteed costs or savings.
 
 ---

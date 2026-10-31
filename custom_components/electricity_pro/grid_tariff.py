@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta, tzinfo
 from decimal import Decimal
 
 _MonthDay = tuple[int, int]
@@ -68,6 +68,45 @@ class HighLowGridTariff:
             return self.low_fee_per_kwh
 
         return self.high_fee_per_kwh
+
+    def change_boundaries(
+        self,
+        start: datetime,
+        end: datetime,
+        local_timezone: tzinfo,
+    ) -> tuple[datetime, ...]:
+        """Return UTC split points for a short forecast's local tariff schedule.
+
+        Midnight handles weekdays, seasons and exclusions. Both folds handle
+        repeated local times. Offset transitions also need a split when the
+        clock jumps over a configured boundary. Extra split points are harmless.
+        """
+        if start.utcoffset() is None or end.utcoffset() is None:
+            raise ValueError("Tariff boundaries require timezone-aware timestamps")
+        start, end = start.astimezone(UTC), end.astimezone(UTC)
+        candidates: set[datetime] = set()
+        day = start.astimezone(local_timezone).date() - timedelta(days=1)
+        last_day = end.astimezone(local_timezone).date() + timedelta(days=1)
+        while day <= last_day:
+            for clock_time in (time.min, self.high_start_time, self.high_end_time):
+                for fold in (0, 1):
+                    candidates.add(
+                        datetime.combine(day, clock_time, local_timezone)
+                        .replace(fold=fold)
+                        .astimezone(UTC)
+                    )
+            day += timedelta(days=1)
+        # Modern tariff zones change UTC offset on minute boundaries. Probe only
+        # the requested horizon (two hours for the trend), not the whole series.
+        cursor = start.replace(second=0, microsecond=0) + timedelta(minutes=1)
+        previous_offset = start.astimezone(local_timezone).utcoffset()
+        while cursor < end:
+            offset = cursor.astimezone(local_timezone).utcoffset()
+            if offset != previous_offset:
+                candidates.add(cursor)
+            previous_offset = offset
+            cursor += timedelta(minutes=1)
+        return tuple(sorted(t for t in candidates if start < t < end))
 
 
 def _validate_month_day(value: _MonthDay) -> None:
