@@ -33,13 +33,14 @@ echo "Running YAML validation."
   dashboards \
   packages \
   examples/testing \
+  examples/automations \
   custom_components
 
 echo "Checking repository policies."
 "${PYTHON}" scripts/check_repository.py
 
 echo "Checking for duplicate unique IDs."
-"${PYTHON}" scripts/check_unique_ids.py packages dashboards config examples/testing
+"${PYTHON}" scripts/check_unique_ids.py packages dashboards config examples/testing examples/automations
 
 echo "Checking JSON files."
 while IFS= read -r -d '' json_file; do

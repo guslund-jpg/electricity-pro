@@ -37,7 +37,11 @@ For v1.6, use the existing [energy-flow test plan](specification/energy-flow-tes
 [disposable synthetic package](../examples/testing/README.md) and
 [evidence record](validation/v1.6.md). The package is tested with real HA helpers
 and templates in `tests/test_validation_fixture.py`; manual test-system and
-hardware results remain separate. Repository YAML checks include `examples/testing/`.
+hardware results remain separate. Repository YAML checks include `examples/testing/`
+and `examples/automations/`. `tests/test_automation_examples.py` executes the
+optional one-shot scripts with HA's script engine and simulated timing; it does
+not certify appliance hardware. Manual checks are in the
+[automation examples guide](../examples/automations/README.md#test-before-connecting-a-device).
 
 ## Check scope and documentation
 

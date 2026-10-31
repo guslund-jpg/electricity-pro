@@ -406,6 +406,11 @@ The stable-release foundation includes:
 
 ## Documentation
 
+For optional notifications and a one-shot appliance-action dry run, see the
+[automation examples](../examples/automations/README.md). They are installed
+separately and require explicit requests; real device control needs your own
+device-specific checks and testing.
+
 Documentation is organized as follows:
 
 | Document                                  | Purpose                                            |
