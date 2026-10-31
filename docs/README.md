@@ -21,6 +21,9 @@ the installed stable release. Optional production/export/household sources,
 compatibility diagnostics, VAT suggestions and Tibber addition estimation are
 development-only. Budget forecasting and device control are future goals.
 
+See the [draft v1.6 release notes and checklist](releases/1.6.0.md) for planned
+scope, proposed usability work and the evidence still required before release.
+
 ## Current capabilities
 
 - Current electricity cost rate
