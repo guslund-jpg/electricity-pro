@@ -1,5 +1,7 @@
 # Electricity Pro
 
+![Electricity Pro logo](docs/assets/electricity-pro-icon.svg)
+
 **Understand your electricity use, see what it costs, and find better times to use it.**
 
 Electricity Pro brings live power, energy totals, price insights and cost estimates
