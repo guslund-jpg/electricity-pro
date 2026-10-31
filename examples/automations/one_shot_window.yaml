@@ -1,0 +1,206 @@
+# Optional Home Assistant package. Read README.md before installing.
+# Nothing is scheduled until you explicitly run EP Window request.
+# The appliance action below is a notification-only dry run until YOU edit it.
+script:
+  ep_window_request:
+    alias: EP Window request
+    description: Select one future window; cancel rather than silently reschedule.
+    mode: single
+    max_exceeded: silent
+    fields:
+      window_entity:
+        name: Cheapest window sensor
+        description: Select Electricity Pro's cheapest 1h, 2h or 3h window START sensor.
+        required: true
+        selector:
+          entity:
+            filter:
+              domain: sensor
+              device_class: timestamp
+      expected_currency:
+        name: Expected currency
+        description: Enter the sensor's currency, for example SEK or EUR. No conversion is performed.
+        required: true
+        selector:
+          text:
+      price_limit:
+        name: Maximum average scheduling price per kWh
+        description: In the currency above. This is a window-average ceiling, not an instantaneous price limit.
+        required: true
+        selector:
+          number:
+            min: -1000
+            max: 1000
+            step: 0.001
+            mode: box
+      appliance_start:
+        name: Run the appliance action once
+        description: Off sends a reminder only. On calls the dry-run action you must explicitly customize.
+        default: false
+        selector:
+          boolean:
+    sequence:
+      - variables:
+          source: "{{ window_entity | default('') }}"
+          start: "{{ as_timestamp(states(source), 0) }}"
+          end: "{{ as_timestamp(state_attr(source, 'window_end'), 0) }}"
+          duration: "{{ state_attr(source, 'window_duration_minutes') }}"
+          price: "{{ state_attr(source, 'average_scheduling_price') }}"
+          currency: "{{ state_attr(source, 'currency') }}"
+          area: "{{ state_attr(source, 'price_area') }}"
+          components: "{{ state_attr(source, 'price_components') }}"
+          vat: "{{ state_attr(source, 'vat_treatment') }}"
+          completeness: "{{ state_attr(source, 'price_completeness') }}"
+          limit: "{{ price_limit | default(none) }}"
+          do_start: "{{ appliance_start | default(false) | bool }}"
+      - if:
+          - condition: template
+            value_template: >-
+              {% set s = states[source] if source else none %}
+              {{ s is none or not has_value(source)
+                 or not is_number(price) or not is_number(limit)
+                 or currency != (expected_currency | default(''))
+                 or not currency or not area
+                 or duration not in [60, 120, 180]
+                 or end - start != (duration | float(0)) * 60
+                 or not (60 <= start - as_timestamp(now()) <= 86400)
+                 or not (0 <= as_timestamp(now()) - as_timestamp(s.last_reported) <= 300)
+                 or (price | float(0)) > (limit | float(0)) }}
+        then:
+          - action: persistent_notification.create
+            data:
+              notification_id: ep_window_request
+              title: Electricity Pro — request refused
+              message: >-
+                Select an available, recently reported 1h/2h/3h window starting
+                between one minute and 24 hours from now. Check its end, currency
+                and average scheduling price against your limit. Nothing was started.
+          - stop: Invalid or expired window request
+      - action: persistent_notification.create
+        data:
+          notification_id: ep_window_request
+          title: Electricity Pro — one window armed
+          message: >-
+            {{ 'Appliance action (dry run unless customized)' if do_start else 'Reminder only' }}.
+            Selected {{ (start | timestamp_local) }} to {{ (end | timestamp_local) }};
+            average {{ price }} {{ currency }}/kWh. Run EP Window cancel to cancel.
+            Restart or script reload cancels the wait; it will not resume automatically.
+      # The timestamp/price snapshot above belongs to this request. The moving
+      # cheapest-window sensor must never be used as a running appliance's timer.
+      - wait_template: >-
+          {% set s = states[source] %}
+          {{ as_timestamp(now()) < start and
+             (s is none or not has_value(source)
+              or not (0 <= as_timestamp(now()) - as_timestamp(s.last_reported) <= 300)
+              or as_timestamp(states(source), 0) != start
+              or as_timestamp(state_attr(source, 'window_end'), 0) != end
+              or state_attr(source, 'window_duration_minutes') != duration
+              or not is_number(state_attr(source, 'average_scheduling_price'))
+              or (state_attr(source, 'average_scheduling_price') | float(0)) != (price | float)
+              or state_attr(source, 'currency') != currency
+              or state_attr(source, 'price_area') != area
+              or state_attr(source, 'price_components') != components
+              or state_attr(source, 'vat_treatment') != vat
+              or state_attr(source, 'price_completeness') != completeness) }}
+        timeout:
+          seconds: "{{ [0, start - as_timestamp(now())] | max }}"
+        continue_on_timeout: true
+      - if:
+          - condition: template
+            value_template: >-
+              {% set s = states[source] %}
+              {{ wait.completed or not (0 <= as_timestamp(now()) - start < 30)
+                 or s is none or not has_value(source)
+                 or not (0 <= as_timestamp(now()) - as_timestamp(s.last_reported) <= 300) }}
+        then:
+          - action: persistent_notification.create
+            data:
+              notification_id: ep_window_request
+              title: Electricity Pro — window cancelled
+              message: >-
+                The selected window changed, its source became unavailable/stale,
+                or the start was missed. Nothing was started. Review the latest
+                forecast and explicitly request a new window if still wanted.
+          - stop: Cancelled; never catch up or silently reschedule
+      # From the start instant the sensor may naturally select its NEXT window.
+      # Use the accepted snapshot; do not reinterpret that rollover as a new job.
+      - choose:
+          - conditions: "{{ do_start }}"
+            sequence:
+              - action: script.ep_window_appliance_action
+                data:
+                  window_start: "{{ start | timestamp_utc }}"
+                  window_end: "{{ end | timestamp_utc }}"
+                  average_price: "{{ price }}"
+                  currency: "{{ currency }}"
+        default:
+          - action: persistent_notification.create
+            data:
+              notification_id: ep_window_request
+              title: Electricity Pro — your selected window starts now
+              message: >-
+                Reminder only: {{ (start | timestamp_local) }} to {{ (end | timestamp_local) }};
+                accepted average {{ price }} {{ currency }}/kWh.
+                No appliance was started. This is not a bill or savings guarantee.
+
+  ep_window_cancel:
+    alias: EP Window cancel
+    description: Cancel a pending request. Does not stop an appliance already running.
+    mode: single
+    sequence:
+      - action: script.turn_off
+        target:
+          entity_id: script.ep_window_request
+      - action: persistent_notification.create
+        data:
+          notification_id: ep_window_request
+          title: Electricity Pro — request cancelled
+          message: No pending request remains. An appliance already started is not stopped.
+
+  ep_window_appliance_action:
+    alias: EP Window appliance action — DRY RUN
+    description: Notification only. Replace only after device-specific safety checks and lab testing.
+    mode: single
+    sequence:
+      # Customization point: use a supported appliance start-program action,
+      # preceded by ready/idle/remote-start checks. Never assume a mains switch
+      # starts a safe cycle. Do not add automatic retries or price-triggered stops.
+      - action: persistent_notification.create
+        data:
+          notification_id: ep_window_request
+          title: Electricity Pro — appliance DRY RUN
+          message: >-
+            Would request one start for {{ window_start }} to {{ window_end }};
+            accepted average {{ average_price }} {{ currency }}/kWh.
+            No device has been controlled. The cycle would finish on its own.
+
+# HA may preserve unchanged scripts on reload. This guard cancels pending work
+# even if only the appliance action is edited. Keep it enabled with this package.
+automation:
+  - id: ep_window_cancel_on_reload
+    alias: EP Window cancel on reload
+    mode: single
+    triggers:
+      - trigger: event
+        event_type: call_service
+        event_data:
+          domain: script
+          service: reload
+      - trigger: event
+        event_type: call_service
+        event_data:
+          domain: homeassistant
+          service: reload_all
+      - trigger: event
+        event_type: call_service
+        event_data:
+          domain: automation
+          service: reload
+    conditions:
+      - condition: state
+        entity_id: script.ep_window_request
+        state: "on"
+    actions:
+      - action: script.turn_off
+        target:
+          entity_id: script.ep_window_request

@@ -60,6 +60,14 @@
 
 ### Added
 
+- Add separately installed one-shot automation examples for cheapest-window
+  reminders and an explicitly requested appliance-action dry run. Require a
+  currency and average-price ceiling, cancel revised/missing/stale local inputs,
+  and handle duplicate requests, missed starts and reloads conservatively.
+  Include HA script-engine tests and manual checks. Real device actions require
+  deliberate customization; upstream freshness is not guaranteed and EV charging
+  control is deferred. Integration runtime and installed automations are unchanged.
+
 - Add a disposable Home Assistant simulation package and executable v1.6
   validation checklist under #290, with automated package tests, a manual evidence
   record and redacted hardware-beta mapping guidance. Manual/hardware runs remain

@@ -194,6 +194,19 @@ Swedish formatting, not guaranteed costs or savings.
 
 ---
 
+## Automation examples
+
+Start with an [opt-in cheapest-window reminder](examples/automations/README.md)
+for a 1h, 2h or 3h window. The same separately installed package includes an
+explicitly requested appliance-action **dry run**—it only sends a notification
+until you deliberately configure a supported device action.
+
+Requests have an average-price ceiling and cancel when the selected window
+changes before starting. They do not resume after a restart or silently catch
+up on missed starts. Review the guide's freshness limitations and test the dry
+run before connecting a real appliance. EV charging control remains future work.
+These examples are not installed or enabled by HACS.
+
 ## Installation
 
 ### HACS installation (recommended)
