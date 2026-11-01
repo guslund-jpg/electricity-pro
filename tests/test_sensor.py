@@ -8,6 +8,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from freezegun.api import FrozenDateTimeFactory
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
@@ -164,44 +165,59 @@ async def test_average_market_price_today_unavailable_for_partial_day(
     assert state.state == "unavailable"
 
 
+@pytest.mark.parametrize(
+    "period_start", [date(2026, 8, 25), date(2026, 11, 1), date(2027, 1, 1)]
+)
 async def test_average_power_today_publishes_value_and_coverage(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+    freezer: FrozenDateTimeFactory,
+    period_start: date,
 ) -> None:
     """Sufficient current-day coverage should publish mean power metadata."""
-    entry = await setup_electricity_pro()
+    await hass.config.async_set_time_zone("UTC")
+    day_start = datetime.combine(period_start, datetime.min.time(), tzinfo=UTC)
+    publish_at = day_start + timedelta(hours=2)
+    setup_at = publish_at - timedelta(minutes=5)
+    # Freeze before setup so source timestamps, timers and calculations agree.
+    freezer.move_to(setup_at)
+    # Seed known history without a live source adding overlapping samples.
+    entry = await setup_electricity_pro(power_value="unavailable")
     coordinator = entry.runtime_data
-    timezone = coordinator._local_timezone  # noqa: SLF001
-    day_start = datetime(2026, 8, 25, tzinfo=timezone)
-    now = day_start + timedelta(hours=2)
     coordinator._base_load_buckets.add_segment(  # noqa: SLF001
         start=day_start,
-        end=now,
+        end=setup_at,
         power_w=Decimal("425.5"),
     )
-    with patch(
-        "custom_components.electricity_pro.coordinator.dt_util.now",
-        return_value=now,
-    ):
-        coordinator.async_set_updated_data(coordinator.data)
-        await hass.async_block_till_done()
+    coordinator.async_set_updated_data(coordinator.data)
+    await hass.async_block_till_done()
 
-        state_before_interval = hass.states.get(AVERAGE_POWER_TODAY_ENTITY_ID)
-        assert state_before_interval is not None
-        assert state_before_interval.state == "unavailable"
+    state_before_interval = hass.states.get(AVERAGE_POWER_TODAY_ENTITY_ID)
+    assert state_before_interval is not None
+    assert state_before_interval.state == "unavailable"
 
-        async_fire_time_changed(
-            hass,
-            dt_util.utcnow() + timedelta(minutes=5),
-        )
-        await hass.async_block_till_done()
+    # A coordinator update must not bypass the five-minute publication cadence.
+    freezer.move_to(publish_at - timedelta(seconds=1))
+    async_fire_time_changed(hass, dt_util.utcnow())
+    await hass.async_block_till_done()
+    state_before_interval = hass.states.get(AVERAGE_POWER_TODAY_ENTITY_ID)
+    assert state_before_interval is not None
+    assert state_before_interval.state == "unavailable"
 
-        state = hass.states.get(AVERAGE_POWER_TODAY_ENTITY_ID)
+    freezer.move_to(publish_at)
+    coordinator._base_load_buckets.add_segment(  # noqa: SLF001
+        start=setup_at,
+        end=publish_at,
+        power_w=Decimal("425.5"),
+    )
+    async_fire_time_changed(hass, dt_util.utcnow())
+    await hass.async_block_till_done()
+    state = hass.states.get(AVERAGE_POWER_TODAY_ENTITY_ID)
 
     assert state is not None
     assert state.state == "425.5"
     assert state.attributes["unit_of_measurement"] == "W"
-    assert state.attributes["period_start"] == "2026-08-25"
+    assert state.attributes["period_start"] == period_start.isoformat()
     assert state.attributes["coverage_percent"] == "100"
     assert state.attributes["covered_duration_minutes"] == "120.0"
     assert state.attributes["method"] == "duration_weighted_mean"
