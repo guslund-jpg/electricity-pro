@@ -10,7 +10,7 @@ and complements the native Energy Dashboard—you do not need solar panels or a
 battery to get started.
 
 [Install with HACS](#hacs-installation-recommended) ·
-[Configure your sources](docs/README.md#configuration) ·
+[Configure your sources](docs/guides/configuration.md) ·
 [Add a dashboard](examples/dashboards/README.md#quick-installation)
 
 **Stable: [v1.5.2](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.5.2).**
@@ -53,7 +53,7 @@ taxes and fixed fees are optional inputs: adding the applicable charges makes
 cost estimates more complete.
 
 Have a recent electricity-supplier bill and grid-provider bill available during
-configuration. See the [configuration guide](docs/README.md#configuration) for
+configuration. See the [configuration guide](docs/guides/configuration.md) for
 source requirements and price-component definitions.
 
 ---
@@ -139,26 +139,12 @@ negative means export. Export compensation is not inferred from import prices.
 
 ## Roadmap
 
-Electricity Pro is evolving in carefully planned stages.
+The next release, **v1.6**, focuses on measured production, export and household
+energy foundations. Flexible-load recommendations and storage planning are
+later directions, not current capabilities.
 
-| Release    | Focus                             | Status            |
-| ---------- | --------------------------------- | ----------------- |
-| **v0.6**   | Foundation                        | Released          |
-| **v0.7**   | Traditional Sensors & Statistics  | Released          |
-| **v0.8**   | Intelligence                      | Released          |
-| **v0.9**   | Daily Statistics & Dashboards     | Released          |
-| **v1.0**   | Stable Release                    | Released          |
-| **v1.1**   | Forecast Prices & Scheduling      | Released          |
-| **v1.2**   | Pricing & Tariff Foundation       | Released          |
-| **v1.3**   | Recommendation Intelligence       | Released          |
-| **v1.4**   | Market Price Intelligence         | Released          |
-| **v1.5**   | Adaptive Price Intelligence       | Released          |
-| **v1.5.2** | Startup Timezone Fix              | Released          |
-| **v1.6**   | Production & Bidirectional Energy | In development    |
-| **v1.7**   | Flexible-Load Recommendations     | Future            |
-| **v1.8**   | Storage & Whole-Home Optimisation | Future            |
-
-See [ROADMAP.md](ROADMAP.md) for more details.
+See the [roadmap](ROADMAP.md) for scope and validation limits, and the
+[changelog](CHANGELOG.md) for released history.
 
 ---
 
@@ -192,7 +178,7 @@ The forecast chart shows market prices, while window averages include configured
 supplier additions, variable grid fees and energy tax. They need not match the
 chart's market-price level. The screenshots show the older individual-interval
 Price direction; unreleased v1.6 changes that entity to a
-[two-hour averaged trend](docs/sensors.md#price-trend--next-2-hours-unreleased-v16).
+[two-hour averaged trend](docs/reference/sensors.md#price-trend--next-2-hours-unreleased-v16).
 Screenshots show one installation's readings and
 Swedish formatting, not guaranteed costs or savings.
 
@@ -273,9 +259,9 @@ create a manual dashboard, copy an example, and verify its entity IDs.
    compatible Home Assistant entities, and declare the selected price source's
    included components and VAT treatment. VAT-excluded prices and native Nord
    Pool forecasts also need an explicit VAT percentage; see
-   [VAT configuration and upgrade guidance](docs/vat-pricing.md).
+   [VAT configuration and upgrade guidance](docs/guides/vat-pricing.md).
 
-See the [configuration guide](docs/README.md#configuration) for source examples,
+See the [configuration guide](docs/guides/configuration.md) for source examples,
 grid-tariff settings, and optional Nord Pool and Workday features.
 
 Forecast features use the native Home Assistant Nord Pool integration. The
@@ -285,13 +271,14 @@ legacy HACS Nord Pool integration is not required or supported as a forecast sou
 
 ## Documentation
 
-- [Configuration and project guide](docs/README.md#configuration)
-- [Optional production, export and household demand (unreleased)](docs/production-export.md)
-- [Installation and power compatibility diagnostic (unreleased)](docs/flow-compatibility.md)
+- [Documentation index](docs/README.md)
+- [Configuration guide](docs/guides/configuration.md)
+- [Optional production, export and household demand (unreleased)](docs/guides/production-export.md)
+- [Installation and power compatibility diagnostic (unreleased)](docs/guides/flow-compatibility.md)
 - [v1.6 synthetic test lab and release evidence](examples/testing/README.md)
-- [Recorder and database-write guidance](docs/README.md#recorder-and-database-writes)
+- [Recorder and database-write guidance](docs/guides/recorder.md)
 - [Roadmap](ROADMAP.md)
-- [Architecture](docs/architecture.md)
+- [Architecture](docs/development/architecture.md)
 - [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)
 

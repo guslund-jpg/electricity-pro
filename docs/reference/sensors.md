@@ -1,7 +1,7 @@
 # Electricity Pro Sensor Catalog
 
 This catalogue describes implemented entities on `main`. The stable release is
-[v1.5.2](releases/1.5.2.md); optional flow/compatibility entities below are
+[v1.5.2](../releases/1.5.2.md); optional flow/compatibility entities below are
 **unreleased v1.6 development**, not hardware-validated features.
 
 Keys identify implementation/unique-ID suffixes, not guaranteed entity IDs.
@@ -106,7 +106,7 @@ as supplier costs. Their primary totals use the separate household estimates;
 those include configured variable grid charges, energy tax and accrued fixed
 fees. The consumption-weighted effective average excludes fixed fees and uses
 matching priced-energy coverage, not necessarily all Energy today.
-See [household cost estimates](household-cost-estimates.md).
+See [household cost estimates](../guides/costs-and-pricing.md#household-cost-estimates).
 
 ### Current Power and signed flow
 
@@ -290,20 +290,20 @@ Flow counters preserve high-water marks across temporary dips and restore
 compatible saved totals. They always report partial coverage in this increment;
 daily rollover excludes the ambiguous boundary increment. Sources use HA receipt
 timestamps, not verified acquisition times. Power is stale after five minutes,
-energy after fifteen. See [sources and reset rules](production-export.md).
+energy after fifteen. See [sources and reset rules](../guides/production-export.md).
 
 The compatibility sensor reports declaration/freshness/alignment reasons and
 `quality: receipt_time_estimate`; even `aligned` always carries
 `complete_balance_available: false`. It neither verifies energy conservation nor
-changes existing import costs or analytics. See [diagnostic scope](flow-compatibility.md).
+changes existing import costs or analytics. See [diagnostic scope](../guides/flow-compatibility.md).
 
 ## Daily and monthly statistics
 
 Average Power Today and Average Market Price Today are implemented and listed
 in the current sensor catalog above. Monthly peak-hour consumption and time are
-currently mirrored from compatible source integrations. Future production,
-import and export statistics require separate source contracts; they must not
-be inferred from signed net Current Power alone.
+currently mirrored from compatible source integrations. Optional measured production/export channels on `main` use separate source
+contracts; they are not inferred from signed net Current Power. Calculated
+site balances and storage flows remain future work.
 
 ### Consumption-weighted average price today
 
@@ -319,8 +319,8 @@ This sensor has two paths:
   The external cost and energy must represent the same day and compatible scope.
 
 Fixed fees are excluded. Missing or unsupported inputs make the result
-unavailable. See [local estimates](local-cost-estimates.md) and
-[household totals](household-cost-estimates.md).
+unavailable. See [local estimates](../guides/costs-and-pricing.md#supplier-cost-estimates) and
+[household totals](../guides/costs-and-pricing.md#household-cost-estimates).
 
 The value is retrospective and is not a recommendation to consume electricity
 now. It differs from Average Market Price Today, which would average the day's
@@ -362,14 +362,14 @@ The first reading establishes the baseline. The first month may therefore be
 partial when Electricity Pro is installed or the energy source is configured
 after the month has started. Later months are not automatically guaranteed
 complete: rejected readings, gaps or resets can affect coverage. Inspect
-period attributes and the [monthly recovery guide](monthly-energy-recovery.md).
+period attributes and the [monthly recovery guide](../guides/monthly-energy-recovery.md).
 
 ### Cost this month
 
 Without an external daily cost source, this sensor estimates supplier costs from
 observed energy deltas and VAT-inclusive supplier prices. It starts with observed
 consumption only and reports partial coverage. See
-[local cost estimates](local-cost-estimates.md) for daily totals, matching-coverage
+[local cost estimates](../guides/costs-and-pricing.md#supplier-cost-estimates) for daily totals, matching-coverage
 effective average prices, and limits on gaps and sparse readings.
 
 With an external daily cost source, the behavior below is unchanged.
@@ -479,5 +479,5 @@ self-sufficiency ratios, export revenue and battery charge/discharge scheduling.
 
 Daily/monthly measurements and partial accumulated cost estimates must not be
 confused with predictions of the rest of the day or a complete future bill.
-See the authoritative [roadmap](../ROADMAP.md) and
-[energy-flow design](adr/0013-production-and-bidirectional-energy-flows.md).
+See the authoritative [roadmap](../../ROADMAP.md) and
+[energy-flow design](../adr/0013-production-and-bidirectional-energy-flows.md).

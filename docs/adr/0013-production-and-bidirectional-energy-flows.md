@@ -5,7 +5,7 @@
 Accepted via PR #270 — design for
 [#239](https://github.com/guslund-jpg/electricity-pro/issues/239).
 The ADR itself introduced no runtime changes. Implementation is incremental
-under #240; see [currently implemented sources and limits](../production-export.md).
+under #240; see [currently implemented sources and limits](../guides/production-export.md).
 Export-price and revenue contracts remain separate work in #241.
 
 ## Context
@@ -237,7 +237,7 @@ battery scheduling, production forecasting or country-specific logic is added.
 
 ## Validation and consequences
 
-The [test and beta plan](../specification/energy-flow-test-plan.md) specifies
+The [test and beta plan](../validation/energy-flow-test-plan.md) specifies
 normal and invalid combinations, unit conversion, persistence and boundaries.
 The current maintainer installation has no solar or battery. Real solar/storage
 adapter timing, inverter boundaries and phase conventions remain field-validation

@@ -1,7 +1,7 @@
 # Electricity Pro architecture
 
 This describes `main`, including **unreleased v1.6 work**. The stable release is
-[v1.5.2](releases/1.5.2.md); optional production/export, household-demand and
+[v1.5.2](../releases/1.5.2.md); optional production/export, household-demand and
 compatibility modules below are not in that release.
 
 ## Data flow and ownership
@@ -90,9 +90,9 @@ HA storage, not Recorder, persists cumulative baselines and bounded histories
 for monthly totals, daily power, timing score, base load, adaptive prices, cost
 estimates and optional flow counters. Source/configuration scope determines
 whether saved state can be reused. Restart does not reconstruct missing readings
-or historical interval costs. See [meter protection](meter-reading-protection.md),
-[monthly recovery](monthly-energy-recovery.md) and
-[local cost coverage](local-cost-estimates.md).
+or historical interval costs. See [meter protection](../guides/meter-reading-protection.md),
+[monthly recovery](../guides/monthly-energy-recovery.md) and
+[local cost coverage](../guides/costs-and-pricing.md#supplier-cost-estimates).
 
 Recorder stores published entity history and eligible long-term statistics.
 Excluding source entities does not stop live calculations, but removes their
@@ -118,9 +118,9 @@ recorded history.
   they do not add an external supplier total again. They remain partial
   estimates, not bills or demand-charge calculations.
 
-See [pricing ADR](adr/0005-pricing-and-tariff-strategies.md),
-[signed values ADR](adr/0010-signed-power-and-negative-values.md),
-[VAT guide](vat-pricing.md) and [household totals](household-cost-estimates.md).
+See [pricing ADR](../adr/0005-pricing-and-tariff-strategies.md),
+[signed values ADR](../adr/0010-signed-power-and-negative-values.md),
+[VAT guide](../guides/vat-pricing.md) and [household totals](../guides/costs-and-pricing.md#household-cost-estimates).
 
 ## Forecast retrieval and recommendations
 
@@ -140,7 +140,7 @@ Startup and the 15-minute timer use the CET/CEST market calendar, requesting
 tomorrow from 13:00 market time and retaining dates needed for the HA local day.
 Expected future empty responses remain retryable; genuine failures warn without
 erasing valid cached data. Forecast failures do not disable live measurements.
-See [forecast retrieval](forecast-retrieval.md) for the exact policy.
+See [forecast retrieval](../reference/forecast-retrieval.md) for the exact policy.
 
 The coordinator computes current market price, complete-day average and cheapest
 continuous 1h/2h/3h windows. Absolute-threshold and adaptive future comparisons
@@ -160,7 +160,7 @@ retain the ordinary weekday schedule rather than assuming a holiday.
 Daily peak import, duration-weighted average power, yesterday's timing score,
 rolling base load and adaptive price history are implemented. Each has coverage
 and compatibility requirements; elapsed days alone do not guarantee results.
-See the [sensor catalogue](sensors.md).
+See the [sensor catalogue](../reference/sensors.md).
 
 Ordinary sensors use declarative descriptions. Forecast, historical and optional
 flow sensors use dedicated classes. Good Time is a binary sensor supporting
@@ -194,7 +194,7 @@ daily/monthly lifetime-meter deltas. They do not replace import costs or net-gri
 analytics. Compatibility checks use HA receipt timestamps; `aligned` does not
 mean a complete site balance. Battery charge/discharge inputs, device control,
 self-consumption ratios and export revenue are not implemented. See
-[optional sources](production-export.md) and [compatibility](flow-compatibility.md).
+[optional sources](../guides/production-export.md) and [compatibility](../guides/flow-compatibility.md).
 
 ## Public actions
 
@@ -226,12 +226,12 @@ ownership changes.
 
 ## Tests, decisions and repository layout
 
-[Development instructions](development.md) distinguish Python behaviour tests
+[Development instructions](contributing.md) distinguish Python behaviour tests
 from repository, HACS, Hassfest and HA configuration checks. Synthetic tests are
 not real solar/battery validation; see the
-[energy-flow test plan](specification/energy-flow-test-plan.md).
+[energy-flow test plan](../validation/energy-flow-test-plan.md).
 
-The [ADR index](adr/README.md) separates accepted decisions from proposals.
+The [ADR index](../adr/README.md) separates accepted decisions from proposals.
 Implementation does not itself prove formal acceptance.
 
 - `tests/`: Python unit and HA integration tests.
@@ -240,6 +240,9 @@ Implementation does not itself prove formal acceptance.
   running instance of the Python integration.
 - `examples/testing/`, `examples/automations/`: separately installed synthetic
   fixtures and optional automation packages, not part of integration installation.
-- `design/`: template for substantial proposals, not today's implementation
-  specification.
-- Root [roadmap](../ROADMAP.md): authoritative release direction.
+- `docs/guides/` and `docs/reference/`: maintained user guidance and contracts.
+- `docs/development/`: architecture, contributor guidance and the proposal template.
+- `docs/adr/`: lasting decisions and their recorded status.
+- `docs/validation/`: test plans and evidence, not release approval.
+- `docs/releases/`: version-specific release notes and checklists.
+- Root [roadmap](../../ROADMAP.md): authoritative release direction.

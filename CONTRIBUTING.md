@@ -4,7 +4,7 @@ Thank you for your interest in contributing to Electricity Pro!
 
 We welcome bug reports, feature requests, documentation improvements, and pull requests.
 
-Start with [local development and test instructions](docs/development.md).
+Start with [local development and test instructions](docs/development/contributing.md).
 These describe the pinned test environment and distinguish Python behaviour
 tests from repository and Home Assistant configuration validation.
 
@@ -59,7 +59,7 @@ Electricity Pro values:
 - Stable public behaviour
 - Small, incremental improvements
 
-The full [Design Principles](docs/vision/DESIGN_PRINCIPLES.md) explain how these
+The full [Design Principles](docs/development/design-principles.md) explain how these
 values apply to provider boundaries, normalized measurements, analytics,
 entities, unavailable data, and compatibility. Review them before proposing a
 new source contract or capability.

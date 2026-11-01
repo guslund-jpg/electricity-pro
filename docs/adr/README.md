@@ -2,7 +2,7 @@
 
 Statuses below describe recorded decision status, not release or hardware
 validation status. An accepted design can include unimplemented capabilities.
-See [architecture](../architecture.md) for current ownership and
+See [architecture](../development/architecture.md) for current ownership and
 [roadmap](../../ROADMAP.md) for release scope.
 
 | Record | Recorded status / interpretation |

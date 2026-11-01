@@ -41,6 +41,11 @@
 
 ### Documentation
 
+- Organise maintained documentation into guides, reference, development and
+  validation sections. Consolidate cost guidance and keep release history in
+  the changelog rather than duplicating it in the roadmap. Update internal and
+  in-product help links; integration calculations are unchanged.
+
 - Bring real Enhanced dashboard screenshots, practical use cases and setup links
   into the README; move the longer project vision below the setup guidance.
   Explain dashboard dependencies, older screenshot labels and price scopes,
@@ -58,7 +63,7 @@
 - Use the Nord Pool CET/CEST market clock for forecast retrieval on startup and
   timer ticks, retaining delivery dates needed by local-day statistics. Retry
   empty future responses quietly, keep genuine errors diagnosable, and preserve
-  valid cached prices when refreshes fail. See [forecast retrieval](docs/forecast-retrieval.md).
+  valid cached prices when refreshes fail. See [forecast retrieval](docs/reference/forecast-retrieval.md).
 
 - Preserve submitted settings and optional-source controls after configuration
   errors in standard and Tibber flows. Retain confirmed source/declaration
@@ -107,13 +112,13 @@
   ask about Norwegian household location and Icelandic supply type. Preserve
   saved rates (including zero), provide manual fallbacks and clarify that the
   forecast VAT field is the rate to add, not VAT already included in spot prices.
-  See [VAT suggestions](docs/vat-pricing.md#country-and-regional-vat-suggestions).
+  See [VAT suggestions](docs/guides/vat-pricing.md#country-and-regional-vat-suggestions).
 
 - Optional, user-confirmed Tibber forecast-addition estimate from matching
   completed Tibber/Nord Pool intervals. Requires explicit VAT and confirmation
   of the home's price area; refuses insufficient, ambiguous or varying data.
   Retain manual override and leave Tibber live prices unchanged.
-  See [forecast-addition estimate](docs/vat-pricing.md#optional-tibber-forecast-addition-estimate).
+  See [forecast-addition estimate](docs/guides/vat-pricing.md#optional-tibber-forecast-addition-estimate).
 
 - Add a separate optional installation/compatibility step: generation and
   storage presence default to unknown, and power-source phase conventions
@@ -121,7 +126,7 @@
   whole-site AC inputs, five-minute freshness and 30-second receipt-time
   alignment without changing measured channels, import statistics or costs.
   It does not claim a complete site balance or calculate demand/ratios.
-  See [compatibility diagnostic](docs/flow-compatibility.md).
+  See [compatibility diagnostic](docs/guides/flow-compatibility.md).
 
 - Add optional directly measured Household demand power and partial daily/monthly
   Household energy sensors, plus an optional group in both Overview dashboards.
@@ -129,7 +134,7 @@
   reject import-source reuse and provide no inferred balance or outage fallback.
   Reuse isolated lifetime-counter protection and the confirmed optional-meter reset
   action. Existing net-grid/import statistics and costs remain unchanged.
-  See [source requirements](docs/production-export.md#household-demand-is-not-grid-import).
+  See [source requirements](docs/guides/production-export.md#household-demand-is-not-grid-import).
 
 - Add optional Production and Grid export groups to both dashboard Overview
   views, using built-in tiles for power and partial daily/monthly energy.
@@ -142,7 +147,7 @@
   them on a separate opt-in options step; import-only and Tibber setup remain
   unchanged. Protect each counter across dips, outages and restarts, with a
   confirmed per-source action for genuine meter replacement.
-  See [production and grid export](docs/production-export.md).
+  See [production and grid export](docs/guides/production-export.md).
   This is the first increment of #240, not household-demand, battery or
   export-revenue accounting. Validation uses synthetic data, not solar hardware.
 
@@ -167,7 +172,7 @@
 - Reject backward lifetime energy readings without lowering the trusted baseline,
   including across outages, midnight and restarts. Do not bill recovery jumps.
   Add an explicitly confirmed action for genuine meter replacement/reset;
-  preserve existing totals. See [meter reading protection](docs/meter-reading-protection.md).
+  preserve existing totals. See [meter reading protection](docs/guides/meter-reading-protection.md).
 
 - Shorten both dashboards' cost explanations to compact coverage notes with
   a documentation link; retain missing-setting and unverified-energy warnings.
@@ -176,7 +181,7 @@
   effective variable costs with accrued fixed supplier/grid fees. Preserve
   supplier totals and make household estimates primary in both dashboards.
   Missing settings and excluded demand charges remain explicit.
-  See [household cost estimates](docs/household-cost-estimates.md).
+  See [household cost estimates](docs/guides/costs-and-pricing.md#household-cost-estimates).
 
 - Clarify supplier-cost labels and effective-price definitions in both example
   dashboards. Show partial cost coverage, monthly tracking/reset times, and
@@ -185,12 +190,12 @@
 - Estimate supplier costs locally when no daily cost sensor is configured,
   using observed energy deltas and normalized prices. Provide matching-coverage
   effective average prices, with explicit partial-estimate metadata.
-  See [local cost estimates](docs/local-cost-estimates.md).
+  See [local cost estimates](docs/guides/costs-and-pricing.md#supplier-cost-estimates).
 
 - Associate monthly energy baselines with their source and accumulation mode.
   Add a confirmed, per-configuration reset action for incorrect monthly energy;
   expose partial/unverified coverage without deleting Recorder history.
-  See [monthly energy recovery](docs/monthly-energy-recovery.md).
+  See [monthly energy recovery](docs/guides/monthly-energy-recovery.md).
 
 - Show Tibber forecast VAT and markup on a separate step only when Nord Pool
   forecasting is selected; retain saved values when forecasts are disabled.

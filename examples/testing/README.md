@@ -7,7 +7,7 @@ not contact Tibber, Nord Pool, an inverter or a battery and performs no hardware
 control. It is not a battery simulator or a physically reconciled energy model.
 
 The authoritative scenarios and evidence requirements are in the existing
-[energy-flow test plan](../../docs/specification/energy-flow-test-plan.md#v16-test-system-release-checklist).
+[energy-flow test plan](../../docs/validation/energy-flow-test-plan.md#v16-test-system-release-checklist).
 Do not mark that checklist passed merely because this package loads.
 
 ## Install once

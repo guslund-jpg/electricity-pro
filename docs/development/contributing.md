@@ -33,9 +33,9 @@ remain separate checks. Configuration validation is not a substitute for the
 integration's Python tests. Automated tests also do not replace a smoke test on a
 development Home Assistant instance or real solar/battery validation.
 
-For v1.6, use the existing [energy-flow test plan](specification/energy-flow-test-plan.md#v16-test-system-release-checklist),
-[disposable synthetic package](../examples/testing/README.md) and
-[evidence record](validation/v1.6.md). The package is tested with real HA helpers
+For v1.6, use the existing [energy-flow test plan](../validation/energy-flow-test-plan.md#v16-test-system-release-checklist),
+[disposable synthetic package](../../examples/testing/README.md) and
+[evidence record](../validation/v1.6.md). The package is tested with real HA helpers
 and templates in `tests/test_validation_fixture.py`; manual test-system and
 hardware results remain separate. Repository YAML checks include
 `examples/dashboards/`, `examples/testing/` and `examples/automations/`.
@@ -44,7 +44,7 @@ optional one-shot scripts with HA's script engine and simulated timing; it does
 not certify appliance hardware. `tests/test_automation_followups.py` exercises
 the optional daily notice and humidity simulation with HA automations and helpers.
 Manual checks are in the
-[automation examples guide](../examples/automations/README.md#test-before-connecting-a-device).
+[automation examples guide](../../examples/automations/README.md#test-before-connecting-a-device).
 
 ## Check scope and documentation
 
@@ -165,3 +165,10 @@ Deploy only to a separate development Home Assistant instance. Before every rest
 ```bash
 ha core check
 ```
+
+## Defining a capability
+
+Before implementation, document its purpose, inputs, outputs, calculation,
+edge cases, architectural ownership, required tests and documentation impact.
+Use the [design proposal template](design-proposal-template.md) for substantial
+changes and the [ADR index](../adr/README.md) for lasting decisions.

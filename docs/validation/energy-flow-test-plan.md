@@ -17,7 +17,7 @@ optional configuration and unchanged import-only entities.
 
 The balance, topology, ratios, source-acquisition timestamps and daily-reset
 contracts below describe the broader target, not a completed balance implementation.
-See [the current feature limits](../production-export.md).
+See [the current feature limits](../guides/production-export.md).
 
 The subsequent measured-household-demand increment reuses the same isolated
 counter contract. `tests/test_household_demand.py` checks separate direct-load
@@ -40,7 +40,7 @@ remain future requirements.
 
 This is the execution plan for [#290](https://github.com/guslund-jpg/electricity-pro/issues/290).
 Use the [disposable lab package](../../examples/testing/README.md) and record
-results in the [evidence record](../validation/v1.6.md). Do not connect synthetic
+results in the [evidence record](v1.6.md). Do not connect synthetic
 sources to real accounting, modify real device readings, change the system clock,
 or run reset actions against a real meter. Run steps in order; stop on unexplained
 differences and retain the failing evidence. A skipped/unavailable test is not a pass.
