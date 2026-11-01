@@ -118,7 +118,7 @@ views:
           {% set missing = state_attr(total, 'missing_components') or [] %}
           {% if missing %}**Missing:** {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
           Demand/other unconfigured charges excluded.
-          [Cost & coverage details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/household-cost-estimates.md)
+          [Cost & coverage details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/costs-and-pricing.md)
 
       - type: grid
         columns: 2
@@ -230,7 +230,7 @@ views:
           {% set missing = state_attr(total, 'missing_components') or [] %}
           {% if missing %}**Missing:** {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
           Demand/other unconfigured charges excluded.
-          [Cost & coverage details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/household-cost-estimates.md)
+          [Cost & coverage details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/costs-and-pricing.md)
 
       - type: grid
         columns: 2
@@ -343,7 +343,7 @@ views:
                 **Partial energy totals:** observed increments only, not complete
                 day/month totals.
                 {% endif %}
-                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/production-export.md)
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
 
             - type: conditional
               conditions:
@@ -414,7 +414,7 @@ views:
                 **Partial energy totals:** observed increments only, not complete
                 day/month totals.
                 {% endif %}
-                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/production-export.md)
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
 
             - type: conditional
               conditions:
@@ -486,7 +486,7 @@ views:
                 **Partial energy totals:** observed increments only, not complete
                 day/month totals.
                 {% endif %}
-                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/production-export.md)
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
 
             - type: conditional
               conditions:

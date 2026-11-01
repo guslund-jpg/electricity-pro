@@ -24,7 +24,7 @@ def forecast_delivery_dates(
 
     The native action typically exposes tomorrow around 13:00 CET/CEST.
     This is a retrieval gate, not a publication guarantee. See
-    docs/forecast-retrieval.md for the upstream contract and retry policy.
+    docs/reference/forecast-retrieval.md for the upstream contract and retry policy.
     """
     market_now = now.astimezone(market_timezone)
     local_start = datetime.combine(now.astimezone(local_timezone).date(), time(), local_timezone)

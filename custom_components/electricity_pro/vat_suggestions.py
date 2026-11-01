@@ -170,7 +170,7 @@ class VatSuggestionFlow:
             description_placeholders={
                 "context": rule.context if rule else "No current verified suggestion — enter the rate from your bill or return to manual settings",
                 "source": source_rule.source if source_rule
-                else "https://github.com/guslund-jpg/electricity-pro/blob/main/docs/vat-pricing.md",
+                else "https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/vat-pricing.md",
                 "verified": rule.verified_on.isoformat() if rule else "Not available",
                 "previous": str(self._vat_values.get(CONF_PRICE_VAT_RATE, "Not configured")),
             },

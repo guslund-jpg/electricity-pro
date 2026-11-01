@@ -183,4 +183,10 @@ available.
 Use these principles when reviewing an issue or pull request. If a proposed
 feature conflicts with one of them, document the trade-off and agree on the
 exception before implementation. Significant or lasting exceptions belong in
-an Architecture Decision Record under [`docs/adr/`](../adr/).
+an Architecture Decision Record under [`docs/adr/`](../adr).
+
+## Entity naming
+
+Default entity IDs use `<domain>.electricity_pro_<purpose>`, for example
+`sensor.electricity_pro_current_power`. Home Assistant users may rename entity
+IDs and display names. A display-name change must never change `unique_id`.

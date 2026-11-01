@@ -21,7 +21,7 @@ does not rewrite that dashboard. Sensor entity IDs and calculations are unchange
 Household cost estimates are shown before the supplier-only breakdown.
 They include observed effective variable costs plus accrued fixed fees; notes
 identify partial periods, missing settings and excluded demand charges.
-See [household cost estimates](../../docs/household-cost-estimates.md).
+See [household cost estimates](../../docs/guides/costs-and-pricing.md#household-cost-estimates).
 
 | Example | Choose it when | Dependencies |
 | ------- | -------------- | ------------ |
@@ -103,7 +103,7 @@ Both Overview views include independent Production, Grid export and Household de
 using built-in cards. They show configured power and partial daily/monthly
 energy sensors; power-only and energy-only configurations are supported.
 Energy tiles explicitly say **partial** and link to
-[source and coverage details](../../docs/production-export.md). Export is not
+[source and coverage details](../../docs/guides/production-export.md). Export is not
 labelled solar export, household consumption, savings or revenue.
 
 Household demand is shown only from explicitly selected non-storage load sources.

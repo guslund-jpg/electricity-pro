@@ -6,8 +6,8 @@ Proposed
 
 Implementation note (documentation review, October 2026): the Current Market
 Price entity, bounded response action, Recorder-excluded dashboard bridge and
-complete-day market average are implemented. See [sensor catalogue](../sensors.md)
-and [forecast retrieval](../forecast-retrieval.md) for current behaviour.
+complete-day market average are implemented. See [sensor catalogue](../reference/sensors.md)
+and [forecast retrieval](../reference/forecast-retrieval.md) for current behaviour.
 The original Proposed status is retained: implementation alone does not prove
 formal acceptance, and this cleanup does not record an invented approval.
 The context below describes the problem when the proposal was written, not a
@@ -151,7 +151,7 @@ must state that the lines can have different component and VAT scopes.
 The existing coordinator lifecycle remains responsible for retrieval. It loads
 the current delivery date on startup, retries tomorrow after the source's normal
 publication period, and refreshes on the existing forecast timer. The current
-[retrieval policy](../forecast-retrieval.md) uses CET/CEST market dates and retains
+[retrieval policy](../reference/forecast-retrieval.md) uses CET/CEST market dates and retains
 earlier delivery dates while their intervals contribute to the HA local day.
 
 The active interval is selected using absolute timezone-aware instants. Local

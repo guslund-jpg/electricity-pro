@@ -95,7 +95,7 @@ async def test_cost_notes_remain_compact_and_prioritize_household_coverage(hass)
             assert "2.09 kWh priced" in text
             assert "1.23" not in text
             assert len(text.split()) <= 55
-            assert "docs/household-cost-estimates.md" in text
+            assert "docs/guides/costs-and-pricing.md" in text
 
 
 async def test_dashboard_notes_do_not_call_external_costs_local_estimates(hass) -> None:

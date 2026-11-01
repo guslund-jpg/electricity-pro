@@ -9,10 +9,12 @@ entities.
 
 ## Contract maturity
 
-This is the accepted v1.2 source contract defined by
-[ADR-0005](../adr/0005-pricing-and-tariff-strategies.md). Existing entity IDs
-and unique IDs remain stable. Price-dependent features require explicit source
-semantics rather than inferring them from entity names.
+This reference builds on the accepted pricing contract in
+[ADR-0005](../adr/0005-pricing-and-tariff-strategies.md) and subsequent decisions.
+Price-dependent features require explicit source semantics rather than inferring
+them from entity names. The [sensor catalogue](sensors.md) is authoritative
+for implemented entities and update behaviour; design intentions do not imply
+that a corresponding entity exists.
 
 ## Input roles
 
@@ -114,8 +116,8 @@ the result. Fixed charges do not belong in this value.
 | Initial source | Native Home Assistant Nord Pool action |
 | Canonical unit | Currency per kWh |
 | Included components | Market energy plus configured supplier markup, variable grid fee, and Energy Tax when applicable |
-| Completeness | Partial for native Nord Pool |
-| VAT treatment | Unknown unless the source contract declares it |
+| Completeness | Determined by configured components and VAT; market-only data is partial |
+| VAT treatment | Explicitly configured and represented in normalized price metadata |
 
 A partial forecast scheduling price can select cheapest windows and show price
 direction because all compared intervals share the same scope. It must not be
@@ -185,7 +187,7 @@ For lifetime sources, backward readings do not lower the trusted baseline.
 Recovery is not new consumption. This protection persists across restarts and
 local midnight; an explicitly confirmed genuine meter reset can establish a
 new baseline without clearing known totals. See
-[meter reading protection](../meter-reading-protection.md).
+[meter reading protection](../guides/meter-reading-protection.md).
 
 ### Cost today
 
@@ -194,7 +196,7 @@ new baseline without clearing known totals. See
 | Entity | `sensor.electricity_pro_cost_today` |
 | Meaning | Electricity cost accumulated today |
 | Canonical unit | Configured currency |
-| Expected value | Numeric and normally greater than or equal to zero |
+| Expected value | Finite numeric; locally priced negative intervals may reduce cost |
 | Reset behavior | Resets at the installation's local day boundary |
 | Missing source | Entity becomes unavailable |
 | Required | For daily cost features |
@@ -211,16 +213,19 @@ be presented as accounting-accurate accumulated cost.
 | Entity | `sensor.electricity_pro_consumption_weighted_average_price_today` |
 | Meaning | Average price achieved by today's actual energy use |
 | Canonical unit | Configured currency per kWh |
-| Expected value | Numeric and greater than or equal to zero |
-| Update behavior | When cost or energy today changes |
+| Expected value | Finite numeric; availability depends on the calculation path |
+| Update behavior | Five-minute publication schedule |
 | Missing source | Entity becomes unavailable |
 | Required | Compatible cost-today and energy-today sources |
 
-The current compatibility calculation uses Cost Today divided by Energy Today
-and applies configured adjustments once. Under the explicit pricing model it
-must instead use a normalized cost scope, so authoritative cost and configured
-components cannot overlap. It is unavailable when Energy Today is zero and is
-retrospective, not a recommendation.
+With an external daily supplier-cost source, the current calculation uses
+Cost Today / Energy Today plus configured grid fee and energy tax, requiring
+compatible daily scope, complete daily energy coverage and a positive denominator.
+Without that external source, it uses locally observed effective variable cost
+divided by the energy covered by the same prices; partial-day coverage is allowed.
+Fixed fees are excluded. See the [sensor catalogue](sensors.md#consumption-weighted-average-price-today)
+for both paths and their availability requirements. The result is retrospective,
+not a recommendation.
 
 ### Monthly peak-hour time
 
@@ -235,15 +240,13 @@ retrospective, not a recommendation.
 
 The timestamp remains timezone-aware so Home Assistant can display local time.
 
-## Source-health entities
+## Source health
 
-`binary_sensor.electricity_pro_power_source_healthy` is on only when the
-configured power source exists, is available, contains a valid numeric value,
-and is fresh enough for that source type.
-
-`binary_sensor.electricity_pro_price_source_healthy` is on only when the
-configured price source exists, is available, contains a valid numeric value,
-corresponds to the active price period, and is fresh enough.
+Validation happens when reading and normalizing configured sources, with
+availability and diagnostic attributes exposed on implemented entities.
+No dedicated power-source or price-source health binary sensors are implemented.
+See [flow compatibility](../guides/flow-compatibility.md) for the separate, optional
+power-compatibility diagnostic on development builds.
 
 ## Missing and invalid data
 
@@ -281,15 +284,17 @@ leak into core calculations, statistics, health, alerts, or dashboards.
 Feature availability is capability-based. Missing optional inputs disable only
 the dependent capability.
 
-## Future extensions
+## Optional flows and future extensions
 
-The proposed v1.6 extension is [ADR-0013](../adr/0013-production-and-bidirectional-energy-flows.md).
-It defines optional directional production, import/export and storage channels
-without changing existing entity meanings. Its
-[test plan](energy-flow-test-plan.md) distinguishes synthetic validation from
-pending solar/storage beta testing. This proposal is not implemented functionality.
+[ADR-0013](../adr/0013-production-and-bidirectional-energy-flows.md) defines the
+accepted energy-flow direction. Only the independent measured AC production,
+directional grid-export and household-demand channels, protected partial energy
+totals and optional compatibility diagnostic are implemented on `main`; these
+remain unreleased. See [optional sources](../guides/production-export.md) and the
+[test plan](../validation/energy-flow-test-plan.md). Solar/storage hardware validation remains
+pending.
 
 Local interval cost estimation and household totals with accrued fixed fees
-are implemented; see [household cost estimates](../household-cost-estimates.md).
-Potential additions include export measurements, capacity tariffs, complete
-supplier forecast adapters, and regional tariff adapters.
+are implemented; see [household cost estimates](../guides/costs-and-pricing.md#household-cost-estimates).
+Calculated site balances, storage charge/discharge inputs, self-consumption
+ratios, export revenue and capacity tariffs remain future work.
