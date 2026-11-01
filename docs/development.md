@@ -37,8 +37,9 @@ For v1.6, use the existing [energy-flow test plan](specification/energy-flow-tes
 [disposable synthetic package](../examples/testing/README.md) and
 [evidence record](validation/v1.6.md). The package is tested with real HA helpers
 and templates in `tests/test_validation_fixture.py`; manual test-system and
-hardware results remain separate. Repository YAML checks include `examples/testing/`
-and `examples/automations/`. `tests/test_automation_examples.py` executes the
+hardware results remain separate. Repository YAML checks include
+`examples/dashboards/`, `examples/testing/` and `examples/automations/`.
+`tests/test_automation_examples.py` executes the
 optional one-shot scripts with HA's script engine and simulated timing; it does
 not certify appliance hardware. `tests/test_automation_followups.py` exercises
 the optional daily notice and humidity simulation with HA automations and helpers.
@@ -151,10 +152,11 @@ For documentation-only changes, check relative links and headings, run repositor
 validation and require the normal CI checks. Update the architecture and sensor
 catalogue whenever module ownership or entity semantics change.
 
-The HA configuration workflow validates the minimal `config/` fixture and copies
-any YAML under `packages/`. The latter currently contains only layout
-placeholders, so this check does not exercise the Python integration's config
+The HA configuration workflow validates the minimal `config/` fixture directly.
+It does not install example packages or exercise the Python integration's config
 flow or runtime. Those behaviours belong to pytest and development-instance tests.
+The repository policy check rejects provider-specific entity references in the
+maintained `examples/dashboards/`; dashboard templates also have dedicated tests.
 
 ## Development instance
 

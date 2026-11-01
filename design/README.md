@@ -1,10 +1,11 @@
-# Design proposals and historical material
+# Design proposals
 
 - [TEMPLATE.md](TEMPLATE.md) is the reusable template for substantial proposals.
-- [v1.1 proposal](v1.1-forecast-prices-and-scheduling-insights.md) and
-  [delivery checklist](v1.1-implementation-checklist.md) are historical material.
-  They explain the original scope, not the current status or complete
-  implementation contract.
+
+Use proposals for work under discussion. Record lasting decisions in an ADR;
+describe implemented behaviour in the maintained guides. Completed delivery
+checklists and superseded proposals need not remain alongside current guidance:
+Git history preserves previous versions.
 
 For today's behaviour, read the [architecture](../docs/architecture.md),
 [sensor catalogue](../docs/sensors.md) and

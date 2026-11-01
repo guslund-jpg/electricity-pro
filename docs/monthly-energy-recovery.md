@@ -18,6 +18,8 @@ The discarded total cannot be restored through this action; take a backup first
 if you need to retain the integration's saved state.
 
 Daily energy, cost totals, meter readings and other configurations are not reset.
+Recovery options for already-inflated daily energy and cost totals remain a
+[separate follow-up (#313)](https://github.com/guslund-jpg/electricity-pro/issues/313).
 Recorder history and long-term statistics are not deleted or repaired. Existing
 bad historical readings may therefore remain in historical charts.
 

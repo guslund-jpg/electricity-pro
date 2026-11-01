@@ -58,5 +58,11 @@ Electricity Pro does not switch to local estimates during a temporary outage.
    apart, and check Cost today and Cost this month.
 
 The average-price sensor updates on its existing five-minute schedule.
-Monthly peak-hour consumption/time derivation and historical recovery are
-separate follow-up work.
+Meter-derived monthly peak-hour consumption/time remains
+[separate follow-up work (#312)](https://github.com/guslund-jpg/electricity-pro/issues/312);
+the existing monthly peak-hour sensors mirror provider values.
+Recovery of already-inflated daily energy and cost totals is tracked in
+[#313](https://github.com/guslund-jpg/electricity-pro/issues/313), not performed
+automatically by installing an update. See the
+[installation verification checklist](installation-verification.md) for observed
+accumulation, rollover and naturally occurring dip checks.

@@ -129,6 +129,13 @@ currency/kWh. `ForecastInterval` preserves aware boundaries, signed finite
 market prices and metadata. Raw market and enriched scheduling prices remain
 distinct; adding known charges does not establish a complete household forecast.
 
+Native Nord Pool is the supported forecast source, not a requirement for live
+metering. The original forecast design deliberately kept one source adapter
+rather than introducing a multi-provider framework before a second source was
+needed. Normalized intervals keep the insight calculations independent of Nord
+Pool payloads. Appliance control remains outside the integration; copyable
+automation examples require separate installation and user decisions.
+
 Startup and the 15-minute timer use the CET/CEST market calendar, requesting
 tomorrow from 13:00 market time and retaining dates needed for the HA local day.
 Expected future empty responses remain retryable; genuine failures warn without
@@ -224,17 +231,15 @@ from repository, HACS, Hassfest and HA configuration checks. Synthetic tests are
 not real solar/battery validation; see the
 [energy-flow test plan](specification/energy-flow-test-plan.md).
 
-The [ADR index](adr/README.md) separates accepted decisions, proposals and
-unwritten historical placeholders. Implementation does not itself prove formal
-acceptance.
+The [ADR index](adr/README.md) separates accepted decisions from proposals.
+Implementation does not itself prove formal acceptance.
 
 - `tests/`: Python unit and HA integration tests.
 - `examples/dashboards/`: maintained copyable user dashboards.
 - `config/`: minimal HA configuration-validation fixture, not a configured
   running instance of the Python integration.
-- `packages/`, `dashboards/`: early YAML-layout placeholders; see
-  [layout notes](../packages/README.md).
-- `design/`: proposal template and historical v1.1 material, not today's
-  implementation specification.
-- Root [roadmap](../ROADMAP.md): authoritative release direction;
-  `docs/ROADMAP.MD` is only a forwarding link.
+- `examples/testing/`, `examples/automations/`: separately installed synthetic
+  fixtures and optional automation packages, not part of integration installation.
+- `design/`: template for substantial proposals, not today's implementation
+  specification.
+- Root [roadmap](../ROADMAP.md): authoritative release direction.

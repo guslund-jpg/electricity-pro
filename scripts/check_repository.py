@@ -10,8 +10,7 @@ for path in Path(".").rglob("*"):
     if path.is_file() and ".git" not in path.parts and path.name in forbidden_names:
         errors.append(f"Forbidden file: {path}")
 
-for base in ("packages/20_core", "packages/30_statistics",
-             "packages/40_health", "packages/50_alerts", "dashboards"):
+for base in ("examples/dashboards",):
     directory = Path(base)
     for path in directory.rglob("*.yaml") if directory.exists() else []:
         text = path.read_text(encoding="utf-8")

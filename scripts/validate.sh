@@ -30,8 +30,7 @@ echo "Running YAML validation."
 "${YAMLLINT}" \
   .github \
   config \
-  dashboards \
-  packages \
+  examples/dashboards \
   examples/testing \
   examples/automations \
   custom_components
@@ -40,7 +39,7 @@ echo "Checking repository policies."
 "${PYTHON}" scripts/check_repository.py
 
 echo "Checking for duplicate unique IDs."
-"${PYTHON}" scripts/check_unique_ids.py packages dashboards config examples/testing examples/automations
+"${PYTHON}" scripts/check_unique_ids.py config examples/dashboards examples/testing examples/automations
 
 echo "Checking JSON files."
 while IFS= read -r -d '' json_file; do
