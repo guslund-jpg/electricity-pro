@@ -72,7 +72,7 @@ configured. See [local cost estimates](costs-and-pricing.md#supplier-cost-estima
 Backward lifetime readings are rejected rather than counted again on recovery.
 Only a genuine meter replacement/reset requires explicit confirmation; ordinary
 outages do not. See [meter reading protection](meter-reading-protection.md),
-[monthly energy recovery](monthly-energy-recovery.md), and the
+[energy and cost recovery policy](monthly-energy-recovery.md), and the
 [installation verification checklist](installation-verification.md).
 
 ## Verify a source before selecting it

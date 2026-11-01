@@ -22,8 +22,8 @@ hardware validation.
   diagnostic states and their limits.
 - [Meter reading protection](guides/meter-reading-protection.md): dips,
   outages and confirmed meter resets.
-- [Monthly energy recovery](guides/monthly-energy-recovery.md): handling a
-  previously inflated monthly total.
+- [Energy and cost recovery](guides/monthly-energy-recovery.md): evidence,
+  safe reset scope and limits of historical repair.
 - [Installation verification](guides/installation-verification.md): checking
   observed accumulation and rollover.
 - [Recorder and database writes](guides/recorder.md): retain the history you

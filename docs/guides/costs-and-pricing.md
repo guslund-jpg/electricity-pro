@@ -66,9 +66,9 @@ The average-price sensor updates on its existing five-minute schedule.
 Meter-derived monthly peak-hour consumption/time remains
 [separate follow-up work (#312)](https://github.com/guslund-jpg/electricity-pro/issues/312);
 the existing monthly peak-hour sensors mirror provider values.
-Recovery of already-inflated daily energy and cost totals is tracked in
-[#313](https://github.com/guslund-jpg/electricity-pro/issues/313), not performed
-automatically by installing an update. See the
+Installing an update does not repair already-inflated energy or cost totals.
+Follow the [recovery policy](monthly-energy-recovery.md) for evidence, reset
+scope and historical limitations. See the
 [installation verification checklist](installation-verification.md) for observed
 accumulation, rollover and naturally occurring dip checks.
 
