@@ -41,6 +41,11 @@
 
 ### Documentation
 
+- Define the recovery policy for previously inflated energy and cost totals:
+  preserve evidence, distinguish upstream data from local totals and Recorder
+  history/statistics, and document the existing monthly reset's narrow scope.
+  No automatic historical repair, new reset action or runtime change is added.
+
 - Organise maintained documentation into guides, reference, development and
   validation sections. Consolidate cost guidance and keep release history in
   the changelog rather than duplicating it in the roadmap. Update internal and

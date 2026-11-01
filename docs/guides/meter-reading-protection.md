@@ -26,9 +26,11 @@ action for ordinary communication outages or temporary dips.
 ## Already inflated totals
 
 This protection prevents new overcounting; it does not rewrite existing totals
-or Home Assistant Recorder history. Those require a separately reviewed recovery
-based on reliable meter history. The existing monthly-energy reset action only
-resets monthly energy, not daily energy or costs.
+or Home Assistant Recorder history. Follow the
+[energy and cost recovery policy](monthly-energy-recovery.md) before changing
+saved totals. There is no automatic historical repair; the existing
+monthly-energy reset action only resets monthly import energy, not daily energy
+or costs.
 
 This is protection against backward readings, not every possible source fault.
 An erroneous upward jump still needs investigation at the source.
