@@ -8,9 +8,6 @@ See [architecture](../architecture.md) for current ownership and
 | Record | Recorded status / interpretation |
 | --- | --- |
 | [0001: provider normalization](ADR-0001-provider-normalization.md) | Accepted |
-| [0002: event-driven coordinator](0002-event-driven-coordinator.md) | Unwritten historical placeholder; current implementation linked |
-| [0003: pure analytics](0003-pure-analytics.md) | Unwritten historical placeholder; current implementation linked |
-| [0004: insight model](0004-insight-model.md) | Unwritten historical placeholder; later designs linked |
 | [0005: pricing and tariffs](0005-pricing-and-tariff-strategies.md) | Accepted |
 | [0006: daily power statistics](0006-provider-independent-daily-power-statistics.md) | Accepted |
 | [0007: timing score](0007-consumption-timing-score.md) | Accepted |
@@ -21,6 +18,7 @@ See [architecture](../architecture.md) for current ownership and
 | [0012: adaptive classification](0012-adaptive-good-price-classification.md) | Accepted |
 | [0013: energy flows](0013-production-and-bidirectional-energy-flows.md) | Accepted design; only part implemented, unreleased |
 
-Do not infer approval dates or decisions from placeholder filenames. Formal
+Numbers 0002–0004 were unused placeholders and have been removed; existing
+records retain their numbers. Do not infer decisions from numbering gaps. Formal
 acceptance or a superseding design should be recorded in a reviewed change,
 with implementation and validation limits kept separate.

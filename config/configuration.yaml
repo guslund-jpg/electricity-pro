@@ -1,4 +1,1 @@
 default_config:
-
-homeassistant:
-  packages: !include_dir_merge_named packages

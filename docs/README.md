@@ -422,8 +422,8 @@ Documentation is organized as follows:
 | [`CHANGELOG.md`](../CHANGELOG.md)         | Release history                                    |
 | [Sensor catalogue](sensors.md)            | Implemented entities, availability and limitations |
 | [Development](development.md)             | Local tests and CI checks                          |
-| [ADR index](adr/README.md)                | Decisions, proposals and historical placeholders   |
-| [Design archive](../design/README.md)     | Proposal template and historical v1.1 material     |
+| [ADR index](adr/README.md)                | Substantive architectural decisions and proposals  |
+| [Design proposals](../design/README.md)   | Template for substantial proposed changes          |
 
 Contributor decisions are guided by the
 [Design Principles](vision/DESIGN_PRINCIPLES.md).
