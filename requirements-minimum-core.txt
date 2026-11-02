@@ -1,2 +1,4 @@
 # Isolated from requirements-dev.txt: this harness pins Home Assistant 2025.9.0.
 pytest-homeassistant-custom-component==0.13.277
+# Core 2025.9 pins aiodns 3.5, which imports the pre-5 pycares query result types.
+pycares>=4.9,<5
