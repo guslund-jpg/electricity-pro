@@ -178,7 +178,6 @@ template:
         availability: "{{ is_number(states('input_number.ep_lab_import_energy')) }}"
       - name: "EP Lab price"
         unique_id: ep_lab_price
-        device_class: monetary
         unit_of_measurement: "SEK/kWh"
         state_class: measurement
         state: "{{ states('input_number.ep_lab_price') }}"
