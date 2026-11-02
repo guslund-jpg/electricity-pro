@@ -79,6 +79,15 @@ async def test_package_publishes_declared_units_and_independent_totals(hass, int
     assert hass.states.get("sensor.electricity_pro_current_power").state == "800.0"
 
 
+async def test_lab_price_is_a_unit_price_measurement(hass, lab):
+    await set_number(hass, "price", 1.5)
+    price = hass.states.get("sensor.ep_lab_price")
+    assert Decimal(price.state) == Decimal("1.5")
+    assert price.attributes["unit_of_measurement"] == "SEK/kWh"
+    assert price.attributes["state_class"] == "measurement"
+    assert "device_class" not in price.attributes
+
+
 async def test_package_zero_negative_and_outage_inputs(hass, integration):
     await set_number(hass, "production_power", 0)
     await publish(hass)
