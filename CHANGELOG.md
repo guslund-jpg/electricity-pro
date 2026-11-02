@@ -1,6 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [1.6.0] - Unreleased
+
+This candidate adds optional measured production, grid-export and household
+demand, a two-hour price trend, and forecast-pricing setup improvements.
+The flow features have synthetic test coverage, not real solar/battery
+verification. See the [upgrade notes and validation limits](docs/releases/1.6.0.md).
 
 ### Changed
 
@@ -96,8 +101,8 @@
 
 - Add a disposable Home Assistant simulation package and executable v1.6
   validation checklist under #290, with automated package tests, a manual evidence
-  record and redacted hardware-beta mapping guidance. Manual/hardware runs remain
-  pending; optional flow features are explicitly experimental, not hardware-verified.
+  record and redacted hardware-beta mapping guidance. Manual synthetic results
+  are recorded separately; optional flow features are not hardware-verified.
 
 - Add a pinned strict mypy pilot for statistics, pricing contracts and grid
   tariffs in local checks, pre-commit and CI. Document the exact checked scope,

@@ -11,7 +11,8 @@ change as testing and source availability improve.
 
 ## v1.6 — Production & Bidirectional Energy Foundation 🔭
 
-In development, not released. Main already includes independent measured AC
+In release preparation, not published. The [v1.6.0 candidate notes](docs/releases/1.6.0.md)
+describe upgrade checks and remaining decisions. The candidate includes independent measured AC
 production/export/household channels, protected partial counters and opt-in
 power compatibility diagnostics. It also includes VAT suggestions and reviewed
 Tibber forecast-addition estimation. These are not in v1.5.2.
