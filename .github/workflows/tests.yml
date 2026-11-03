@@ -15,6 +15,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  minimum-core:
+    name: Minimum supported Home Assistant
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-minimum-core.txt
+      - name: Install the minimum-Core test environment
+        run: python -m pip install -r requirements-minimum-core.txt
+      - name: Check installed Core matches the HACS minimum
+        run: |
+          python - <<'PY'
+          import json
+          from importlib.metadata import version
+          from pathlib import Path
+          declared = json.loads(Path("hacs.json").read_text())["homeassistant"]
+          actual = version("homeassistant")
+          assert actual == declared, f"Installed {actual}, declared {declared}"
+          PY
+      - name: Exercise setup, source updates, options and registered actions
+        run: >-
+          python -m pytest -q --tb=short
+          tests/test_init.py::test_setup_and_unload_entry
+          tests/test_sensor.py::test_current_power_updates_when_source_changes
+          tests/test_config_flow.py::test_options_flow_saves_adaptive_good_price_settings
+          tests/test_init.py::test_reset_monthly_energy_action_targets_selected_entry
+
   tests:
     name: Python test suite
     runs-on: ubuntu-latest
