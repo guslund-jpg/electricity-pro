@@ -1,7 +1,24 @@
 """Bounded, provider-independent lifetime directional energy tracking."""
 
+from collections.abc import Mapping
 from datetime import date, datetime
 from decimal import Decimal
+from typing import TypedDict
+
+from .history_storage import stored_decimal, stored_string
+
+
+class FlowCounterState(TypedDict):
+    """Constant-size JSON representation written by a directional counter."""
+
+    day: str | None
+    month: str | None
+    high_water: str | None
+    today: str
+    this_month: str
+    started: str | None
+    pending_boundary: bool
+    generation: int
 
 
 class FlowCounter:
@@ -65,7 +82,7 @@ class FlowCounter:
         self.generation += 1
         self.reason = "partial"
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> FlowCounterState:
         """Persist constant-size state, not a sample history."""
         return {
             "day": self.day,
@@ -79,32 +96,41 @@ class FlowCounter:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "FlowCounter":
+    def from_dict(cls, data: Mapping[str, object]) -> "FlowCounter":
         """Reject malformed persistence instead of reviving invalid counters."""
         result = cls()
-        day = data["day"]
+        day = stored_string(data["day"]) if data["day"] is not None else None
         if day is not None:
             date.fromisoformat(day)
-        if data["month"] != (day[:7] if day else None):
+        month = stored_string(data["month"]) if data["month"] is not None else None
+        if month != (day[:7] if day else None):
             raise ValueError("Mismatched flow periods")
-        result.day, result.month = day, data["month"]
-        for name in ("high_water", "today", "this_month"):
-            raw = data[name]
-            if name == "high_water" and raw is None:
-                continue
-            value = Decimal(raw)
+        result.day, result.month = day, month
+
+        def total(raw: object) -> Decimal:
+            value = stored_decimal(raw)
             if not value.is_finite() or value < 0:
                 raise ValueError("Invalid flow total")
-            setattr(result, name, value)
-        started = data["started"]
+            return value
+
+        raw_high_water = data["high_water"]
+        result.high_water = (
+            total(raw_high_water) if raw_high_water is not None else None
+        )
+        result.today = total(data["today"])
+        result.this_month = total(data["this_month"])
+        started = (
+            stored_string(data["started"]) if data["started"] is not None else None
+        )
         if started is not None and datetime.fromisoformat(started).tzinfo is None:
             raise ValueError("Naive tracking timestamp")
-        if type(data["pending_boundary"]) is not bool:
+        pending_boundary = data["pending_boundary"]
+        if type(pending_boundary) is not bool:
             raise ValueError("Invalid boundary flag")
         generation = data["generation"]
         if type(generation) is not int or generation < 0:
             raise ValueError("Invalid meter generation")
         result.started = started
-        result.pending_boundary = data["pending_boundary"]
+        result.pending_boundary = pending_boundary
         result.generation = generation
         return result
