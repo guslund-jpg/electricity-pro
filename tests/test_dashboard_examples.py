@@ -301,7 +301,9 @@ def test_enhanced_dashboard_market_price_presentation() -> None:
     assert forecast["span"] == {"start": "day"}
     assert forecast["yaxis"][0]["min"] == "~0"
     assert forecast["update_delay"] == "3s"
-    assert forecast["update_interval"] == "1min"
+    # Interval polling can leave ApexCharts 2.2.3 busy before initialization.
+    # Keep the forecast on the default entity-driven update path.
+    assert "update_interval" not in forecast
     assert forecast["now"]["show"] is True
     assert forecast["apex_config"]["chart"] == {
         "animations": {"enabled": False},
