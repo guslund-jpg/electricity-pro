@@ -2,11 +2,23 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta, tzinfo
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
-from typing import Any
+from typing import TypedDict
+
+from .history_storage import stored_decimal, stored_list, stored_record, stored_string
+
+
+class BaseLoadHistoryData(TypedDict):
+    """JSON-compatible aggregate history emitted by the storage writer."""
+
+    buckets: list[dict[str, str]]
+    covered_ranges: list[dict[str, str]]
+    bidirectional_dates: list[str]
+
 
 _ONE_HUNDRED = Decimal(100)
 _DEFAULT_DAILY_PERCENTILE = Decimal("0.10")
@@ -98,24 +110,26 @@ class DailyBaseLoadSummary:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> DailyBaseLoadSummary:
+    def from_dict(cls, data: Mapping[str, object]) -> DailyBaseLoadSummary:
         """Restore and validate a persisted daily summary."""
         try:
             estimate_value = data.get("estimate_w")
             reason_value = data.get("unavailable_reason")
             return cls(
-                period_start=date.fromisoformat(data["period_start"]),
+                period_start=date.fromisoformat(stored_string(data["period_start"])),
                 estimate_w=(
-                    Decimal(estimate_value) if estimate_value is not None else None
+                    stored_decimal(estimate_value)
+                    if estimate_value is not None
+                    else None
                 ),
                 unavailable_reason=(
-                    DailyBaseLoadUnavailableReason(reason_value)
+                    DailyBaseLoadUnavailableReason(stored_string(reason_value))
                     if reason_value is not None
                     else None
                 ),
-                coverage_percent=Decimal(data["coverage_percent"]),
+                coverage_percent=stored_decimal(data["coverage_percent"]),
                 longest_uncovered_gap=_timedelta_from_decimal_seconds(
-                    Decimal(data["longest_uncovered_gap_seconds"])
+                    stored_decimal(data["longest_uncovered_gap_seconds"])
                 ),
             )
         except (InvalidOperation, KeyError, TypeError, ValueError) as err:
@@ -560,7 +574,7 @@ class BaseLoadBucketAccumulator:
         }
         self._bidirectional_dates &= dates
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> BaseLoadHistoryData:
         """Return bounded aggregate history in a storage-safe form."""
         return {
             "buckets": [
@@ -591,17 +605,20 @@ class BaseLoadBucketAccumulator:
     def from_dict(
         cls,
         local_timezone: tzinfo,
-        data: dict[str, Any],
+        data: Mapping[str, object],
     ) -> BaseLoadBucketAccumulator:
         """Restore and validate aggregate power history."""
         accumulator = cls(local_timezone)
         try:
-            for item in data["buckets"]:
-                stored_date = date.fromisoformat(item["period_start"])
-                bucket_start = datetime.fromisoformat(item["bucket_start"])
+            for value in stored_list(data["buckets"]):
+                item = stored_record(value)
+                stored_date = date.fromisoformat(stored_string(item["period_start"]))
+                bucket_start = datetime.fromisoformat(
+                    stored_string(item["bucket_start"])
+                )
                 bucket = _MutablePowerBucket(
-                    power_seconds=Decimal(item["power_seconds"]),
-                    covered_seconds=Decimal(item["covered_seconds"]),
+                    power_seconds=stored_decimal(item["power_seconds"]),
+                    covered_seconds=stored_decimal(item["covered_seconds"]),
                 )
                 if (
                     bucket_start.tzinfo is None
@@ -613,10 +630,11 @@ class BaseLoadBucketAccumulator:
                 ):
                     raise ValueError
                 accumulator._buckets[(stored_date, bucket_start)] = bucket
-            for item in data["covered_ranges"]:
-                stored_date = date.fromisoformat(item["period_start"])
-                start = datetime.fromisoformat(item["start"])
-                end = datetime.fromisoformat(item["end"])
+            for value in stored_list(data["covered_ranges"]):
+                item = stored_record(value)
+                stored_date = date.fromisoformat(stored_string(item["period_start"]))
+                start = datetime.fromisoformat(stored_string(item["start"]))
+                end = datetime.fromisoformat(stored_string(item["end"]))
                 if (
                     start.tzinfo is None
                     or start.utcoffset() is None
@@ -629,7 +647,8 @@ class BaseLoadBucketAccumulator:
                     (start.astimezone(UTC), end.astimezone(UTC))
                 )
             accumulator._bidirectional_dates = {
-                date.fromisoformat(value) for value in data["bidirectional_dates"]
+                date.fromisoformat(stored_string(value))
+                for value in stored_list(data["bidirectional_dates"])
             }
         except (InvalidOperation, KeyError, TypeError, ValueError) as err:
             raise ValueError("invalid base-load bucket history") from err

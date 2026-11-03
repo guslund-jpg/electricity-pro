@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Validate stored history value shapes explicitly before restoring statistics,
+  base-load and consumption-timing history. Keep the saved format and calculation
+  rules unchanged; reject malformed arrays and records cleanly.
+
 - Remove interval polling from the Enhanced dashboard's market forecast chart
   to avoid an ApexCharts Card 2.2.3 initialization stall. Use source-entity-driven
   updates instead; the Now marker moves when the chart updates. Existing copied

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta, tzinfo
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from enum import StrEnum
-from typing import Any
+
+from .history_storage import stored_decimal, stored_list, stored_record, stored_string
 
 _SECONDS_PER_HOUR = Decimal(3600)
 _WATTS_PER_KILOWATT = Decimal(1000)
@@ -93,25 +95,27 @@ class TimingScoreResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> TimingScoreResult:
+    def from_dict(cls, data: Mapping[str, object]) -> TimingScoreResult:
         """Restore a result from storage."""
         try:
             score = _optional_decimal(data.get("score"))
             reason_value = data.get("unavailable_reason")
             reason = (
-                TimingScoreUnavailableReason(reason_value)
+                TimingScoreUnavailableReason(stored_string(reason_value))
                 if reason_value is not None
                 else None
             )
             rating_value = data.get("rating")
             rating = (
-                TimingScoreRating(rating_value) if rating_value is not None else None
+                TimingScoreRating(stored_string(rating_value))
+                if rating_value is not None
+                else None
             )
             result = cls(
                 score=score,
                 unavailable_reason=reason,
-                coverage_percent=Decimal(data["coverage_percent"]),
-                energy_kwh=Decimal(data["energy_kwh"]),
+                coverage_percent=stored_decimal(data["coverage_percent"]),
+                energy_kwh=stored_decimal(data["energy_kwh"]),
                 consumption_weighted_price=_optional_decimal(
                     data.get("consumption_weighted_price")
                 ),
@@ -319,9 +323,9 @@ def _seconds(duration: timedelta) -> Decimal:
     return Decimal(str(duration.total_seconds()))
 
 
-def _optional_decimal(value: Any) -> Decimal | None:
+def _optional_decimal(value: object) -> Decimal | None:
     """Parse an optional persisted decimal."""
-    return Decimal(value) if value is not None else None
+    return stored_decimal(value) if value is not None else None
 
 
 @dataclass(slots=True)
@@ -480,18 +484,21 @@ class TimingBucketAccumulator:
     def from_dict(
         cls,
         local_timezone: tzinfo,
-        data: dict[str, Any],
+        data: Mapping[str, object],
     ) -> TimingBucketAccumulator:
         """Restore aggregate timing history from storage."""
         accumulator = cls(local_timezone)
         try:
-            for item in data["buckets"]:
-                stored_date = date.fromisoformat(item["period_start"])
-                bucket_start = datetime.fromisoformat(item["bucket_start"])
+            for value in stored_list(data["buckets"]):
+                item = stored_record(value)
+                stored_date = date.fromisoformat(stored_string(item["period_start"]))
+                bucket_start = datetime.fromisoformat(
+                    stored_string(item["bucket_start"])
+                )
                 bucket = _MutableBucket(
-                    energy_kwh=Decimal(item["energy_kwh"]),
-                    price_seconds=Decimal(item["price_seconds"]),
-                    covered_seconds=Decimal(item["covered_seconds"]),
+                    energy_kwh=stored_decimal(item["energy_kwh"]),
+                    price_seconds=stored_decimal(item["price_seconds"]),
+                    covered_seconds=stored_decimal(item["covered_seconds"]),
                 )
                 if (
                     bucket_start.tzinfo is None
@@ -504,10 +511,11 @@ class TimingBucketAccumulator:
                 ):
                     raise ValueError
                 accumulator._buckets[(stored_date, bucket_start)] = bucket
-            for item in data["covered_ranges"]:
-                stored_date = date.fromisoformat(item["period_start"])
-                start = datetime.fromisoformat(item["start"])
-                end = datetime.fromisoformat(item["end"])
+            for value in stored_list(data["covered_ranges"]):
+                item = stored_record(value)
+                stored_date = date.fromisoformat(stored_string(item["period_start"]))
+                start = datetime.fromisoformat(stored_string(item["start"]))
+                end = datetime.fromisoformat(stored_string(item["end"]))
                 if (
                     start.tzinfo is None
                     or start.utcoffset() is None
