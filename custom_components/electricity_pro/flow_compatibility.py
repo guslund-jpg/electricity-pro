@@ -3,6 +3,25 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import Literal
+
+CompatibilityStatus = Literal[
+    "invalid_declaration",
+    "contradictory_topology",
+    "unknown_topology",
+    "insufficient_sources",
+    "duplicate_source",
+    "incompatible_boundary",
+    "unknown_convention",
+    "incompatible_conventions",
+    "invalid_timestamp",
+    "missing_timestamp",
+    "future_timestamp",
+    "stale_source",
+    "invalid_or_unavailable_source",
+    "time_skew",
+    "aligned",
+]
 
 PRESENCE_OPTIONS = ("unknown", "absent", "present")
 PHASE_OPTIONS = ("unknown", "net_across_phases", "gross_directional")
@@ -33,7 +52,7 @@ class PowerInput:
 class CompatibilityResult:
     """Bounded diagnostic that must never be used as balance readiness."""
 
-    status: str
+    status: CompatibilityStatus
     problem_channels: tuple[str, ...] = ()
 
 
