@@ -1,8 +1,8 @@
 # Changelog
 
-## [1.6.0] - Unreleased
+## [1.6.0] - 2026-11-03
 
-This candidate adds optional measured production, grid-export and household
+This release adds optional measured production, grid-export and household
 demand, a two-hour price trend, and forecast-pricing setup improvements.
 The flow features have synthetic test coverage, not real solar/battery
 verification. See the [upgrade notes and validation limits](docs/releases/1.6.0.md).
@@ -65,7 +65,7 @@ verification. See the [upgrade notes and validation limits](docs/releases/1.6.0.
   synthetic, rollover, dashboard, automation and standard-upgrade checks.
   Include the implemented README, automation-example and two-hour-trend work.
   Record the November 3 final package smoke test and maintainer approval of
-  the narrow scope and bounded evidence gaps. Publication remains separate;
+  the narrow scope and bounded evidence gaps. Published November 3;
   solar/battery hardware verification is not claimed.
 
 - Reconcile stable v1.5.2 versus main development scope, architecture ownership,

@@ -1,7 +1,7 @@
 # Optional production, grid export and household demand
 
-Status: unreleased first increment of v1.6 issue #240. These features are not
-part of v1.5.1 or v1.5.2. Validation is automated with synthetic sources; real solar
+Status: released in v1.6.0 as the first increment of issue #240.
+Validation includes automated and manual synthetic-source tests; real solar
 and battery installations have not yet been beta-tested.
 Optional channels are experimental / not hardware-verified until the
 [v1.6 validation evidence](../validation/v1.6.md) supports stronger claims.

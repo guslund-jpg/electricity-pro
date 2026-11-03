@@ -5,17 +5,16 @@ See the [changelog](CHANGELOG.md) for delivered changes and the
 [product vision](docs/development/vision.md) and
 [design principles](docs/development/design-principles.md) for project boundaries.
 
-The stable release is [v1.5.2](docs/releases/1.5.2.md). Work on `main` is not
+The stable release is [v1.6.0](docs/releases/1.6.0.md). Work on `main` is not
 automatically released or hardware-validated. Release scope and priorities may
 change as testing and source availability improve.
 
-## v1.6 — Production & Bidirectional Energy Foundation 🔭
+## Energy-flow follow-up after v1.6 🔭
 
-In release preparation, not published. The [v1.6.0 candidate notes](docs/releases/1.6.0.md)
-describe upgrade checks and remaining decisions. The candidate includes independent measured AC
-production/export/household channels, protected partial counters and opt-in
-power compatibility diagnostics. It also includes VAT suggestions and reviewed
-Tibber forecast-addition estimation. These are not in v1.5.2.
+The [v1.6.0 release notes](docs/releases/1.6.0.md) describe the delivered
+measured-channel foundation and its validation limits. Follow-up work builds on
+independent AC production/export/household channels, protected partial counters
+and opt-in power compatibility diagnostics.
 
 Calculated site balances, self-consumption/self-sufficiency and export revenue
 remain future work, not delivered by those independent channels. Solar/battery
@@ -28,11 +27,11 @@ hardware validation is still outstanding; track release evidence in
 Extend Electricity Pro from consumption-oriented net-grid analysis to explicit,
 provider-independent production, import and export energy flows.
 
-The current release scope is the measured-channel foundation above. Broader
+The delivered v1.6 scope is the measured-channel foundation above. Broader
 energy-flow work includes separate import/export contracts, self-consumption
 and self-sufficiency, explicit export-price/revenue contracts, and use of gross
 household demand in suitable analytics. These are follow-up directions, not
-promises that every capability ships in v1.6.
+promises for a particular release.
 
 The v1.6 foundation must work without solar, a battery or an EV and must not
 infer missing flows. Device control and vendor-specific integrations remain out

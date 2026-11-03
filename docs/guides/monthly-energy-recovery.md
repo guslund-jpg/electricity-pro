@@ -106,7 +106,7 @@ error. See [cost components and coverage](costs-and-pricing.md).
 - `electricity_pro.confirm_meter_reset` accepts a new lifetime import baseline
   after a verified meter replacement/reset. It preserves existing energy and
   cost totals; it does not remove overcounting.
-- `electricity_pro.confirm_flow_meter_reset` (unreleased v1.6) accepts a new
+- `electricity_pro.confirm_flow_meter_reset` (added in v1.6.0) accepts a new
   lifetime baseline for the explicitly selected production, grid-export or
   household channel and currently configured source. It preserves known totals
   and other channels.
