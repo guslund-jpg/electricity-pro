@@ -55,7 +55,6 @@ def _create_provider(
     if include_energy:
         entry_data[CONF_ENERGY_ENTITY] = "sensor.test_energy"
 
-
     if include_phase_currents:
         entry_data[CONF_CURRENT_L1_ENTITY] = "sensor.test_current_l1"
         entry_data[CONF_CURRENT_L2_ENTITY] = "sensor.test_current_l2"
@@ -146,7 +145,9 @@ def test_grid_fee_at_uses_time_varying_resolver(hass: HomeAssistant) -> None:
     assert provider.grid_fee_at(high_start.replace(hour=5)) == Decimal("0.125")
 
 
-async def test_grid_fee_at_uses_configured_high_low_schedule(hass: HomeAssistant) -> None:
+async def test_grid_fee_at_uses_configured_high_low_schedule(
+    hass: HomeAssistant,
+) -> None:
     """Provider should build and apply a high/low schedule from config data."""
     await hass.config.async_set_time_zone("UTC")
     entry = MockConfigEntry(
@@ -164,17 +165,17 @@ async def test_grid_fee_at_uses_configured_high_low_schedule(hass: HomeAssistant
     )
     provider = ElectricityProEntityProvider(hass, entry)
 
-    assert provider.grid_fee_at(
-        datetime(2026, 11, 2, 7, 0, tzinfo=UTC)
-    ) == Decimal("0.25")
-    assert provider.grid_fee_at(
-        datetime(2026, 11, 7, 7, 0, tzinfo=UTC)
-    ) == Decimal("0.125")
+    assert provider.grid_fee_at(datetime(2026, 11, 2, 7, 0, tzinfo=UTC)) == Decimal(
+        "0.25"
+    )
+    assert provider.grid_fee_at(datetime(2026, 11, 7, 7, 0, tzinfo=UTC)) == Decimal(
+        "0.125"
+    )
 
     provider.set_grid_tariff_excluded_dates(frozenset({date(2026, 11, 2)}))
-    assert provider.grid_fee_at(
-        datetime(2026, 11, 2, 7, 0, tzinfo=UTC)
-    ) == Decimal("0.125")
+    assert provider.grid_fee_at(datetime(2026, 11, 2, 7, 0, tzinfo=UTC)) == Decimal(
+        "0.125"
+    )
 
 
 async def test_grid_fee_schedule_uses_home_assistant_timezone_across_dst(
@@ -198,12 +199,12 @@ async def test_grid_fee_schedule_uses_home_assistant_timezone_across_dst(
     provider = ElectricityProEntityProvider(hass, entry)
 
     # Monday after the 2026 DST transition: 04:30 UTC is 06:30 locally.
-    assert provider.grid_fee_at(
-        datetime(2026, 3, 30, 4, 30, tzinfo=UTC)
-    ) == Decimal("0.25")
-    assert provider.grid_fee_at(
-        datetime(2026, 3, 30, 3, 30, tzinfo=UTC)
-    ) == Decimal("0.125")
+    assert provider.grid_fee_at(datetime(2026, 3, 30, 4, 30, tzinfo=UTC)) == Decimal(
+        "0.25"
+    )
+    assert provider.grid_fee_at(datetime(2026, 3, 30, 3, 30, tzinfo=UTC)) == Decimal(
+        "0.125"
+    )
 
 
 def test_read_valid_sources(

@@ -131,7 +131,8 @@ def find_cheapest_continuous_window(
             continue
 
         if any(
-            interval.currency != start_interval.currency or interval.area != start_interval.area
+            interval.currency != start_interval.currency
+            or interval.area != start_interval.area
             for interval in window[1:]
         ):
             continue
@@ -165,7 +166,11 @@ def find_cheapest_continuous_window(
                 supplier_markup_per_kwh is not None,
             ),
         )
-        if best_window is None or (candidate.average_scheduling_price, candidate.start, candidate.average_market_price) < (
+        if best_window is None or (
+            candidate.average_scheduling_price,
+            candidate.start,
+            candidate.average_market_price,
+        ) < (
             best_window.average_scheduling_price,
             best_window.start,
             best_window.average_market_price,
@@ -319,12 +324,7 @@ def _scheduling_price(
     gross_price = vat_inclusive_price(market_price, pricing_metadata)
     if gross_price is None:
         raise ValueError("Scheduling requires a known VAT-inclusive price")
-    return (
-        gross_price
-        + grid_adjustment
-        + tax_adjustment
-        + markup_adjustment
-    )
+    return gross_price + grid_adjustment + tax_adjustment + markup_adjustment
 
 
 def _average_market_price(window: list[ForecastInterval]) -> Decimal:
@@ -403,7 +403,8 @@ def find_next_inexpensive_1h_window(
             continue
 
         if any(
-            interval.currency != start_interval.currency or interval.area != start_interval.area
+            interval.currency != start_interval.currency
+            or interval.area != start_interval.area
             for interval in window[1:]
         ):
             continue

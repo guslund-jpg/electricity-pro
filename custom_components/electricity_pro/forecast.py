@@ -130,7 +130,9 @@ def current_market_price_interval(
     if now.tzinfo is None:
         raise ValueError("Current market-price timestamp must be timezone-aware")
 
-    matches = [interval for interval in intervals if interval.start <= now < interval.end]
+    matches = [
+        interval for interval in intervals if interval.start <= now < interval.end
+    ]
     return matches[0] if len(matches) == 1 else None
 
 
@@ -207,8 +209,7 @@ def serialize_market_price_forecast(
         "currency": first.currency,
         "area": first.area,
         "price_components": sorted(
-            component.value
-            for component in first.pricing_metadata.scope.included
+            component.value for component in first.pricing_metadata.scope.included
         ),
         "vat_treatment": first.pricing_metadata.scope.vat.value,
         "price_completeness": first.pricing_metadata.completeness.value,

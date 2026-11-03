@@ -31,11 +31,7 @@ def calculate_current_cost_rate(
     if power_w is None or price_per_kwh is None:
         return None
 
-    if (
-        not power_w.is_finite()
-        or not price_per_kwh.is_finite()
-        or power_w < 0
-    ):
+    if not power_w.is_finite() or not price_per_kwh.is_finite() or power_w < 0:
         return None
 
     power_kw = power_w / Decimal(1000)
@@ -86,19 +82,16 @@ def calculate_declared_effective_price(
     if metadata is None:
         return None
     adjustments = {}
-    if (
-        grid_fee_per_kwh is not None
-        and not metadata.scope.includes(PriceComponent.VARIABLE_GRID_FEE)
+    if grid_fee_per_kwh is not None and not metadata.scope.includes(
+        PriceComponent.VARIABLE_GRID_FEE
     ):
         adjustments[PriceComponent.VARIABLE_GRID_FEE] = grid_fee_per_kwh
-    if (
-        energy_tax_per_kwh is not None
-        and not metadata.scope.includes(PriceComponent.ENERGY_TAX)
+    if energy_tax_per_kwh is not None and not metadata.scope.includes(
+        PriceComponent.ENERGY_TAX
     ):
         adjustments[PriceComponent.ENERGY_TAX] = energy_tax_per_kwh
-    if (
-        supplier_markup_per_kwh is not None
-        and not metadata.scope.includes(PriceComponent.SUPPLIER_MARKUP)
+    if supplier_markup_per_kwh is not None and not metadata.scope.includes(
+        PriceComponent.SUPPLIER_MARKUP
     ):
         adjustments[PriceComponent.SUPPLIER_MARKUP] = supplier_markup_per_kwh
     return calculate_normalized_effective_price(
@@ -203,9 +196,7 @@ def calculate_consumption_weighted_average_price(
         return None
 
     for adjustment in (grid_fee_per_kwh, energy_tax_per_kwh):
-        if adjustment is not None and (
-            not adjustment.is_finite() or adjustment < 0
-        ):
+        if adjustment is not None and (not adjustment.is_finite() or adjustment < 0):
             return None
 
     return (

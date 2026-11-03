@@ -162,7 +162,9 @@ def test_bucket_accumulator_splits_and_aggregates_segments() -> None:
         timedelta(minutes=10),
         timedelta(minutes=10),
     ]
-    assert sum((interval.energy_kwh for interval in intervals), Decimal(0)) == Decimal(1)
+    assert sum((interval.energy_kwh for interval in intervals), Decimal(0)) == Decimal(
+        1
+    )
     assert all(interval.effective_price == Decimal("1.5") for interval in intervals)
 
 
@@ -199,9 +201,7 @@ def test_bucket_history_and_result_round_trip() -> None:
         effective_price=Decimal("1.5"),
     )
     restored = TimingBucketAccumulator.from_dict(UTC, accumulator.as_dict())
-    assert restored.intervals_for_date(date(2026, 8, 25)) == (
-        _interval("0.25", "1.5"),
-    )
+    assert restored.intervals_for_date(date(2026, 8, 25)) == (_interval("0.25", "1.5"),)
     assert restored.longest_uncovered_gap(
         date(2026, 8, 25),
         day_start=start,

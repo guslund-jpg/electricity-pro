@@ -68,10 +68,13 @@ class FlowCounter:
     def as_dict(self) -> dict:
         """Persist constant-size state, not a sample history."""
         return {
-            "day": self.day, "month": self.month,
+            "day": self.day,
+            "month": self.month,
             "high_water": str(self.high_water) if self.high_water is not None else None,
-            "today": str(self.today), "this_month": str(self.this_month),
-            "started": self.started, "pending_boundary": self.pending_boundary,
+            "today": str(self.today),
+            "this_month": str(self.this_month),
+            "started": self.started,
+            "pending_boundary": self.pending_boundary,
             "generation": self.generation,
         }
 

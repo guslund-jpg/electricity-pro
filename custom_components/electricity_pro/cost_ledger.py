@@ -31,8 +31,14 @@ class CostLedger:
         self._lifetime_high_water: Decimal | None = None
 
     def update(
-        self, now: datetime, meter: Decimal | None, supplier: Decimal | None,
-        effective: Decimal | None, unit: str | None, *, lifetime: bool,
+        self,
+        now: datetime,
+        meter: Decimal | None,
+        supplier: Decimal | None,
+        effective: Decimal | None,
+        unit: str | None,
+        *,
+        lifetime: bool,
     ) -> None:
         """Apply readings; gaps over 15 minutes and meter resets are unpriced."""
         if unit is not None and self.unit not in (None, unit):
@@ -50,7 +56,10 @@ class CostLedger:
         if unit is None:
             supplier = effective = None
         if lifetime and meter is not None and meter.is_finite() and meter >= 0:
-            if self._lifetime_high_water is not None and meter < self._lifetime_high_water:
+            if (
+                self._lifetime_high_water is not None
+                and meter < self._lifetime_high_water
+            ):
                 # Reject stale/backward readings before any gap can rebaseline us.
                 # Pricing across the suspect interval is deliberately omitted.
                 self._meter = self._at = None
@@ -94,8 +103,11 @@ class CostLedger:
                         prices = (sp, ep)
                 self._segments = [
                     (midnight, *prices),
-                    *[segment for segment in self._segments
-                      if segment[0].timestamp() > midnight.timestamp()],
+                    *[
+                        segment
+                        for segment in self._segments
+                        if segment[0].timestamp() > midnight.timestamp()
+                    ],
                 ]
                 seconds = Decimal(str(now.timestamp() - midnight.timestamp()))
             else:
@@ -107,10 +119,16 @@ class CostLedger:
             for (start, sp, ep), (end, _, _) in zip(points, points[1:]):
                 while start.timestamp() < end.timestamp():
                     midnight = datetime.combine(
-                        start.date() + timedelta(days=1), time.min, tzinfo=start.tzinfo,
+                        start.date() + timedelta(days=1),
+                        time.min,
+                        tzinfo=start.tzinfo,
                     )
                     stop = min(end, midnight, key=lambda value: value.timestamp())
-                    energy = delta * Decimal(str(stop.timestamp() - start.timestamp())) / seconds
+                    energy = (
+                        delta
+                        * Decimal(str(stop.timestamp() - start.timestamp()))
+                        / seconds
+                    )
                     if sp is not None and sp.is_finite():
                         if start.date().isoformat()[:7] == self.month:
                             self.monthly_supplier += energy * sp
@@ -149,15 +167,27 @@ class CostLedger:
     def as_dict(self) -> dict[str, Any]:
         """Persist bounded totals, never an open pricing interval."""
         return {
-            "day": self.day, "month": self.month, "unit": self.unit,
+            "day": self.day,
+            "month": self.month,
+            "unit": self.unit,
             "lifetime_high_water": (
-                str(self._lifetime_high_water) if self._lifetime_high_water is not None else None
+                str(self._lifetime_high_water)
+                if self._lifetime_high_water is not None
+                else None
             ),
-            **{name: str(getattr(self, name)) for name in (
-                "daily_supplier", "monthly_supplier", "daily_effective",
-                "daily_energy", "daily_supplier_energy", "monthly_supplier_energy",
-                "monthly_effective", "monthly_energy",
-            )},
+            **{
+                name: str(getattr(self, name))
+                for name in (
+                    "daily_supplier",
+                    "monthly_supplier",
+                    "daily_effective",
+                    "daily_energy",
+                    "daily_supplier_energy",
+                    "monthly_supplier_energy",
+                    "monthly_effective",
+                    "monthly_energy",
+                )
+            },
         }
 
     @classmethod
@@ -176,18 +206,24 @@ class CostLedger:
                 raise ValueError("Invalid cost metadata")
             setattr(ledger, key, value)
         for key in (
-            "daily_supplier", "monthly_supplier", "daily_effective",
-            "daily_energy", "daily_supplier_energy", "monthly_supplier_energy",
-            "monthly_effective", "monthly_energy",
+            "daily_supplier",
+            "monthly_supplier",
+            "daily_effective",
+            "daily_energy",
+            "daily_supplier_energy",
+            "monthly_supplier_energy",
+            "monthly_effective",
+            "monthly_energy",
         ):
             if key in ("monthly_effective", "monthly_energy") and key not in data:
                 # Keep the known current day as partial monthly coverage;
                 # never infer earlier days from supplier-only totals.
-                same_month = (
-                    isinstance(data.get("day"), str)
-                    and data["day"][:7] == data.get("month")
+                same_month = isinstance(data.get("day"), str) and data["day"][
+                    :7
+                ] == data.get("month")
+                daily_key = (
+                    "daily_effective" if key == "monthly_effective" else "daily_energy"
                 )
-                daily_key = "daily_effective" if key == "monthly_effective" else "daily_energy"
                 value = Decimal(data.get(daily_key, "0") if same_month else "0")
             else:
                 value = Decimal(data[key])

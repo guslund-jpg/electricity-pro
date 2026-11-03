@@ -11,7 +11,8 @@ CHECK = Path(__file__).resolve().parents[1] / "scripts" / "check_repository.py"
 
 
 @pytest.mark.parametrize(
-    "source", ["sensor.nordpool_price", "sensor.tibber_price", "sensor.tibber_pulse_power"]
+    "source",
+    ["sensor.nordpool_price", "sensor.tibber_price", "sensor.tibber_pulse_power"],
 )
 def test_dashboard_policy_rejects_provider_entities(tmp_path, source):
     dashboard = tmp_path / "examples" / "dashboards" / "nested" / "test.yaml"
@@ -19,7 +20,10 @@ def test_dashboard_policy_rejects_provider_entities(tmp_path, source):
     dashboard.write_text(f"entity: {source}\n", encoding="utf-8")
 
     result = subprocess.run(
-        [sys.executable, str(CHECK)], cwd=tmp_path, capture_output=True, text=True,
+        [sys.executable, str(CHECK)],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
         check=False,
     )
 
@@ -31,10 +35,15 @@ def test_dashboard_policy_rejects_provider_entities(tmp_path, source):
 def test_dashboard_policy_accepts_canonical_entities_without_legacy_folders(tmp_path):
     dashboard = tmp_path / "examples" / "dashboards" / "test.yaml"
     dashboard.parent.mkdir(parents=True)
-    dashboard.write_text("entity: sensor.electricity_pro_current_power\n", encoding="utf-8")
+    dashboard.write_text(
+        "entity: sensor.electricity_pro_current_power\n", encoding="utf-8"
+    )
 
     result = subprocess.run(
-        [sys.executable, str(CHECK)], cwd=tmp_path, capture_output=True, text=True,
+        [sys.executable, str(CHECK)],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
         check=False,
     )
 
@@ -46,7 +55,10 @@ def test_repository_policy_still_rejects_private_configuration(tmp_path):
     (tmp_path / "secrets.yaml").write_text("example: not-a-secret\n", encoding="utf-8")
 
     result = subprocess.run(
-        [sys.executable, str(CHECK)], cwd=tmp_path, capture_output=True, text=True,
+        [sys.executable, str(CHECK)],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
         check=False,
     )
 

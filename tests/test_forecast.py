@@ -83,11 +83,41 @@ def test_forecast_interval_requires_timezone_aware_datetimes(
 @pytest.mark.parametrize(
     ("start", "end", "market_price", "currency", "area"),
     [
-        (datetime(2026, 8, 13, 10, 0, tzinfo=UTC), datetime(2026, 8, 13, 10, 0, tzinfo=UTC), Decimal("1.25"), "SEK", "SE3"),
-        (datetime(2026, 8, 13, 10, 15, tzinfo=UTC), datetime(2026, 8, 13, 10, 0, tzinfo=UTC), Decimal("1.25"), "SEK", "SE3"),
-        (datetime(2026, 8, 13, 10, 0, tzinfo=UTC), datetime(2026, 8, 13, 10, 15, tzinfo=UTC), Decimal("NaN"), "SEK", "SE3"),
-        (datetime(2026, 8, 13, 10, 0, tzinfo=UTC), datetime(2026, 8, 13, 10, 15, tzinfo=UTC), Decimal("1.25"), "", "SE3"),
-        (datetime(2026, 8, 13, 10, 0, tzinfo=UTC), datetime(2026, 8, 13, 10, 15, tzinfo=UTC), Decimal("1.25"), "SEK", ""),
+        (
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+            Decimal("1.25"),
+            "SEK",
+            "SE3",
+        ),
+        (
+            datetime(2026, 8, 13, 10, 15, tzinfo=UTC),
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+            Decimal("1.25"),
+            "SEK",
+            "SE3",
+        ),
+        (
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+            datetime(2026, 8, 13, 10, 15, tzinfo=UTC),
+            Decimal("NaN"),
+            "SEK",
+            "SE3",
+        ),
+        (
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+            datetime(2026, 8, 13, 10, 15, tzinfo=UTC),
+            Decimal("1.25"),
+            "",
+            "SE3",
+        ),
+        (
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+            datetime(2026, 8, 13, 10, 15, tzinfo=UTC),
+            Decimal("1.25"),
+            "SEK",
+            "",
+        ),
     ],
 )
 def test_forecast_interval_rejects_invalid_values(
@@ -121,8 +151,9 @@ def test_forecast_interval_accepts_negative_market_price() -> None:
     assert interval.market_price == Decimal("-0.01")
 
 
-def test_daily_average_market_price_is_duration_weighted_for_complete_local_day(
-) -> None:
+def test_daily_average_market_price_is_duration_weighted_for_complete_local_day() -> (
+    None
+):
     """A complete local day should produce one duration-weighted market mean."""
     timezone = ZoneInfo("Europe/Stockholm")
     period_start = datetime(2026, 8, 13, tzinfo=timezone)
@@ -277,14 +308,20 @@ def test_current_market_price_interval_uses_start_inclusive_end_exclusive() -> N
     second = _interval(11, 12, "0.30")
     intervals = validate_forecast_series([second, first])
 
-    assert current_market_price_interval(
-        intervals,
-        now=datetime(2026, 8, 13, 10, tzinfo=UTC),
-    ) == first
-    assert current_market_price_interval(
-        intervals,
-        now=datetime(2026, 8, 13, 11, tzinfo=UTC),
-    ) == second
+    assert (
+        current_market_price_interval(
+            intervals,
+            now=datetime(2026, 8, 13, 10, tzinfo=UTC),
+        )
+        == first
+    )
+    assert (
+        current_market_price_interval(
+            intervals,
+            now=datetime(2026, 8, 13, 11, tzinfo=UTC),
+        )
+        == second
+    )
     assert (
         current_market_price_interval(
             intervals,

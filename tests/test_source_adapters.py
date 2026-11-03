@@ -81,9 +81,7 @@ def test_groups_homes_and_ignores_disabled_or_unrelated_entities() -> None:
                 "electricity_price",
                 disabled_by="integration",
             ),
-            FakeRegistryEntity(
-                "sensor.home_2_power", "power", device_id="home-2"
-            ),
+            FakeRegistryEntity("sensor.home_2_power", "power", device_id="home-2"),
             FakeRegistryEntity(
                 "sensor.home_2_price", "electricity_price", device_id="home-2"
             ),

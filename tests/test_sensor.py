@@ -88,9 +88,7 @@ CHEAPEST_3H_WINDOW_AVERAGE_EFFECTIVE_PRICE_ENTITY_ID = (
 )
 PRICE_DIRECTION_ENTITY_ID = f"sensor.{DOMAIN}_price_direction"
 CURRENT_MARKET_PRICE_ENTITY_ID = f"sensor.{DOMAIN}_current_market_price"
-AVERAGE_MARKET_PRICE_TODAY_ENTITY_ID = (
-    f"sensor.{DOMAIN}_average_market_price_today"
-)
+AVERAGE_MARKET_PRICE_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_average_market_price_today"
 TIMING_SCORE_ENTITY_ID = f"sensor.{DOMAIN}_consumption_timing_score_yesterday"
 BASE_LOAD_ENTITY_ID = f"sensor.{DOMAIN}_estimated_base_load"
 AVERAGE_POWER_TODAY_ENTITY_ID = f"sensor.{DOMAIN}_average_power_today"
@@ -251,9 +249,7 @@ async def test_estimated_base_load_publishes_value_and_metadata(
         required_days=5,
         daily_estimates=tuple(
             (date(2026, 8, day), Decimal(value))
-            for day, value in zip(
-                range(21, 26), ("190", "200", "205.4", "210", "220")
-            )
+            for day, value in zip(range(21, 26), ("190", "200", "205.4", "210", "220"))
         ),
     )
     coordinator.async_set_updated_data(coordinator.data)
@@ -2029,9 +2025,7 @@ async def test_monthly_peak_hour_time_initial_value(
     state = hass.states.get(MONTHLY_PEAK_HOUR_TIME_ENTITY_ID)
 
     assert state is not None
-    assert datetime.fromisoformat(state.state) == datetime(
-        2026, 8, 3, 15, tzinfo=UTC
-    )
+    assert datetime.fromisoformat(state.state) == datetime(2026, 8, 3, 15, tzinfo=UTC)
     assert state.attributes["device_class"] == "timestamp"
 
 
@@ -2053,9 +2047,7 @@ async def test_monthly_peak_hour_time_updates_and_becomes_unavailable(
 
     state = hass.states.get(MONTHLY_PEAK_HOUR_TIME_ENTITY_ID)
     assert state is not None
-    assert datetime.fromisoformat(state.state) == datetime(
-        2026, 8, 4, 16, tzinfo=UTC
-    )
+    assert datetime.fromisoformat(state.state) == datetime(2026, 8, 4, 16, tzinfo=UTC)
 
     hass.states.async_set(
         "sensor.test_monthly_peak_hour_time",
@@ -2195,7 +2187,9 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
     assert market_price_state.state == "0.59104"
     assert market_price_state.attributes["unit_of_measurement"] == "SEK/kWh"
     assert market_price_state.attributes["state_class"] == "measurement"
-    assert market_price_state.attributes["interval_start"] == "2026-08-13T20:00:00+00:00"
+    assert (
+        market_price_state.attributes["interval_start"] == "2026-08-13T20:00:00+00:00"
+    )
     assert market_price_state.attributes["interval_end"] == "2026-08-13T20:15:00+00:00"
     assert market_price_state.attributes["resolution_minutes"] == 15
     assert market_price_state.attributes["currency"] == "SEK"
@@ -2302,9 +2296,7 @@ async def test_forecast_insight_sensors_expose_cached_windows_and_direction(
         == "2026-08-13T23:15:00+00:00"
     )
     assert (
-        cheapest_3h_average_effective_price_state.attributes[
-            "window_duration_minutes"
-        ]
+        cheapest_3h_average_effective_price_state.attributes["window_duration_minutes"]
         == 180
     )
     assert cheapest_3h_average_effective_price_state.attributes["interval_count"] == 12
@@ -2389,7 +2381,9 @@ async def test_forecast_insight_sensors_become_unavailable_without_forecast_data
     assert direction_state.state == "unavailable"
 
 
-NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID = f"sensor.{DOMAIN}_next_inexpensive_1h_window_start"
+NEXT_INEXPENSIVE_1H_WINDOW_ENTITY_ID = (
+    f"sensor.{DOMAIN}_next_inexpensive_1h_window_start"
+)
 
 
 async def test_next_inexpensive_sensor_omitted_for_partial_forecast(

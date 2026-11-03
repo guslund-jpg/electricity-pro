@@ -9,7 +9,11 @@ found = defaultdict(list)
 
 for raw in sys.argv[1:] or ["."]:
     path = Path(raw)
-    files = [path] if path.is_file() else list(path.rglob("*.yaml")) + list(path.rglob("*.yml"))
+    files = (
+        [path]
+        if path.is_file()
+        else list(path.rglob("*.yaml")) + list(path.rglob("*.yml"))
+    )
     for file in files:
         text = file.read_text(encoding="utf-8")
         for match in pattern.finditer(text):

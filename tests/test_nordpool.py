@@ -51,7 +51,9 @@ def test_normalize_nordpool_forecast_intervals() -> None:
     assert forecast_intervals[0].resolution_minutes == 15
 
 
-def test_normalize_nordpool_forecast_intervals_sorts_and_accepts_negative_prices() -> None:
+def test_normalize_nordpool_forecast_intervals_sorts_and_accepts_negative_prices() -> (
+    None
+):
     """Normalization should order intervals and preserve valid negative prices."""
     intervals = [
         {
@@ -186,14 +188,10 @@ async def test_forecast_retrieval_inherits_nordpool_area_and_currency() -> None:
             ]
         }
     )
-    nordpool_entry = SimpleNamespace(
-        data={"areas": ["SE3"], "currency": "SEK"}
-    )
+    nordpool_entry = SimpleNamespace(data={"areas": ["SE3"], "currency": "SEK"})
     hass = SimpleNamespace(
         services=SimpleNamespace(async_call=async_call),
-        config_entries=SimpleNamespace(
-            async_get_entry=lambda entry_id: nordpool_entry
-        ),
+        config_entries=SimpleNamespace(async_get_entry=lambda entry_id: nordpool_entry),
     )
 
     intervals = await async_get_nordpool_forecast_intervals_for_date(
@@ -245,11 +243,13 @@ async def test_async_get_nordpool_forecast_intervals_for_date_rejects_invalid_re
 
 
 @pytest.mark.parametrize("payload", [None, {}, "unavailable"])
-async def test_inferred_area_rejects_malformed_payload_instead_of_empty_publication(payload):
+async def test_inferred_area_rejects_malformed_payload_instead_of_empty_publication(
+    payload,
+):
     """Area inference must not turn malformed responses into a quiet retry."""
-    hass = SimpleNamespace(services=SimpleNamespace(
-        async_call=AsyncMock(return_value={"SE3": payload})
-    ))
+    hass = SimpleNamespace(
+        services=SimpleNamespace(async_call=AsyncMock(return_value={"SE3": payload}))
+    )
     with pytest.raises(ValueError, match="must include a list"):
         await async_get_nordpool_forecast_intervals_for_date(
             hass, config_entry_id="test", target_date=date(2026, 7, 15), currency="SEK"
@@ -257,20 +257,33 @@ async def test_inferred_area_rejects_malformed_payload_instead_of_empty_publicat
 
 
 async def test_native_empty_response_is_preserved():
-    hass = SimpleNamespace(services=SimpleNamespace(
-        async_call=AsyncMock(return_value={"SE3": []})
-    ))
-    assert await async_get_nordpool_forecast_intervals_for_date(
-        hass, config_entry_id="test", target_date=date(2026, 7, 15), area="SE3", currency="SEK"
-    ) == []
+    hass = SimpleNamespace(
+        services=SimpleNamespace(async_call=AsyncMock(return_value={"SE3": []}))
+    )
+    assert (
+        await async_get_nordpool_forecast_intervals_for_date(
+            hass,
+            config_entry_id="test",
+            target_date=date(2026, 7, 15),
+            area="SE3",
+            currency="SEK",
+        )
+        == []
+    )
 
 
 @pytest.mark.parametrize("key", ["authentication_error", "connection_error"])
 async def test_native_service_errors_are_not_treated_as_empty_publication(key):
     error = ServiceValidationError(translation_domain="nordpool", translation_key=key)
-    hass = SimpleNamespace(services=SimpleNamespace(async_call=AsyncMock(side_effect=error)))
+    hass = SimpleNamespace(
+        services=SimpleNamespace(async_call=AsyncMock(side_effect=error))
+    )
     with pytest.raises(ServiceValidationError) as raised:
         await async_get_nordpool_forecast_intervals_for_date(
-            hass, config_entry_id="test", target_date=date(2026, 7, 15), area="SE3", currency="SEK"
+            hass,
+            config_entry_id="test",
+            target_date=date(2026, 7, 15),
+            area="SE3",
+            currency="SEK",
         )
     assert raised.value is error

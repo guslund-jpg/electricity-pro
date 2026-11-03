@@ -92,13 +92,16 @@ async def test_setup_and_unload_entry(
 
 @pytest.mark.parametrize("action", ["reset_monthly_energy", "confirm_meter_reset"])
 async def test_reset_monthly_energy_action_targets_selected_entry(
-    hass, setup_electricity_pro, action,
+    hass,
+    setup_electricity_pro,
+    action,
 ) -> None:
     """Only the selected loaded coordinator receives a confirmed reset."""
     entry = await setup_electricity_pro()
     with patch.object(entry.runtime_data, f"async_{action}") as reset:
         await hass.services.async_call(
-            DOMAIN, action,
+            DOMAIN,
+            action,
             {"config_entry_id": entry.entry_id, "confirm_reset": True},
             blocking=True,
         )
@@ -108,28 +111,37 @@ async def test_reset_monthly_energy_action_targets_selected_entry(
 @pytest.mark.parametrize("confirmation", [{}, {"confirm_reset": False}])
 @pytest.mark.parametrize("action", ["reset_monthly_energy", "confirm_meter_reset"])
 async def test_reset_monthly_energy_requires_confirmation(
-    hass, setup_electricity_pro, confirmation, action,
+    hass,
+    setup_electricity_pro,
+    confirmation,
+    action,
 ) -> None:
     """Missing or false confirmation must not reset anything."""
     entry = await setup_electricity_pro()
     with patch.object(entry.runtime_data, f"async_{action}") as reset:
         with pytest.raises(vol.Invalid):
             await hass.services.async_call(
-                DOMAIN, action,
-                {"config_entry_id": entry.entry_id, **confirmation}, blocking=True,
+                DOMAIN,
+                action,
+                {"config_entry_id": entry.entry_id, **confirmation},
+                blocking=True,
             )
         reset.assert_not_awaited()
 
 
 @pytest.mark.parametrize("action", ["reset_monthly_energy", "confirm_meter_reset"])
-async def test_reset_monthly_energy_rejects_wrong_entry(hass, setup_electricity_pro, action):
+async def test_reset_monthly_energy_rejects_wrong_entry(
+    hass, setup_electricity_pro, action
+):
     """Never apply the action to an unrelated configuration."""
     entry = await setup_electricity_pro()
     with patch.object(entry.runtime_data, f"async_{action}") as reset:
         with pytest.raises(ServiceValidationError):
             await hass.services.async_call(
-                DOMAIN, action,
-                {"config_entry_id": "missing", "confirm_reset": True}, blocking=True,
+                DOMAIN,
+                action,
+                {"config_entry_id": "missing", "confirm_reset": True},
+                blocking=True,
             )
         reset.assert_not_awaited()
 

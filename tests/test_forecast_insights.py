@@ -4,7 +4,10 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from custom_components.electricity_pro.forecast import ForecastInterval, NORDPOOL_MARKET_PRICE_METADATA
+from custom_components.electricity_pro.forecast import (
+    ForecastInterval,
+    NORDPOOL_MARKET_PRICE_METADATA,
+)
 from custom_components.electricity_pro.forecast_insights import (
     find_cheapest_continuous_window,
     find_next_inexpensive_1h_window,
@@ -43,14 +46,30 @@ def test_find_cheapest_continuous_window_for_one_hour_quarter_hour_intervals() -
     """The cheapest 1-hour window should be selected from quarter-hour data."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.80"),
-        _interval(datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=15, market_price="0.70"),
-        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=15, market_price="0.60"),
-        _interval(datetime(2026, 8, 13, 10, 45, tzinfo=UTC), minutes=15, market_price="0.50"),
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=15, market_price="0.30"),
-        _interval(datetime(2026, 8, 13, 11, 15, tzinfo=UTC), minutes=15, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 11, 30, tzinfo=UTC), minutes=15, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 11, 45, tzinfo=UTC), minutes=15, market_price="0.20"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.80"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=15, market_price="0.70"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=15, market_price="0.60"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 45, tzinfo=UTC), minutes=15, market_price="0.50"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=15, market_price="0.30"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 15, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 30, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 45, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
     ]
 
     result = find_cheapest_continuous_window(
@@ -71,10 +90,18 @@ def test_find_cheapest_continuous_window_for_two_hours_hourly_intervals() -> Non
     """The cheapest 2-hour window should be selected from hourly data."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.80"),
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.30"),
-        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 13, 0, tzinfo=UTC), minutes=60, market_price="0.60"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.80"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.30"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 13, 0, tzinfo=UTC), minutes=60, market_price="0.60"
+        ),
     ]
 
     result = find_cheapest_continuous_window(
@@ -94,9 +121,15 @@ def test_find_cheapest_continuous_window_tie_breaks_to_earliest_start() -> None:
     """Equal-price windows should prefer the earliest start."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
-        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.40"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.40"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.40"
+        ),
     ]
 
     result = find_cheapest_continuous_window(
@@ -114,9 +147,15 @@ def test_find_cheapest_continuous_window_sorts_input() -> None:
     """Window selection should not depend on provider payload ordering."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.10"),
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
+        _interval(
+            datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.10"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.20"
+        ),
     ]
 
     result = find_cheapest_continuous_window(
@@ -134,8 +173,12 @@ def test_find_cheapest_continuous_window_rejects_gap() -> None:
     """A gap should prevent forming a continuous window across it."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
-        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.40"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.20"
+        ),
     ]
 
     result = find_cheapest_continuous_window(
@@ -151,8 +194,12 @@ def test_find_cheapest_continuous_window_rejects_overlap() -> None:
     """An overlap should invalidate the window calculation."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
-        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.20"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.40"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.20"
+        ),
     ]
 
     result = find_cheapest_continuous_window(
@@ -168,8 +215,12 @@ def test_find_cheapest_continuous_window_uses_weighted_average() -> None:
     """The returned average should be duration-weighted."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=45, market_price="0.60"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=45, market_price="0.60"
+        ),
     ]
 
     result = find_cheapest_continuous_window(
@@ -199,8 +250,8 @@ def test_forecast_supplier_markup_is_not_added_twice() -> None:
                 frozenset(
                     {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
                 ),
-            vat=VatTreatment.INCLUDED,
-        ),
+                vat=VatTreatment.INCLUDED,
+            ),
         ),
     )
 
@@ -240,11 +291,21 @@ def test_find_cheapest_continuous_window_excludes_currently_started_interval() -
     """Upcoming windows should not start from a partially elapsed interval."""
     now = datetime(2026, 8, 13, 10, 10, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.10"),
-        _interval(datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=15, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=15, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 10, 45, tzinfo=UTC), minutes=15, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=15, market_price="0.20"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.10"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 45, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
     ]
 
     result = find_cheapest_continuous_window(
@@ -326,8 +387,12 @@ def test_find_price_direction_requires_coverage_from_now() -> None:
     """Do not silently move the two-hour horizon into the future."""
     now = datetime(2026, 8, 13, 9, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.50"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.50"
+        ),
     ]
 
     result = find_price_direction(intervals, now=now)
@@ -338,7 +403,13 @@ def test_find_price_direction_requires_coverage_from_now() -> None:
 def test_find_price_direction_returns_none_when_less_than_two_hours_exist() -> None:
     """A single hour cannot cover the rolling two-hour horizon."""
     result = find_price_direction(
-        [_interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20")],
+        [
+            _interval(
+                datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
+                minutes=60,
+                market_price="0.20",
+            )
+        ],
         now=datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
     )
 
@@ -348,8 +419,12 @@ def test_find_price_direction_returns_none_when_less_than_two_hours_exist() -> N
 def test_find_price_direction_returns_none_on_overlap() -> None:
     """Overlapping intervals should invalidate price direction."""
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.30"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.30"
+        ),
     ]
 
     result = find_price_direction(
@@ -364,9 +439,15 @@ def test_find_next_inexpensive_1h_window_returns_earliest_qualifying_window() ->
     """The first window at or below threshold should be returned."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.80"),
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.50"),
-        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.30"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.80"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.50"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.30"
+        ),
     ]
 
     result = find_next_inexpensive_1h_window(
@@ -388,8 +469,12 @@ def test_find_next_inexpensive_1h_window_returns_none_when_none_qualify() -> Non
     """None should be returned when every upcoming window exceeds the threshold."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.80"),
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.70"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.80"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.70"
+        ),
     ]
 
     result = find_next_inexpensive_1h_window(
@@ -405,7 +490,9 @@ def test_find_next_inexpensive_1h_window_qualifies_on_exact_threshold() -> None:
     """A window exactly equal to the threshold should qualify."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.50"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.50"
+        ),
     ]
 
     result = find_next_inexpensive_1h_window(
@@ -422,8 +509,12 @@ def test_find_next_inexpensive_1h_window_uses_effective_price_for_comparison() -
     """The threshold comparison should use the effective price including adjustments."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.30"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.40"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.30"
+        ),
     ]
 
     # With grid_fee=0.15, effective prices are 0.55 and 0.45; threshold 0.50 skips first
@@ -446,14 +537,30 @@ def test_find_next_inexpensive_1h_window_quarter_hour_intervals() -> None:
     # All four first intervals are 0.90; the second four are 0.20.
     # Starting at 10:45 gives avg (0.90+0.20+0.20+0.20)/4=0.375, which already qualifies.
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.90"),
-        _interval(datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=15, market_price="0.90"),
-        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=15, market_price="0.90"),
-        _interval(datetime(2026, 8, 13, 10, 45, tzinfo=UTC), minutes=15, market_price="0.90"),
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=15, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 11, 15, tzinfo=UTC), minutes=15, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 11, 30, tzinfo=UTC), minutes=15, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 11, 45, tzinfo=UTC), minutes=15, market_price="0.20"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=15, market_price="0.90"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 15, tzinfo=UTC), minutes=15, market_price="0.90"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=15, market_price="0.90"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 45, tzinfo=UTC), minutes=15, market_price="0.90"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 15, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 30, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 45, tzinfo=UTC), minutes=15, market_price="0.20"
+        ),
     ]
 
     result = find_next_inexpensive_1h_window(
@@ -473,9 +580,15 @@ def test_find_next_inexpensive_1h_window_excludes_past_intervals() -> None:
     """Intervals starting before now should not be considered."""
     now = datetime(2026, 8, 13, 11, 5, tzinfo=UTC)
     intervals = [
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.10"),
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.10"),
-        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.30"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.10"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=60, market_price="0.10"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.30"
+        ),
     ]
 
     result = find_next_inexpensive_1h_window(
@@ -499,16 +612,26 @@ def test_find_next_inexpensive_1h_window_returns_none_on_empty_intervals() -> No
     assert result is None
 
 
-def test_find_cheapest_continuous_window_skips_overlapping_start_finds_later_valid_window() -> None:
+def test_find_cheapest_continuous_window_skips_overlapping_start_finds_later_valid_window() -> (
+    None
+):
     """An overlap at an early start should not prevent finding a valid later window."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
         # A and B overlap — any window starting at A or B cannot complete cleanly
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.50"),
-        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.50"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.50"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.50"
+        ),
         # C and D are contiguous and form a valid 2h window
-        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.30"),
-        _interval(datetime(2026, 8, 13, 13, 0, tzinfo=UTC), minutes=60, market_price="0.30"),
+        _interval(
+            datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.30"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 13, 0, tzinfo=UTC), minutes=60, market_price="0.30"
+        ),
     ]
 
     result = find_cheapest_continuous_window(
@@ -523,15 +646,23 @@ def test_find_cheapest_continuous_window_skips_overlapping_start_finds_later_val
     assert result.interval_count == 2
 
 
-def test_find_cheapest_continuous_window_gap_before_valid_window_returns_later_result() -> None:
+def test_find_cheapest_continuous_window_gap_before_valid_window_returns_later_result() -> (
+    None
+):
     """A gap early in the list should not prevent finding a valid window later."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
         # Lone interval — cannot form a 2h window by itself
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"
+        ),
         # Gap here (missing 11:00–12:00)
-        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
-        _interval(datetime(2026, 8, 13, 13, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
+        _interval(
+            datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.40"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 13, 0, tzinfo=UTC), minutes=60, market_price="0.40"
+        ),
     ]
 
     result = find_cheapest_continuous_window(
@@ -551,11 +682,19 @@ def test_find_price_direction_skips_overlapping_pair_finds_next_clean_pair() -> 
     now = datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
     intervals = [
         # A and B overlap — this pair is invalid
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.30"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.30"
+        ),
         # C and D are a clean contiguous pair; now falls inside C
-        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.20"),
-        _interval(datetime(2026, 8, 13, 13, 0, tzinfo=UTC), minutes=60, market_price="0.50"),
+        _interval(
+            datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.20"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 13, 0, tzinfo=UTC), minutes=60, market_price="0.50"
+        ),
     ]
 
     result = find_price_direction(intervals, now=now)
@@ -566,15 +705,23 @@ def test_find_price_direction_skips_overlapping_pair_finds_next_clean_pair() -> 
     assert result.next_start == datetime(2026, 8, 13, 13, 0, tzinfo=UTC)
 
 
-def test_find_next_inexpensive_1h_window_skips_overlapping_start_finds_later_valid_window() -> None:
+def test_find_next_inexpensive_1h_window_skips_overlapping_start_finds_later_valid_window() -> (
+    None
+):
     """An overlap at an early start should not prevent finding a qualifying window later."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
         # A and B overlap — cannot form a 1h window starting at A
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.80"),
-        _interval(datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.80"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=60, market_price="0.80"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 10, 30, tzinfo=UTC), minutes=60, market_price="0.80"
+        ),
         # C is a valid 1h interval at or below threshold
-        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.40"),
+        _interval(
+            datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=60, market_price="0.40"
+        ),
     ]
 
     result = find_next_inexpensive_1h_window(
@@ -589,17 +736,27 @@ def test_find_next_inexpensive_1h_window_skips_overlapping_start_finds_later_val
     assert result.average_effective_price == Decimal("0.40")
 
 
-def test_find_next_inexpensive_1h_window_gap_before_valid_window_returns_later_result() -> None:
+def test_find_next_inexpensive_1h_window_gap_before_valid_window_returns_later_result() -> (
+    None
+):
     """A gap early in the list should not prevent finding a qualifying window later."""
     now = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
     intervals = [
         # Pair with a gap — neither alone forms a 1h window (each is 30 min)
-        _interval(datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=30, market_price="0.80"),
+        _interval(
+            datetime(2026, 8, 13, 10, 0, tzinfo=UTC), minutes=30, market_price="0.80"
+        ),
         # Gap here (missing 10:30–11:00)
-        _interval(datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=30, market_price="0.80"),
+        _interval(
+            datetime(2026, 8, 13, 11, 0, tzinfo=UTC), minutes=30, market_price="0.80"
+        ),
         # A clean contiguous pair forming a 1h window below threshold
-        _interval(datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=30, market_price="0.40"),
-        _interval(datetime(2026, 8, 13, 12, 30, tzinfo=UTC), minutes=30, market_price="0.40"),
+        _interval(
+            datetime(2026, 8, 13, 12, 0, tzinfo=UTC), minutes=30, market_price="0.40"
+        ),
+        _interval(
+            datetime(2026, 8, 13, 12, 30, tzinfo=UTC), minutes=30, market_price="0.40"
+        ),
     ]
 
     result = find_next_inexpensive_1h_window(
@@ -663,20 +820,24 @@ def test_find_cheapest_continuous_window_dst_spring_forward_adjacent_slots() -> 
     # 01:00+01:00 → 02:00+01:00 is 00:00–01:00 UTC
     # 03:00+02:00 → 04:00+02:00 is 01:00–02:00 UTC — directly adjacent
     slot_before = datetime(2025, 3, 30, 1, 0, tzinfo=tz_plus1)
-    slot_after  = datetime(2025, 3, 30, 3, 0, tzinfo=tz_plus2)
+    slot_after = datetime(2025, 3, 30, 3, 0, tzinfo=tz_plus2)
     intervals = [
         ForecastInterval(
-            pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
+            pricing_metadata=replace(
+                NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)
+            ),
             start=slot_before,
-            end=slot_before + timedelta(hours=1),   # 02:00+01:00 = 01:00 UTC
+            end=slot_before + timedelta(hours=1),  # 02:00+01:00 = 01:00 UTC
             market_price=Decimal("0.20"),
             currency="SEK",
             area="SE3",
             published_at=datetime(2025, 3, 29, 11, 0, tzinfo=UTC),
         ),
         ForecastInterval(
-            pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
-            start=slot_after,                        # 03:00+02:00 = 01:00 UTC
+            pricing_metadata=replace(
+                NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)
+            ),
+            start=slot_after,  # 03:00+02:00 = 01:00 UTC
             end=slot_after + timedelta(hours=1),
             market_price=Decimal("0.30"),
             currency="SEK",
@@ -717,7 +878,9 @@ def test_find_cheapest_continuous_window_dst_fall_back_extra_hour() -> None:
         start = datetime(2025, 10, 25, 23, 0, tzinfo=_UTC) + timedelta(hours=hour)
         intervals.append(
             ForecastInterval(
-                pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
+                pricing_metadata=replace(
+                    NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)
+                ),
                 start=start,
                 end=start + timedelta(hours=1),
                 market_price=Decimal(str(round(1.00 - hour * 0.04, 2))),
@@ -748,13 +911,13 @@ def test_find_price_direction_across_dst_spring_forward_boundary() -> None:
 
     tz_plus1 = timezone(timedelta(hours=1))
     tz_plus2 = timezone(timedelta(hours=2))
-    slot_before = datetime(2025, 3, 30, 1, 0, tzinfo=tz_plus1)   # 00:00 UTC
-    slot_after  = datetime(2025, 3, 30, 3, 0, tzinfo=tz_plus2)   # 01:00 UTC
+    slot_before = datetime(2025, 3, 30, 1, 0, tzinfo=tz_plus1)  # 00:00 UTC
+    slot_after = datetime(2025, 3, 30, 3, 0, tzinfo=tz_plus2)  # 01:00 UTC
 
     first = ForecastInterval(
         pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
         start=slot_before,
-        end=slot_before + timedelta(hours=1),   # 02:00+01:00 = 01:00 UTC
+        end=slot_before + timedelta(hours=1),  # 02:00+01:00 = 01:00 UTC
         market_price=Decimal("0.30"),
         currency="SEK",
         area="SE3",
@@ -762,7 +925,7 @@ def test_find_price_direction_across_dst_spring_forward_boundary() -> None:
     )
     second = ForecastInterval(
         pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
-        start=slot_after,                        # 03:00+02:00 = 01:00 UTC
+        start=slot_after,  # 03:00+02:00 = 01:00 UTC
         end=slot_after + timedelta(hours=1),
         market_price=Decimal("0.50"),
         currency="SEK",
@@ -779,7 +942,9 @@ def test_find_price_direction_across_dst_spring_forward_boundary() -> None:
     assert result.next_start == slot_after
 
 
-def test_find_next_inexpensive_1h_window_uses_interval_boundaries_not_fixed_indexes() -> None:
+def test_find_next_inexpensive_1h_window_uses_interval_boundaries_not_fixed_indexes() -> (
+    None
+):
     """The 1h window must be assembled from real interval end-to-start continuity.
 
     A data set where intervals have heterogeneous durations (30 min then 15 min)
@@ -790,7 +955,9 @@ def test_find_next_inexpensive_1h_window_uses_interval_boundaries_not_fixed_inde
     # 30+15+15 = 60 minutes exactly — qualifies
     intervals = [
         ForecastInterval(
-            pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
+            pricing_metadata=replace(
+                NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)
+            ),
             start=datetime(2026, 8, 13, 10, 0, tzinfo=UTC),
             end=datetime(2026, 8, 13, 10, 30, tzinfo=UTC),
             market_price=Decimal("0.20"),
@@ -799,7 +966,9 @@ def test_find_next_inexpensive_1h_window_uses_interval_boundaries_not_fixed_inde
             published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
         ),
         ForecastInterval(
-            pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
+            pricing_metadata=replace(
+                NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)
+            ),
             start=datetime(2026, 8, 13, 10, 30, tzinfo=UTC),
             end=datetime(2026, 8, 13, 10, 45, tzinfo=UTC),
             market_price=Decimal("0.20"),
@@ -808,7 +977,9 @@ def test_find_next_inexpensive_1h_window_uses_interval_boundaries_not_fixed_inde
             published_at=datetime(2026, 8, 12, 11, 0, tzinfo=UTC),
         ),
         ForecastInterval(
-            pricing_metadata=replace(NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)),
+            pricing_metadata=replace(
+                NORDPOOL_MARKET_PRICE_METADATA, vat_rate=Decimal(0)
+            ),
             start=datetime(2026, 8, 13, 10, 45, tzinfo=UTC),
             end=datetime(2026, 8, 13, 11, 0, tzinfo=UTC),
             market_price=Decimal("0.20"),

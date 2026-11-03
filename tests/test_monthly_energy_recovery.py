@@ -8,16 +8,23 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import (
-    DOMAIN, CONF_POWER_ENTITY, CONF_ENERGY_ENTITY, CONF_ENERGY_SOURCE_TYPE,
+    DOMAIN,
+    CONF_POWER_ENTITY,
+    CONF_ENERGY_ENTITY,
+    CONF_ENERGY_SOURCE_TYPE,
 )
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
 
 
 def make_entry(source="sensor.energy", mode="daily"):
-    return MockConfigEntry(domain=DOMAIN, data={
-        CONF_POWER_ENTITY: "sensor.power", CONF_ENERGY_ENTITY: source,
-        CONF_ENERGY_SOURCE_TYPE: mode,
-    })
+    return MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_POWER_ENTITY: "sensor.power",
+            CONF_ENERGY_ENTITY: source,
+            CONF_ENERGY_SOURCE_TYPE: mode,
+        },
+    )
 
 
 @pytest.mark.parametrize("change", ["none", "entity", "semantics", "legacy"])
@@ -53,7 +60,10 @@ async def test_reset_rebases_only_month_and_survives_restart(hass):
     c = ElectricityProCoordinator(hass, entry)
     now = datetime(2026, 9, 14, 12, tzinfo=UTC)
     with (
-        patch("custom_components.electricity_pro.coordinator.dt_util.now", return_value=now),
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=now,
+        ),
         patch.object(c._store, "async_delay_save"),
         patch.object(c._store, "async_save") as save,
     ):
@@ -89,12 +99,17 @@ async def test_confirm_meter_replacement_preserves_totals_and_resumes(hass):
     c = ElectricityProCoordinator(hass, make_entry(mode="lifetime"))
     now = datetime(2026, 9, 14, 12, tzinfo=UTC)
     with (
-        patch("custom_components.electricity_pro.coordinator.dt_util.now", return_value=now),
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=now,
+        ),
         patch.object(c._store, "async_delay_save"),
         patch.object(c._store, "async_save") as save,
     ):
         for value in ("100", "102", "90", "91", "102", "103"):
-            hass.states.async_set("sensor.energy", value, {"unit_of_measurement": "kWh"})
+            hass.states.async_set(
+                "sensor.energy", value, {"unit_of_measurement": "kWh"}
+            )
             data = c._read()
         assert data.current_energy == Decimal(3)
         assert data.energy_this_month == Decimal(3)

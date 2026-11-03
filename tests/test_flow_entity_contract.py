@@ -11,9 +11,14 @@ from custom_components.electricity_pro.sensor import async_setup_entry as setup_
 
 @pytest.mark.parametrize("channel", ["production", "grid_export", "household"])
 @pytest.mark.parametrize("quantity", ["power", "energy"])
-@pytest.mark.parametrize("configuration", ["data", "options", "cleared", "empty", "absent"])
+@pytest.mark.parametrize(
+    "configuration", ["data", "options", "cleared", "empty", "absent"]
+)
 async def test_optional_source_entity_creation_contract(
-    hass, channel, quantity, configuration,
+    hass,
+    channel,
+    quantity,
+    configuration,
 ):
     """Only configured quantities create entities, even when readings are absent."""
     key = f"{channel}_{quantity}_entity"
@@ -27,7 +32,9 @@ async def test_optional_source_entity_creation_contract(
         options[key] = None
     elif configuration == "empty":
         options[key] = ""
-    entry = MockConfigEntry(domain=DOMAIN, title="Electricity Pro", data=data, options=options)
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="Electricity Pro", data=data, options=options
+    )
     entry.add_to_hass(hass)
     hass.states.async_set("sensor.import_power", "800", {"unit_of_measurement": "W"})
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -59,14 +66,19 @@ async def test_diagnostic_requires_explicit_true_option(hass, enabled):
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Electricity Pro",
-        data={"power_entity": "sensor.import_power", "flow_compatibility_enabled": True},
+        data={
+            "power_entity": "sensor.import_power",
+            "flow_compatibility_enabled": True,
+        },
         options={"flow_compatibility_enabled": enabled},
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     entity_id = er.async_get(hass).async_get_entity_id(
-        "sensor", DOMAIN, f"{entry.entry_id}_flow_power_compatibility",
+        "sensor",
+        DOMAIN,
+        f"{entry.entry_id}_flow_power_compatibility",
     )
     assert (entity_id is not None) is (enabled is True)
 
@@ -98,12 +110,15 @@ def test_public_flow_configuration_is_separate_from_readings(hass):
 
 async def test_sensor_setup_needs_no_private_coordinator_access(hass):
     """The platform can create flow entities using only the public interface."""
-    entry = MockConfigEntry(domain=DOMAIN, data={
-        "power_entity": "sensor.import_power",
-        "production_power_entity": "sensor.missing_power",
-        "household_energy_entity": "sensor.missing_energy",
-        "flow_compatibility_enabled": True,
-    })
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "power_entity": "sensor.import_power",
+            "production_power_entity": "sensor.missing_power",
+            "household_energy_entity": "sensor.missing_energy",
+            "flow_compatibility_enabled": True,
+        },
+    )
     coordinator = ElectricityProCoordinator(hass, entry)
 
     class PublicCoordinator:
@@ -118,7 +133,9 @@ async def test_sensor_setup_needs_no_private_coordinator_access(hass):
     await setup_sensors(hass, entry, entities.extend)
     unique_ids = {entity.unique_id for entity in entities}
     for suffix in (
-        "production_power", "household_today", "household_this_month",
+        "production_power",
+        "household_today",
+        "household_this_month",
         "flow_power_compatibility",
     ):
         assert f"{entry.entry_id}_{suffix}" in unique_ids

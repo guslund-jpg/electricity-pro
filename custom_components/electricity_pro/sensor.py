@@ -148,7 +148,9 @@ def supplier_price(data: ElectricityProData) -> Decimal | None:
 def _forecast_price_attributes(metadata: PricingMetadata) -> dict[str, Any]:
     """Return transparent component metadata for a forecast-derived price."""
     return {
-        "price_components": sorted(component.value for component in metadata.scope.included),
+        "price_components": sorted(
+            component.value for component in metadata.scope.included
+        ),
         "vat_treatment": metadata.scope.vat.value,
         "price_completeness": metadata.completeness.value,
     }
@@ -164,7 +166,10 @@ def consumption_weighted_average_price(
 ) -> Decimal | None:
     """Return today's achieved average effective price per kWh."""
     if data.local_cost_estimate:
-        if data.local_priced_energy_today and data.local_effective_cost_today is not None:
+        if (
+            data.local_priced_energy_today
+            and data.local_effective_cost_today is not None
+        ):
             return data.local_effective_cost_today / data.local_priced_energy_today
         return None
     if not data.energy_today_period_complete:
@@ -182,11 +187,10 @@ def consumption_weighted_average_price_unit(
     data: ElectricityProData,
 ) -> str | None:
     """Return the currency-per-kWh unit for today's achieved average."""
-    if (
-        data.accumulated_cost_today_unit is None
-        or data.current_energy_unit
-        not in {UnitOfEnergy.WATT_HOUR, UnitOfEnergy.KILO_WATT_HOUR}
-    ):
+    if data.accumulated_cost_today_unit is None or data.current_energy_unit not in {
+        UnitOfEnergy.WATT_HOUR,
+        UnitOfEnergy.KILO_WATT_HOUR,
+    }:
         return None
 
     return f"{data.accumulated_cost_today_unit}/kWh"
@@ -199,18 +203,14 @@ def projected_remaining_cost(data: ElectricityProData) -> Decimal | None:
         dt_util.now(),
     )
     return (
-        None
-        if projected_cost is None
-        else projected_cost.quantize(_CURRENCY_QUANTUM)
+        None if projected_cost is None else projected_cost.quantize(_CURRENCY_QUANTUM)
     )
 
 
 PHASES: tuple[str, ...] = ("l1", "l2", "l3")
 
 
-def _phase_current_descriptions() -> (
-    tuple[ElectricityProSensorEntityDescription, ...]
-):
+def _phase_current_descriptions() -> tuple[ElectricityProSensorEntityDescription, ...]:
     """Return current sensor descriptions for all three phases."""
     conf_keys = (
         CONF_CURRENT_L1_ENTITY,
@@ -227,16 +227,16 @@ def _phase_current_descriptions() -> (
             native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             suggested_display_precision=2,
             value_fn=lambda data, p=phase: getattr(data, f"current_{p}"),
-            available_fn=lambda data, p=phase: getattr(data, f"current_{p}") is not None,
+            available_fn=lambda data, p=phase: (
+                getattr(data, f"current_{p}") is not None
+            ),
             required_config_key=conf_key,
         )
         for phase, conf_key in zip(PHASES, conf_keys)
     )
 
 
-def _phase_voltage_descriptions() -> (
-    tuple[ElectricityProSensorEntityDescription, ...]
-):
+def _phase_voltage_descriptions() -> tuple[ElectricityProSensorEntityDescription, ...]:
     """Return voltage sensor descriptions for all three phases."""
     conf_keys = (
         CONF_VOLTAGE_L1_ENTITY,
@@ -253,7 +253,9 @@ def _phase_voltage_descriptions() -> (
             native_unit_of_measurement=UnitOfElectricPotential.VOLT,
             suggested_display_precision=1,
             value_fn=lambda data, p=phase: getattr(data, f"voltage_{p}"),
-            available_fn=lambda data, p=phase: getattr(data, f"voltage_{p}") is not None,
+            available_fn=lambda data, p=phase: (
+                getattr(data, f"voltage_{p}") is not None
+            ),
             required_config_key=conf_key,
         )
         for phase, conf_key in zip(PHASES, conf_keys)
@@ -323,8 +325,7 @@ SENSOR_DESCRIPTIONS: tuple[
         value_fn=effective_price,
         unit_fn=lambda data: data.current_price_unit,
         available_fn=lambda data: (
-            effective_price(data) is not None
-            and data.current_price_unit is not None
+            effective_price(data) is not None and data.current_price_unit is not None
         ),
         required_config_key=CONF_PRICE_ENTITY,
     ),
@@ -392,7 +393,8 @@ SENSOR_DESCRIPTIONS: tuple[
         value_fn=lambda data: data.household_cost_today,
         unit_fn=lambda data: data.household_cost_unit,
         available_fn=lambda data: (
-            data.household_cost_today is not None and data.household_cost_unit is not None
+            data.household_cost_today is not None
+            and data.household_cost_unit is not None
         ),
         required_config_keys=(CONF_ENERGY_ENTITY, CONF_PRICE_ENTITY),
     ),
@@ -406,7 +408,8 @@ SENSOR_DESCRIPTIONS: tuple[
         value_fn=lambda data: data.household_cost_this_month,
         unit_fn=lambda data: data.household_cost_unit,
         available_fn=lambda data: (
-            data.household_cost_this_month is not None and data.household_cost_unit is not None
+            data.household_cost_this_month is not None
+            and data.household_cost_unit is not None
         ),
         required_config_keys=(CONF_ENERGY_ENTITY, CONF_PRICE_ENTITY),
     ),
@@ -435,8 +438,7 @@ SENSOR_DESCRIPTIONS: tuple[
         value_fn=lambda data: data.cost_this_month,
         unit_fn=lambda data: data.cost_this_month_unit,
         available_fn=lambda data: (
-            data.cost_this_month is not None
-            and data.cost_this_month_unit is not None
+            data.cost_this_month is not None and data.cost_this_month_unit is not None
         ),
         required_config_key=CONF_ACCUMULATED_COST_TODAY_ENTITY,
     ),
@@ -554,7 +556,9 @@ async def async_setup_entry(
         and bool(settings.get(CONF_PRICE_ENTITY))
     )
     local_cost_keys = {
-        "cost_today", "cost_this_month", "consumption_weighted_average_price_today",
+        "cost_today",
+        "cost_this_month",
+        "consumption_weighted_average_price_today",
         "total_supplier_cost_this_month",
     }
     entities = [
@@ -564,14 +568,13 @@ async def async_setup_entry(
             description=description,
         )
         for description in SENSOR_DESCRIPTIONS
-        if (local_cost_configured and description.key in local_cost_keys) or ((
-            description.required_config_key is None
-            or description.required_config_key in settings
-        )
-        and all(
-            key in settings
-            for key in description.required_config_keys
-        )
+        if (local_cost_configured and description.key in local_cost_keys)
+        or (
+            (
+                description.required_config_key is None
+                or description.required_config_key in settings
+            )
+            and all(key in settings for key in description.required_config_keys)
         )
     ]
 
@@ -677,12 +680,15 @@ async def async_setup_entry(
                     ElectricityProFlowSensor(entry.runtime_data, entry, channel, period)
                 )
     if entry.runtime_data.flow_compatibility_enabled:
-        entities.append(ElectricityProFlowCompatibilitySensor(entry.runtime_data, entry))
+        entities.append(
+            ElectricityProFlowCompatibilitySensor(entry.runtime_data, entry)
+        )
     async_add_entities(entities)
 
 
 class ElectricityProFlowCompatibilitySensor(
-    CoordinatorEntity[ElectricityProCoordinator], SensorEntity,
+    CoordinatorEntity[ElectricityProCoordinator],
+    SensorEntity,
 ):
     """Opt-in input diagnostic, explicitly not a site-balance readiness flag."""
 
@@ -692,7 +698,9 @@ class ElectricityProFlowCompatibilitySensor(
     _attr_icon = "mdi:check-network-outline"
 
     def __init__(
-        self, coordinator: ElectricityProCoordinator, entry: ElectricityProConfigEntry,
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
     ) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_flow_power_compatibility"
@@ -705,19 +713,25 @@ class ElectricityProFlowCompatibilitySensor(
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return {
-            key: value for key, value in self.coordinator.flow_compatibility.items()
+            key: value
+            for key, value in self.coordinator.flow_compatibility.items()
             if key != "status"
         }
 
 
-class ElectricityProFlowSensor(CoordinatorEntity[ElectricityProCoordinator], SensorEntity):
+class ElectricityProFlowSensor(
+    CoordinatorEntity[ElectricityProCoordinator], SensorEntity
+):
     """Expose an explicitly configured independent directional flow."""
 
     _attr_has_entity_name = True
 
     def __init__(
-        self, coordinator: ElectricityProCoordinator, entry: ElectricityProConfigEntry,
-        channel: str, period: str,
+        self,
+        coordinator: ElectricityProCoordinator,
+        entry: ElectricityProConfigEntry,
+        channel: str,
+        period: str,
     ) -> None:
         super().__init__(coordinator)
         self._key = f"{channel}_{period}"
@@ -725,7 +739,8 @@ class ElectricityProFlowSensor(CoordinatorEntity[ElectricityProCoordinator], Sen
         self._attr_name = f"{label} {period.replace('_', ' ')}"
         if channel == "household":
             self._attr_name = (
-                "Household demand power" if period == "power"
+                "Household demand power"
+                if period == "power"
                 else f"Household energy {period.replace('_', ' ')}"
             )
         self._attr_unique_id = f"{entry.entry_id}_{self._key}"
@@ -735,7 +750,8 @@ class ElectricityProFlowSensor(CoordinatorEntity[ElectricityProCoordinator], Sen
         )
         self._attr_state_class = (
             SensorStateClass.MEASUREMENT
-            if period == "power" else SensorStateClass.TOTAL_INCREASING
+            if period == "power"
+            else SensorStateClass.TOTAL_INCREASING
         )
         self._attr_native_unit_of_measurement = (
             UnitOfPower.WATT if period == "power" else UnitOfEnergy.KILO_WATT_HOUR
@@ -837,18 +853,26 @@ class ElectricityProSensor(
                 "source": "local_household_estimate",
                 "coverage": "partial",
                 "variable_cost": _decimal_string(
-                    data.household_variable_month if monthly else data.household_variable_today
+                    data.household_variable_month
+                    if monthly
+                    else data.household_variable_today
                 ),
                 "accrued_fixed_fees": _decimal_string(
-                    data.household_fixed_month if monthly else data.household_fixed_today
+                    data.household_fixed_month
+                    if monthly
+                    else data.household_fixed_today
                 ),
                 "priced_energy_kwh": _decimal_string(
-                    data.household_priced_energy_month if monthly else data.household_priced_energy_today
+                    data.household_priced_energy_month
+                    if monthly
+                    else data.household_priced_energy_today
                 ),
                 "missing_components": list(data.household_missing_fees),
                 "excluded_charges": ["demand_charges", "other_unconfigured_charges"],
                 "fixed_fee_method": "calendar_day_share_accrued_to_now",
-                "fixed_fee_coverage": "calendar_month_to_now" if monthly else "local_midnight_to_now",
+                "fixed_fee_coverage": "calendar_month_to_now"
+                if monthly
+                else "local_midnight_to_now",
             }
         if self.entity_description.key == "current_supplier_price":
             if self.native_value is None:
@@ -866,15 +890,24 @@ class ElectricityProSensor(
             return {
                 "source_vat_treatment": vat,
                 "vat_rate_percent": _decimal_string(metadata.vat_rate),
-                "vat_treatment": "included" if self.native_value is not None else "unknown",
+                "vat_treatment": "included"
+                if self.native_value is not None
+                else "unknown",
                 "vat_configuration_required": (
-                    vat == "unknown" or (vat == "excluded" and metadata.vat_rate is None)
+                    vat == "unknown"
+                    or (vat == "excluded" and metadata.vat_rate is None)
                 ),
             }
-        if self.entity_description.key in {
-            "cost_today", "cost_this_month", "consumption_weighted_average_price_today",
-            "total_supplier_cost_this_month",
-        } and self.coordinator.data.local_cost_estimate:
+        if (
+            self.entity_description.key
+            in {
+                "cost_today",
+                "cost_this_month",
+                "consumption_weighted_average_price_today",
+                "total_supplier_cost_this_month",
+            }
+            and self.coordinator.data.local_cost_estimate
+        ):
             data = self.coordinator.data
             return {
                 "source": "local_estimate",
@@ -882,9 +915,11 @@ class ElectricityProSensor(
                 "method": "meter_delta_uniform_allocation_over_observed_prices",
                 "priced_energy_kwh": _decimal_string(
                     data.local_supplier_energy_month
-                    if self.entity_description.key in {"cost_this_month", "total_supplier_cost_this_month"}
+                    if self.entity_description.key
+                    in {"cost_this_month", "total_supplier_cost_this_month"}
                     else data.local_priced_energy_today
-                    if self.entity_description.key == "consumption_weighted_average_price_today"
+                    if self.entity_description.key
+                    == "consumption_weighted_average_price_today"
                     else data.local_supplier_energy_today
                 ),
             }
@@ -1128,9 +1163,7 @@ class ElectricityProConsumptionTimingScoreSensor(
                 result.consumption_weighted_price
             ),
             "time_weighted_price": _decimal_string(result.time_weighted_price),
-            "price_variation_percent": _decimal_string(
-                result.price_variation_percent
-            ),
+            "price_variation_percent": _decimal_string(result.price_variation_percent),
             "rating": result.rating.value if result.rating is not None else None,
         }
 
@@ -1436,7 +1469,10 @@ class ElectricityProNextInexpensive1hWindowSensor(ElectricityProForecastInsightS
     @property
     def available(self) -> bool:
         """Return whether the next inexpensive window is available."""
-        return super().available and self.coordinator.next_inexpensive_1h_window is not None
+        return (
+            super().available
+            and self.coordinator.next_inexpensive_1h_window is not None
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -1524,7 +1560,9 @@ class ElectricityProPriceDirectionSensor(ElectricityProForecastInsightSensor):
             "first_hour_end": insight.current_end.isoformat(),
             "second_hour_start": insight.next_start.isoformat(),
             "second_hour_end": insight.next_end.isoformat(),
-            "first_hour_average_scheduling_price": str(insight.current_scheduling_price),
+            "first_hour_average_scheduling_price": str(
+                insight.current_scheduling_price
+            ),
             "second_hour_average_scheduling_price": str(insight.next_scheduling_price),
             "trend_duration_minutes": 120,
             "stable_tolerance_percent": 2,

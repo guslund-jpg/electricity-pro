@@ -12,9 +12,14 @@ START = datetime(2026, 9, 14, 12, tzinfo=UTC)
 
 
 def update(c, minutes, energy, price="2", effective="3", start=START, lifetime=True):
-    c.update(start + timedelta(minutes=minutes), None if energy is None else D(energy),
-             None if price is None else D(price),
-             None if effective is None else D(effective), "SEK", lifetime=lifetime)
+    c.update(
+        start + timedelta(minutes=minutes),
+        None if energy is None else D(energy),
+        None if price is None else D(price),
+        None if effective is None else D(effective),
+        "SEK",
+        lifetime=lifetime,
+    )
 
 
 def test_weight_prices_over_unchanged_meter_and_keep_effective_separate():
@@ -165,7 +170,13 @@ def test_fall_back_interval_uses_elapsed_not_wall_clock_time():
 def test_storage_is_bounded():
     c = CostLedger()
     for index in range(1000):
-        c.update(START + timedelta(milliseconds=index), D(100),
-                 D(index), D(index), "SEK", lifetime=True)
+        c.update(
+            START + timedelta(milliseconds=index),
+            D(100),
+            D(index),
+            D(index),
+            "SEK",
+            lifetime=True,
+        )
     assert len(c._segments) <= 256
     assert len(c.as_dict()) == 12

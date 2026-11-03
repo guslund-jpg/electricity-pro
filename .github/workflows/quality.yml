@@ -39,6 +39,9 @@ jobs:
       - name: Check Python lint
         run: python -m ruff check custom_components tests scripts
 
+      - name: Check Python formatting
+        run: python -m ruff format --check custom_components tests scripts
+
       - name: Check calculation types (pilot)
         run: python -m mypy --config-file mypy.ini
 

@@ -94,9 +94,7 @@ class DailyBaseLoadSummary:
                 else None
             ),
             "coverage_percent": str(self.coverage_percent),
-            "longest_uncovered_gap_seconds": str(
-                _seconds(self.longest_uncovered_gap)
-            ),
+            "longest_uncovered_gap_seconds": str(_seconds(self.longest_uncovered_gap)),
         }
 
     @classmethod
@@ -144,8 +142,7 @@ class BaseLoadEstimateResult:
             or self.required_days <= 0
             or self.eligible_days != len(self.daily_estimates)
             or any(
-                not value.is_finite() or value < 0
-                for _, value in self.daily_estimates
+                not value.is_finite() or value < 0 for _, value in self.daily_estimates
             )
             or (
                 self.estimate_w is not None
@@ -173,10 +170,7 @@ class AveragePowerResult:
             or self.covered_duration < timedelta(0)
             or (
                 self.average_power_w is not None
-                and (
-                    not self.average_power_w.is_finite()
-                    or self.average_power_w < 0
-                )
+                and (not self.average_power_w.is_finite() or self.average_power_w < 0)
             )
             or (self.average_power_w is None) == (self.unavailable_reason is None)
         ):
@@ -576,9 +570,7 @@ class BaseLoadBucketAccumulator:
                     "power_seconds": str(bucket.power_seconds),
                     "covered_seconds": str(bucket.covered_seconds),
                 }
-                for (stored_date, bucket_start), bucket in sorted(
-                    self._buckets.items()
-                )
+                for (stored_date, bucket_start), bucket in sorted(self._buckets.items())
             ],
             "covered_ranges": [
                 {

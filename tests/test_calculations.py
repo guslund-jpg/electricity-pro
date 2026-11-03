@@ -46,9 +46,7 @@ def test_calculate_normalized_effective_price_rejects_overlap() -> None:
     metadata = PricingMetadata(
         strategy=PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
         scope=PriceComponentScope(
-            frozenset(
-                {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
-            ),
+            frozenset({PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}),
             vat=VatTreatment.INCLUDED,
         ),
         completeness=PriceCompleteness.PARTIAL,
@@ -116,9 +114,9 @@ def test_calculate_normalized_effective_price_rejects_invalid_values(
         ),
     )
 
-    assert calculate_normalized_effective_price(
-        base_price, metadata, adjustments
-    ) is None
+    assert (
+        calculate_normalized_effective_price(base_price, metadata, adjustments) is None
+    )
 
 
 def test_calculate_normalized_effective_price_accepts_negative_base() -> None:
@@ -152,9 +150,7 @@ def test_explicit_energy_tax_is_added_to_effective_prices() -> None:
     metadata = PricingMetadata(
         strategy=PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
         scope=PriceComponentScope(
-            frozenset(
-                {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
-            ),
+            frozenset({PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}),
             vat=VatTreatment.INCLUDED,
         ),
         completeness=PriceCompleteness.PARTIAL,
@@ -176,9 +172,7 @@ def test_supplier_markup_is_added_only_when_missing_from_source() -> None:
     contracted_metadata = PricingMetadata(
         strategy=PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
         scope=PriceComponentScope(
-            frozenset(
-                {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
-            ),
+            frozenset({PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}),
             vat=VatTreatment.INCLUDED,
         ),
         completeness=PriceCompleteness.PARTIAL,
@@ -204,9 +198,7 @@ def test_effective_price_metadata_becomes_complete_after_composition() -> None:
     metadata = PricingMetadata(
         strategy=PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
         scope=PriceComponentScope(
-            frozenset(
-                {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}
-            ),
+            frozenset({PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}),
             vat=VatTreatment.INCLUDED,
         ),
         completeness=PriceCompleteness.PARTIAL,

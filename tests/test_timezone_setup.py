@@ -6,8 +6,12 @@ import pytest
 from homeassistant.util import dt as dt_util
 
 
-@pytest.mark.parametrize("zone", ["UTC", "Europe/Stockholm", "Europe/Helsinki", "Europe/Oslo"])
-async def test_setup_and_reload_reuse_loaded_timezone(hass, setup_electricity_pro, zone):
+@pytest.mark.parametrize(
+    "zone", ["UTC", "Europe/Stockholm", "Europe/Helsinki", "Europe/Oslo"]
+)
+async def test_setup_and_reload_reuse_loaded_timezone(
+    hass, setup_electricity_pro, zone
+):
     """Do not construct ZoneInfo on the event loop, even on first startup."""
     await hass.config.async_set_time_zone(zone)
     expected = dt_util.get_default_time_zone()
@@ -16,10 +20,16 @@ async def test_setup_and_reload_reuse_loaded_timezone(hass, setup_electricity_pr
     # Catch the former module-level imports even if ZoneInfo has a warm cache.
     # No filesystem timing or platform-specific tzdata behaviour is required.
     with (
-        patch("custom_components.electricity_pro.coordinator.ZoneInfo",
-              create=True, side_effect=AssertionError("Blocking timezone construction")),
-        patch("custom_components.electricity_pro.provider.ZoneInfo",
-              create=True, side_effect=AssertionError("Blocking timezone construction")),
+        patch(
+            "custom_components.electricity_pro.coordinator.ZoneInfo",
+            create=True,
+            side_effect=AssertionError("Blocking timezone construction"),
+        ),
+        patch(
+            "custom_components.electricity_pro.provider.ZoneInfo",
+            create=True,
+            side_effect=AssertionError("Blocking timezone construction"),
+        ),
     ):
         entry = await setup_electricity_pro()
         coordinator = entry.runtime_data

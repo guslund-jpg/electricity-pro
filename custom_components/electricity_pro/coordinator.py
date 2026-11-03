@@ -51,7 +51,10 @@ from .cost_ledger import CostLedger
 from .energy_flows import FlowCounter
 from .flow_sources import CHANNELS
 from .flow_compatibility import (
-    CONF_GENERATION, CONF_STORAGE, PowerInput, check_power_compatibility,
+    CONF_GENERATION,
+    CONF_STORAGE,
+    PowerInput,
+    check_power_compatibility,
 )
 from .household_cost import accrued_fixed_fees
 from .const import (
@@ -156,9 +159,7 @@ _ADAPTIVE_SCOPE_CONFIG_KEYS = (
 )
 
 
-class ElectricityProCoordinator(
-    DataUpdateCoordinator[ElectricityProData]
-):
+class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     """Coordinate Electricity Pro provider updates."""
 
     def __init__(
@@ -374,9 +375,7 @@ class ElectricityProCoordinator(
                     Decimal(0) if energy_kwh is not None else None
                 )
                 rollover_updates["current_energy_unit"] = (
-                    UnitOfEnergy.KILO_WATT_HOUR
-                    if energy_kwh is not None
-                    else None
+                    UnitOfEnergy.KILO_WATT_HOUR if energy_kwh is not None else None
                 )
                 rollover_updates["energy_today_period_complete"] = (
                     self._energy_today_period_complete
@@ -555,7 +554,9 @@ class ElectricityProCoordinator(
         # Load through HA's asynchronous timezone helper, never blocking the loop.
         market_timezone = await dt_util.async_get_time_zone(NORDPOOL_TIME_ZONE)
         if market_timezone is None:
-            _LOGGER.error("Unable to load Nord Pool market timezone %s", NORDPOOL_TIME_ZONE)
+            _LOGGER.error(
+                "Unable to load Nord Pool market timezone %s", NORDPOOL_TIME_ZONE
+            )
             return
         dates = forecast_delivery_dates(
             now, local_timezone=self._local_timezone, market_timezone=market_timezone
@@ -570,13 +571,16 @@ class ElectricityProCoordinator(
         for stale_date in stale_dates:
             del self._forecast_intervals_by_date[stale_date]
         self._forecast_failures = {
-            day: failure for day, failure in self._forecast_failures.items()
+            day: failure
+            for day, failure in self._forecast_failures.items()
             if day >= dates[0]
         }
 
         for target_date in dates:
             if target_date not in self._forecast_intervals_by_date:
-                await self._async_refresh_forecast_intervals(target_date, market_today=market_today)
+                await self._async_refresh_forecast_intervals(
+                    target_date, market_today=market_today
+                )
 
         self._rebuild_forecast_intervals()
         self._recalculate_forecast_insights()
@@ -590,7 +594,10 @@ class ElectricityProCoordinator(
         try:
             settings = resolve_settings(self._entry.data, self._entry.options)
             nordpool_config_entry_id = settings.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
-            if not isinstance(nordpool_config_entry_id, str) or not nordpool_config_entry_id:
+            if (
+                not isinstance(nordpool_config_entry_id, str)
+                or not nordpool_config_entry_id
+            ):
                 raise ValueError("Forecast Nord Pool config entry is required")
 
             intervals = await async_get_nordpool_forecast_intervals_for_date(
@@ -612,14 +619,26 @@ class ElectricityProCoordinator(
                 raise ValueError("Nord Pool returned no forecast intervals")
             # Validate before replacing a cache entry: malformed refreshes must
             # not destroy an otherwise usable series from this or another day.
-            validate_forecast_series([
-                *(interval for day, cached in self._forecast_intervals_by_date.items()
-                  if day != target_date for interval in cached),
-                *intervals,
-            ])
+            validate_forecast_series(
+                [
+                    *(
+                        interval
+                        for day, cached in self._forecast_intervals_by_date.items()
+                        if day != target_date
+                        for interval in cached
+                    ),
+                    *intervals,
+                ]
+            )
         except (HomeAssistantError, TimeoutError, ValueError) as err:
-            failure = f"{type(err).__name__}:{getattr(err, 'translation_key', None)}:{err}"
-            log = _LOGGER.debug if self._forecast_failures.get(target_date) == failure else _LOGGER.warning
+            failure = (
+                f"{type(err).__name__}:{getattr(err, 'translation_key', None)}:{err}"
+            )
+            log = (
+                _LOGGER.debug
+                if self._forecast_failures.get(target_date) == failure
+                else _LOGGER.warning
+            )
             log(
                 "Unable to refresh Nord Pool forecast intervals for %s: %s",
                 target_date,
@@ -666,8 +685,11 @@ class ElectricityProCoordinator(
         return {
             "tracking_started_at": self._monthly_energy_started,
             "coverage": (
-                "unverified" if self._monthly_energy_legacy
-                else "partial" if partial else "tracked"
+                "unverified"
+                if self._monthly_energy_legacy
+                else "partial"
+                if partial
+                else "tracked"
             ),
             "source_entity": self._provider.energy_entity_id,
         }
@@ -675,7 +697,9 @@ class ElectricityProCoordinator(
     async def async_confirm_meter_reset(self) -> None:
         """Accept a known lifetime meter replacement, retaining existing totals."""
         if not self._provider.energy_source_is_lifetime_total:
-            raise ValueError("This action requires a lifetime accumulated energy source")
+            raise ValueError(
+                "This action requires a lifetime accumulated energy source"
+            )
         data = self._provider.read()
         energy = _energy_in_kwh(data.current_energy, data.current_energy_unit)
         if energy is None or not energy.is_finite() or energy < 0:
@@ -698,10 +722,13 @@ class ElectricityProCoordinator(
         self._energy_this_month.update(energy, now)
         self._monthly_energy_started = now.isoformat()
         self._monthly_energy_legacy = False
-        self.async_set_updated_data(replace(
-            data, energy_this_month=Decimal(0),
-            energy_this_month_unit=UnitOfEnergy.KILO_WATT_HOUR,
-        ))
+        self.async_set_updated_data(
+            replace(
+                data,
+                energy_this_month=Decimal(0),
+                energy_this_month_unit=UnitOfEnergy.KILO_WATT_HOUR,
+            )
+        )
         await self._store.async_save(self._statistics_data())
 
     @property
@@ -710,9 +737,15 @@ class ElectricityProCoordinator(
         settings = resolve_settings(self._entry.data, self._entry.options)
         return {
             "settings": {
-                key: value for key, value in settings.items()
+                key: value
+                for key, value in settings.items()
                 if key in _ADAPTIVE_SCOPE_CONFIG_KEYS
-                or key in ("energy_entity", "energy_source_type", "accumulated_cost_today_entity")
+                or key
+                in (
+                    "energy_entity",
+                    "energy_source_type",
+                    "accumulated_cost_today_entity",
+                )
             },
             "timezone": str(self._local_timezone),
         }
@@ -726,12 +759,13 @@ class ElectricityProCoordinator(
         flow_state = stored.get("directional_flows", {})
         for channel in CHANNELS:
             saved = flow_state.get(channel) if isinstance(flow_state, dict) else None
-            if (
-                isinstance(saved, dict)
-                and saved.get("scope") == self._flow_scope(channel)
+            if isinstance(saved, dict) and saved.get("scope") == self._flow_scope(
+                channel
             ):
                 try:
-                    self._flow_counters[channel] = FlowCounter.from_dict(saved["counter"])
+                    self._flow_counters[channel] = FlowCounter.from_dict(
+                        saved["counter"]
+                    )
                 except (KeyError, ValueError, TypeError, ArithmeticError):
                     _LOGGER.warning("Ignoring invalid %s counter state", channel)
 
@@ -770,14 +804,12 @@ class ElectricityProCoordinator(
                     stored[_ENERGY_TODAY_FROM_TOTAL]
                 )
             except ValueError:
-                _LOGGER.warning(
-                    "Ignoring invalid persisted lifetime energy baseline"
-                )
+                _LOGGER.warning("Ignoring invalid persisted lifetime energy baseline")
             else:
                 self._energy_today_from_total = DailyConsumptionFromTotal(snapshot)
-                self._energy_today_period_complete = stored.get(
-                    _ENERGY_TODAY_PERIOD_COMPLETE
-                ) is True
+                self._energy_today_period_complete = (
+                    stored.get(_ENERGY_TODAY_PERIOD_COMPLETE) is True
+                )
 
         cost_unit = stored.get(_COST_THIS_MONTH_UNIT)
         if _COST_THIS_MONTH in stored and isinstance(cost_unit, str) and cost_unit:
@@ -896,9 +928,7 @@ class ElectricityProCoordinator(
                 updates["current_energy"] = energy_kwh
                 updates["current_energy_unit"] = UnitOfEnergy.KILO_WATT_HOUR
                 should_save = True
-            updates["energy_today_period_complete"] = (
-                self._energy_today_period_complete
-            )
+            updates["energy_today_period_complete"] = self._energy_today_period_complete
         else:
             energy_kwh = source_energy_kwh
 
@@ -948,37 +978,59 @@ class ElectricityProCoordinator(
         settings = resolve_settings(self._entry.data, self._entry.options)
         use_local_cost = not settings.get("accumulated_cost_today_entity")
         supplier = calculate_supplier_price(
-            data.current_price, data.pricing_metadata, data.supplier_markup_per_kwh,
+            data.current_price,
+            data.pricing_metadata,
+            data.supplier_markup_per_kwh,
         )
         effective = calculate_declared_effective_price(
-            data.current_price, data.pricing_metadata, data.grid_fee_per_kwh,
-            data.energy_tax_per_kwh, data.supplier_markup_per_kwh,
+            data.current_price,
+            data.pricing_metadata,
+            data.grid_fee_per_kwh,
+            data.energy_tax_per_kwh,
+            data.supplier_markup_per_kwh,
         )
-        if data.pricing_metadata is None or effective_price_metadata(
-            data.pricing_metadata, data.grid_fee_per_kwh,
-            data.energy_tax_per_kwh, data.supplier_markup_per_kwh,
-        ).completeness.value != "complete":
+        if (
+            data.pricing_metadata is None
+            or effective_price_metadata(
+                data.pricing_metadata,
+                data.grid_fee_per_kwh,
+                data.energy_tax_per_kwh,
+                data.supplier_markup_per_kwh,
+            ).completeness.value
+            != "complete"
+        ):
             effective = None
         before = self._local_costs.as_dict()
         self._local_costs.update(
-            now, source_energy_kwh, supplier, effective,
+            now,
+            source_energy_kwh,
+            supplier,
+            effective,
             _currency_from_price_unit(data.current_price_unit),
             lifetime=self._provider.energy_source_is_lifetime_total,
         )
         ledger = self._local_costs
         should_save |= before != ledger.as_dict()
         fixed_day, fixed_month, missing_fees = accrued_fixed_fees(
-            now, data.fixed_supplier_fee_this_month, data.fixed_grid_fee_this_month,
+            now,
+            data.fixed_supplier_fee_this_month,
+            data.fixed_grid_fee_this_month,
         )
         known_day = ledger.unit is not None and (
-            ledger.daily_energy > 0 or (effective is not None and source_energy_kwh is not None)
+            ledger.daily_energy > 0
+            or (effective is not None and source_energy_kwh is not None)
         )
         known_month = ledger.unit is not None and (
-            ledger.monthly_energy > 0 or (effective is not None and source_energy_kwh is not None)
+            ledger.monthly_energy > 0
+            or (effective is not None and source_energy_kwh is not None)
         )
         updates.update(
-            household_cost_today=ledger.daily_effective + fixed_day if known_day else None,
-            household_cost_this_month=ledger.monthly_effective + fixed_month if known_month else None,
+            household_cost_today=ledger.daily_effective + fixed_day
+            if known_day
+            else None,
+            household_cost_this_month=ledger.monthly_effective + fixed_month
+            if known_month
+            else None,
             household_cost_unit=ledger.unit,
             household_variable_today=ledger.daily_effective,
             household_variable_month=ledger.monthly_effective,
@@ -987,7 +1039,8 @@ class ElectricityProCoordinator(
             household_priced_energy_today=ledger.daily_energy,
             household_priced_energy_month=ledger.monthly_energy,
             household_missing_fees=(
-                missing_fees + (("complete_variable_price",) if effective is None else ())
+                missing_fees
+                + (("complete_variable_price",) if effective is None else ())
             ),
         )
         if use_local_cost:
@@ -1084,10 +1137,9 @@ class ElectricityProCoordinator(
                 self._timing_power_observed_at + _TIMING_POWER_MAX_HOLD,
             )
             if valid_end > self._timing_last_time:
-                bucket_closed = (
-                    int(self._timing_last_time.timestamp()) // (15 * 60)
-                    != int(valid_end.timestamp()) // (15 * 60)
-                )
+                bucket_closed = int(self._timing_last_time.timestamp()) // (
+                    15 * 60
+                ) != int(valid_end.timestamp()) // (15 * 60)
                 self._timing_buckets.add_segment(
                     start=self._timing_last_time,
                     end=valid_end,
@@ -1133,10 +1185,9 @@ class ElectricityProCoordinator(
                 self._base_load_power_observed_at + _TIMING_POWER_MAX_HOLD,
             )
             if valid_end > self._base_load_last_time:
-                bucket_closed = (
-                    int(self._base_load_last_time.timestamp()) // (15 * 60)
-                    != int(valid_end.timestamp()) // (15 * 60)
-                )
+                bucket_closed = int(self._base_load_last_time.timestamp()) // (
+                    15 * 60
+                ) != int(valid_end.timestamp()) // (15 * 60)
                 self._base_load_buckets.add_segment(
                     start=self._base_load_last_time,
                     end=valid_end,
@@ -1146,14 +1197,11 @@ class ElectricityProCoordinator(
         self._base_load_last_time = now
         if power_observed:
             self._base_load_power = (
-                Decimal(-1)
-                if data.current_power_bidirectional
-                else data.current_power
+                Decimal(-1) if data.current_power_bidirectional else data.current_power
             )
             self._base_load_power_observed_at = (
                 now
-                if data.current_power is not None
-                or data.current_power_bidirectional
+                if data.current_power is not None or data.current_power_bidirectional
                 else None
             )
         return bucket_closed
@@ -1169,8 +1217,7 @@ class ElectricityProCoordinator(
             self._adaptive_price_last_time is not None
             and self._adaptive_price is not None
             and self._adaptive_price_scope is not None
-            and now.astimezone(UTC)
-            > self._adaptive_price_last_time.astimezone(UTC)
+            and now.astimezone(UTC) > self._adaptive_price_last_time.astimezone(UTC)
         ):
             self._adaptive_price_history.ensure_scope(
                 self._adaptive_price_scope,
@@ -1263,10 +1310,9 @@ class ElectricityProCoordinator(
     def _finalize_restored_base_load_days(self, local_today: date) -> None:
         """Finalize retained power history after a restart across midnight."""
         previous_day = local_today - timedelta(days=1)
-        if (
-            self._base_load_buckets.intervals_for_date(previous_day)
-            or self._base_load_buckets.bidirectional_observed(previous_day)
-        ):
+        if self._base_load_buckets.intervals_for_date(
+            previous_day
+        ) or self._base_load_buckets.bidirectional_observed(previous_day):
             self._finalize_base_load_day(previous_day)
         self._base_load_buckets.retain_dates({local_today})
         self._recalculate_base_load(previous_day)
@@ -1314,7 +1360,9 @@ class ElectricityProCoordinator(
 
     def _recalculate_forecast_insights(self) -> None:
         """Recalculate cached forecast insight results from current intervals."""
-        rate = vat_rate_from_mapping(resolve_settings(self._entry.data, self._entry.options))
+        rate = vat_rate_from_mapping(
+            resolve_settings(self._entry.data, self._entry.options)
+        )
         intervals = [
             replace(
                 interval,
@@ -1352,11 +1400,7 @@ class ElectricityProCoordinator(
             supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
         )
         threshold = provider_data.good_price_threshold
-        forecast_metadata = (
-            intervals[0].pricing_metadata
-            if intervals
-            else None
-        )
+        forecast_metadata = intervals[0].pricing_metadata if intervals else None
         forecast_grid_fee = (
             self._provider.grid_fee_at(intervals[0].start)
             if intervals
@@ -1380,8 +1424,7 @@ class ElectricityProCoordinator(
                 metadata=effective_forecast_metadata,
                 tariff_signature=self._adaptive_tariff_signature,
             )
-            if effective_forecast_metadata is not None
-            and intervals
+            if effective_forecast_metadata is not None and intervals
             else None
         )
         self._forecast_prices_are_comparable = bool(
@@ -1435,7 +1478,8 @@ class ElectricityProCoordinator(
             energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
             supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
             grid_fee_change_times=self._provider.grid_fee_change_times(
-                now, now.astimezone(UTC) + timedelta(hours=2),
+                now,
+                now.astimezone(UTC) + timedelta(hours=2),
             ),
         )
 
@@ -1462,13 +1506,10 @@ class ElectricityProCoordinator(
         ):
             data[_ENERGY_TODAY_FROM_TOTAL] = snapshot.as_dict()
             data[_ENERGY_TODAY_SOURCE_ENTITY] = self._provider.energy_entity_id
-            data[_ENERGY_TODAY_PERIOD_COMPLETE] = (
-                self._energy_today_period_complete
-            )
+            data[_ENERGY_TODAY_PERIOD_COMPLETE] = self._energy_today_period_complete
         if (
-            (snapshot := self._cost_this_month.snapshot) is not None
-            and self._cost_this_month_unit is not None
-        ):
+            snapshot := self._cost_this_month.snapshot
+        ) is not None and self._cost_this_month_unit is not None:
             data[_COST_THIS_MONTH] = snapshot.as_dict()
             data[_COST_THIS_MONTH_UNIT] = self._cost_this_month_unit
         if (snapshot := self._peak_power_today.snapshot) is not None:
@@ -1491,8 +1532,11 @@ class ElectricityProCoordinator(
         """Scope each independently accumulated AC lifetime register."""
         return {
             "source": self._provider.flow_sources.bindings[f"{channel}_energy_entity"],
-            "channel": channel, "counter_kind": "lifetime", "boundary": "site_ac",
-            "timezone": str(self._local_timezone), "revision": 1,
+            "channel": channel,
+            "counter_kind": "lifetime",
+            "boundary": "site_ac",
+            "timezone": str(self._local_timezone),
+            "revision": 1,
         }
 
     def _read_flows(self, now: datetime) -> bool:
@@ -1504,22 +1548,33 @@ class ElectricityProCoordinator(
             for quantity in ("power", "energy"):
                 reading = self._provider.flow_sources.read(channel, quantity, now)
                 attrs = {
-                    "source_entity": reading.source, "channel": channel,
-                    "boundary": "site_ac", "origin": "measured",
+                    "source_entity": reading.source,
+                    "channel": channel,
+                    "boundary": "site_ac",
+                    "origin": "measured",
                     "timestamp_provenance": "ha_receipt",
                     "original_unit": reading.original_unit,
                     "reason": reading.reason,
                 }
                 if quantity == "power":
                     self.flow_values[f"{channel}_power"] = (reading.value, attrs)
-                    if reading.source and self._provider.flow_sources.compatibility_enabled:
-                        power_inputs.append(PowerInput(
-                            channel=channel, source=reading.source, value=reading.value,
-                            received_at=reading.observed_at, reason=reading.reason,
-                            phase_convention=settings.get(
-                                f"{channel}_power_phase_convention"
-                            ) or "unknown",
-                        ))
+                    if (
+                        reading.source
+                        and self._provider.flow_sources.compatibility_enabled
+                    ):
+                        power_inputs.append(
+                            PowerInput(
+                                channel=channel,
+                                source=reading.source,
+                                value=reading.value,
+                                received_at=reading.observed_at,
+                                reason=reading.reason,
+                                phase_convention=settings.get(
+                                    f"{channel}_power_phase_convention"
+                                )
+                                or "unknown",
+                            )
+                        )
                     continue
                 counter = self._flow_counters[channel]
                 before = counter.as_dict()
@@ -1527,22 +1582,28 @@ class ElectricityProCoordinator(
                 meter = reading.value
                 if (
                     reading.observed_at
-                    and reading.observed_at.astimezone(
-                        self._local_timezone
-                    ).date() != now.date()
+                    and reading.observed_at.astimezone(self._local_timezone).date()
+                    != now.date()
                 ):
                     meter = None
                     attrs["reason"] = "previous_day_reading"
                 valid = counter.update(meter, now)
                 changed |= before != counter.as_dict()
-                attrs.update({
-                    "origin": "derived", "counter_kind": "lifetime",
-                    "coverage": "partial", "tracking_started_at": counter.started,
-                    "meter_generation": counter.generation,
-                    "reason": counter.reason if meter is not None else attrs["reason"],
-                })
+                attrs.update(
+                    {
+                        "origin": "derived",
+                        "counter_kind": "lifetime",
+                        "coverage": "partial",
+                        "tracking_started_at": counter.started,
+                        "meter_generation": counter.generation,
+                        "reason": counter.reason
+                        if meter is not None
+                        else attrs["reason"],
+                    }
+                )
                 for period, value in (
-                    ("today", counter.today), ("this_month", counter.this_month)
+                    ("today", counter.today),
+                    ("this_month", counter.this_month),
                 ):
                     period_id = counter.day if period == "today" else counter.month
                     self.flow_values[f"{channel}_{period}"] = (
@@ -1553,17 +1614,25 @@ class ElectricityProCoordinator(
             generation = settings.get(CONF_GENERATION) or "unknown"
             storage = settings.get(CONF_STORAGE) or "unknown"
             result = check_power_compatibility(
-                tuple(power_inputs), generation, storage, now,
+                tuple(power_inputs),
+                generation,
+                storage,
+                now,
             )
             self.flow_compatibility = {
                 "status": result.status,
                 "problem_channels": list(result.problem_channels),
-                "generation": generation, "storage": storage,
+                "generation": generation,
+                "storage": storage,
                 "checked_sources": {p.channel: p.source for p in power_inputs},
                 "source_reasons": {p.channel: p.reason for p in power_inputs},
-                "phase_conventions": {p.channel: p.phase_convention for p in power_inputs},
+                "phase_conventions": {
+                    p.channel: p.phase_convention for p in power_inputs
+                },
                 "timestamp_provenance": "ha_receipt",
-                "quality": "receipt_time_estimate" if result.status == "aligned" else "not_assessed",
+                "quality": "receipt_time_estimate"
+                if result.status == "aligned"
+                else "not_assessed",
                 "assessment_scope": "configured_optional_power_only",
                 "complete_balance_available": False,
             }
@@ -1572,7 +1641,9 @@ class ElectricityProCoordinator(
     async def async_confirm_flow_meter_reset(self, channel: str, source: str) -> None:
         """Explicitly rebaseline one unchanged source binding, not all meters."""
         if channel not in CHANNELS or self._flow_scope(channel)["source"] != source:
-            raise ValueError("Select the currently configured directional energy source")
+            raise ValueError(
+                "Select the currently configured directional energy source"
+            )
         now = dt_util.now().astimezone(self._local_timezone)
         reading = self._provider.flow_sources.read(channel, "energy", now)
         if (
@@ -1615,9 +1686,7 @@ def _adaptive_tariff_signature(entry: ConfigEntry) -> str:
     """Return a stable fingerprint for price-affecting configuration."""
     settings = resolve_settings(entry.data, entry.options)
     relevant_settings = {
-        key: settings[key]
-        for key in _ADAPTIVE_SCOPE_CONFIG_KEYS
-        if key in settings
+        key: settings[key] for key in _ADAPTIVE_SCOPE_CONFIG_KEYS if key in settings
     }
     serialized = json.dumps(
         relevant_settings,

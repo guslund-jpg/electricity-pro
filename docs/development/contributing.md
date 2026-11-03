@@ -6,6 +6,7 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 ./scripts/validate.sh
 python -m ruff check custom_components tests scripts
+python -m ruff format --check custom_components tests scripts
 python -m mypy --config-file mypy.ini
 python -m pytest -q --tb=short
 ```
@@ -50,9 +51,9 @@ Manual checks are in the
 
 `./scripts/validate.sh` checks YAML, JSON, Python syntax, unique IDs and repository
 policy. CI additionally runs Markdown lint using the repository's
-`.markdownlint.json` settings and Python lint with the same command shown above.
+`.markdownlint.json` settings and Python lint and formatting with the commands above.
 The pinned Ruff version is installed from `requirements-dev.txt`; its rules and
-Python target are in `ruff.toml`. The local pre-commit hook runs the same full
+Python target are in `ruff.toml`. The local pre-commit hooks run the same full
 Python scope. Activate the development environment before committing, and
 reinstall requirements after tool-version updates.
 
@@ -124,27 +125,35 @@ action schema/return typing (`__init__.py`). These findings require review;
 they are not by themselves proof of runtime failures and have not been fixed
 or suppressed as if the whole integration were clean.
 
-### Formatting and further typing
+### Python formatting
 
-Formatting is **not a CI gate yet**. Remaining work stays tracked in
-[#287](https://github.com/guslund-jpg/electricity-pro/issues/287):
+The **Repository quality** job and local pre-commit hook check formatting across
+`custom_components/`, `tests/` and `scripts/` using the pinned Ruff formatter.
+The policy in `ruff.toml` uses 88 columns, double quotes, spaces and LF endings.
+Its Python 3.13 syntax target preserves compatibility with the minimum supported
+Home Assistant version, even though the main development environment uses Python 3.14.
+Both checks are read-only: they report formatting differences without changing files.
 
-1. **Formatting-only PR:** use the pinned Ruff formatter with the policy in
-   `ruff.toml` (88 columns, double quotes, spaces, LF). Review a mechanical
-   formatting diff separately from logic changes, run the full tests, then
-   enable `ruff format --check` for the agreed scope in CI and pre-commit.
-   Until then, preserve surrounding style and do not reformat whole files
-   as part of a bug fix.
-2. **Expand typing gradually:** calculation/history modules next, then HA-facing
-   provider/coordinator/entities and configuration flows as their boundaries
-   improve. Add modules to the explicit list, include their dependencies, and
-   resolve errors before expanding the gate. Address the findings above and
-   remove the parent-module boundary when setup joins the checked scope.
-   Record remaining uncovered modules and any narrowly justified exceptions.
-   Strict whole-integration typing is not a v1.6 prerequisite.
+To apply formatting locally, run:
 
-Keep each stage reviewable, retain the behavioural test gate, and document
-commands only once the corresponding check is actually configured.
+```bash
+python -m ruff format custom_components tests scripts
+```
+
+Review the resulting diff and run the full tests. Keep broad mechanical formatting
+changes separate from calculation or other behaviour changes. The formatter uses
+the same normal generated-directory and Git-ignore handling as the lint check.
+
+### Further typing
+
+Incremental typing work remains tracked in
+[#287](https://github.com/guslund-jpg/electricity-pro/issues/287).
+Expand calculation/history modules next, then HA-facing provider/coordinator/entities
+and configuration flows as their boundaries improve. Add modules to the explicit
+list, include their dependencies, and resolve errors before expanding the gate.
+Address the findings above and remove the parent-module boundary when setup joins
+the checked scope. Record remaining uncovered modules and any narrowly justified
+exceptions. Keep each stage reviewable and retain the behavioural test gate.
 
 ### Documentation and fixture checks
 

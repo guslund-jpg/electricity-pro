@@ -67,7 +67,7 @@ def test_good_time_method_precedes_threshold_in_both_forms():
             schema = factory(good_price_threshold_default=threshold)
             keys = [key.schema for key in schema.schema]
             start = keys.index(CONF_GOOD_PRICE_MODE)
-            assert keys[start:start + 4] == [
+            assert keys[start : start + 4] == [
                 CONF_GOOD_PRICE_MODE,
                 CONF_GOOD_PRICE_THRESHOLD,
                 CONF_ADAPTIVE_TARGET_PERCENTILE,
@@ -105,7 +105,9 @@ def test_custom_settings_group_price_with_supplier_markup() -> None:
     assert keys.index(CONF_PRICE_VAT_TREATMENT) + 1 == keys.index(
         CONF_SUPPLIER_MARKUP_PER_KWH
     )
-    assert keys.index(CONF_SUPPLIER_MARKUP_PER_KWH) + 1 == keys.index(CONF_PRICE_VAT_RATE)
+    assert keys.index(CONF_SUPPLIER_MARKUP_PER_KWH) + 1 == keys.index(
+        CONF_PRICE_VAT_RATE
+    )
     assert keys.index(CONF_PRICE_VAT_RATE) + 1 == keys.index("suggest_vat_rate")
     assert keys.index("suggest_vat_rate") + 1 == keys.index(CONF_ENERGY_ENTITY)
 
@@ -121,7 +123,8 @@ async def test_source_selectors_exclude_renamed_integration_outputs(hass) -> Non
     )
     schema = _entity_schema(hass=hass)
     source_selectors = [
-        value for key, value in schema.schema.items()
+        value
+        for key, value in schema.schema.items()
         if isinstance(value, EntitySelector)
         and key.schema != CONF_GRID_FEE_WORKDAY_ENTITY
     ]
@@ -216,18 +219,20 @@ async def test_tibber_initial_setup_stores_nordpool_forecast(hass) -> None:
     )
     assert result["step_id"] == "tibber_forecast_pricing"
     keys = [key.schema for key in result["data_schema"].schema]
-    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH, "estimate_supplier_markup", "suggest_vat_rate"}
+    assert set(keys) == {
+        CONF_PRICE_VAT_RATE,
+        CONF_SUPPLIER_MARKUP_PER_KWH,
+        "estimate_supplier_markup",
+        "suggest_vat_rate",
+    }
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {CONF_PRICE_VAT_RATE: 25, CONF_SUPPLIER_MARKUP_PER_KWH: 0.18},
     )
 
-
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_SOURCE_PROFILE] == "tibber"
-    assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == (
-        "nordpool-entry-id"
-    )
+    assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == ("nordpool-entry-id")
 
 
 async def test_tibber_options_add_single_area_nordpool_entry(hass) -> None:
@@ -259,17 +264,19 @@ async def test_tibber_options_add_single_area_nordpool_entry(hass) -> None:
     )
     assert result["step_id"] == "tibber_forecast_pricing"
     keys = [key.schema for key in result["data_schema"].schema]
-    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH, "estimate_supplier_markup", "suggest_vat_rate"}
+    assert set(keys) == {
+        CONF_PRICE_VAT_RATE,
+        CONF_SUPPLIER_MARKUP_PER_KWH,
+        "estimate_supplier_markup",
+        "suggest_vat_rate",
+    }
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {CONF_PRICE_VAT_RATE: 25, CONF_SUPPLIER_MARKUP_PER_KWH: 0.18},
     )
 
-
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == (
-        "nordpool-entry-id"
-    )
+    assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == ("nordpool-entry-id")
     assert CONF_FORECAST_PRICE_AREA not in result["data"]
 
 
@@ -299,7 +306,12 @@ async def test_tibber_options_select_multi_area_nordpool_entry(hass) -> None:
     )
     assert result["step_id"] == "tibber_forecast_pricing"
     keys = [key.schema for key in result["data_schema"].schema]
-    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH, "estimate_supplier_markup", "suggest_vat_rate"}
+    assert set(keys) == {
+        CONF_PRICE_VAT_RATE,
+        CONF_SUPPLIER_MARKUP_PER_KWH,
+        "estimate_supplier_markup",
+        "suggest_vat_rate",
+    }
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {CONF_PRICE_VAT_RATE: 25, CONF_SUPPLIER_MARKUP_PER_KWH: 0.18},
@@ -344,12 +356,16 @@ async def test_tibber_options_preserve_existing_nordpool_area(hass) -> None:
     )
     assert result["step_id"] == "tibber_forecast_pricing"
     keys = [key.schema for key in result["data_schema"].schema]
-    assert set(keys) == {CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH, "estimate_supplier_markup", "suggest_vat_rate"}
+    assert set(keys) == {
+        CONF_PRICE_VAT_RATE,
+        CONF_SUPPLIER_MARKUP_PER_KWH,
+        "estimate_supplier_markup",
+        "suggest_vat_rate",
+    }
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {CONF_PRICE_VAT_RATE: 25, CONF_SUPPLIER_MARKUP_PER_KWH: 0.18},
     )
-
 
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_FORECAST_PRICE_AREA] == "SE3"
@@ -397,9 +413,9 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
         keys.index(CONF_GRID_FEE_PER_KWH) + 1 : keys.index(
             CONF_FIXED_SUPPLIER_FEE_MONTHLY
         )
-        ] == [
-            CONF_GRID_FEE_HIGH_PER_KWH,
-            CONF_GRID_FEE_HIGH_START,
+    ] == [
+        CONF_GRID_FEE_HIGH_PER_KWH,
+        CONF_GRID_FEE_HIGH_START,
         CONF_GRID_FEE_HIGH_END,
         CONF_GRID_FEE_HIGH_SEASON_START,
         CONF_GRID_FEE_HIGH_SEASON_END,
@@ -559,7 +575,9 @@ async def test_options_flow_updates_forecast_config(hass) -> None:
 
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert CONF_FORECAST_PRICE_AREA not in result["data"]
-    assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == "other-nordpool-entry-id"
+    assert (
+        result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == "other-nordpool-entry-id"
+    )
 
 
 async def test_options_flow_saves_adaptive_good_price_settings(hass) -> None:
@@ -576,8 +594,7 @@ async def test_options_flow_saves_adaptive_good_price_settings(hass) -> None:
     defaults = {
         key.schema: key.default()
         for key in result["data_schema"].schema
-        if key.schema
-        in {CONF_GOOD_PRICE_MODE, CONF_ADAPTIVE_TARGET_PERCENTILE}
+        if key.schema in {CONF_GOOD_PRICE_MODE, CONF_ADAPTIVE_TARGET_PERCENTILE}
     }
     assert defaults == {
         CONF_GOOD_PRICE_MODE: GOOD_PRICE_MODE_FIXED,
@@ -763,8 +780,7 @@ async def test_options_present_saved_zero_vat_rate(hass) -> None:
     entry.add_to_hass(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     rate_key = next(
-        key for key in result["data_schema"].schema
-        if key.schema == CONF_PRICE_VAT_RATE
+        key for key in result["data_schema"].schema if key.schema == CONF_PRICE_VAT_RATE
     )
     assert rate_key.default() == 0
 
