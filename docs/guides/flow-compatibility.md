@@ -1,6 +1,6 @@
 # Installation declarations and power compatibility
 
-Status: unreleased v1.6 work under #240. This is a diagnostic foundation,
+Status: released in v1.6.0 under #240. This is a diagnostic foundation,
 not calculated household demand, energy ratios or a complete site balance.
 There has been no solar/battery hardware beta validation.
 This opt-in diagnostic is experimental / not hardware-verified; see the

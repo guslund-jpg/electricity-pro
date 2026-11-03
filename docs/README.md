@@ -3,10 +3,10 @@
 Start with [configuration](guides/configuration.md) after installing Electricity
 Pro using the [root README](../README.md#installation).
 
-These documents describe maintained behaviour on `main`, including **unreleased
-v1.6 work**. [v1.5.2](releases/1.5.2.md) is the stable release; development features
-are labelled in their guides. Test evidence is not a claim of real solar/battery
-hardware validation.
+These documents describe maintained behaviour on `main`.
+[v1.6.0](releases/1.6.0.md) is the stable release; later development may move ahead
+of that tag. Optional energy-flow features remain experimental.
+Test evidence is not a claim of real solar/battery hardware validation.
 
 ## Setup and troubleshooting
 
@@ -64,7 +64,7 @@ Git history preserves previous versions.
 
 - [Energy-flow test plan](validation/energy-flow-test-plan.md)
 - [v1.6 validation evidence](validation/v1.6.md)
-- [Draft v1.6 release notes and checklist](releases/1.6.0.md)
+- [v1.6.0 release notes and completed publication checklist](releases/1.6.0.md)
 - Released notes: [v1.5.2](releases/1.5.2.md), [v1.5.1](releases/1.5.1.md)
 - [Changelog](../CHANGELOG.md): delivered changes
 - [Roadmap](../ROADMAP.md): upcoming direction

@@ -1,8 +1,8 @@
 # Electricity Pro architecture
 
-This describes `main`, including **unreleased v1.6 work**. The stable release is
-[v1.5.2](../releases/1.5.2.md); optional production/export, household-demand and
-compatibility modules below are not in that release.
+This describes `main`. The stable release is [v1.6.0](../releases/1.6.0.md);
+optional production/export, household-demand and compatibility modules are
+included but remain experimental / not hardware-verified.
 
 ## Data flow and ownership
 
@@ -188,7 +188,7 @@ live availability. A configured but unavailable source still creates its
 existing entities; clearing its binding prevents creation. Sensor platforms do
 not access private coordinator/provider members.
 
-Unreleased optional channels publish independent measured AC production,
+Optional channels publish independent measured AC production,
 directional export and non-storage household demand, with protected partial
 daily/monthly lifetime-meter deltas. They do not replace import costs or net-grid
 analytics. Compatibility checks use HA receipt timestamps; `aligned` does not
@@ -203,7 +203,7 @@ self-consumption ratios and export revenue are not implemented. See
 | `get_market_price_forecast` | Read cached normalized market series for one loaded entry |
 | `reset_monthly_energy` | Confirmed reset of monthly import tracking, not Recorder repair |
 | `confirm_meter_reset` | Accept a verified import-meter replacement/reset |
-| `confirm_flow_meter_reset` | Unreleased: rebaseline one confirmed optional channel/source |
+| `confirm_flow_meter_reset` | Rebaseline one confirmed optional channel/source |
 
 Reset actions are not remedies for temporary dips or outages. Read the recovery
 guides before using them.

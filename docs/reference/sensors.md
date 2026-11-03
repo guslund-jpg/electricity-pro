@@ -1,8 +1,8 @@
 # Electricity Pro Sensor Catalog
 
 This catalogue describes implemented entities on `main`. The stable release is
-[v1.5.2](../releases/1.5.2.md); optional flow/compatibility entities below are
-**unreleased v1.6 development**, not hardware-validated features.
+[v1.6.0](../releases/1.6.0.md); optional flow/compatibility entities below remain
+**experimental / not hardware-verified**.
 
 Keys identify implementation/unique-ID suffixes, not guaranteed entity IDs.
 Home Assistant derives IDs from names and retains user renames. For example,
@@ -212,7 +212,7 @@ source supplies compatible complete pricing.
 | `consumption_timing_score_yesterday` | Yesterday's consumption/price timing; coverage rules below | % | None / Measurement |
 | `cheapest_1h_window_start`, `cheapest_2h_window_start`, `cheapest_3h_window_start` | Forecast-derived continuous-window starts, with a sufficiently long gap-free horizon | Timestamp | Timestamp / None |
 | `cheapest_1h_window_average_effective_price`, `cheapest_2h_window_average_effective_price`, `cheapest_3h_window_average_effective_price` | Average **scheduling price** for each window; historical keys retained, not a complete household Effective Price claim | Currency/kWh | None / None |
-| `price_direction` | Two-hour scheduling-price trend: rising/falling/stable (unreleased v1.6 behaviour) | None | None / None |
+| `price_direction` | Two-hour scheduling-price trend: rising/falling/stable | None | None / None |
 | `next_inexpensive_1h_window_start` | Complete comparable forecast plus configured threshold required; not exposed for current partial Nord Pool scope | Timestamp | Timestamp / None |
 | `good_time_to_use_electricity` | **Binary sensor** created for fixed-threshold or adaptive configuration; incomplete inputs can leave it unknown | On/off | None / Not applicable |
 
@@ -221,7 +221,7 @@ use the configured VAT rate and applicable per-kWh additions; no fixed fees.
 Missing/short/gapped forecasts can make individual insights unavailable.
 [Forecast retrieval](forecast-retrieval.md) explains publication and retry timing.
 
-### Price trend — next 2 hours (unreleased v1.6)
+### Price trend — next 2 hours
 
 The existing `sensor.electricity_pro_price_direction` entity now compares the
 duration-weighted average scheduling price from **now to one hour ahead** with
@@ -270,7 +270,7 @@ attributes are replaced by the hourly attributes above. Review personal
 automations using this entity or its attributes. Good Time, costs and cheapest
 windows do not consume its result and retain their existing behaviour.
 
-## Optional flow entities (unreleased v1.6)
+## Optional flow entities (experimental)
 
 These are independent measured channels, not derived balances or battery controls.
 Power sources create power entities; lifetime energy sources independently create

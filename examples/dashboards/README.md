@@ -97,7 +97,7 @@ on the entities configured in your Home Assistant installation.
 
 ## Requirements
 
-### Optional production, export and household demand (unreleased v1.6)
+### Optional production, export and household demand (experimental)
 
 Both Overview views include independent Production, Grid export and Household demand groups
 using built-in cards. They show configured power and partial daily/monthly

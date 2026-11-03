@@ -13,8 +13,8 @@ battery to get started.
 [Configure your sources](docs/guides/configuration.md) ·
 [Add a dashboard](examples/dashboards/README.md#quick-installation)
 
-**Stable: [v1.5.2](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.5.2).**
-This README also covers unreleased development; see [release scope](#release-scope)
+**Stable: [v1.6.0](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.6.0).**
+See [release scope](#release-scope)
 before installing code or examples from `main`.
 
 [![Enhanced dashboard showing live power, effective price, cost rate and daily and monthly readings](docs/assets/screenshots/enhanced-overview.png)](docs/assets/screenshots/enhanced-overview.png)
@@ -60,19 +60,17 @@ source requirements and price-component definitions.
 
 ## Release scope
 
-The latest stable release is [v1.5.2](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.5.2).
-It contains the v1.5.1 reliability improvements and a focused startup-timezone
-fix. See the [upgrade notes](docs/releases/1.5.2.md).
+The latest stable release is [v1.6.0](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.6.0),
+published on 3 November 2026. It adds optional measured energy flows, a two-hour
+price trend, VAT suggestions and reviewed Tibber forecast-addition estimation.
+See the [release and upgrade notes](docs/releases/1.6.0.md).
 
-Documentation on `main` also describes unreleased development. Optional
-production/export/household sources, compatibility diagnostics, automatic VAT
-suggestions and Tibber forecast-addition estimation are **not in v1.5.2**.
-Use a separate test installation for development code; solar/battery hardware
-validation remains outstanding.
+Optional production/export/household sources and compatibility diagnostics remain
+**experimental / not hardware-verified**. Synthetic validation does not establish
+real solar or battery compatibility. Battery control and export revenue are not included.
 
-The [v1.6.0 candidate notes](docs/releases/1.6.0.md) cover upgrading from
-v1.5.2, the changed price-trend behaviour, and which features have been tested
-without physical solar or battery hardware. The candidate is not a stable release.
+Documentation on `main` may move ahead of the stable release. Use tagged releases
+for ordinary installations and a separate test installation for development code.
 
 ## Features
 
@@ -117,7 +115,7 @@ negative means export. Export compensation is not inferred from import prices.
   not a complete household Effective Price.
 - Next inexpensive 1h window start only when the forecast and live Effective
   Price have comparable, complete component scopes
-- Price direction (Nord Pool forecast; two-hour averaged trend in unreleased v1.6)
+- Price direction (Nord Pool forecast; two-hour averaged trend)
 
 ### Native Home Assistant Integration
 
@@ -177,8 +175,8 @@ The power chart uses Current Power (net grid import/export), despite the older
 The forecast chart shows market prices, while window averages include configured
 supplier additions, variable grid fees and energy tax. They need not match the
 chart's market-price level. The screenshots show the older individual-interval
-Price direction; unreleased v1.6 changes that entity to a
-[two-hour averaged trend](docs/reference/sensors.md#price-trend--next-2-hours-unreleased-v16).
+Price direction; v1.6.0 changes that entity to a
+[two-hour averaged trend](docs/reference/sensors.md#price-trend--next-2-hours).
 Screenshots show one installation's readings and
 Swedish formatting, not guaranteed costs or savings.
 
@@ -273,8 +271,8 @@ legacy HACS Nord Pool integration is not required or supported as a forecast sou
 
 - [Documentation index](docs/README.md)
 - [Configuration guide](docs/guides/configuration.md)
-- [Optional production, export and household demand (unreleased)](docs/guides/production-export.md)
-- [Installation and power compatibility diagnostic (unreleased)](docs/guides/flow-compatibility.md)
+- [Optional production, export and household demand (experimental)](docs/guides/production-export.md)
+- [Installation and power compatibility diagnostic (experimental)](docs/guides/flow-compatibility.md)
 - [v1.6 synthetic test lab and release evidence](examples/testing/README.md)
 - [Recorder and database-write guidance](docs/guides/recorder.md)
 - [Roadmap](ROADMAP.md)
@@ -328,7 +326,7 @@ provider-independent.
 
 ## Project Status
 
-See [Release scope](#release-scope) for the published version and candidate.
+See [Release scope](#release-scope) for the published version and validation limits.
 The [roadmap](ROADMAP.md) distinguishes the measured flows in v1.6 from future
 battery and device-specific work.
 
