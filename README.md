@@ -70,9 +70,9 @@ suggestions and Tibber forecast-addition estimation are **not in v1.5.2**.
 Use a separate test installation for development code; solar/battery hardware
 validation remains outstanding.
 
-The [draft v1.6 release notes and checklist](docs/releases/1.6.0.md) distinguish
-implemented changes, proposed usability additions and outstanding release gates.
-They are not a release announcement.
+The [v1.6.0 candidate notes](docs/releases/1.6.0.md) cover upgrading from
+v1.5.2, the changed price-trend behaviour, and which features have been tested
+without physical solar or battery hardware. The candidate is not a stable release.
 
 ## Features
 
@@ -328,21 +328,9 @@ provider-independent.
 
 ## Project Status
 
-### Current release
-
-v1.5.2 – Startup Timezone Fix
-
-This focused maintenance release builds on v1.5.1 and reuses Home Assistant's
-loaded timezone during setup/reload. Read the
-[release and upgrade notes](docs/releases/1.5.2.md) before upgrading.
-It does not include the unfinished v1.6 features on `main`.
-
-Electricity Pro is actively developed with a clear public roadmap.
-
-The next roadmap phase is v1.6, with independent measured production/export and
-household channels already implemented on main but not yet released.
-Device-specific optimisation follows only after those energy-flow and pricing
-contracts are reliable.
+See [Release scope](#release-scope) for the published version and candidate.
+The [roadmap](ROADMAP.md) distinguishes the measured flows in v1.6 from future
+battery and device-specific work.
 
 ---
 

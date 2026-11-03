@@ -1,6 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [1.6.0] - Unreleased
+
+This candidate adds optional measured production, grid-export and household
+demand, a two-hour price trend, and forecast-pricing setup improvements.
+The flow features have synthetic test coverage, not real solar/battery
+verification. See the [upgrade notes and validation limits](docs/releases/1.6.0.md).
 
 ### Changed
 
@@ -56,9 +61,12 @@
   Explain dashboard dependencies, older screenshot labels and price scopes,
   and retain stable/development boundaries. Runtime behaviour is unchanged.
 
-- Add draft v1.6 release notes and a release checklist, separating implemented
-  changes from proposed README, automation-example and smoothed-trend work.
-  Release approval, overnight checks and hardware validation remain pending.
+- Add v1.6 release notes and reconcile the checklist with recorded
+  synthetic, rollover, dashboard, automation and standard-upgrade checks.
+  Include the implemented README, automation-example and two-hour-trend work.
+  Record the November 3 final package smoke test and maintainer approval of
+  the narrow scope and bounded evidence gaps. Publication remains separate;
+  solar/battery hardware verification is not claimed.
 
 - Reconcile stable v1.5.2 versus main development scope, architecture ownership,
   sensor catalogue, ADR status and contributor/repository-layout guidance.
@@ -96,8 +104,8 @@
 
 - Add a disposable Home Assistant simulation package and executable v1.6
   validation checklist under #290, with automated package tests, a manual evidence
-  record and redacted hardware-beta mapping guidance. Manual/hardware runs remain
-  pending; optional flow features are explicitly experimental, not hardware-verified.
+  record and redacted hardware-beta mapping guidance. Manual synthetic results
+  are recorded separately; optional flow features are not hardware-verified.
 
 - Add a pinned strict mypy pilot for statistics, pricing contracts and grid
   tariffs in local checks, pre-commit and CI. Document the exact checked scope,
