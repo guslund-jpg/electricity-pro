@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Remove interval polling from the Enhanced dashboard's market forecast chart
+  to avoid an ApexCharts Card 2.2.3 initialization stall. Use source-entity-driven
+  updates instead; the Now marker moves when the chart updates. Existing copied
+  dashboards need the same one-line removal. Integration calculations are unchanged.
+
 ## [1.6.0] - 2026-11-03
 
 This release adds optional measured production, grid-export and household

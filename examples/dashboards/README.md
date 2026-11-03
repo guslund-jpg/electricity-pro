@@ -201,13 +201,22 @@ unpublished part of the chart remains blank. The 50-hour display span also
 accommodates daylight-saving transitions and does not imply that 50 hours of
 prices are always available.
 
-The forward chart currently uses ApexCharts Card's advanced `data_generator`
-support. With ApexCharts Card 2.2.3 on some newer Home Assistant frontends, the
-card can remain on **Loading** until the browser window is resized. The
-underlying Electricity Pro sensor and forecast data remain available; resizing
-the window is a temporary presentation workaround. A future dashboard revision
-will replace this fragile rendering path with a reliably initialized frontend
-method.
+The forward chart uses ApexCharts Card's `data_generator` support and its default
+source-entity-driven updates. It deliberately omits `update_interval`: interval
+polling can leave ApexCharts Card 2.2.3 stuck on **Loading** during initialization
+([upstream report](https://github.com/RomRider/apexcharts-card/issues/1120)).
+If you copied an earlier Enhanced example, remove `update_interval: 1min` from
+the **Market price forecast** card; updating the integration alone does not
+change a manually copied dashboard. Keep the other chart settings unchanged.
+The **Now** marker advances when the chart updates, not on a separate
+one-minute timer.
+
+On 2026-11-03, the maintainer reported that removing this setting resolved
+loading on the semi-production installation and also tested successfully on
+mobile. This is a configuration workaround, not an upstream library fix.
+The regression test checks that interval polling stays absent; it does not
+exercise browser rendering. Further horizon/update checks are tracked in
+[#224](https://github.com/guslund-jpg/electricity-pro/issues/224).
 
 Its Overview view uses the same editable Current Power, Effective Price, and
 Current Cost Rate gauges as the standard dashboard. These gauges use built-in

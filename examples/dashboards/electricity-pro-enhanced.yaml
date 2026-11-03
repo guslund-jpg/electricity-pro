@@ -792,7 +792,7 @@ views:
           span:
             start: day
           update_delay: 3s
-          update_interval: 1min
+          # Use source updates; update_interval can stall initial loading in 2.2.3.
           now:
             show: true
             label: Now
