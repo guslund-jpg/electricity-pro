@@ -103,10 +103,12 @@ The current strict scope is:
 | `history_storage.py` | Runtime narrowing of stored history values |
 | `flow_compatibility.py` | Normalized power observations and the supported diagnostic result statuses |
 | `energy_flows.py` | Directional lifetime counters and their persisted state |
+| `flow_sources.py` | Explicit source bindings, normalized readings and freshness checks |
 
-These modules form a pure dependency graph: `good_time.py` uses
-`adaptive_price.py`, which uses `pricing.py`; external dependencies are only
-the standard library. Mypy follows
+The calculation modules form a pure dependency graph: `good_time.py` uses
+`adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
+Assistant's typed state API; the remaining checked modules depend only on the
+standard library and each other. Mypy follows
 imports normally and does not ignore missing imports or errors. Strict mode,
 `disallow_any_unimported` and unused-configuration warnings are enabled; the
 small pilot runs without an incremental cache. The extracted Good Time result
@@ -133,6 +135,14 @@ period, total, timestamp and reset-generation validation. The eight-field storag
 format, accepted numeric scalars, accumulation, rollover and reset behaviour are
 unchanged. Tests cover JSON round trips, malformed shapes and missing fields.
 
+The flow-source reader accepts `Mapping[str, object]`, narrowing entity bindings
+and unit metadata to strings. Non-string bindings are treated as unconfigured;
+non-string units cannot produce measured readings. Compatibility declarations
+remain unmodified for the diagnostic's runtime validation. Valid bindings,
+unit conversion, receipt-time provenance, and the 300-second power / 900-second
+energy freshness limits are unchanged. Tests cover all three channels, malformed
+inputs, availability and exact freshness boundaries.
+
 There is one explicit boundary: the exact parent module
 `custom_components.electricity_pro` (`__init__.py`) has `follow_imports = skip`.
 Mypy otherwise discovers that parent while resolving these files and follows
@@ -145,7 +155,6 @@ See [mypy import handling](https://mypy.readthedocs.io/en/stable/running_mypy.ht
 
 This does not check HA setup, callers in the coordinator/entities, tests, or the
 whole integration. The initial broader scan found work outside the pilot:
-typed source dictionaries (`flow_sources.py`),
 ledger parameter/reset typing (`cost_ledger.py`), action-response narrowing
 (`nordpool.py`), snapshot/update dictionaries (`coordinator.py`), and HA
 action schema/return typing (`__init__.py`). These findings require review;
