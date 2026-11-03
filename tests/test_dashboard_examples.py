@@ -15,22 +15,45 @@ DASHBOARD_EXAMPLES = Path(__file__).parents[1] / "examples" / "dashboards"
 @pytest.mark.parametrize("coverage", ["partial", "unverified", "tracked"])
 async def test_dashboard_coverage_notes_render(hass, coverage) -> None:
     """Render both dashboards against real HA templates and representative states."""
-    hass.states.async_set("sensor.electricity_pro_cost_today", "0.48", {
-        "source": "local_estimate", "priced_energy_kwh": "0.2",
-    })
-    hass.states.async_set("sensor.electricity_pro_cost_this_month", "0.48", {
-        "source": "local_estimate", "priced_energy_kwh": "0.2",
-    })
-    hass.states.async_set("sensor.electricity_pro_consumption_weighted_average_price_today", "2.97", {
-        "source": "local_estimate", "priced_energy_kwh": "0.18",
-    })
-    hass.states.async_set("sensor.electricity_pro_energy_this_month", "0.55", {
-        "coverage": coverage, "tracking_started_at": "2026-09-14T12:00:00+00:00",
-    })
+    hass.states.async_set(
+        "sensor.electricity_pro_cost_today",
+        "0.48",
+        {
+            "source": "local_estimate",
+            "priced_energy_kwh": "0.2",
+        },
+    )
+    hass.states.async_set(
+        "sensor.electricity_pro_cost_this_month",
+        "0.48",
+        {
+            "source": "local_estimate",
+            "priced_energy_kwh": "0.2",
+        },
+    )
+    hass.states.async_set(
+        "sensor.electricity_pro_consumption_weighted_average_price_today",
+        "2.97",
+        {
+            "source": "local_estimate",
+            "priced_energy_kwh": "0.18",
+        },
+    )
+    hass.states.async_set(
+        "sensor.electricity_pro_energy_this_month",
+        "0.55",
+        {
+            "coverage": coverage,
+            "tracking_started_at": "2026-09-14T12:00:00+00:00",
+        },
+    )
     for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
         dashboard = yaml.safe_load(path.read_text())
-        cards = [item for item in _walk(dashboard)
-                 if isinstance(item, dict) and item.get("type") == "markdown"]
+        cards = [
+            item
+            for item in _walk(dashboard)
+            if isinstance(item, dict) and item.get("type") == "markdown"
+        ]
         rendered = "\n".join(
             str(Template(card["content"], hass).async_render(parse_result=False))
             for card in cards
@@ -41,24 +64,32 @@ async def test_dashboard_coverage_notes_render(hass, coverage) -> None:
         assert "since month start" in rendered
         assert ("Partial monthly energy" in rendered) == (coverage == "partial")
         assert ("Unverified monthly energy" in rendered) == (coverage == "unverified")
-        names = {item.get("name") for item in _walk(dashboard) if isinstance(item, dict)}
+        names = {
+            item.get("name") for item in _walk(dashboard) if isinstance(item, dict)
+        }
         assert "Supplier cost today" in names
         assert "Supplier cost this month" in names
         assert "Cost today" not in names
         entity_cards = [
-            item["entity"] for item in _walk(dashboard)
-            if isinstance(item, dict) and item.get("type") in {"tile", "custom:mushroom-entity-card"}
+            item["entity"]
+            for item in _walk(dashboard)
+            if isinstance(item, dict)
+            and item.get("type") in {"tile", "custom:mushroom-entity-card"}
         ]
         for suffix in ("today", "this_month"):
-            assert entity_cards.index("sensor.electricity_pro_total_cost_estimate_" + suffix) < entity_cards.index(
-                "sensor.electricity_pro_cost_" + suffix
-            )
+            assert entity_cards.index(
+                "sensor.electricity_pro_total_cost_estimate_" + suffix
+            ) < entity_cards.index("sensor.electricity_pro_cost_" + suffix)
 
 
 async def test_household_dashboard_notes_explain_missing_fixed_fees(hass) -> None:
-    hass.states.async_set("sensor.electricity_pro_total_cost_estimate_today", "2", {
-        "missing_components": ["fixed_supplier_fee", "fixed_grid_fee"],
-    })
+    hass.states.async_set(
+        "sensor.electricity_pro_total_cost_estimate_today",
+        "2",
+        {
+            "missing_components": ["fixed_supplier_fee", "fixed_grid_fee"],
+        },
+    )
     for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
         dashboard = yaml.safe_load(path.read_text())
         rendered = "\n".join(
@@ -70,23 +101,42 @@ async def test_household_dashboard_notes_explain_missing_fixed_fees(hass) -> Non
         assert "Demand/other unconfigured charges excluded" in rendered
 
 
-async def test_cost_notes_remain_compact_and_prioritize_household_coverage(hass) -> None:
+async def test_cost_notes_remain_compact_and_prioritize_household_coverage(
+    hass,
+) -> None:
     """Keep the normal household summaries short instead of repeating the guide."""
     for suffix in ("today", "this_month"):
-        hass.states.async_set("sensor.electricity_pro_total_cost_estimate_" + suffix, "25", {
-            "priced_energy_kwh": "2.09", "missing_components": [],
-        })
-        hass.states.async_set("sensor.electricity_pro_cost_" + suffix, "4", {
-            "source": "local_estimate", "priced_energy_kwh": "1.23",
-        })
-    hass.states.async_set("sensor.electricity_pro_energy_this_month", "2.47", {
-        "coverage": "partial", "tracking_started_at": "2026-09-14T21:08:00+02:00",
-    })
+        hass.states.async_set(
+            "sensor.electricity_pro_total_cost_estimate_" + suffix,
+            "25",
+            {
+                "priced_energy_kwh": "2.09",
+                "missing_components": [],
+            },
+        )
+        hass.states.async_set(
+            "sensor.electricity_pro_cost_" + suffix,
+            "4",
+            {
+                "source": "local_estimate",
+                "priced_energy_kwh": "1.23",
+            },
+        )
+    hass.states.async_set(
+        "sensor.electricity_pro_energy_this_month",
+        "2.47",
+        {
+            "coverage": "partial",
+            "tracking_started_at": "2026-09-14T21:08:00+02:00",
+        },
+    )
     for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
         dashboard = yaml.safe_load(path.read_text())
         notes = [
-            item for item in _walk(dashboard)
-            if isinstance(item, dict) and item.get("type") == "markdown"
+            item
+            for item in _walk(dashboard)
+            if isinstance(item, dict)
+            and item.get("type") == "markdown"
             and "Cost & coverage details" in item.get("content", "")
         ]
         assert len(notes) >= 2
@@ -105,7 +155,9 @@ async def test_dashboard_notes_do_not_call_external_costs_local_estimates(hass) 
         dashboard = yaml.safe_load(path.read_text())
         for card in _walk(dashboard):
             if isinstance(card, dict) and card.get("type") == "markdown":
-                rendered = Template(card["content"], hass).async_render(parse_result=False)
+                rendered = Template(card["content"], hass).async_render(
+                    parse_result=False
+                )
                 assert "Partial estimate" not in rendered
                 assert "Partial supplier estimate" not in rendered
                 assert "Unverified monthly energy" not in rendered
@@ -166,9 +218,7 @@ def test_standard_dashboard_covers_core_measurements_and_insights() -> None:
     } <= entity_ids
 
     assert not {
-        str(item.get("type"))
-        for item in _walk(dashboard)
-        if isinstance(item, dict)
+        str(item.get("type")) for item in _walk(dashboard) if isinstance(item, dict)
     } & {"custom:mushroom-template-card", "custom:apexcharts-card"}
 
     views_by_title = {view["title"]: view for view in dashboard["views"]}
@@ -178,10 +228,13 @@ def test_standard_dashboard_covers_core_measurements_and_insights() -> None:
         for item in _walk(views_by_title["Overview"])
         if isinstance(item, dict) and isinstance(item.get("entity"), str)
     }
-    assert not {
-        "sensor.electricity_pro_energy_this_month",
-        "sensor.electricity_pro_cost_this_month",
-    } & overview_entity_ids
+    assert (
+        not {
+            "sensor.electricity_pro_energy_this_month",
+            "sensor.electricity_pro_cost_this_month",
+        }
+        & overview_entity_ids
+    )
     statistics_headings = {
         card["heading"]
         for card in views_by_title["Statistics"]["cards"]
@@ -196,10 +249,13 @@ def test_standard_dashboard_covers_core_measurements_and_insights() -> None:
         and item.get("type") == "tile"
         and isinstance(item.get("entity"), str)
     }
-    assert not {
-        "sensor.electricity_pro_current_market_price",
-        "sensor.electricity_pro_current_supplier_price",
-    } & live_tile_entity_ids
+    assert (
+        not {
+            "sensor.electricity_pro_current_market_price",
+            "sensor.electricity_pro_current_supplier_price",
+        }
+        & live_tile_entity_ids
+    )
 
     advice_tiles = {
         item["card"]["name"]: item
@@ -216,7 +272,9 @@ def test_standard_dashboard_covers_core_measurements_and_insights() -> None:
     }
     for tile in advice_tiles.values():
         assert tile["card"]["entity"] == "sensor.electricity_pro_effective_price"
-    assert advice_tiles["Good time to use electricity"]["conditions"][0]["state"] == "on"
+    assert (
+        advice_tiles["Good time to use electricity"]["conditions"][0]["state"] == "on"
+    )
     assert advice_tiles["Wait for a better price"]["conditions"][0]["state"] == "off"
 
 
@@ -236,8 +294,7 @@ def test_enhanced_dashboard_live_header_precision() -> None:
     }
 
     assert (
-        series_by_entity["sensor.electricity_pro_current_power"]["float_precision"]
-        == 0
+        series_by_entity["sensor.electricity_pro_current_power"]["float_precision"] == 0
     )
     for entity_id in (
         "sensor.electricity_pro_current_market_price",
@@ -327,9 +384,7 @@ def test_enhanced_dashboard_phase_current_gauges_share_20a_scale() -> None:
         for item in _walk(dashboard)
         if isinstance(item, dict)
         and item.get("type") == "gauge"
-        and str(item.get("entity", "")).startswith(
-            "sensor.electricity_pro_current_l"
-        )
+        and str(item.get("entity", "")).startswith("sensor.electricity_pro_current_l")
     }
 
     expected_entities = {

@@ -68,10 +68,13 @@ def test_coordinator_explicit_clearing_and_fresh_settings(hass, value):
     coordinator = ElectricityProCoordinator(hass, entry)
     assert coordinator.forecast_configured is False
     assert coordinator._workday_entity_id is None
-    hass.config_entries.async_update_entry(entry, options={
-        "forecast_nordpool_config_entry": "new-source",
-        "grid_fee_workday_entity": "binary_sensor.new_workday",
-    })
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            "forecast_nordpool_config_entry": "new-source",
+            "grid_fee_workday_entity": "binary_sensor.new_workday",
+        },
+    )
     assert coordinator.forecast_configured is True
     assert coordinator._workday_entity_id == "binary_sensor.new_workday"
     hass.config_entries.async_update_entry(entry, options={})
@@ -134,7 +137,9 @@ async def test_cleared_keys_still_create_existing_unavailable_entities(hass):
 def test_provider_still_requires_power_in_setup_data(hass):
     """An options-only power source does not relax the existing setup contract."""
     entry = MockConfigEntry(
-        domain=DOMAIN, data={}, options={"power_entity": "sensor.power"},
+        domain=DOMAIN,
+        data={},
+        options={"power_entity": "sensor.power"},
     )
     with pytest.raises(KeyError, match="power_entity"):
         ElectricityProEntityProvider(hass, entry)
@@ -145,7 +150,13 @@ def test_invalid_energy_source_option_keeps_daily_fallback(hass, value):
     """Value validation stays with the provider, after option precedence."""
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={"power_entity": "sensor.power", "energy_source_type": ENERGY_SOURCE_LIFETIME},
+        data={
+            "power_entity": "sensor.power",
+            "energy_source_type": ENERGY_SOURCE_LIFETIME,
+        },
         options={"energy_source_type": value},
     )
-    assert ElectricityProEntityProvider(hass, entry).energy_source_is_lifetime_total is False
+    assert (
+        ElectricityProEntityProvider(hass, entry).energy_source_is_lifetime_total
+        is False
+    )

@@ -241,8 +241,11 @@ class DailyConsumptionFromTotal:
         previous = self._snapshot
         period = CalendarPeriod.DAY.start(now)
         self._snapshot = StatisticsSnapshot(
-            period_start=period, last_value=measurement,
-            value=previous.value if previous and previous.period_start == period else Decimal(0),
+            period_start=period,
+            last_value=measurement,
+            value=previous.value
+            if previous and previous.period_start == period
+            else Decimal(0),
         )
         self._source_reset_detected = False
 
@@ -266,7 +269,9 @@ class DailyConsumptionFromTotal:
 
         self._snapshot = StatisticsSnapshot(
             period_start=period_start,
-            last_value=max(measurement, previous.last_value) if previous else measurement,
+            last_value=max(measurement, previous.last_value)
+            if previous
+            else measurement,
             value=value,
         )
         return value

@@ -2,8 +2,13 @@
 from pathlib import Path
 
 errors = []
-forbidden_names = {"secrets.yaml", "home-assistant_v2.db", "home-assistant.log",
-                   "core.entity_registry", "core.config_entries"}
+forbidden_names = {
+    "secrets.yaml",
+    "home-assistant_v2.db",
+    "home-assistant.log",
+    "core.entity_registry",
+    "core.config_entries",
+}
 provider_tokens = ("sensor.nordpool_", "sensor.tibber_", "sensor.tibber_pulse_")
 
 for path in Path(".").rglob("*"):

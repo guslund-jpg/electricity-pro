@@ -105,9 +105,7 @@ class TimingScoreResult:
             )
             rating_value = data.get("rating")
             rating = (
-                TimingScoreRating(rating_value)
-                if rating_value is not None
-                else None
+                TimingScoreRating(rating_value) if rating_value is not None else None
             )
             result = cls(
                 score=score,
@@ -117,9 +115,7 @@ class TimingScoreResult:
                 consumption_weighted_price=_optional_decimal(
                     data.get("consumption_weighted_price")
                 ),
-                time_weighted_price=_optional_decimal(
-                    data.get("time_weighted_price")
-                ),
+                time_weighted_price=_optional_decimal(data.get("time_weighted_price")),
                 price_variation_percent=_optional_decimal(
                     data.get("price_variation_percent")
                 ),
@@ -199,8 +195,7 @@ def calculate_timing_score(
     time_weighted_price = (
         sum(
             (
-                interval.effective_price
-                * _seconds(interval.covered_duration)
+                interval.effective_price * _seconds(interval.covered_duration)
                 for interval in intervals
             ),
             Decimal(0),
@@ -217,8 +212,7 @@ def calculate_timing_score(
     mean_absolute_price = (
         sum(
             (
-                abs(interval.effective_price)
-                * _seconds(interval.covered_duration)
+                abs(interval.effective_price) * _seconds(interval.covered_duration)
                 for interval in intervals
             ),
             Decimal(0),
@@ -228,9 +222,7 @@ def calculate_timing_score(
     prices = [interval.effective_price for interval in intervals]
     price_range = max(prices) - min(prices)
     variation = (
-        price_range / mean_absolute_price
-        if mean_absolute_price > 0
-        else Decimal(0)
+        price_range / mean_absolute_price if mean_absolute_price > 0 else Decimal(0)
     )
     variation_percent = variation * _ONE_HUNDRED
     if variation < minimum_price_variation:
@@ -248,13 +240,16 @@ def calculate_timing_score(
         )
 
     ranks = _duration_weighted_midranks(intervals, covered_seconds)
-    energy_weighted_rank = sum(
-        (
-            interval.energy_kwh * ranks[interval.effective_price]
-            for interval in intervals
-        ),
-        Decimal(0),
-    ) / energy
+    energy_weighted_rank = (
+        sum(
+            (
+                interval.energy_kwh * ranks[interval.effective_price]
+                for interval in intervals
+            ),
+            Decimal(0),
+        )
+        / energy
+    )
     score = (_ONE_HUNDRED * (Decimal(1) - energy_weighted_rank)).quantize(
         Decimal(1),
         rounding=ROUND_HALF_UP,
@@ -449,9 +444,7 @@ class TimingBucketAccumulator:
     def retain_dates(self, dates: set[date]) -> None:
         """Discard aggregate history outside the requested local dates."""
         self._buckets = {
-            key: bucket
-            for key, bucket in self._buckets.items()
-            if key[0] in dates
+            key: bucket for key, bucket in self._buckets.items() if key[0] in dates
         }
         self._covered_ranges = {
             stored_date: ranges
@@ -470,9 +463,7 @@ class TimingBucketAccumulator:
                     "price_seconds": str(bucket.price_seconds),
                     "covered_seconds": str(bucket.covered_seconds),
                 }
-                for (stored_date, bucket_start), bucket in sorted(
-                    self._buckets.items()
-                )
+                for (stored_date, bucket_start), bucket in sorted(self._buckets.items())
             ],
             "covered_ranges": [
                 {

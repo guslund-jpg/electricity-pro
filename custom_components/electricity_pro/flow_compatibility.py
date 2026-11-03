@@ -38,7 +38,10 @@ class CompatibilityResult:
 
 
 def check_power_compatibility(
-    inputs: tuple[PowerInput, ...], generation: str, storage: str, now: datetime,
+    inputs: tuple[PowerInput, ...],
+    generation: str,
+    storage: str,
+    now: datetime,
 ) -> CompatibilityResult:
     """Check only the supplied power observations; never introduce zeros.
 
@@ -59,7 +62,8 @@ def check_power_compatibility(
     if wrong_boundary:
         return CompatibilityResult("incompatible_boundary", wrong_boundary)
     unknown_phase = tuple(
-        p.channel for p in inputs
+        p.channel
+        for p in inputs
         if p.phase_convention not in PHASE_OPTIONS or p.phase_convention == "unknown"
     )
     if unknown_phase:

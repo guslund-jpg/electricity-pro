@@ -76,9 +76,7 @@ def evaluate_good_time(
                 **common_attributes,
                 "evaluation_method": GOOD_PRICE_MODE_FIXED,
                 "reason": (
-                    "within_fixed_threshold"
-                    if is_good
-                    else "above_fixed_threshold"
+                    "within_fixed_threshold" if is_good else "above_fixed_threshold"
                 ),
             },
         )
@@ -117,7 +115,9 @@ def evaluate_good_time(
             )
             forecast_status = forecast.status
 
-    adaptive_is_good = False if forecast is not None and forecast.suppress else adaptive.is_good
+    adaptive_is_good = (
+        False if forecast is not None and forecast.suppress else adaptive.is_good
+    )
     reason = (
         AdaptivePriceReason.BETTER_PRICE_FORECAST
         if forecast is not None and forecast.suppress
@@ -136,9 +136,7 @@ def evaluate_good_time(
             "target_percentile": _decimal_attribute(target_percentile),
             "current_percentile": _decimal_attribute(adaptive.current_percentile),
             "cohort_type": (
-                adaptive.cohort_type.value
-                if adaptive.cohort_type is not None
-                else None
+                adaptive.cohort_type.value if adaptive.cohort_type is not None else None
             ),
             "historical_days": adaptive.historical_days,
             "sample_count": adaptive.sample_count,

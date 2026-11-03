@@ -11,7 +11,9 @@ from homeassistant.core import State
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import (
-    async_fire_time_changed, async_mock_service, mock_restore_cache,
+    async_fire_time_changed,
+    async_mock_service,
+    mock_restore_cache,
 )
 
 DIRECTORY = Path(__file__).parents[1] / "examples/automations"
@@ -39,21 +41,34 @@ async def examples(hass, freezer, restored_on):
     freezer.move_to("2026-10-31T13:59:00+00:00")
     await hass.config.async_set_time_zone("UTC")
     daily = yaml.safe_load((DIRECTORY / "daily_window_notice.yaml").read_text())
-    humidity = yaml.safe_load((DIRECTORY / "good_time_humidity_dry_run.yaml").read_text())
+    humidity = yaml.safe_load(
+        (DIRECTORY / "good_time_humidity_dry_run.yaml").read_text()
+    )
     if restored_on:
-        mock_restore_cache(hass, [State(entity, "on") for entity in (DAILY, ENABLED, RUNNING)])
+        mock_restore_cache(
+            hass, [State(entity, "on") for entity in (DAILY, ENABLED, RUNNING)]
+        )
     notifications = async_mock_service(hass, "persistent_notification", "create")
     assert await async_setup_component(hass, "input_boolean", humidity)
-    assert await async_setup_component(hass, "automation", {
-        "automation": daily["automation"] + humidity["automation"],
-    })
+    assert await async_setup_component(
+        hass,
+        "automation",
+        {
+            "automation": daily["automation"] + humidity["automation"],
+        },
+    )
     await hass.async_start()
     await settle()
     yield notifications
     # Explicitly detach recurring trigger timers before HA fixture shutdown.
-    await hass.services.async_call("automation", "turn_off", {
-        "entity_id": [DAILY, "automation.ep_humidity_dry_run"],
-    }, blocking=True)
+    await hass.services.async_call(
+        "automation",
+        "turn_off",
+        {
+            "entity_id": [DAILY, "automation.ep_humidity_dry_run"],
+        },
+        blocking=True,
+    )
     await settle()
 
 
@@ -70,7 +85,9 @@ def window(hass, *, start=None, **overrides):
     hass.states.async_set(WINDOW, start.isoformat(), attrs)
 
 
-def inputs(hass, *, good="on", price="1.50", humidity="60", unit="SEK/kWh", humidity_unit="%"):
+def inputs(
+    hass, *, good="on", price="1.50", humidity="60", unit="SEK/kWh", humidity_unit="%"
+):
     hass.states.async_set(GOOD, good)
     hass.states.async_set(PRICE, price, {"unit_of_measurement": unit})
     hass.states.async_set(HUMIDITY, humidity, {"unit_of_measurement": humidity_unit})
@@ -78,8 +95,9 @@ def inputs(hass, *, good="on", price="1.50", humidity="60", unit="SEK/kWh", humi
 
 async def toggle(hass, entity, on=True):
     domain = entity.split(".")[0]
-    await hass.services.async_call(domain, "turn_on" if on else "turn_off",
-                                   {"entity_id": entity}, blocking=True)
+    await hass.services.async_call(
+        domain, "turn_on" if on else "turn_off", {"entity_id": entity}, blocking=True
+    )
     await settle()
 
 
@@ -92,9 +110,15 @@ async def tick(hass, freezer, *, minutes=1, refresh=False):
 
 
 async def daily_run(hass):
-    await hass.services.async_call("automation", "trigger", {
-        "entity_id": DAILY, "skip_condition": False,
-    }, blocking=True)
+    await hass.services.async_call(
+        "automation",
+        "trigger",
+        {
+            "entity_id": DAILY,
+            "skip_condition": False,
+        },
+        blocking=True,
+    )
     await settle()
 
 
@@ -118,7 +142,9 @@ async def test_new_install_is_opt_in(hass, freezer, examples):
 
 
 @pytest.mark.parametrize("restored_on", [True])
-async def test_restart_does_not_restore_enabled_or_running(hass, freezer, examples, restored_on):
+async def test_restart_does_not_restore_enabled_or_running(
+    hass, freezer, examples, restored_on
+):
     assert hass.states.get(DAILY).state == "off"
     assert hass.states.get(ENABLED).state == "off"
     assert hass.states.get(RUNNING).state == "off"
@@ -143,18 +169,26 @@ async def test_daily_time_trigger_and_single_snapshot(hass, freezer, examples):
     assert len(examples) == 1  # Not repeated on sensor updates.
 
 
-@pytest.mark.parametrize("attrs", [
-    {"currency": "EUR"}, {"average_scheduling_price": "nan"},
-    {"average_scheduling_price": "inf"}, {"window_end": "invalid"},
-    {"window_duration_minutes": 60}, {"price_area": None},
-])
+@pytest.mark.parametrize(
+    "attrs",
+    [
+        {"currency": "EUR"},
+        {"average_scheduling_price": "nan"},
+        {"average_scheduling_price": "inf"},
+        {"window_end": "invalid"},
+        {"window_duration_minutes": 60},
+        {"price_area": None},
+    ],
+)
 async def test_daily_rejects_invalid_attributes(hass, examples, attrs):
     window(hass, **attrs)
     await daily_run(hass)
     assert examples[-1].data["title"].endswith("notice unavailable")
 
 
-@pytest.mark.parametrize("invalid", ["missing", "unavailable", "past", "stale", "future_report"])
+@pytest.mark.parametrize(
+    "invalid", ["missing", "unavailable", "past", "stale", "future_report"]
+)
 async def test_daily_rejects_invalid_source(hass, freezer, examples, invalid):
     if invalid == "unavailable":
         hass.states.async_set(WINDOW, "unavailable")
@@ -162,7 +196,9 @@ async def test_daily_rejects_invalid_source(hass, freezer, examples, invalid):
         window(hass, start=dt_util.utcnow() - timedelta(minutes=1))
     elif invalid in ("stale", "future_report"):
         window(hass)
-        freezer.move_to(dt_util.utcnow() + timedelta(minutes=6 if invalid == "stale" else -1))
+        freezer.move_to(
+            dt_util.utcnow() + timedelta(minutes=6 if invalid == "stale" else -1)
+        )
     await daily_run(hass)
     assert examples[-1].data["title"].endswith("notice unavailable")
 
@@ -174,7 +210,9 @@ async def test_daily_missing_publication_timestamp_is_not_invented(hass, example
     assert "1.25 SEK/kWh" in examples[-1].data["message"]
 
 
-async def test_humidity_hysteresis_cooldown_and_only_transition_notices(hass, freezer, examples):
+async def test_humidity_hysteresis_cooldown_and_only_transition_notices(
+    hass, freezer, examples
+):
     inputs(hass, humidity="52")
     await toggle(hass, ENABLED)
     await tick(hass, freezer, minutes=5)
@@ -213,21 +251,26 @@ async def test_humidity_initial_cooldown_and_disable(hass, freezer, examples):
     assert "disabled" in examples[-1].data["message"]
 
 
-@pytest.mark.parametrize("change,reason", [
-    ({"good": "off"}, "not_good_time"),
-    ({"good": "unavailable"}, "invalid_or_stale_input"),
-    ({"good": "unknown"}, "invalid_or_stale_input"),
-    ({"price": "2.01"}, "price_over_limit"),
-    ({"price": "nan"}, "invalid_or_stale_input"),
-    ({"price": "unavailable"}, "invalid_or_stale_input"),
-    ({"unit": "EUR/kWh"}, "invalid_or_stale_input"),
-    ({"humidity": "unavailable"}, "invalid_or_stale_input"),
-    ({"humidity": "nan"}, "invalid_or_stale_input"),
-    ({"humidity": "101"}, "invalid_or_stale_input"),
-    ({"humidity": "-1"}, "invalid_or_stale_input"),
-    ({"humidity_unit": "W"}, "invalid_or_stale_input"),
-])
-async def test_humidity_stops_on_bad_data_or_price(hass, freezer, examples, change, reason):
+@pytest.mark.parametrize(
+    "change,reason",
+    [
+        ({"good": "off"}, "not_good_time"),
+        ({"good": "unavailable"}, "invalid_or_stale_input"),
+        ({"good": "unknown"}, "invalid_or_stale_input"),
+        ({"price": "2.01"}, "price_over_limit"),
+        ({"price": "nan"}, "invalid_or_stale_input"),
+        ({"price": "unavailable"}, "invalid_or_stale_input"),
+        ({"unit": "EUR/kWh"}, "invalid_or_stale_input"),
+        ({"humidity": "unavailable"}, "invalid_or_stale_input"),
+        ({"humidity": "nan"}, "invalid_or_stale_input"),
+        ({"humidity": "101"}, "invalid_or_stale_input"),
+        ({"humidity": "-1"}, "invalid_or_stale_input"),
+        ({"humidity_unit": "W"}, "invalid_or_stale_input"),
+    ],
+)
+async def test_humidity_stops_on_bad_data_or_price(
+    hass, freezer, examples, change, reason
+):
     await start_simulation(hass, freezer)
     inputs(hass, **change)
     await settle()
@@ -266,7 +309,9 @@ async def test_humidity_reload_event_reconciles_simulation(hass, freezer, exampl
     assert hass.states.get(RUNNING).state == "off"
 
 
-async def test_real_reload_preserves_unchanged_daily_and_humidity_can_reconcile(hass, freezer, examples):
+async def test_real_reload_preserves_unchanged_daily_and_humidity_can_reconcile(
+    hass, freezer, examples
+):
     await start_simulation(hass, freezer)
     await toggle(hass, DAILY)
     # Stop listeners, then change the input so reconciliation after reload and
@@ -275,10 +320,17 @@ async def test_real_reload_preserves_unchanged_daily_and_humidity_can_reconcile(
     inputs(hass, good="off")
     assert hass.states.get(RUNNING).state == "on"
     daily = yaml.safe_load((DIRECTORY / "daily_window_notice.yaml").read_text())
-    humidity = yaml.safe_load((DIRECTORY / "good_time_humidity_dry_run.yaml").read_text())
-    with patch("homeassistant.config.async_hass_config_yaml", new=AsyncMock(return_value={
-        "automation": daily["automation"] + humidity["automation"],
-    })):
+    humidity = yaml.safe_load(
+        (DIRECTORY / "good_time_humidity_dry_run.yaml").read_text()
+    )
+    with patch(
+        "homeassistant.config.async_hass_config_yaml",
+        new=AsyncMock(
+            return_value={
+                "automation": daily["automation"] + humidity["automation"],
+            }
+        ),
+    ):
         await hass.services.async_call("automation", "reload", blocking=True)
     await settle()
     assert hass.states.get(DAILY).state == "on"  # HA keeps unchanged automations.
@@ -289,7 +341,9 @@ async def test_real_reload_preserves_unchanged_daily_and_humidity_can_reconcile(
     assert hass.states.get(RUNNING).state == "off"
 
 
-async def test_humidity_negative_price_allowed_and_ceiling_inclusive(hass, freezer, examples):
+async def test_humidity_negative_price_allowed_and_ceiling_inclusive(
+    hass, freezer, examples
+):
     await start_simulation(hass, freezer)
     inputs(hass, price="-1")
     await settle()

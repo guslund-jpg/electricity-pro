@@ -159,12 +159,9 @@ class GoodTimeToUseElectricityBinarySensor(
     @property
     def available(self) -> bool:
         """Return whether the insight has sufficient input data."""
-        return (
-            super().available
-            and (
-                self._mode == GOOD_PRICE_MODE_ADAPTIVE
-                or self._evaluation.is_good is not None
-            )
+        return super().available and (
+            self._mode == GOOD_PRICE_MODE_ADAPTIVE
+            or self._evaluation.is_good is not None
         )
 
     @property

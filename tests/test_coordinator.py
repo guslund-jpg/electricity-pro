@@ -139,10 +139,9 @@ async def test_adaptive_price_history_accumulates_and_restores(hass) -> None:
             coordinator._read()  # noqa: SLF001
 
     assert len(coordinator.adaptive_price_history.observations) == 1
-    assert (
-        coordinator.adaptive_price_history.observations[0].effective_price
-        == Decimal("0.50")
-    )
+    assert coordinator.adaptive_price_history.observations[
+        0
+    ].effective_price == Decimal("0.50")
 
     stored = coordinator._statistics_data()  # noqa: SLF001
     restored = ElectricityProCoordinator(hass, entry)
@@ -241,7 +240,9 @@ async def test_adaptive_price_history_rejects_partial_price_semantics(hass) -> N
     assert coordinator.adaptive_price_history.observations == ()
 
 
-async def test_adaptive_price_history_accepts_fully_composed_effective_price(hass) -> None:
+async def test_adaptive_price_history_accepts_fully_composed_effective_price(
+    hass,
+) -> None:
     """Configured missing tariffs should form comparable Effective Price history."""
     await hass.config.async_set_time_zone("UTC")
     hass.states.async_set("sensor.test_power", "100", {"unit_of_measurement": "W"})
@@ -945,14 +946,26 @@ async def test_async_start_stores_forecast_intervals(
         for call in async_get.await_args_list
     )
     assert isinstance(coordinator.cheapest_1h_window, ForecastWindowInsight)
-    assert coordinator.cheapest_1h_window.start == datetime(2026, 8, 13, 20, 15, tzinfo=UTC)
-    assert coordinator.cheapest_1h_window.end == datetime(2026, 8, 13, 21, 15, tzinfo=UTC)
+    assert coordinator.cheapest_1h_window.start == datetime(
+        2026, 8, 13, 20, 15, tzinfo=UTC
+    )
+    assert coordinator.cheapest_1h_window.end == datetime(
+        2026, 8, 13, 21, 15, tzinfo=UTC
+    )
     assert isinstance(coordinator.cheapest_2h_window, ForecastWindowInsight)
-    assert coordinator.cheapest_2h_window.start == datetime(2026, 8, 13, 20, 15, tzinfo=UTC)
-    assert coordinator.cheapest_2h_window.end == datetime(2026, 8, 13, 22, 15, tzinfo=UTC)
+    assert coordinator.cheapest_2h_window.start == datetime(
+        2026, 8, 13, 20, 15, tzinfo=UTC
+    )
+    assert coordinator.cheapest_2h_window.end == datetime(
+        2026, 8, 13, 22, 15, tzinfo=UTC
+    )
     assert isinstance(coordinator.cheapest_3h_window, ForecastWindowInsight)
-    assert coordinator.cheapest_3h_window.start == datetime(2026, 8, 13, 20, 15, tzinfo=UTC)
-    assert coordinator.cheapest_3h_window.end == datetime(2026, 8, 13, 23, 15, tzinfo=UTC)
+    assert coordinator.cheapest_3h_window.start == datetime(
+        2026, 8, 13, 20, 15, tzinfo=UTC
+    )
+    assert coordinator.cheapest_3h_window.end == datetime(
+        2026, 8, 13, 23, 15, tzinfo=UTC
+    )
     assert isinstance(coordinator.price_direction, ForecastDirectionInsight)
     assert coordinator.price_direction.direction == "rising"
 
@@ -1128,9 +1141,11 @@ async def test_forecast_tick_retries_tomorrow_and_expires_insights(
             area="SE3",
         )
     ]
-    async_get = AsyncMock(side_effect=lambda *args, **kwargs: (
-        today_intervals if kwargs["target_date"] == date(2026, 8, 13) else []
-    ))
+    async_get = AsyncMock(
+        side_effect=lambda *args, **kwargs: (
+            today_intervals if kwargs["target_date"] == date(2026, 8, 13) else []
+        )
+    )
     monkeypatch.setattr(
         "custom_components.electricity_pro.coordinator.async_get_nordpool_forecast_intervals_for_date",
         async_get,
@@ -1155,9 +1170,7 @@ async def test_forecast_tick_retries_tomorrow_and_expires_insights(
             return_value=datetime(2026, 8, 13, 13, 0, tzinfo=UTC),
         ),
     ):
-        await coordinator._async_forecast_tick(
-            datetime(2026, 8, 13, 13, 0, tzinfo=UTC)
-        )
+        await coordinator._async_forecast_tick(datetime(2026, 8, 13, 13, 0, tzinfo=UTC))
     assert coordinator.cheapest_1h_window is None
 
     async_get.side_effect = None

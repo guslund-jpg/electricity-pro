@@ -29,34 +29,56 @@ def form_values(result):
 async def start(hass, profile, options):
     """Enter either setup track or its options through HA's flow manager."""
     if options:
-        entry = MockConfigEntry(domain=DOMAIN, data={
-            "power_entity": "sensor.old_power", "source_profile": profile,
-            "adaptive_price_ceiling": 2.5,
-        }, options={"fixed_grid_fee_monthly": 600, "adaptive_price_ceiling": 2.2})
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                "power_entity": "sensor.old_power",
+                "source_profile": profile,
+                "adaptive_price_ceiling": 2.5,
+            },
+            options={"fixed_grid_fee_monthly": 600, "adaptive_price_ceiling": 2.2},
+        )
         entry.add_to_hass(hass)
-        return entry, hass.config_entries.options, await hass.config_entries.options.async_init(entry.entry_id)
+        return (
+            entry,
+            hass.config_entries.options,
+            await hass.config_entries.options.async_init(entry.entry_id),
+        )
     if profile == "tibber":
         tibber = MockConfigEntry(domain="tibber")
         tibber.add_to_hass(hass)
         device = dr.async_get(hass).async_get_or_create(
-            config_entry_id=tibber.entry_id, identifiers={("tibber", "home")},
+            config_entry_id=tibber.entry_id,
+            identifiers={("tibber", "home")},
         )
         for name in ("power", "electricity_price"):
             er.async_get(hass).async_get_or_create(
-                "sensor", "tibber", name, device_id=device.id, translation_key=name,
+                "sensor",
+                "tibber",
+                name,
+                device_id=device.id,
+                translation_key=name,
             )
     manager = hass.config_entries.flow
-    result = await manager.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await manager.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
     result = await manager.async_configure(result["flow_id"], {"setup_method": profile})
     return None, manager, result
 
 
 @pytest.mark.parametrize("options", [False, True], ids=["setup", "options"])
-@pytest.mark.parametrize(("profile", "error"), [
-    ("custom", "tariff"), ("tibber", "tariff"),
-    ("custom", "good_time"), ("tibber", "good_time"),
-    ("custom", "source"), ("custom", "pricing"),
-])
+@pytest.mark.parametrize(
+    ("profile", "error"),
+    [
+        ("custom", "tariff"),
+        ("tibber", "tariff"),
+        ("custom", "good_time"),
+        ("tibber", "good_time"),
+        ("custom", "source"),
+        ("custom", "pricing"),
+    ],
+)
 async def test_repeated_error_preserves_displayed_values(hass, profile, options, error):
     """Retry the displayed form, changing only the invalid field, then save."""
     entry, manager, result = await start(hass, profile, options)
@@ -75,17 +97,24 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
     }
     if profile == "custom":
         submitted.update(power_entity="sensor.new_power", price_vat_rate=0)
-    expected = {"base": {
-        "tariff": "invalid_grid_tariff", "good_time": "invalid_good_price_settings",
-        "pricing": "pricing_metadata_required",
-    }.get(error)}
+    expected = {
+        "base": {
+            "tariff": "invalid_grid_tariff",
+            "good_time": "invalid_good_price_settings",
+            "pricing": "pricing_metadata_required",
+        }.get(error)
+    }
     if error == "tariff":
         submitted["grid_fee_high_start"] = "bad-time"
     elif error == "good_time":
         submitted["adaptive_price_ceiling"] = float("nan")
     elif error == "pricing":
-        submitted.update(price_entity="sensor.price", pricing_strategy="market_price_plus_tariff",
-                         price_vat_treatment="excluded", price_included_components=[])
+        submitted.update(
+            price_entity="sensor.price",
+            pricing_strategy="market_price_plus_tariff",
+            price_vat_treatment="excluded",
+            price_included_components=[],
+        )
     else:
         # Create after the form so server-side ownership validation catches it.
         own = er.async_get(hass).async_get_or_create("sensor", DOMAIN, "own")
@@ -101,7 +130,10 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
         else:
             assert shown[key] == value
     if profile == "tibber":
-        assert not {"price_entity", "price_vat_rate", "supplier_markup_per_kwh"} & shown.keys()
+        assert (
+            not {"price_entity", "price_vat_rate", "supplier_markup_per_kwh"}
+            & shown.keys()
+        )
         if not options:
             assert result["description_placeholders"]["power_entity"]
     if entry:
@@ -127,7 +159,12 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
     assert result["data"].get("adaptive_price_ceiling") is None
     if entry:
         # Explicit None must override the original setup data, not fall back to it.
-        assert entry.options.get("adaptive_price_ceiling", entry.data["adaptive_price_ceiling"]) is None
+        assert (
+            entry.options.get(
+                "adaptive_price_ceiling", entry.data["adaptive_price_ceiling"]
+            )
+            is None
+        )
     assert result["data"]["adaptive_target_percentile"] == 37
 
 
@@ -136,21 +173,37 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
 async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel):
     """Keep confirmed hidden bindings/clears/declarations until save or cancel."""
     entry, manager, result = await start(hass, profile, True)
-    hass.config_entries.async_update_entry(entry, options={
-        **entry.options, "grid_export_power_entity": "sensor.old_export",
-        "flow_storage_presence": "present",
-    })
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            "grid_export_power_entity": "sensor.old_export",
+            "flow_storage_presence": "present",
+        },
+    )
     saved = dict(entry.options)
-    hass.states.async_set("sensor.production", "100", {
-        "device_class": "power", "unit_of_measurement": "W",
-    })
-    submitted = {**form_values(result), "configure_energy_flows": True,
-                 "grid_fee_high_start": "invalid"}
+    hass.states.async_set(
+        "sensor.production",
+        "100",
+        {
+            "device_class": "power",
+            "unit_of_measurement": "W",
+        },
+    )
+    submitted = {
+        **form_values(result),
+        "configure_energy_flows": True,
+        "grid_fee_high_start": "invalid",
+    }
     result = await manager.async_configure(result["flow_id"], submitted)
     assert result["step_id"] == "energy_flows"
-    result = await manager.async_configure(result["flow_id"], {
-        "production_power_entity": "sensor.missing", "confirm_flow_semantics": True,
-    })
+    result = await manager.async_configure(
+        result["flow_id"],
+        {
+            "production_power_entity": "sensor.missing",
+            "confirm_flow_semantics": True,
+        },
+    )
     assert result["errors"]["production_power_entity"] == "invalid_flow_source"
     shown = form_values(result)
     assert shown["confirm_flow_semantics"] is True
@@ -159,11 +212,16 @@ async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel)
     shown["production_power_entity"] = "sensor.production"
     result = await manager.async_configure(result["flow_id"], shown)
     assert result["step_id"] == "flow_compatibility"
-    result = await manager.async_configure(result["flow_id"], {
-        **form_values(result), "flow_generation_presence": "absent",
-        "flow_storage_presence": "absent", "flow_compatibility_enabled": False,
-        "production_power_phase_convention": "net_across_phases",
-    })
+    result = await manager.async_configure(
+        result["flow_id"],
+        {
+            **form_values(result),
+            "flow_generation_presence": "absent",
+            "flow_storage_presence": "absent",
+            "flow_compatibility_enabled": False,
+            "production_power_phase_convention": "net_across_phases",
+        },
+    )
     assert result["errors"] == {"flow_generation_presence": "contradictory_topology"}
     shown = form_values(result)
     assert shown["flow_compatibility_enabled"] is False
@@ -174,7 +232,9 @@ async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel)
     assert result["errors"] == {"base": "invalid_grid_tariff"}
     assert dict(entry.options) == saved
     assert "configure_energy_flows" in result["data_schema"].schema
-    assert not set((*FLOW_KEYS, *COMPATIBILITY_KEYS)) & result["data_schema"].schema.keys()
+    assert (
+        not set((*FLOW_KEYS, *COMPATIBILITY_KEYS)) & result["data_schema"].schema.keys()
+    )
     shown = form_values(result)
     shown["grid_fee_high_start"] = "another-error"
     result = await manager.async_configure(result["flow_id"], shown)
@@ -203,10 +263,14 @@ async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel)
 async def test_source_error_keeps_follow_up_available(hass, profile):
     """A source conflict can still be corrected through the optional form."""
     entry, manager, result = await start(hass, profile, True)
-    hass.config_entries.async_update_entry(entry, options={
-        **entry.options, "production_power_entity": "sensor.old_power",
-        "grid_export_power_entity": "sensor.old_power",
-    })
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            "production_power_entity": "sensor.old_power",
+            "grid_export_power_entity": "sensor.old_power",
+        },
+    )
     saved = dict(entry.options)
     submitted = {**form_values(result), "fixed_supplier_fee_monthly": 0}
     result = await manager.async_configure(result["flow_id"], submitted)

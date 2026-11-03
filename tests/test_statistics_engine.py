@@ -226,9 +226,7 @@ def test_daily_peak_starts_new_local_day() -> None:
 
 def test_daily_peak_snapshot_round_trip() -> None:
     """Persist and restore an aware peak timestamp losslessly."""
-    snapshot = DailyPeakSnapshot(
-        date(2026, 8, 3), Decimal("1234.5"), dt(2026, 8, 3)
-    )
+    snapshot = DailyPeakSnapshot(date(2026, 8, 3), Decimal("1234.5"), dt(2026, 8, 3))
     assert DailyPeakSnapshot.from_dict(snapshot.as_dict()) == snapshot
 
 
@@ -236,9 +234,21 @@ def test_daily_peak_snapshot_round_trip() -> None:
     "data",
     [
         {},
-        {"period_start": "2026-08-03", "peak_power_w": "NaN", "peak_time": "2026-08-03T12:00:00+00:00"},
-        {"period_start": "2026-08-03", "peak_power_w": "1", "peak_time": "2026-08-04T12:00:00+00:00"},
-        {"period_start": "2026-08-03", "peak_power_w": "1", "peak_time": "2026-08-03T12:00:00"},
+        {
+            "period_start": "2026-08-03",
+            "peak_power_w": "NaN",
+            "peak_time": "2026-08-03T12:00:00+00:00",
+        },
+        {
+            "period_start": "2026-08-03",
+            "peak_power_w": "1",
+            "peak_time": "2026-08-04T12:00:00+00:00",
+        },
+        {
+            "period_start": "2026-08-03",
+            "peak_power_w": "1",
+            "peak_time": "2026-08-03T12:00:00",
+        },
     ],
 )
 def test_daily_peak_snapshot_rejects_invalid_storage(data: dict[str, str]) -> None:

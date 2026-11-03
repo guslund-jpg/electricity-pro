@@ -25,6 +25,7 @@ def matches(conditions, states):
     Mirrors HA frontend checkStateCondition/checkOrCondition, rather than
     backend automation conditions (which have different missing-state rules).
     """
+
     def check(condition):
         if condition["condition"] == "or":
             return any(check(child) for child in condition["conditions"])
@@ -37,10 +38,16 @@ def matches(conditions, states):
 
 def visible_tiles(card, states):
     if card["type"] == "conditional":
-        return visible_tiles(card["card"], states) if matches(card["conditions"], states) else []
+        return (
+            visible_tiles(card["card"], states)
+            if matches(card["conditions"], states)
+            else []
+        )
     if card["type"] == "tile":
         return [card]
-    return [tile for child in card.get("cards", []) for tile in visible_tiles(child, states)]
+    return [
+        tile for child in card.get("cards", []) for tile in visible_tiles(child, states)
+    ]
 
 
 @pytest.fixture(params=["electricity-pro.yaml", "electricity-pro-enhanced.yaml"])
@@ -50,7 +57,8 @@ def groups(request):
     result = {}
     for channel in CHANNELS:
         groups = [
-            card for card in overview["cards"]
+            card
+            for card in overview["cards"]
             if card.get("type") == "conditional"
             and card.get("card", {}).get("type") == "vertical-stack"
             and entity_id(channel, "power") in str(card["conditions"])
@@ -63,10 +71,11 @@ def groups(request):
 @pytest.mark.parametrize("state", [None, "unknown", "0", "1.5", "unavailable"])
 @pytest.mark.parametrize("periods", [("power",), ("today", "this_month"), PERIODS])
 @pytest.mark.parametrize("channel", CHANNELS)
-def test_groups_handle_absence_zero_outages_and_independent_sources(groups, state, periods, channel):
+def test_groups_handle_absence_zero_outages_and_independent_sources(
+    groups, state, periods, channel
+):
     states = {
-        entity_id(channel, period): state
-        for period in periods if state is not None
+        entity_id(channel, period): state for period in periods if state is not None
     }
     tiles = [tile for group in groups.values() for tile in visible_tiles(group, states)]
     expected = set(states) if state not in (None, "unknown") else set()
@@ -99,8 +108,7 @@ async def test_notes_are_partial_only_for_energy_and_do_not_infer_origin(hass, g
 
 def test_both_channels_visible_without_new_dependencies_or_calculations(groups):
     states = {
-        entity_id(channel, period): "0"
-        for channel in CHANNELS for period in PERIODS
+        entity_id(channel, period): "0" for channel in CHANNELS for period in PERIODS
     }
     tiles = [tile for group in groups.values() for tile in visible_tiles(group, states)]
     assert len(tiles) == 9

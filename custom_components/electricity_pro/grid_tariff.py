@@ -24,9 +24,7 @@ class HighLowGridTariff:
     high_end_time: time
     high_season_start: _MonthDay
     high_season_end: _MonthDay
-    high_weekdays: frozenset[int] = field(
-        default_factory=lambda: frozenset(range(5))
-    )
+    high_weekdays: frozenset[int] = field(default_factory=lambda: frozenset(range(5)))
     excluded_dates: frozenset[date] = field(default_factory=frozenset)
 
     def __post_init__(self) -> None:

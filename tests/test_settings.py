@@ -13,7 +13,9 @@ def test_explicit_options_override_data(value):
     data = MappingProxyType({"key": "old", "data_only": 1})
     options = MappingProxyType({"key": value, "options_only": 2})
     assert resolve_settings(data, options) == {
-        "key": value, "data_only": 1, "options_only": 2,
+        "key": value,
+        "data_only": 1,
+        "options_only": 2,
     }
     assert data["key"] == "old"
     assert options["key"] == value

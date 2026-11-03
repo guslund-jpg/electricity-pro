@@ -118,9 +118,7 @@ def setup_electricity_pro(hass):
             entry_data[CONF_SUPPLIER_MARKUP_PER_KWH] = supplier_markup_per_kwh
 
         if fixed_supplier_fee_monthly is not None:
-            entry_data[CONF_FIXED_SUPPLIER_FEE_MONTHLY] = (
-                fixed_supplier_fee_monthly
-            )
+            entry_data[CONF_FIXED_SUPPLIER_FEE_MONTHLY] = fixed_supplier_fee_monthly
 
         if fixed_grid_fee_monthly is not None:
             entry_data[CONF_FIXED_GRID_FEE_MONTHLY] = fixed_grid_fee_monthly
@@ -132,9 +130,7 @@ def setup_electricity_pro(hass):
             entry_data[CONF_GOOD_PRICE_MODE] = good_price_mode
 
         if adaptive_target_percentile is not None:
-            entry_data[CONF_ADAPTIVE_TARGET_PERCENTILE] = (
-                adaptive_target_percentile
-            )
+            entry_data[CONF_ADAPTIVE_TARGET_PERCENTILE] = adaptive_target_percentile
 
         if adaptive_price_ceiling is not None:
             entry_data[CONF_ADAPTIVE_PRICE_CEILING] = adaptive_price_ceiling
@@ -199,7 +195,6 @@ def setup_electricity_pro(hass):
             entry_data[CONF_ACCUMULATED_COST_TODAY_ENTITY] = (
                 "sensor.test_accumulated_cost_today"
             )
-
 
         if current_l1_value is not None:
             hass.states.async_set(

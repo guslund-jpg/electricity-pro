@@ -12,18 +12,28 @@ from custom_components.electricity_pro.sensor import consumption_weighted_averag
 NOW = datetime(2026, 9, 14, 12, tzinfo=UTC)
 
 
-async def test_local_cost_entities_and_matching_effective_average(hass, setup_electricity_pro):
-    with patch("custom_components.electricity_pro.coordinator.dt_util.now", return_value=NOW):
+async def test_local_cost_entities_and_matching_effective_average(
+    hass, setup_electricity_pro
+):
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now", return_value=NOW
+    ):
         entry = await setup_electricity_pro(
-            energy_value="100", energy_source_type="lifetime", price_value="2",
-            supplier_markup_per_kwh=0.18, grid_fee_per_kwh=0.1,
-            energy_tax_per_kwh=0.2, fixed_supplier_fee_monthly=10,
+            energy_value="100",
+            energy_source_type="lifetime",
+            price_value="2",
+            supplier_markup_per_kwh=0.18,
+            grid_fee_per_kwh=0.1,
+            energy_tax_per_kwh=0.2,
+            fixed_supplier_fee_monthly=10,
         )
     with patch(
         "custom_components.electricity_pro.coordinator.dt_util.now",
         return_value=NOW + timedelta(minutes=5),
     ):
-        hass.states.async_set("sensor.test_energy", "102", {"unit_of_measurement": "kWh"})
+        hass.states.async_set(
+            "sensor.test_energy", "102", {"unit_of_measurement": "kWh"}
+        )
         await hass.async_block_till_done()
     data = entry.runtime_data.data
     assert data.accumulated_cost_today == Decimal("4.36")
@@ -39,9 +49,13 @@ async def test_local_cost_entities_and_matching_effective_average(hass, setup_el
         assert state.attributes["coverage"] == "partial"
 
 
-async def test_configured_external_cost_remains_authoritative(hass, setup_electricity_pro):
+async def test_configured_external_cost_remains_authoritative(
+    hass, setup_electricity_pro
+):
     entry = await setup_electricity_pro(
-        energy_value="100", price_value="2", supplier_markup_per_kwh=0,
+        energy_value="100",
+        price_value="2",
+        supplier_markup_per_kwh=0,
         accumulated_cost_today_value="20",
     )
     assert entry.runtime_data.data.accumulated_cost_today == Decimal(20)
@@ -52,15 +66,23 @@ async def test_configured_external_cost_remains_authoritative(hass, setup_electr
     assert not entry.runtime_data.data.local_cost_estimate
 
 
-async def test_changed_pricing_does_not_restore_old_estimates(hass, setup_electricity_pro):
+async def test_changed_pricing_does_not_restore_old_estimates(
+    hass, setup_electricity_pro
+):
     entry = await setup_electricity_pro(
-        energy_value="100", price_value="2", supplier_markup_per_kwh=0,
+        energy_value="100",
+        price_value="2",
+        supplier_markup_per_kwh=0,
     )
     stored = entry.runtime_data._statistics_data()
     stored["local_costs"]["monthly_supplier"] = "999"
-    changed = MockConfigEntry(domain=entry.domain, data={
-        **entry.data, "supplier_markup_per_kwh": 0.18,
-    })
+    changed = MockConfigEntry(
+        domain=entry.domain,
+        data={
+            **entry.data,
+            "supplier_markup_per_kwh": 0.18,
+        },
+    )
     coordinator = ElectricityProCoordinator(hass, changed)
     with patch.object(coordinator._store, "async_load", return_value=stored):
         await coordinator._async_restore_statistics()

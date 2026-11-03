@@ -26,7 +26,11 @@ _NOW = datetime(2026, 9, 7, 12, 30, tzinfo=UTC)
     ],
 )
 async def test_fixed_adapter_exact_result(
-    setup_electricity_pro, price, threshold, expected, reason,
+    setup_electricity_pro,
+    price,
+    threshold,
+    expected,
+    reason,
 ):
     """Preserve fixed state, Decimal strings and the complete attribute shape."""
     entry = await setup_electricity_pro(
@@ -54,7 +58,11 @@ async def test_fixed_adapter_exact_result(
     ],
 )
 async def test_adaptive_cold_start_exact_result(
-    setup_electricity_pro, threshold, expected, method, reason,
+    setup_electricity_pro,
+    threshold,
+    expected,
+    method,
+    reason,
 ):
     """Retain all fallback/unknown attributes, including withheld forecast fields."""
     entry = await setup_electricity_pro(
@@ -96,11 +104,13 @@ async def test_adaptive_cold_start_exact_result(
 
 
 async def test_good_time_entity_identity_and_unavailable_state(
-    hass, setup_electricity_pro,
+    hass,
+    setup_electricity_pro,
 ):
     """An invalid fixed price retains the existing entity but makes it unavailable."""
     entry = await setup_electricity_pro(
-        price_value="unavailable", good_price_threshold=1.0,
+        price_value="unavailable",
+        good_price_threshold=1.0,
     )
     entity_id = "binary_sensor.electricity_pro_good_time_to_use_electricity"
     registered = er.async_get(hass).async_get(entity_id)

@@ -61,15 +61,15 @@ def test_supports_non_wrapping_seasons_and_overnight_periods() -> None:
         high_weekdays=frozenset(range(7)),
     )
 
-    assert tariff.fee_at(
-        datetime(2026, 7, 1, 23, 0, tzinfo=STOCKHOLM)
-    ) == Decimal("0.20")
-    assert tariff.fee_at(
-        datetime(2026, 7, 2, 5, 59, tzinfo=STOCKHOLM)
-    ) == Decimal("0.20")
-    assert tariff.fee_at(
-        datetime(2026, 7, 2, 6, 0, tzinfo=STOCKHOLM)
-    ) == Decimal("0.10")
+    assert tariff.fee_at(datetime(2026, 7, 1, 23, 0, tzinfo=STOCKHOLM)) == Decimal(
+        "0.20"
+    )
+    assert tariff.fee_at(datetime(2026, 7, 2, 5, 59, tzinfo=STOCKHOLM)) == Decimal(
+        "0.20"
+    )
+    assert tariff.fee_at(datetime(2026, 7, 2, 6, 0, tzinfo=STOCKHOLM)) == Decimal(
+        "0.10"
+    )
 
 
 @pytest.mark.parametrize(

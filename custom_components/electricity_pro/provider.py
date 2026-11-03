@@ -358,9 +358,7 @@ class ElectricityProEntityProvider:
             voltage_l2=voltage_l2,
             voltage_l3=voltage_l3,
             monthly_peak_hour_consumption=monthly_peak_hour_consumption,
-            monthly_peak_hour_consumption_unit=(
-                monthly_peak_hour_consumption_unit
-            ),
+            monthly_peak_hour_consumption_unit=(monthly_peak_hour_consumption_unit),
             monthly_peak_hour_time=monthly_peak_hour_time,
             energy_this_month=None,
             energy_this_month_unit=None,
@@ -451,7 +449,10 @@ class ElectricityProEntityProvider:
         if source_value is None or not source_value.is_finite():
             return False
         source_unit: Any = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
-        return source_unit in {UnitOfPower.WATT, UnitOfPower.KILO_WATT} and source_value < 0
+        return (
+            source_unit in {UnitOfPower.WATT, UnitOfPower.KILO_WATT}
+            and source_value < 0
+        )
 
     @staticmethod
     def _normalize_price(

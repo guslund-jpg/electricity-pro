@@ -16,8 +16,12 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from custom_components.electricity_pro.pricing import (
-    PriceComponent, PriceComponentScope, PriceCompleteness,
-    PricingMetadata, PricingStrategy, VatTreatment,
+    PriceComponent,
+    PriceComponentScope,
+    PriceCompleteness,
+    PricingMetadata,
+    PricingStrategy,
+    VatTreatment,
 )
 
 PACKAGE = Path(__file__).parents[1] / "examples/automations/one_shot_window.yaml"
@@ -37,7 +41,9 @@ async def example(hass, freezer):
     package = yaml.safe_load(PACKAGE.read_text())
     notifications = async_mock_service(hass, "persistent_notification", "create")
     assert await async_setup_component(hass, "script", {"script": package["script"]})
-    assert await async_setup_component(hass, "automation", {"automation": package["automation"]})
+    assert await async_setup_component(
+        hass, "automation", {"automation": package["automation"]}
+    )
     await hass.async_start()
     await settle(hass)
     return package, notifications
@@ -52,7 +58,12 @@ def publish(hass, *, hours=2, start=None, price="1.50", **attributes):
         "average_scheduling_price": price,
         "currency": "SEK",
         "price_area": "SE3",
-        "price_components": ["market_energy", "supplier_markup", "grid_fee", "energy_tax"],
+        "price_components": [
+            "market_energy",
+            "supplier_markup",
+            "grid_fee",
+            "energy_tax",
+        ],
         "vat_treatment": "included",
         "price_completeness": "partial",
         # This is optional in real insight attributes; do not invent freshness.
@@ -64,15 +75,20 @@ def publish(hass, *, hours=2, start=None, price="1.50", **attributes):
 
 
 async def request(hass, **overrides):
-    await hass.services.async_call("script", "turn_on", {
-        "entity_id": REQUEST,
-        "variables": {
-            "window_entity": SOURCE,
-            "expected_currency": "SEK",
-            "price_limit": 2,
-            **overrides,
+    await hass.services.async_call(
+        "script",
+        "turn_on",
+        {
+            "entity_id": REQUEST,
+            "variables": {
+                "window_entity": SOURCE,
+                "expected_currency": "SEK",
+                "price_limit": 2,
+                **overrides,
+            },
         },
-    }, blocking=False)
+        blocking=False,
+    )
     await settle(hass)
 
 
@@ -83,15 +99,22 @@ async def advance(hass, freezer, instant):
 
 
 def dispatched(notifications):
-    return [c for c in notifications if c.data["title"] in (
-        "Electricity Pro — your selected window starts now",
-        "Electricity Pro — appliance DRY RUN",
-    )]
+    return [
+        c
+        for c in notifications
+        if c.data["title"]
+        in (
+            "Electricity Pro — your selected window starts now",
+            "Electricity Pro — appliance DRY RUN",
+        )
+    ]
 
 
 @pytest.mark.parametrize("hours", [1, 2, 3])
 @pytest.mark.parametrize("appliance", [False, True])
-async def test_one_shot_and_natural_window_rollover(hass, freezer, example, hours, appliance):
+async def test_one_shot_and_natural_window_rollover(
+    hass, freezer, example, hours, appliance
+):
     _, notifications = example
     start = publish(hass, hours=hours)
     await request(hass, appliance_start=appliance)
@@ -113,12 +136,21 @@ async def test_one_shot_and_natural_window_rollover(hass, freezer, example, hour
     assert len(dispatched(notifications)) == 1
 
 
-@pytest.mark.parametrize("mutation", [
-    {"price": "2.1"}, {"price": "1.4"}, {"currency": "EUR"}, {"price_area": "SE4"},
-    {"window_duration_minutes": 60}, {"window_end": "2026-10-31T14:15:00+00:00"},
-    {"price_components": ["market_energy"]}, {"vat_treatment": "excluded"},
-    {"price_completeness": "complete"}, {"price": "nan"},
-])
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        {"price": "2.1"},
+        {"price": "1.4"},
+        {"currency": "EUR"},
+        {"price_area": "SE4"},
+        {"window_duration_minutes": 60},
+        {"window_end": "2026-10-31T14:15:00+00:00"},
+        {"price_components": ["market_energy"]},
+        {"vat_treatment": "excluded"},
+        {"price_completeness": "complete"},
+        {"price": "nan"},
+    ],
+)
 async def test_revisions_cancel_not_reschedule(hass, example, mutation):
     _, notifications = example
     start = publish(hass)
@@ -144,10 +176,16 @@ async def test_source_loss_or_new_start_cancels(hass, example, state):
     assert not dispatched(notifications)
 
 
-@pytest.mark.parametrize("overrides", [
-    {"expected_currency": "EUR"}, {"price_limit": 1}, {"price_limit": "nan"},
-    {"price_limit": "inf"}, {"window_entity": "sensor.missing"},
-])
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"expected_currency": "EUR"},
+        {"price_limit": 1},
+        {"price_limit": "nan"},
+        {"price_limit": "inf"},
+        {"window_entity": "sensor.missing"},
+    ],
+)
 async def test_invalid_request_is_refused(hass, example, overrides):
     _, notifications = example
     publish(hass)
@@ -224,8 +262,10 @@ async def test_reload_cancels_pending_script_and_never_replays(hass, freezer, ex
     package, notifications = example
     start = publish(hass)
     await request(hass)
-    with patch("homeassistant.config.async_hass_config_yaml",
-               new=AsyncMock(return_value={"script": package["script"]})):
+    with patch(
+        "homeassistant.config.async_hass_config_yaml",
+        new=AsyncMock(return_value={"script": package["script"]}),
+    ):
         await hass.services.async_call("script", "reload", blocking=True)
     await settle(hass)
     assert hass.states.get(REQUEST).state == "off"
@@ -251,18 +291,23 @@ async def test_fresh_install_does_not_schedule_anything(hass, example):
     assert not notifications
 
 
-async def test_accepts_actual_electricity_pro_sensor_contract(hass, example, setup_electricity_pro):
+async def test_accepts_actual_electricity_pro_sensor_contract(
+    hass, example, setup_electricity_pro
+):
     _, notifications = example
     start = dt_util.utcnow() + timedelta(minutes=15)
     await setup_electricity_pro(
         forecast_nordpool_config_entry="test_nordpool",
         forecast_price_area="SE3",
         forecast_currency="SEK",
-        forecast_intervals=[{
-            "start": (start + timedelta(hours=i)).isoformat(),
-            "end": (start + timedelta(hours=i + 1)).isoformat(),
-            "price": 1500,
-        } for i in range(3)],
+        forecast_intervals=[
+            {
+                "start": (start + timedelta(hours=i)).isoformat(),
+                "end": (start + timedelta(hours=i + 1)).isoformat(),
+                "price": 1500,
+            }
+            for i in range(3)
+        ],
     )
     state = hass.states.get(SOURCE)
     assert state is not None
@@ -273,25 +318,34 @@ async def test_accepts_actual_electricity_pro_sensor_contract(hass, example, set
     await hass.services.async_call("script", "ep_window_cancel", blocking=True)
 
 
-async def test_next_inexpensive_reminder_uses_actual_sensor(hass, freezer, example, setup_electricity_pro):
+async def test_next_inexpensive_reminder_uses_actual_sensor(
+    hass, freezer, example, setup_electricity_pro
+):
     _, notifications = example
     source = "sensor.electricity_pro_next_inexpensive_1h_window_start"
     start = dt_util.utcnow() + timedelta(minutes=15)
     await setup_electricity_pro(
-        price_value="1.50", good_price_threshold=2.0,
+        price_value="1.50",
+        good_price_threshold=2.0,
         price_completeness=PriceCompleteness.COMPLETE,
         forecast_pricing_metadata=PricingMetadata(
             strategy=PricingStrategy.EXTERNAL_COMPLETE_PRICE,
-            scope=PriceComponentScope(frozenset(PriceComponent), vat=VatTreatment.INCLUDED),
+            scope=PriceComponentScope(
+                frozenset(PriceComponent), vat=VatTreatment.INCLUDED
+            ),
             completeness=PriceCompleteness.COMPLETE,
         ),
         forecast_nordpool_config_entry="test_nordpool",
-        forecast_price_area="SE3", forecast_currency="SEK",
-        forecast_intervals=[{
-            "start": (start + timedelta(hours=i)).isoformat(),
-            "end": (start + timedelta(hours=i + 1)).isoformat(),
-            "price": 1500,
-        } for i in range(3)],
+        forecast_price_area="SE3",
+        forecast_currency="SEK",
+        forecast_intervals=[
+            {
+                "start": (start + timedelta(hours=i)).isoformat(),
+                "end": (start + timedelta(hours=i + 1)).isoformat(),
+                "price": 1500,
+            }
+            for i in range(3)
+        ],
     )
     state = hass.states.get(source)
     assert state is not None and state.state != "unavailable"
@@ -368,16 +422,25 @@ async def test_repeated_unchanged_reports_do_not_look_stale(hass, freezer, examp
 
 async def test_failed_device_action_is_not_retried(hass, freezer, example):
     start = publish(hass)
-    failed_action = AsyncMock(side_effect=HomeAssistantError("Device response uncertain"))
+    failed_action = AsyncMock(
+        side_effect=HomeAssistantError("Device response uncertain")
+    )
     hass.services.async_register("script", "ep_window_appliance_action", failed_action)
     # Await the direct script call so the expected device error is consumed by
     # this test rather than left as an unhandled background service exception.
-    running = asyncio.create_task(hass.services.async_call(
-        "script", "ep_window_request", {
-            "window_entity": SOURCE, "expected_currency": "SEK",
-            "price_limit": 2, "appliance_start": True,
-        }, blocking=True,
-    ))
+    running = asyncio.create_task(
+        hass.services.async_call(
+            "script",
+            "ep_window_request",
+            {
+                "window_entity": SOURCE,
+                "expected_currency": "SEK",
+                "price_limit": 2,
+                "appliance_start": True,
+            },
+            blocking=True,
+        )
+    )
     await settle(hass)
     freezer.move_to(start)
     publish(hass, start=start)

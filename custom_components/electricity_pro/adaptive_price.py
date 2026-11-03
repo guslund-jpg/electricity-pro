@@ -664,10 +664,9 @@ def evaluate_adaptive_forecast(
         )
         for observation in eligible
     )
-    reference_range = (
-        weighted_quantile(weighted_prices, Decimal("0.90"))
-        - weighted_quantile(weighted_prices, Decimal("0.10"))
-    )
+    reference_range = weighted_quantile(
+        weighted_prices, Decimal("0.90")
+    ) - weighted_quantile(weighted_prices, Decimal("0.10"))
     if reference_range <= 0:
         return AdaptiveForecastResult(
             ForecastComparisonStatus.WITHHELD_NO_REFERENCE_RANGE,

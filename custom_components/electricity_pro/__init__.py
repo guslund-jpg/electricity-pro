@@ -60,6 +60,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         schema=_GET_MARKET_PRICE_FORECAST_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
+
     async def async_reset_monthly_energy(call: ServiceCall) -> None:
         """Reset monthly energy only for an explicitly selected loaded entry."""
         entry = hass.config_entries.async_get_entry(call.data[ATTR_CONFIG_ENTRY_ID])
@@ -76,11 +77,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         DOMAIN,
         "reset_monthly_energy",
         async_reset_monthly_energy,
-        schema=vol.Schema({
-            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-            vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
-        }),
+        schema=vol.Schema(
+            {
+                vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+                vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
+            }
+        ),
     )
+
     async def async_confirm_meter_reset(call: ServiceCall) -> None:
         """Accept a genuine meter replacement only with explicit confirmation."""
         entry = hass.config_entries.async_get_entry(call.data[ATTR_CONFIG_ENTRY_ID])
@@ -94,32 +98,46 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             raise ServiceValidationError(str(err)) from err
 
     hass.services.async_register(
-        DOMAIN, "confirm_meter_reset", async_confirm_meter_reset,
-        schema=vol.Schema({
-            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-            vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
-        }),
+        DOMAIN,
+        "confirm_meter_reset",
+        async_confirm_meter_reset,
+        schema=vol.Schema(
+            {
+                vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+                vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
+            }
+        ),
     )
+
     async def async_confirm_flow_meter_reset(call: ServiceCall) -> None:
         """Rebaseline only an explicitly confirmed directional source."""
         entry = hass.config_entries.async_get_entry(call.data[ATTR_CONFIG_ENTRY_ID])
-        if entry is None or entry.domain != DOMAIN or entry.state is not ConfigEntryState.LOADED:
+        if (
+            entry is None
+            or entry.domain != DOMAIN
+            or entry.state is not ConfigEntryState.LOADED
+        ):
             raise ServiceValidationError("Electricity Pro configuration must be loaded")
         try:
             await entry.runtime_data.async_confirm_flow_meter_reset(
-                call.data["channel"], call.data["source_entity"],
+                call.data["channel"],
+                call.data["source_entity"],
             )
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
 
     hass.services.async_register(
-        DOMAIN, "confirm_flow_meter_reset", async_confirm_flow_meter_reset,
-        schema=vol.Schema({
-            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-            vol.Required("channel"): vol.In(CHANNELS),
-            vol.Required("source_entity"): cv.entity_id,
-            vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
-        }),
+        DOMAIN,
+        "confirm_flow_meter_reset",
+        async_confirm_flow_meter_reset,
+        schema=vol.Schema(
+            {
+                vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+                vol.Required("channel"): vol.In(CHANNELS),
+                vol.Required("source_entity"): cv.entity_id,
+                vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
+            }
+        ),
     )
     return True
 
@@ -130,9 +148,10 @@ async def async_setup_entry(
 ) -> bool:
     """Set up Electricity Pro from a config entry."""
     settings = resolve_settings(entry.data, entry.options)
-    if settings.get(CONF_PRICE_ENTITY) and resolve_pricing_metadata(
-        entry.data, entry.options
-    ) is None:
+    if (
+        settings.get(CONF_PRICE_ENTITY)
+        and resolve_pricing_metadata(entry.data, entry.options) is None
+    ):
         raise ConfigEntryError(
             "Configured price source requires explicit pricing metadata; "
             "open Electricity Pro options and confirm the price source"
@@ -141,9 +160,7 @@ async def async_setup_entry(
     coordinator = ElectricityProCoordinator(hass, entry)
     entry.runtime_data = coordinator
 
-    entry.async_on_unload(
-        entry.add_update_listener(_async_update_listener)
-    )
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
     await coordinator.async_start()
     await hass.config_entries.async_forward_entry_setups(

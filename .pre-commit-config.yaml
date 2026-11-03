@@ -22,6 +22,13 @@ repos:
         pass_filenames: false
         always_run: true
 
+      - id: electricity-pro-python-format
+        name: Electricity Pro Python formatting
+        entry: python -m ruff format --check custom_components tests scripts
+        language: system
+        pass_filenames: false
+        always_run: true
+
       - id: electricity-pro-validation
         name: Electricity Pro validation
         entry: ./scripts/validate.sh

@@ -4,7 +4,9 @@ import pytest
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.electricity_pro.binary_sensor import GoodTimeToUseElectricityBinarySensor
+from custom_components.electricity_pro.binary_sensor import (
+    GoodTimeToUseElectricityBinarySensor,
+)
 from custom_components.electricity_pro.const import DOMAIN
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
 from custom_components.electricity_pro.device import device_info_for_entry
@@ -20,10 +22,19 @@ from custom_components.electricity_pro.sensor import (
 )
 
 
-@pytest.mark.parametrize("kind", [
-    "ordinary", "forecast", "timing", "base_load", "average_power",
-    "flow", "compatibility", "good_time",
-])
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "ordinary",
+        "forecast",
+        "timing",
+        "base_load",
+        "average_power",
+        "flow",
+        "compatibility",
+        "good_time",
+    ],
+)
 def test_all_entity_families_preserve_device_metadata(hass, kind):
     """Every metadata-owning class uses the same entry-scoped device contract."""
     entry = MockConfigEntry(domain=DOMAIN, data={"power_entity": "sensor.power"})
@@ -35,7 +46,10 @@ def test_all_entity_families_preserve_device_metadata(hass, kind):
         suffix = description.key
     elif kind == "forecast":
         entity = ElectricityProForecastInsightSensor(
-            coordinator, entry, key="test_forecast", name="Test forecast",
+            coordinator,
+            entry,
+            key="test_forecast",
+            name="Test forecast",
         )
         suffix = "test_forecast"
     elif kind == "flow":
@@ -46,10 +60,19 @@ def test_all_entity_families_preserve_device_metadata(hass, kind):
         suffix = "good_time_to_use_electricity"
     else:
         entity_class, suffix = {
-            "timing": (ElectricityProConsumptionTimingScoreSensor, "consumption_timing_score_yesterday"),
+            "timing": (
+                ElectricityProConsumptionTimingScoreSensor,
+                "consumption_timing_score_yesterday",
+            ),
             "base_load": (ElectricityProEstimatedBaseLoadSensor, "estimated_base_load"),
-            "average_power": (ElectricityProAveragePowerTodaySensor, "average_power_today"),
-            "compatibility": (ElectricityProFlowCompatibilitySensor, "flow_power_compatibility"),
+            "average_power": (
+                ElectricityProAveragePowerTodaySensor,
+                "average_power_today",
+            ),
+            "compatibility": (
+                ElectricityProFlowCompatibilitySensor,
+                "flow_power_compatibility",
+            ),
         }[kind]
         entity = entity_class(coordinator, entry)
     assert entity.unique_id == f"{entry.entry_id}_{suffix}"
@@ -65,12 +88,16 @@ async def test_registry_devices_stay_separate_and_survive_reload(hass):
     """Reload retains entity/device IDs and user names without combining entries."""
     entries = []
     for index in range(2):
-        entry = MockConfigEntry(domain=DOMAIN, title=f"Installation {index}", data={
-            "power_entity": f"sensor.power_{index}",
-            "good_price_threshold": 1,
-            "production_power_entity": f"sensor.production_{index}",
-            "flow_compatibility_enabled": True,
-        })
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title=f"Installation {index}",
+            data={
+                "power_entity": f"sensor.power_{index}",
+                "good_price_threshold": 1,
+                "production_power_entity": f"sensor.production_{index}",
+                "flow_compatibility_enabled": True,
+            },
+        )
         entry.add_to_hass(hass)
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
@@ -87,14 +114,17 @@ async def test_registry_devices_stay_separate_and_survive_reload(hass):
         assert device.identifiers == {(DOMAIN, entry.entry_id)}
         assert device.config_entry_id == entry.entry_id
         assert (device.name, device.manufacturer, device.model) == (
-            "Electricity Pro", "Electricity Pro", "Electricity monitor",
+            "Electricity Pro",
+            "Electricity Pro",
+            "Electricity monitor",
         )
         device_ids.append(device.id)
         entities = er.async_entries_for_config_entry(registry, entry.entry_id)
         assert entities
         assert {entity.device_id for entity in entities} == {device.id}
         identities[entry.entry_id] = {
-            (entity.entity_id, entity.unique_id, entity.device_id) for entity in entities
+            (entity.entity_id, entity.unique_id, entity.device_id)
+            for entity in entities
         }
     assert len(set(device_ids)) == 2
     devices.async_update_device(device_ids[0], name_by_user="My household")

@@ -27,7 +27,9 @@ def forecast_delivery_dates(
     docs/reference/forecast-retrieval.md for the upstream contract and retry policy.
     """
     market_now = now.astimezone(market_timezone)
-    local_start = datetime.combine(now.astimezone(local_timezone).date(), time(), local_timezone)
+    local_start = datetime.combine(
+        now.astimezone(local_timezone).date(), time(), local_timezone
+    )
     first_date = local_start.astimezone(market_timezone).date()
     last_date = market_now.date()
     if market_now.time() >= _TOMORROW_PUBLICATION_TIME:
@@ -82,6 +84,7 @@ def normalize_nordpool_forecast_intervals(
         )
 
     return sorted(normalized, key=lambda interval: interval.start)
+
 
 async def async_get_nordpool_forecast_intervals_for_date(
     hass: HomeAssistant,

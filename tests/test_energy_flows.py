@@ -30,12 +30,21 @@ def test_lifetime_dips_restart_and_same_day_gap():
     assert len(counter.as_dict()) == 8
 
 
-@pytest.mark.parametrize("start", [
-    "2026-09-16", "2026-09-30", "2026-03-28", "2026-10-24",
-    "2026-12-31", "2028-02-28",
-])
+@pytest.mark.parametrize(
+    "start",
+    [
+        "2026-09-16",
+        "2026-09-30",
+        "2026-03-28",
+        "2026-10-24",
+        "2026-12-31",
+        "2028-02-28",
+    ],
+)
 def test_boundary_gap_never_assigned_to_new_day(start):
-    now = datetime.fromisoformat(start).replace(hour=23, tzinfo=ZoneInfo("Europe/Stockholm"))
+    now = datetime.fromisoformat(start).replace(
+        hour=23, tzinfo=ZoneInfo("Europe/Stockholm")
+    )
     counter = FlowCounter()
     counter.update(Decimal(100), now)
     counter.update(Decimal(102), now)
@@ -67,11 +76,18 @@ def test_explicit_replacement_preserves_totals_and_rejects_invalid():
             counter.confirm_reset(Decimal(bad), now)
 
 
-@pytest.mark.parametrize("field,value", [
-    ("high_water", "NaN"), ("today", "-1"), ("this_month", "Infinity"),
-    ("month", "2026-08"), ("pending_boundary", "false"), ("generation", -1),
-    ("started", "2026-09-16T12:00:00"),
-])
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("high_water", "NaN"),
+        ("today", "-1"),
+        ("this_month", "Infinity"),
+        ("month", "2026-08"),
+        ("pending_boundary", "false"),
+        ("generation", -1),
+        ("started", "2026-09-16T12:00:00"),
+    ],
+)
 def test_corrupt_counter_state_rejected(field, value):
     counter = FlowCounter()
     counter.update(Decimal(100), datetime(2026, 9, 16, tzinfo=UTC))
@@ -81,16 +97,19 @@ def test_corrupt_counter_state_rejected(field, value):
         FlowCounter.from_dict(state)
 
 
-@pytest.mark.parametrize("quantity,unit,value,expected,reason", [
-    ("power", "kW", "1.5", "1500", "measured"),
-    ("power", "W", "0", "0", "measured"),
-    ("energy", "Wh", "102500", "102.5", "measured"),
-    ("energy", "kWh", "0", "0", "measured"),
-    ("power", "W", "-100", None, "invalid"),
-    ("energy", "kWh", "NaN", None, "invalid"),
-    ("energy", "kWh", "unavailable", None, "unavailable"),
-    ("power", "MW", "1", None, "unsupported_unit"),
-])
+@pytest.mark.parametrize(
+    "quantity,unit,value,expected,reason",
+    [
+        ("power", "kW", "1.5", "1500", "measured"),
+        ("power", "W", "0", "0", "measured"),
+        ("energy", "Wh", "102500", "102.5", "measured"),
+        ("energy", "kWh", "0", "0", "measured"),
+        ("power", "W", "-100", None, "invalid"),
+        ("energy", "kWh", "NaN", None, "invalid"),
+        ("energy", "kWh", "unavailable", None, "unavailable"),
+        ("power", "MW", "1", None, "unsupported_unit"),
+    ],
+)
 async def test_source_normalization(hass, quantity, unit, value, expected, reason):
     hass.states.async_set("sensor.source", value, {"unit_of_measurement": unit})
     sources = FlowSources(hass, {f"production_{quantity}_entity": "sensor.source"})
@@ -102,7 +121,10 @@ async def test_source_normalization(hass, quantity, unit, value, expected, reaso
 
 async def test_source_missing_stale_and_future_are_not_zero(hass):
     sources = FlowSources(hass, {"production_power_entity": "sensor.power"})
-    assert sources.read("grid_export", "power", dt_util.utcnow()).reason == "not_configured"
+    assert (
+        sources.read("grid_export", "power", dt_util.utcnow()).reason
+        == "not_configured"
+    )
     assert sources.read("production", "power", dt_util.utcnow()).reason == "unavailable"
     hass.states.async_set("sensor.power", "100", {"unit_of_measurement": "W"})
     at = hass.states.get("sensor.power").last_reported
@@ -113,12 +135,16 @@ async def test_source_missing_stale_and_future_are_not_zero(hass):
 
 
 def flow_entry(**overrides):
-    return MockConfigEntry(domain=DOMAIN, title="Electricity Pro", data={
-        CONF_POWER_ENTITY: "sensor.import_power",
-        "production_energy_entity": "sensor.production",
-        "grid_export_energy_entity": "sensor.export",
-        **overrides,
-    })
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="Electricity Pro",
+        data={
+            CONF_POWER_ENTITY: "sensor.import_power",
+            "production_energy_entity": "sensor.production",
+            "grid_export_energy_entity": "sensor.export",
+            **overrides,
+        },
+    )
 
 
 async def test_independent_channels_restore_and_source_change(hass, freezer):
@@ -126,8 +152,12 @@ async def test_independent_channels_restore_and_source_change(hass, freezer):
     await hass.config.async_set_time_zone("UTC")
     c = ElectricityProCoordinator(hass, flow_entry())
     for prod, export in ((100, 50), (103, 51), (90, 52)):
-        hass.states.async_set("sensor.production", str(prod), {"unit_of_measurement": "kWh"})
-        hass.states.async_set("sensor.export", str(export), {"unit_of_measurement": "kWh"})
+        hass.states.async_set(
+            "sensor.production", str(prod), {"unit_of_measurement": "kWh"}
+        )
+        hass.states.async_set(
+            "sensor.export", str(export), {"unit_of_measurement": "kWh"}
+        )
         c._read_flows(dt_util.utcnow())
     assert c.flow_values["production_today"][0] is None
     assert c.flow_values["grid_export_today"][0] == 2
@@ -138,17 +168,23 @@ async def test_independent_channels_restore_and_source_change(hass, freezer):
     hass.states.async_set("sensor.production", "104", {"unit_of_measurement": "kWh"})
     restored._read_flows(dt_util.utcnow())
     assert restored.flow_values["production_today"][0] == 4
-    changed = ElectricityProCoordinator(hass, flow_entry(production_energy_entity="sensor.other"))
+    changed = ElectricityProCoordinator(
+        hass, flow_entry(production_energy_entity="sensor.other")
+    )
     with patch.object(changed._store, "async_load", return_value=stored):
         await changed._async_restore_statistics()
     assert changed._flow_counters["production"].high_water is None
     assert changed._flow_counters["grid_export"].this_month == 2
 
 
-@pytest.mark.parametrize("saved", [None, [], {"production": []}, {"production": {"counter": {}}}])
+@pytest.mark.parametrize(
+    "saved", [None, [], {"production": []}, {"production": {"counter": {}}}]
+)
 async def test_malformed_optional_storage_does_not_block_import(hass, saved):
     c = ElectricityProCoordinator(hass, flow_entry())
-    with patch.object(c._store, "async_load", return_value={"directional_flows": saved}):
+    with patch.object(
+        c._store, "async_load", return_value={"directional_flows": saved}
+    ):
         await c._async_restore_statistics()
     assert c._flow_counters["production"].high_water is None
 
@@ -157,12 +193,19 @@ async def test_reset_scoped_to_one_fresh_source(hass, freezer):
     freezer.move_to("2026-09-16T12:00:00+00:00")
     c = ElectricityProCoordinator(hass, flow_entry())
     for prod, export in ((100, 50), (103, 52)):
-        hass.states.async_set("sensor.production", str(prod), {"unit_of_measurement": "kWh"})
-        hass.states.async_set("sensor.export", str(export), {"unit_of_measurement": "kWh"})
+        hass.states.async_set(
+            "sensor.production", str(prod), {"unit_of_measurement": "kWh"}
+        )
+        hass.states.async_set(
+            "sensor.export", str(export), {"unit_of_measurement": "kWh"}
+        )
         c._read_flows(dt_util.now().astimezone(c._local_timezone))
     export_before = c._flow_counters["grid_export"].as_dict()
     hass.states.async_set("sensor.production", "1", {"unit_of_measurement": "kWh"})
-    with patch.object(c._store, "async_save"), patch.object(c._store, "async_delay_save"):
+    with (
+        patch.object(c._store, "async_save"),
+        patch.object(c._store, "async_delay_save"),
+    ):
         with pytest.raises(ValueError):
             await c.async_confirm_flow_meter_reset("production", "sensor.export")
         await c.async_confirm_flow_meter_reset("production", "sensor.production")
