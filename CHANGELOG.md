@@ -61,10 +61,11 @@ verification. See the [upgrade notes and validation limits](docs/releases/1.6.0.
   Explain dashboard dependencies, older screenshot labels and price scopes,
   and retain stable/development boundaries. Runtime behaviour is unchanged.
 
-- Add draft v1.6 release notes and reconcile the checklist with recorded
+- Add v1.6 release notes and reconcile the checklist with recorded
   synthetic, rollover, dashboard, automation and standard-upgrade checks.
   Include the implemented README, automation-example and two-hour-trend work.
-  Final candidate smoke testing and release approval remain pending;
+  Record the November 3 final package smoke test and maintainer approval of
+  the narrow scope and bounded evidence gaps. Publication remains separate;
   solar/battery hardware verification is not claimed.
 
 - Reconcile stable v1.5.2 versus main development scope, architecture ownership,
