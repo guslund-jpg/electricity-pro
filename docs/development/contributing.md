@@ -102,6 +102,7 @@ The current strict scope is:
 | `statistics_engine.py` | Cumulative counters, calendar periods and persisted snapshots |
 | `history_storage.py` | Runtime narrowing of stored history values |
 | `flow_compatibility.py` | Normalized power observations and the supported diagnostic result statuses |
+| `energy_flows.py` | Directional lifetime counters and their persisted state |
 
 These modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`; external dependencies are only
@@ -126,6 +127,12 @@ update. Input declarations remain strings: unknown or invalid declarations must
 still reach the existing runtime validation. This checks the pure diagnostic,
 not its HA-facing callers, and does not change availability or flow calculations.
 
+Directional energy counters also read `Mapping[str, object]` and write an explicit
+`TypedDict`. Shared string/decimal readers narrow stored values before existing
+period, total, timestamp and reset-generation validation. The eight-field storage
+format, accepted numeric scalars, accumulation, rollover and reset behaviour are
+unchanged. Tests cover JSON round trips, malformed shapes and missing fields.
+
 There is one explicit boundary: the exact parent module
 `custom_components.electricity_pro` (`__init__.py`) has `follow_imports = skip`.
 Mypy otherwise discovers that parent while resolving these files and follows
@@ -138,7 +145,7 @@ See [mypy import handling](https://mypy.readthedocs.io/en/stable/running_mypy.ht
 
 This does not check HA setup, callers in the coordinator/entities, tests, or the
 whole integration. The initial broader scan found work outside the pilot:
-typed counter/source dictionaries (`energy_flows.py`, `flow_sources.py`),
+typed source dictionaries (`flow_sources.py`),
 ledger parameter/reset typing (`cost_ledger.py`), action-response narrowing
 (`nordpool.py`), snapshot/update dictionaries (`coordinator.py`), and HA
 action schema/return typing (`__init__.py`). These findings require review;

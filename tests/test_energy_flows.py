@@ -2,6 +2,8 @@
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+import json
+from types import MappingProxyType
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
@@ -94,6 +96,59 @@ def test_corrupt_counter_state_rejected(field, value):
     state = counter.as_dict()
     state[field] = value
     with pytest.raises(ValueError):
+        FlowCounter.from_dict(state)
+
+
+@pytest.mark.parametrize("initialized", [False, True])
+def test_counter_json_round_trip(initialized):
+    counter = FlowCounter()
+    if initialized:
+        now = datetime(2026, 9, 16, tzinfo=UTC)
+        counter.update(Decimal("100.125"), now)
+        counter.update(Decimal("102.375"), now)
+        counter.confirm_reset(Decimal("0.25"), now)
+    state = counter.as_dict()
+    restored = FlowCounter.from_dict(json.loads(json.dumps(state)))
+    assert restored.as_dict() == state
+
+
+@pytest.mark.parametrize("field", ["high_water", "today", "this_month"])
+@pytest.mark.parametrize("value", ["1.25", 2, 1.25, Decimal("1.25"), True, False])
+def test_counter_accepts_existing_decimal_scalar_formats(field, value):
+    state = dict(FlowCounter().as_dict())
+    state[field] = value
+    state["future_field"] = "ignored"
+    restored = FlowCounter.from_dict(MappingProxyType(state))
+    assert getattr(restored, field) == Decimal(value)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("day", 20260916),
+        ("month", []),
+        ("started", {}),
+        ("high_water", []),
+        ("today", {}),
+        ("today", None),
+        ("this_month", []),
+        ("pending_boundary", 1),
+        ("generation", True),
+        ("generation", "1"),
+    ],
+)
+def test_counter_rejects_malformed_stored_shapes(field, value):
+    state = dict(FlowCounter().as_dict())
+    state[field] = value
+    with pytest.raises(ValueError):
+        FlowCounter.from_dict(state)
+
+
+@pytest.mark.parametrize("field", list(FlowCounter().as_dict()))
+def test_counter_requires_all_stored_fields(field):
+    state = dict(FlowCounter().as_dict())
+    del state[field]
+    with pytest.raises(KeyError):
         FlowCounter.from_dict(state)
 
 
