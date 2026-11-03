@@ -100,6 +100,7 @@ The current strict scope is:
 | `base_load.py` | Duration-weighted power, base-load estimates and bounded power history |
 | `timing_score.py` | Consumption-timing scores, matched intervals and bounded timing history |
 | `statistics_engine.py` | Cumulative counters, calendar periods and persisted snapshots |
+| `history_storage.py` | Runtime narrowing of stored history values |
 
 These modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`; external dependencies are only
@@ -109,13 +110,14 @@ imports normally and does not ignore missing imports or errors. Strict mode,
 small pilot runs without an incremental cache. The extracted Good Time result
 uses an explicit attribute-value union; calculation behaviour is unchanged.
 
-The three history/statistics modules already had annotations that satisfy this
-gate; adding them makes those checks mandatory without changing runtime code.
-Strict mode does not prohibit explicit `Any`: their storage readers still accept
-`dict[str, Any]`, the timing reader's optional-Decimal helper accepts `Any`, and
-the base-load history writer returns `dict[str, Any]`. Existing runtime validation
-and round-trip tests remain necessary. This stage does not claim that arbitrary
-stored data has a fully checked schema; narrowing those boundaries is future work.
+The three history/statistics modules accept stored records as
+`Mapping[str, object]`. Shared readers check string, decimal, array and record
+shapes before the owning model validates dates, finiteness, ranges and consistency.
+The base-load history writer has an explicit `TypedDict` result. Storage format
+and calculations are unchanged; malformed collection shapes are now rejected
+explicitly. Runtime validation and JSON round-trip tests remain necessary:
+annotations alone do not validate stored data. Strict mode does not prohibit
+explicit `Any` elsewhere in the checked scope.
 
 There is one explicit boundary: the exact parent module
 `custom_components.electricity_pro` (`__init__.py`) has `follow_imports = skip`.

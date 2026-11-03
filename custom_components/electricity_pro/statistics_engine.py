@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
-from typing import Any
+
+from .history_storage import stored_decimal, stored_string
 
 
 class CalendarPeriod(StrEnum):
@@ -43,12 +45,12 @@ class StatisticsSnapshot:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> StatisticsSnapshot:
+    def from_dict(cls, data: Mapping[str, object]) -> StatisticsSnapshot:
         """Restore a snapshot from storage."""
         try:
-            period_start = date.fromisoformat(data["period_start"])
-            last_value = Decimal(data["last_value"])
-            value = Decimal(data["value"])
+            period_start = date.fromisoformat(stored_string(data["period_start"]))
+            last_value = stored_decimal(data["last_value"])
+            value = stored_decimal(data["value"])
         except (InvalidOperation, TypeError, ValueError, KeyError) as err:
             raise ValueError("invalid statistics snapshot") from err
 
@@ -84,12 +86,12 @@ class DailyPeakSnapshot:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> DailyPeakSnapshot:
+    def from_dict(cls, data: Mapping[str, object]) -> DailyPeakSnapshot:
         """Restore a snapshot from storage."""
         try:
-            period_start = date.fromisoformat(data["period_start"])
-            peak_power_w = Decimal(data["peak_power_w"])
-            peak_time = datetime.fromisoformat(data["peak_time"])
+            period_start = date.fromisoformat(stored_string(data["period_start"]))
+            peak_power_w = stored_decimal(data["peak_power_w"])
+            peak_time = datetime.fromisoformat(stored_string(data["peak_time"]))
         except (InvalidOperation, TypeError, ValueError, KeyError) as err:
             raise ValueError("invalid daily peak snapshot") from err
 
