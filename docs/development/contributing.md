@@ -101,6 +101,7 @@ The current strict scope is:
 | `timing_score.py` | Consumption-timing scores, matched intervals and bounded timing history |
 | `statistics_engine.py` | Cumulative counters, calendar periods and persisted snapshots |
 | `history_storage.py` | Runtime narrowing of stored history values |
+| `flow_compatibility.py` | Normalized power observations and the supported diagnostic result statuses |
 
 These modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`; external dependencies are only
@@ -118,6 +119,12 @@ and calculations are unchanged; malformed collection shapes are now rejected
 explicitly. Runtime validation and JSON round-trip tests remain necessary:
 annotations alone do not validate stored data. Strict mode does not prohibit
 explicit `Any` elsewhere in the checked scope.
+
+The flow-compatibility result uses a `Literal` union of supported diagnostic
+statuses, so misspelled or newly introduced statuses require an explicit contract
+update. Input declarations remain strings: unknown or invalid declarations must
+still reach the existing runtime validation. This checks the pure diagnostic,
+not its HA-facing callers, and does not change availability or flow calculations.
 
 There is one explicit boundary: the exact parent module
 `custom_components.electricity_pro` (`__init__.py`) has `follow_imports = skip`.
