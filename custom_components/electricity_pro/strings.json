@@ -28,6 +28,8 @@
         }
       },
       "manual": {
+        "title": "Set up custom or mixed sources",
+        "description": "Select measurement and price sources independently.",
         "data": {
           "power_entity": "Power sensor",
           "price_entity": "Electricity price sensor",
@@ -252,6 +254,8 @@
         }
       },
       "init": {
+        "title": "Configure Electricity Pro",
+        "description": "Update the sensors used by Electricity Pro.",
         "data": {
           "configure_energy_flows": "Configure optional production, export and household sources",
           "power_entity": "Power sensor",
