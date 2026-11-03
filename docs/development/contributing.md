@@ -97,6 +97,9 @@ The current strict scope is:
 | `adaptive_price.py` | Comparable history, adaptive thresholds and forecast refinement |
 | `good_time.py` | Fixed/adaptive decisions over normalized inputs and explicit time |
 | `settings.py` | Saved-data/options overlay with explicit clearing and no normalization |
+| `base_load.py` | Duration-weighted power, base-load estimates and bounded power history |
+| `timing_score.py` | Consumption-timing scores, matched intervals and bounded timing history |
+| `statistics_engine.py` | Cumulative counters, calendar periods and persisted snapshots |
 
 These modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`; external dependencies are only
@@ -105,6 +108,14 @@ imports normally and does not ignore missing imports or errors. Strict mode,
 `disallow_any_unimported` and unused-configuration warnings are enabled; the
 small pilot runs without an incremental cache. The extracted Good Time result
 uses an explicit attribute-value union; calculation behaviour is unchanged.
+
+The three history/statistics modules already had annotations that satisfy this
+gate; adding them makes those checks mandatory without changing runtime code.
+Strict mode does not prohibit explicit `Any`: their storage readers still accept
+`dict[str, Any]`, the timing reader's optional-Decimal helper accepts `Any`, and
+the base-load history writer returns `dict[str, Any]`. Existing runtime validation
+and round-trip tests remain necessary. This stage does not claim that arbitrary
+stored data has a fully checked schema; narrowing those boundaries is future work.
 
 There is one explicit boundary: the exact parent module
 `custom_components.electricity_pro` (`__init__.py`) has `follow_imports = skip`.
