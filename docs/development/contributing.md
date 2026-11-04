@@ -148,13 +148,16 @@ The current strict scope is:
 | `forecast_insights.py` | Continuous price windows and duration-weighted two-hour trend |
 | `coordinator.py` | Field-specific snapshot updates, flow metadata and persisted flow scope |
 | `__init__.py` | Integration lifecycle and action dispatch to the selected loaded coordinator |
+| `binary_sensor.py` | Good Time entity state, explanatory attributes and numeric settings |
+| `device.py` | Fresh, entry-scoped Home Assistant device metadata |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
 Assistant's typed state API; `nordpool.py` uses its service API and datetime
 parser, plus the forecast interval model. `calculations.py` uses Home Assistant's
 energy-unit constants. The coordinator and integration setup use Home Assistant's
-entry, lifecycle and service APIs. The remaining checked modules depend
+entry, lifecycle and service APIs. The Good Time entity and device metadata helper
+use Home Assistant's entity and device APIs. The remaining checked modules depend
 only on the standard library and each other. Mypy follows
 imports normally and does not ignore missing imports or errors. Strict mode,
 `disallow_any_unimported` and unused-configuration warnings are enabled; the

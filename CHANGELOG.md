@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Extend strict type checking to the Good Time binary sensor and shared device
+  metadata. Explicitly type explanatory attributes and numeric setting inputs;
+  classification, entity identity and saved settings are unchanged.
+
 - **Minimum Home Assistant version: 2026.9.0.** Upgrade Home Assistant before
   installing this release. Use Core's native Probatio validation library and
   remove the older schema adapter and minimum-test dependency workaround.
