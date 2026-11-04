@@ -64,6 +64,7 @@ def test_verified_rules_and_date_boundaries(country, context, rate):
 
 
 def test_unknown_context_never_infers_exemption():
+    assert vat_rule(None, "standard", VERIFIED_ON) is None
     assert vat_rule("NO", "standard", VERIFIED_ON) is None
     assert vat_rule("NO", "NO4", VERIFIED_ON) is None
     assert vat_rule("IS", "standard", VERIFIED_ON) is None

@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Extend strict type checking to supporting pricing, fixed-fee, Workday and VAT
+  helpers. Type the shared VAT setup/options flow and validate Tibber price
+  response rows explicitly; valid calculations and saved settings are unchanged.
+
 - Extend strict type checking to provider input normalization and Tibber source
   discovery. Replace suppressed optional-state access with explicit guards and
   reject malformed unit metadata safely; valid readings and saved formats are unchanged.

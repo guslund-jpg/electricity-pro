@@ -1,5 +1,6 @@
 """Conservative, user-requested Tibber/Nord Pool price comparison."""
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
@@ -26,7 +27,7 @@ class MarkupEstimate:
 
 
 def estimate_markup(
-    prices: list[dict],
+    prices: Sequence[object],
     market: list[ForecastInterval],
     *,
     vat_rate: float,
@@ -39,6 +40,8 @@ def estimate_markup(
             raise ValueError("Invalid VAT or clock")
         rows = []
         for row in prices:
+            if not isinstance(row, Mapping):
+                raise ValueError("Invalid price response")
             start = dt_util.parse_datetime(str(row["start_time"]))
             price = Decimal(str(row["price"]))
             if start is None or start.tzinfo is None or not price.is_finite():
@@ -62,7 +65,7 @@ def estimate_markup(
             for item in intervals
         }
         differences = []
-        seconds = 0
+        seconds = 0.0
         for (start, price), (end, _) in zip(rows, rows[1:]):
             # The action supplies starts only. Use the next start, but never
             # guess the final end or bridge nonstandard gaps.
@@ -155,9 +158,12 @@ async def async_estimate_markup(
         blocking=True,
         return_response=True,
     )
-    if not isinstance(response, dict) or not isinstance(response.get("prices"), dict):
+    if not isinstance(response, dict):
         raise ValueError("Invalid Tibber response")
-    prices = response["prices"].get(nickname)
+    home_prices = response.get("prices")
+    if not isinstance(home_prices, dict):
+        raise ValueError("Invalid Tibber response")
+    prices = home_prices.get(nickname)
     if not isinstance(prices, list):
         raise ValueError("Selected home missing from response")
     market = await async_get_nordpool_forecast_intervals_for_date(

@@ -118,6 +118,14 @@ def test_utc_matching_ignores_timestamp_offset():
     assert estimate_markup(rows, market, vat_rate=25, now=NOW).count == 4
 
 
+@pytest.mark.parametrize("row", [None, [], "price", 1, {}, {"price": 1}])
+def test_malformed_price_rows_are_rejected(row):
+    rows, market = samples()
+    rows[0] = row
+    with pytest.raises(ValueError, match="Invalid price response"):
+        estimate_markup(rows, market, vat_rate=25, now=NOW)
+
+
 async def source(hass):
     tibber = MockConfigEntry(domain="tibber", data={})
     tibber.add_to_hass(hass)
@@ -373,7 +381,8 @@ async def test_duplicate_home_names_are_rejected(hass):
 
 
 @pytest.mark.parametrize(
-    "response", [None, {}, {"prices": {}}, {"prices": {"Home": None}}]
+    "response",
+    [None, [], {}, {"prices": []}, {"prices": {}}, {"prices": {"Home": None}}],
 )
 async def test_missing_action_prices_are_rejected(hass, response):
     args = await source(hass)
