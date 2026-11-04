@@ -9,6 +9,18 @@ The stable release is [v1.6.0](docs/releases/1.6.0.md). Work on `main` is not
 automatically released or hardware-validated. Release scope and priorities may
 change as testing and source availability improve.
 
+## v1.7.0 — Validation and maintenance (planned)
+
+Prepare the merged validation/type-checking improvements and Enhanced forecast
+chart fix for release. Home Assistant Core 2026.9.0 becomes the minimum, allowing
+native Probatio validation and removal of obsolete compatibility code. Review
+the minimum and test baselines at each release; do not raise them automatically.
+
+See the [draft release notes and readiness checklist](docs/releases/1.7.0.md).
+Publication requires the final upgrade smoke test and maintainer approval.
+This release does not promise flexible-load recommendations, battery control
+or completion of every architecture follow-up in #288.
+
 ## Energy-flow follow-up after v1.6 🔭
 
 The [v1.6.0 release notes](docs/releases/1.6.0.md) describe the delivered
@@ -43,7 +55,7 @@ and [export pricing and revenue #241](https://github.com/guslund-jpg/electricity
 
 ---
 
-## v1.7 — Flexible-Load Recommendations 🔭
+## Future — Flexible-Load Recommendations 🔭
 
 ### Goal
 
@@ -67,7 +79,7 @@ and [heat-pump recommendations #243](https://github.com/guslund-jpg/electricity-
 
 ---
 
-## v1.8 — Storage & Whole-Home Optimisation 🔭
+## Future — Storage & Whole-Home Optimisation 🔭
 
 ### Goal
 
@@ -89,7 +101,7 @@ Tracked work: [battery scheduling and whole-home optimisation #244](https://gith
 
 ---
 
-## Beyond v1.8
+## Longer-term possibilities
 
 Potential later capabilities include appliance-specific models, richer solar
 forecast integration, automatic control behind explicit opt-in safeguards, and
