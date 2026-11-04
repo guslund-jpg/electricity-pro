@@ -73,7 +73,7 @@ class FlowSources:
             return FlowReading(None, source, "unsupported_unit", at, unit)
         try:
             value = Decimal(state.state) * factors[unit]
-        except (InvalidOperation, ValueError):
+        except InvalidOperation, ValueError:
             return FlowReading(None, source, "unavailable", at, unit)
         if not value.is_finite() or value < 0:
             return FlowReading(None, source, "invalid", at, unit)

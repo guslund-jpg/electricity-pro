@@ -3,7 +3,7 @@
 from math import isnan
 
 import pytest
-import voluptuous as vol
+import probatio as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr, entity_registry as er

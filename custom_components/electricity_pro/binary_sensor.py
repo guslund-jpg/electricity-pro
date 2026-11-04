@@ -182,7 +182,7 @@ def _optional_decimal(value: Any) -> Decimal | None:
         return None
     try:
         normalized = Decimal(str(value))
-    except (InvalidOperation, ValueError):
+    except InvalidOperation, ValueError:
         return None
     return normalized if normalized.is_finite() else None
 

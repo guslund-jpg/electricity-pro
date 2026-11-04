@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
-import voluptuous as vol
+import probatio as vol
 from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
 
@@ -237,7 +237,7 @@ class VatSuggestionFlow:
                 rate = Decimal(str(user_input[CONF_PRICE_VAT_RATE]))
                 if not rate.is_finite() or not 0 <= rate <= 100:
                     raise ValueError
-            except (KeyError, InvalidOperation, ValueError):
+            except KeyError, InvalidOperation, ValueError:
                 errors["base"] = "invalid_vat_suggestion"
             else:
                 self._vat_values[CONF_PRICE_VAT_RATE] = float(rate)

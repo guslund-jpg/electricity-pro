@@ -1,6 +1,6 @@
 # Keep this baseline small; add rule families in separate reviewed changes.
-# The minimum supported Home Assistant (2025.9) runs Python 3.13.
-target-version = "py313"
+# The minimum supported Home Assistant (2026.9) runs Python 3.14.
+target-version = "py314"
 line-length = 88
 
 [lint]

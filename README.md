@@ -204,7 +204,10 @@ thresholds and unavailable-input handling. No real-device control is enabled.
 
 ### HACS installation (recommended)
 
-Electricity Pro requires Home Assistant 2025.9.0 or newer.
+The next Electricity Pro release (and the current `main` branch) requires
+Home Assistant **2026.9.0 or newer**. Upgrade Home Assistant before installing it.
+Released v1.6.0 retains its Home Assistant 2025.9.0 minimum; older installations
+can remain on that release until Home Assistant is upgraded.
 
 Electricity Pro currently supports installation as a HACS custom repository:
 
