@@ -8,7 +8,7 @@ import logging
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, TypedDict
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, UnitOfEnergy
@@ -121,6 +121,53 @@ from .workday import async_get_non_working_dates
 
 _LOGGER = logging.getLogger(__name__)
 
+
+class _DataUpdates(TypedDict, total=False):
+    """Field-specific replacements for an ElectricityProData snapshot."""
+
+    current_energy: Decimal | None
+    current_energy_unit: str | None
+    energy_today_period_complete: bool
+    peak_power_today: Decimal | None
+    peak_power_time_today: datetime | None
+    energy_this_month: Decimal | None
+    energy_this_month_unit: str | None
+    household_cost_today: Decimal | None
+    household_cost_this_month: Decimal | None
+    household_cost_unit: str | None
+    household_variable_today: Decimal
+    household_variable_month: Decimal
+    household_fixed_today: Decimal
+    household_fixed_month: Decimal
+    household_priced_energy_today: Decimal
+    household_priced_energy_month: Decimal
+    household_missing_fees: tuple[str, ...]
+    local_cost_estimate: bool
+    accumulated_cost_today: Decimal | None
+    accumulated_cost_today_unit: str | None
+    cost_this_month: Decimal | None
+    cost_this_month_unit: str | None
+    local_effective_cost_today: Decimal
+    local_priced_energy_today: Decimal
+    local_supplier_energy_today: Decimal
+    local_supplier_energy_month: Decimal
+    fixed_supplier_fee_this_month_unit: str | None
+    fixed_grid_fee_this_month_unit: str | None
+    total_supplier_cost_this_month: Decimal | None
+    total_supplier_cost_this_month_unit: str | None
+
+
+class _FlowScope(TypedDict):
+    """Persisted identity of an independently accumulated register."""
+
+    source: str | None
+    channel: str
+    counter_kind: str
+    boundary: str
+    timezone: str
+    revision: int
+
+
 _STORAGE_VERSION = 1
 _ENERGY_THIS_MONTH = "energy_this_month"
 _ENERGY_TODAY_FROM_TOTAL = "energy_today_from_total"
@@ -177,7 +224,9 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._entry = entry
         self._local_costs = CostLedger()
         self._flow_counters = {channel: FlowCounter() for channel in CHANNELS}
-        self.flow_values: dict[str, tuple[Decimal | None, dict]] = {}
+        self.flow_values: dict[
+            str, tuple[Decimal | None, dict[str, str | int | None]]
+        ] = {}
         self.flow_compatibility: dict[str, Any] = {"status": "disabled"}
         self._local_timezone = dt_util.get_default_time_zone()
         self._provider = ElectricityProEntityProvider(
@@ -369,7 +418,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         peak_cleared = self._peak_power_today.clear()
         self._store.async_delay_save(self._statistics_data, delay=1)
         if self.data is not None:
-            rollover_updates: dict[str, Decimal | datetime | str | None] = {}
+            rollover_updates: _DataUpdates = {}
             if self._provider.energy_source_is_lifetime_total:
                 rollover_updates["current_energy"] = (
                     Decimal(0) if energy_kwh is not None else None
@@ -826,13 +875,13 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
 
         if _PEAK_POWER_TODAY in stored:
             try:
-                snapshot = DailyPeakSnapshot.from_dict(stored[_PEAK_POWER_TODAY])
+                peak_snapshot = DailyPeakSnapshot.from_dict(stored[_PEAK_POWER_TODAY])
             except ValueError:
                 _LOGGER.warning("Ignoring invalid persisted daily peak state")
             else:
                 local_today = dt_util.now().astimezone(self._local_timezone).date()
-                if snapshot.period_start == local_today:
-                    self._peak_power_today = DailyPeakStatistic(snapshot)
+                if peak_snapshot.period_start == local_today:
+                    self._peak_power_today = DailyPeakStatistic(peak_snapshot)
 
         if _TIMING_BUCKETS in stored:
             try:
@@ -902,7 +951,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         )
 
         now = dt_util.now().astimezone(self._local_timezone)
-        updates: dict[str, Decimal | datetime | str | None] = {}
+        updates: _DataUpdates = {}
         should_save = self._read_flows(now)
 
         if self._provider.energy_source_is_lifetime_total:
@@ -1025,23 +1074,25 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             or (effective is not None and source_energy_kwh is not None)
         )
         updates.update(
-            household_cost_today=ledger.daily_effective + fixed_day
-            if known_day
-            else None,
-            household_cost_this_month=ledger.monthly_effective + fixed_month
-            if known_month
-            else None,
-            household_cost_unit=ledger.unit,
-            household_variable_today=ledger.daily_effective,
-            household_variable_month=ledger.monthly_effective,
-            household_fixed_today=fixed_day,
-            household_fixed_month=fixed_month,
-            household_priced_energy_today=ledger.daily_energy,
-            household_priced_energy_month=ledger.monthly_energy,
-            household_missing_fees=(
-                missing_fees
-                + (("complete_variable_price",) if effective is None else ())
-            ),
+            _DataUpdates(
+                household_cost_today=ledger.daily_effective + fixed_day
+                if known_day
+                else None,
+                household_cost_this_month=ledger.monthly_effective + fixed_month
+                if known_month
+                else None,
+                household_cost_unit=ledger.unit,
+                household_variable_today=ledger.daily_effective,
+                household_variable_month=ledger.monthly_effective,
+                household_fixed_today=fixed_day,
+                household_fixed_month=fixed_month,
+                household_priced_energy_today=ledger.daily_energy,
+                household_priced_energy_month=ledger.monthly_energy,
+                household_missing_fees=(
+                    missing_fees
+                    + (("complete_variable_price",) if effective is None else ())
+                ),
+            )
         )
         if use_local_cost:
             known = ledger.unit is not None and (
@@ -1053,15 +1104,19 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 or (supplier is not None and source_energy_kwh is not None)
             )
             updates.update(
-                local_cost_estimate=True,
-                accumulated_cost_today=ledger.daily_supplier if known_today else None,
-                accumulated_cost_today_unit=ledger.unit if known_today else None,
-                cost_this_month=ledger.monthly_supplier if known else None,
-                cost_this_month_unit=ledger.unit if known else None,
-                local_effective_cost_today=ledger.daily_effective,
-                local_priced_energy_today=ledger.daily_energy,
-                local_supplier_energy_today=ledger.daily_supplier_energy,
-                local_supplier_energy_month=ledger.monthly_supplier_energy,
+                _DataUpdates(
+                    local_cost_estimate=True,
+                    accumulated_cost_today=ledger.daily_supplier
+                    if known_today
+                    else None,
+                    accumulated_cost_today_unit=ledger.unit if known_today else None,
+                    cost_this_month=ledger.monthly_supplier if known else None,
+                    cost_this_month_unit=ledger.unit if known else None,
+                    local_effective_cost_today=ledger.daily_effective,
+                    local_priced_energy_today=ledger.daily_energy,
+                    local_supplier_energy_today=ledger.daily_supplier_energy,
+                    local_supplier_energy_month=ledger.monthly_supplier_energy,
+                )
             )
             should_save |= before != ledger.as_dict()
         elif cost is None or cost_unit is None:
@@ -1512,8 +1567,8 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         ) is not None and self._cost_this_month_unit is not None:
             data[_COST_THIS_MONTH] = snapshot.as_dict()
             data[_COST_THIS_MONTH_UNIT] = self._cost_this_month_unit
-        if (snapshot := self._peak_power_today.snapshot) is not None:
-            data[_PEAK_POWER_TODAY] = snapshot.as_dict()
+        if (peak_snapshot := self._peak_power_today.snapshot) is not None:
+            data[_PEAK_POWER_TODAY] = peak_snapshot.as_dict()
         data[_TIMING_BUCKETS] = self._timing_buckets.as_dict()
         if self._timing_result_date is not None and self._timing_result is not None:
             data[_TIMING_RESULT] = {
@@ -1528,7 +1583,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         data[_ADAPTIVE_PRICE_HISTORY] = self._adaptive_price_history.as_dict()
         return data
 
-    def _flow_scope(self, channel: str) -> dict:
+    def _flow_scope(self, channel: str) -> _FlowScope:
         """Scope each independently accumulated AC lifetime register."""
         return {
             "source": self._provider.flow_sources.bindings[f"{channel}_energy_entity"],
@@ -1547,7 +1602,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         for channel in CHANNELS:
             for quantity in ("power", "energy"):
                 reading = self._provider.flow_sources.read(channel, quantity, now)
-                attrs = {
+                attrs: dict[str, str | int | None] = {
                     "source_entity": reading.source,
                     "channel": channel,
                     "boundary": "site_ac",

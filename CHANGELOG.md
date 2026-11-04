@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Extend strict type checking to the coordinator's snapshot updates and flow
+  metadata. Preserve calculations, malformed-setting handling and saved formats.
+
 - Extend the strict type-checking gate to forecast models, price calculations and
   forecast insights. Limit the price-direction result type to its three supported
   states without changing calculations, entity behaviour or saved settings.

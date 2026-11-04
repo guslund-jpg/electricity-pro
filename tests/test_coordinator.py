@@ -2,6 +2,7 @@
 
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from typing import get_args, get_type_hints
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -32,7 +33,11 @@ from custom_components.electricity_pro.const import (
     DOMAIN,
     ENERGY_SOURCE_LIFETIME,
 )
-from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
+from custom_components.electricity_pro.coordinator import (
+    ElectricityProCoordinator,
+    _DataUpdates,
+)
+from custom_components.electricity_pro.provider import ElectricityProData
 from custom_components.electricity_pro.forecast import ForecastInterval
 from custom_components.electricity_pro.forecast_insights import (
     ForecastDirectionInsight,
@@ -47,6 +52,14 @@ from custom_components.electricity_pro.pricing import (
 from custom_components.electricity_pro.timing_score import (
     TimingScoreUnavailableReason,
 )
+
+
+def test_update_contract_matches_snapshot_fields():
+    """Keep replacement keys and their allowed types within the snapshot contract."""
+    fields = get_type_hints(ElectricityProData)
+    for name, annotation in get_type_hints(_DataUpdates).items():
+        assert name in fields
+        assert annotation == fields[name] or annotation in get_args(fields[name])
 
 
 def _daily_peak_entry() -> MockConfigEntry:

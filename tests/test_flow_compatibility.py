@@ -46,6 +46,10 @@ def test_aligned_is_only_a_receipt_time_input_check(storage):
         ("present", "unknown", "unknown_topology"),
         ("absent", "absent", "contradictory_topology"),
         ("invalid", "present", "invalid_declaration"),
+        (None, "absent", "invalid_declaration"),
+        ([], "absent", "invalid_declaration"),
+        ("present", {}, "invalid_declaration"),
+        ("present", True, "invalid_declaration"),
     ],
 )
 def test_topology_is_explicit(generation, storage, expected):
@@ -64,6 +68,10 @@ def test_absence_never_inserts_a_missing_flow():
         ({"boundary": "dc"}, "incompatible_boundary"),
         ({"boundary": "subsystem_ac"}, "incompatible_boundary"),
         ({"phase_convention": "unknown"}, "unknown_convention"),
+        ({"phase_convention": None}, "unknown_convention"),
+        ({"phase_convention": []}, "unknown_convention"),
+        ({"phase_convention": {}}, "unknown_convention"),
+        ({"phase_convention": True}, "unknown_convention"),
         ({"phase_convention": "gross_directional"}, "incompatible_conventions"),
         ({"value": None}, "invalid_or_unavailable_source"),
         ({"value": Decimal("-1")}, "invalid_or_unavailable_source"),
