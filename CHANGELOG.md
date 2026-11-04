@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Extend strict type checking to integration setup and action dispatch. Remove
+  the setup-module exclusion while preserving action validation, calculations
+  and saved settings across supported Home Assistant versions.
+
 - Extend strict type checking to the coordinator's snapshot updates and flow
   metadata. Preserve calculations, malformed-setting handling and saved formats.
 

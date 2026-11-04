@@ -41,10 +41,10 @@ jobs:
       - name: Exercise setup, source updates, options and registered actions
         run: >-
           python -m pytest -q --tb=short
-          tests/test_init.py::test_setup_and_unload_entry
+          tests/test_init.py
+          tests/test_flow_sensors.py
           tests/test_sensor.py::test_current_power_updates_when_source_changes
           tests/test_config_flow.py::test_options_flow_saves_adaptive_good_price_settings
-          tests/test_init.py::test_reset_monthly_energy_action_targets_selected_entry
 
   tests:
     name: Python test suite
