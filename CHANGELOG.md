@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Reject boolean Nord Pool forecast prices and invalid inferred area names with
+  explicit validation errors. Extend strict type checking to the native forecast
+  response boundary without changing valid forecast calculations.
+
 - Validate stored history value shapes explicitly before restoring statistics,
   base-load and consumption-timing history. Keep the saved format and calculation
   rules unchanged; reject malformed arrays and records cleanly.
