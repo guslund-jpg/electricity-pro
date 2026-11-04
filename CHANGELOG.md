@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Extend strict type checking to provider input normalization and Tibber source
+  discovery. Replace suppressed optional-state access with explicit guards and
+  reject malformed unit metadata safely; valid readings and saved formats are unchanged.
+
 - Extend strict type checking to sensor registration, phase readers and entity
   attributes, including the flow-compatibility diagnostic payload. Readings,
   availability rules, entity identities and saved formats are unchanged.

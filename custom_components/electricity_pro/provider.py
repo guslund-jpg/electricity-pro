@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
-from typing import Any, Callable
+from typing import Callable
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -407,7 +407,7 @@ class ElectricityProEntityProvider:
         return timestamp
 
     @staticmethod
-    def _normalize_adjustment(value: Any) -> Decimal | None:
+    def _normalize_adjustment(value: object) -> Decimal | None:
         """Normalize an optional configured per-kWh adjustment."""
         if value is None:
             return None
@@ -425,10 +425,10 @@ class ElectricityProEntityProvider:
     ) -> Decimal | None:
         """Normalize a source power state to watts."""
         source_value = ElectricityProEntityProvider._parse_state(source_state)
-        if source_value is None:
+        if source_state is None or source_value is None:
             return None
 
-        source_unit: Any = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
+        source_unit: object = source_state.attributes.get("unit_of_measurement")
 
         if source_unit == UnitOfPower.WATT:
             watts = source_value
@@ -446,11 +446,12 @@ class ElectricityProEntityProvider:
     def _is_negative_power(source_state: State | None) -> bool:
         """Identify a supported signed power measurement as net export."""
         source_value = ElectricityProEntityProvider._parse_state(source_state)
-        if source_value is None or not source_value.is_finite():
+        if source_state is None or source_value is None or not source_value.is_finite():
             return False
-        source_unit: Any = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
+        source_unit: object = source_state.attributes.get("unit_of_measurement")
         return (
-            source_unit in {UnitOfPower.WATT, UnitOfPower.KILO_WATT}
+            isinstance(source_unit, str)
+            and source_unit in {UnitOfPower.WATT, UnitOfPower.KILO_WATT}
             and source_value < 0
         )
 
@@ -460,10 +461,10 @@ class ElectricityProEntityProvider:
     ) -> tuple[Decimal | None, str | None]:
         """Normalize a source electricity price."""
         source_value = ElectricityProEntityProvider._parse_state(source_state)
-        if source_value is None:
+        if source_state is None or source_value is None:
             return None, None
 
-        source_unit = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
+        source_unit: object = source_state.attributes.get("unit_of_measurement")
 
         if (
             not source_value.is_finite()
@@ -480,12 +481,12 @@ class ElectricityProEntityProvider:
     ) -> tuple[Decimal | None, str | None]:
         """Normalize a source electricity energy value."""
         source_value = ElectricityProEntityProvider._parse_state(source_state)
-        if source_value is None:
+        if source_state is None or source_value is None:
             return None, None
 
-        source_unit = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
+        source_unit: object = source_state.attributes.get("unit_of_measurement")
 
-        if source_unit not in {
+        if not isinstance(source_unit, str) or source_unit not in {
             UnitOfEnergy.WATT_HOUR,
             UnitOfEnergy.KILO_WATT_HOUR,
         }:
@@ -502,10 +503,10 @@ class ElectricityProEntityProvider:
     ) -> tuple[Decimal | None, str | None]:
         """Normalize an accumulated electricity cost."""
         source_value = ElectricityProEntityProvider._parse_state(source_state)
-        if source_value is None:
+        if source_state is None or source_value is None:
             return None, None
 
-        source_unit = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
+        source_unit: object = source_state.attributes.get("unit_of_measurement")
 
         if (
             not source_value.is_finite()
@@ -523,10 +524,10 @@ class ElectricityProEntityProvider:
     ) -> Decimal | None:
         """Normalize a source electrical current to amperes."""
         source_value = ElectricityProEntityProvider._parse_state(source_state)
-        if source_value is None:
+        if source_state is None or source_value is None:
             return None
 
-        source_unit: Any = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
+        source_unit: object = source_state.attributes.get("unit_of_measurement")
 
         if source_unit == "A":
             amperes = source_value
@@ -546,10 +547,10 @@ class ElectricityProEntityProvider:
     ) -> Decimal | None:
         """Normalize a source electrical voltage to volts."""
         source_value = ElectricityProEntityProvider._parse_state(source_state)
-        if source_value is None:
+        if source_state is None or source_value is None:
             return None
 
-        source_unit: Any = source_state.attributes.get("unit_of_measurement")  # type: ignore[union-attr]
+        source_unit: object = source_state.attributes.get("unit_of_measurement")
 
         if source_unit == "V":
             volts = source_value
@@ -597,7 +598,7 @@ def _scheduled_grid_tariff(entry: ConfigEntry) -> HighLowGridTariff | None:
         return None
 
 
-def _parse_month_day(value: Any) -> tuple[int, int]:
+def _parse_month_day(value: object) -> tuple[int, int]:
     """Parse an MM-DD recurring date."""
     month, day = str(value).split("-", maxsplit=1)
     return int(month), int(day)
