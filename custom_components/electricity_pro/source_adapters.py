@@ -38,11 +38,20 @@ from .pricing import (
 class RegistryEntity(Protocol):
     """Entity-registry fields used by source discovery."""
 
-    entity_id: str
-    platform: str
-    device_id: str | None
-    translation_key: str | None
-    disabled_by: object | None
+    @property
+    def entity_id(self) -> str: ...
+
+    @property
+    def platform(self) -> str: ...
+
+    @property
+    def device_id(self) -> str | None: ...
+
+    @property
+    def translation_key(self) -> str | None: ...
+
+    @property
+    def disabled_by(self) -> object | None: ...
 
 
 @dataclass(frozen=True)

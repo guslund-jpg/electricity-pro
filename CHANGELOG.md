@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Extend strict type checking to the main setup/options flow, selector schemas
+  and forecast estimate navigation. Guard missing estimate settings and Tibber
+  sources; valid setup behaviour and saved formats are unchanged.
+
 - Extend strict type checking to supporting pricing, fixed-fee, Workday and VAT
   helpers. Type the shared VAT setup/options flow and validate Tibber price
   response rows explicitly; valid calculations and saved settings are unchanged.
