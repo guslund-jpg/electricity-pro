@@ -287,3 +287,64 @@ async def test_native_service_errors_are_not_treated_as_empty_publication(key):
             currency="SEK",
         )
     assert raised.value is error
+
+
+@pytest.mark.parametrize("price", [True, False, None, "100", [], {}])
+async def test_retrieval_rejects_non_numeric_interval_prices(price: object) -> None:
+    """Malformed JSON values must fail validation, including boolean numbers."""
+    hass = SimpleNamespace(
+        services=SimpleNamespace(
+            async_call=AsyncMock(
+                return_value={
+                    "SE3": [
+                        {
+                            "start": "2026-08-13T10:00:00+00:00",
+                            "end": "2026-08-13T10:15:00+00:00",
+                            "price": price,
+                        }
+                    ]
+                }
+            )
+        )
+    )
+    with pytest.raises(ValueError, match="numeric price"):
+        await async_get_nordpool_forecast_intervals_for_date(
+            hass, config_entry_id="test", target_date=date(2026, 8, 13), currency="SEK"
+        )
+
+
+@pytest.mark.parametrize("area", ["", None, 42])
+async def test_retrieval_rejects_invalid_inferred_area(area: object) -> None:
+    """Even an empty publication needs a valid area identifier."""
+    hass = SimpleNamespace(
+        services=SimpleNamespace(async_call=AsyncMock(return_value={area: []}))
+    )
+    with pytest.raises(ValueError, match="nonempty area name"):
+        await async_get_nordpool_forecast_intervals_for_date(
+            hass, config_entry_id="test", target_date=date(2026, 8, 13), currency="SEK"
+        )
+
+
+@pytest.mark.parametrize("area", [None, "SE2", "SE3"])
+async def test_multi_area_entry_requires_configured_selection(area: str | None) -> None:
+    """Explicit selection must belong to the entry; currency comes from it."""
+    async_call = AsyncMock(return_value={"SE3": []})
+    entry = SimpleNamespace(data={"areas": ["SE3", "SE4"], "currency": "SEK"})
+    hass = SimpleNamespace(
+        services=SimpleNamespace(async_call=async_call),
+        config_entries=SimpleNamespace(async_get_entry=lambda entry_id: entry),
+    )
+    if area != "SE3":
+        with pytest.raises(ValueError, match="configured Nord Pool area"):
+            await async_get_nordpool_forecast_intervals_for_date(
+                hass, config_entry_id="test", target_date=date(2026, 8, 13), area=area
+            )
+        async_call.assert_not_awaited()
+    else:
+        assert (
+            await async_get_nordpool_forecast_intervals_for_date(
+                hass, config_entry_id="test", target_date=date(2026, 8, 13), area=area
+            )
+            == []
+        )
+        assert async_call.call_args.args[2]["areas"] == ["SE3"]

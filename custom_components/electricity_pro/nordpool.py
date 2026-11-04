@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime, time, timedelta, tzinfo
 from decimal import Decimal
-from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
@@ -42,7 +42,7 @@ def forecast_delivery_dates(
 
 def normalize_nordpool_forecast_intervals(
     area: str,
-    intervals: list[dict[str, str | int | float]],
+    intervals: Sequence[Mapping[str, object]],
     currency: str,
     published_at: datetime | None = None,
 ) -> list[ForecastInterval]:
@@ -63,7 +63,7 @@ def normalize_nordpool_forecast_intervals(
         if not isinstance(start_raw, str) or not isinstance(end_raw, str):
             raise ValueError("Nord Pool intervals must include string start and end")
 
-        if not isinstance(price_raw, int | float):
+        if isinstance(price_raw, bool) or not isinstance(price_raw, int | float):
             raise ValueError("Nord Pool intervals must include numeric price")
 
         start = dt_util.parse_datetime(start_raw)
@@ -119,7 +119,7 @@ async def async_get_nordpool_forecast_intervals_for_date(
             )
         currency = configured_currency
 
-    service_data: dict[str, Any] = {
+    service_data: dict[str, object] = {
         "config_entry": config_entry_id,
         "date": target_date.isoformat(),
     }
@@ -146,13 +146,21 @@ async def async_get_nordpool_forecast_intervals_for_date(
     else:
         area_intervals = response.get(area)
 
+    if not isinstance(area, str) or not area:
+        raise ValueError("Nord Pool action response must include a nonempty area name")
+
     if not isinstance(area_intervals, list):
         raise ValueError(
             "Nord Pool action response must include a list for the requested area"
         )
 
-    if not all(isinstance(interval, dict) for interval in area_intervals):
-        raise ValueError("Nord Pool action area payload must contain interval mappings")
+    validated_intervals: list[Mapping[str, object]] = []
+    for interval in area_intervals:
+        if not isinstance(interval, dict):
+            raise ValueError(
+                "Nord Pool action area payload must contain interval mappings"
+            )
+        validated_intervals.append(interval)
 
     if currency is None:
         raise ValueError(
@@ -161,7 +169,7 @@ async def async_get_nordpool_forecast_intervals_for_date(
 
     return normalize_nordpool_forecast_intervals(
         area=area,
-        intervals=area_intervals,
+        intervals=validated_intervals,
         currency=currency,
         published_at=published_at,
     )

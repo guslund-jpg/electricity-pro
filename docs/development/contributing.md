@@ -105,11 +105,13 @@ The current strict scope is:
 | `energy_flows.py` | Directional lifetime counters and their persisted state |
 | `flow_sources.py` | Explicit source bindings, normalized readings and freshness checks |
 | `cost_ledger.py` | Observed cost allocation, currency resets and validated persisted totals |
+| `nordpool.py` | Native action response validation, interval normalization and delivery dates |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
-Assistant's typed state API; the remaining checked modules depend only on the
-standard library and each other. Mypy follows
+Assistant's typed state API; `nordpool.py` uses its service API and datetime
+parser, plus the forecast interval model. The remaining checked modules depend
+only on the standard library and each other. Mypy follows
 imports normally and does not ignore missing imports or errors. Strict mode,
 `disallow_any_unimported` and unused-configuration warnings are enabled; the
 small pilot runs without an incremental cache. The extracted Good Time result
@@ -123,6 +125,12 @@ and calculations are unchanged; malformed collection shapes are now rejected
 explicitly. Runtime validation and JSON round-trip tests remain necessary:
 annotations alone do not validate stored data. Strict mode does not prohibit
 explicit `Any` elsewhere in the checked scope.
+
+The Nord Pool boundary builds a validated list of interval mappings before
+normalization, then narrows timestamps and numeric prices at runtime. Boolean
+prices and invalid inferred area names are rejected explicitly. Valid negative
+prices, MWh-to-kWh conversion, configured area/currency selection and native
+service errors retain their existing behaviour.
 
 The flow-compatibility result uses a `Literal` union of supported diagnostic
 statuses, so misspelled or newly introduced statuses require an explicit contract
