@@ -109,6 +109,7 @@ The current strict scope is:
 | `forecast.py` | Forecast interval validation, complete-day averages and serialization |
 | `calculations.py` | Supplier/effective pricing, VAT conversion and cost arithmetic |
 | `forecast_insights.py` | Continuous price windows and duration-weighted two-hour trend |
+| `coordinator.py` | Field-specific snapshot updates, flow metadata and persisted flow scope |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
@@ -165,19 +166,25 @@ inputs, availability and exact freshness boundaries.
 There is one explicit boundary: the exact parent module
 `custom_components.electricity_pro` (`__init__.py`) has `follow_imports = skip`.
 Mypy otherwise discovers that parent while resolving these files and follows
-its HA startup imports into the coordinator. The checked modules do not
+its HA startup imports outside the reviewed scope. The checked modules do not
 use the parent's exported types. This is **not** a wildcard exclusion of its
 submodules: their bodies and imported dependencies remain checked normally.
 Explicit namespace-package bases keep module names consistent with repository
 imports, so the exception cannot accidentally target a different package name.
 See [mypy import handling](https://mypy.readthedocs.io/en/stable/running_mypy.html).
 
-This does not check HA setup, callers in the coordinator/entities, tests, or the
-whole integration. Remaining work from the initial broader scan includes
-snapshot/update dictionaries (`coordinator.py`) and HA action schema/return
-typing (`__init__.py`). These findings require review; they are not by themselves
-proof of runtime failures. Nord Pool action-response narrowing is now covered
-by the strict scope above; the whole integration is not yet type-clean.
+Coordinator snapshot replacements now use a field-specific `TypedDict`; a test
+checks that its keys and value types match `ElectricityProData`. Flow metadata
+and persisted scope are typed without changing saved formats. Compatibility
+declarations remain untrusted objects until runtime validation, including
+non-string and unhashable values. Existing persistence and diagnostic dictionaries
+still contain explicit `Any`; strict checking is not a claim of complete typing.
+
+This does not check HA setup, entity callers, tests, or the whole integration.
+Remaining work includes HA action schema/return typing (`__init__.py`) and
+further narrowing of dynamic boundaries. These findings require review; they
+are not by themselves proof of runtime failures. The whole integration is not
+yet type-clean.
 
 ### Python formatting
 

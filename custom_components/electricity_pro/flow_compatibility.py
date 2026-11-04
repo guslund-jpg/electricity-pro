@@ -43,7 +43,8 @@ class PowerInput:
     source: str
     value: Decimal | None
     received_at: datetime | None
-    phase_convention: str = "unknown"
+    # Saved declarations are untrusted until checked against PHASE_OPTIONS.
+    phase_convention: object = "unknown"
     boundary: str = "site_ac"
     reason: str = "measured"
 
@@ -58,8 +59,8 @@ class CompatibilityResult:
 
 def check_power_compatibility(
     inputs: tuple[PowerInput, ...],
-    generation: str,
-    storage: str,
+    generation: object,
+    storage: object,
     now: datetime,
 ) -> CompatibilityResult:
     """Check only the supplied power observations; never introduce zeros.
