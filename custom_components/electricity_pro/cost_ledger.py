@@ -1,8 +1,10 @@
 """Bounded estimates from observed energy deltas and price intervals."""
 
+from collections.abc import Mapping
 from datetime import datetime, time, timedelta
 from decimal import Decimal
-from typing import Any
+
+from .history_storage import stored_decimal, stored_string
 
 
 class CostLedger:
@@ -13,6 +15,10 @@ class CostLedger:
     """
 
     def __init__(self) -> None:
+        self._reset()
+
+    def _reset(self) -> None:
+        """Clear totals and observation state when starting a new currency."""
         self.day: str | None = None
         self.month: str | None = None
         self.daily_supplier = Decimal(0)
@@ -42,7 +48,7 @@ class CostLedger:
     ) -> None:
         """Apply readings; gaps over 15 minutes and meter resets are unpriced."""
         if unit is not None and self.unit not in (None, unit):
-            self.__init__()
+            self._reset()
         if unit is not None:
             self.unit = unit
         if self.day != now.date().isoformat():
@@ -151,7 +157,13 @@ class CostLedger:
                 self._discard_next_delta = True
                 self._baseline(now, meter, supplier, effective)
 
-    def _baseline(self, now, meter, supplier, effective) -> None:
+    def _baseline(
+        self,
+        now: datetime,
+        meter: Decimal,
+        supplier: Decimal | None,
+        effective: Decimal | None,
+    ) -> None:
         self._meter, self._at = meter, now
         self._segments = [(now, supplier, effective)]
 
@@ -164,7 +176,7 @@ class CostLedger:
         self._segments = []
         self._discard_next_delta = False
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> dict[str, str | None]:
         """Persist bounded totals, never an open pricing interval."""
         return {
             "day": self.day,
@@ -175,59 +187,56 @@ class CostLedger:
                 if self._lifetime_high_water is not None
                 else None
             ),
-            **{
-                name: str(getattr(self, name))
-                for name in (
-                    "daily_supplier",
-                    "monthly_supplier",
-                    "daily_effective",
-                    "daily_energy",
-                    "daily_supplier_energy",
-                    "monthly_supplier_energy",
-                    "monthly_effective",
-                    "monthly_energy",
-                )
-            },
+            "daily_supplier": str(self.daily_supplier),
+            "monthly_supplier": str(self.monthly_supplier),
+            "daily_effective": str(self.daily_effective),
+            "daily_energy": str(self.daily_energy),
+            "daily_supplier_energy": str(self.daily_supplier_energy),
+            "monthly_supplier_energy": str(self.monthly_supplier_energy),
+            "monthly_effective": str(self.monthly_effective),
+            "monthly_energy": str(self.monthly_energy),
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CostLedger":
+    def from_dict(cls, data: Mapping[str, object]) -> "CostLedger":
         """Validate totals before restoring; signed costs support negative prices."""
         ledger = cls()
-        high_water = data.get("lifetime_high_water")
-        if high_water is not None:
-            high_water = Decimal(high_water)
+        raw_high_water = data.get("lifetime_high_water")
+        if raw_high_water is not None:
+            high_water = stored_decimal(raw_high_water)
             if not high_water.is_finite() or high_water < 0:
                 raise ValueError("Invalid lifetime meter baseline")
             ledger._lifetime_high_water = high_water
-        for key in ("day", "month", "unit"):
+
+        def metadata(key: str) -> str | None:
             value = data.get(key)
-            if value is not None and not isinstance(value, str):
-                raise ValueError("Invalid cost metadata")
-            setattr(ledger, key, value)
-        for key in (
-            "daily_supplier",
-            "monthly_supplier",
-            "daily_effective",
-            "daily_energy",
-            "daily_supplier_energy",
-            "monthly_supplier_energy",
-            "monthly_effective",
-            "monthly_energy",
-        ):
+            return stored_string(value) if value is not None else None
+
+        ledger.day = metadata("day")
+        ledger.month = metadata("month")
+        ledger.unit = metadata("unit")
+
+        def total(key: str) -> Decimal:
             if key in ("monthly_effective", "monthly_energy") and key not in data:
                 # Keep the known current day as partial monthly coverage;
                 # never infer earlier days from supplier-only totals.
-                same_month = isinstance(data.get("day"), str) and data["day"][
-                    :7
-                ] == data.get("month")
+                same_month = ledger.day is not None and ledger.day[:7] == ledger.month
                 daily_key = (
                     "daily_effective" if key == "monthly_effective" else "daily_energy"
                 )
-                value = Decimal(data.get(daily_key, "0") if same_month else "0")
+                value = stored_decimal(data.get(daily_key, "0") if same_month else "0")
             else:
-                value = Decimal(data[key])
+                value = stored_decimal(data[key])
             if not value.is_finite() or ("energy" in key and value < 0):
                 raise ValueError("Invalid cost totals")
-            setattr(ledger, key, value)
+            return value
+
+        ledger.daily_supplier = total("daily_supplier")
+        ledger.monthly_supplier = total("monthly_supplier")
+        ledger.daily_effective = total("daily_effective")
+        ledger.daily_energy = total("daily_energy")
+        ledger.daily_supplier_energy = total("daily_supplier_energy")
+        ledger.monthly_supplier_energy = total("monthly_supplier_energy")
+        ledger.monthly_effective = total("monthly_effective")
+        ledger.monthly_energy = total("monthly_energy")
         return ledger
