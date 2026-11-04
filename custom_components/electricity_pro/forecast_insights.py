@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import Callable
+from typing import Callable, Literal
 
 from .forecast import ForecastInterval
 from .calculations import vat_inclusive_price
@@ -67,7 +67,7 @@ class ForecastWindowInsight:
 class ForecastDirectionInsight:
     """A comparison of scheduling-price averages over two elapsed hours."""
 
-    direction: str
+    direction: Literal["rising", "falling", "stable"]
     current_start: datetime
     current_end: datetime
     next_start: datetime
@@ -270,7 +270,7 @@ def find_price_direction(
     current, following = (value / Decimal(3600) for value in weighted)
     delta = following - current
     tolerance = max(abs(current), abs(following)) * PRICE_TREND_RELATIVE_TOLERANCE
-    direction = (
+    direction: Literal["rising", "falling", "stable"] = (
         "stable" if abs(delta) <= tolerance else "rising" if delta > 0 else "falling"
     )
     return ForecastDirectionInsight(
