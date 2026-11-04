@@ -8,7 +8,7 @@ import logging
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from typing import Any, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, UnitOfEnergy
@@ -53,6 +53,7 @@ from .flow_sources import CHANNELS
 from .flow_compatibility import (
     CONF_GENERATION,
     CONF_STORAGE,
+    CompatibilityStatus,
     PowerInput,
     check_power_compatibility,
 )
@@ -157,6 +158,22 @@ class _DataUpdates(TypedDict, total=False):
     total_supplier_cost_this_month_unit: str | None
 
 
+class _FlowCompatibilityAttributes(TypedDict):
+    """Entity diagnostic payload; declarations remain untrusted until checked."""
+
+    status: CompatibilityStatus | Literal["disabled"]
+    problem_channels: NotRequired[list[str]]
+    generation: NotRequired[object]
+    storage: NotRequired[object]
+    checked_sources: NotRequired[dict[str, str]]
+    source_reasons: NotRequired[dict[str, str]]
+    phase_conventions: NotRequired[dict[str, object]]
+    timestamp_provenance: NotRequired[str]
+    quality: NotRequired[str]
+    assessment_scope: NotRequired[str]
+    complete_balance_available: NotRequired[bool]
+
+
 class _FlowScope(TypedDict):
     """Persisted identity of an independently accumulated register."""
 
@@ -227,7 +244,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self.flow_values: dict[
             str, tuple[Decimal | None, dict[str, str | int | None]]
         ] = {}
-        self.flow_compatibility: dict[str, Any] = {"status": "disabled"}
+        self.flow_compatibility: _FlowCompatibilityAttributes = {"status": "disabled"}
         self._local_timezone = dt_util.get_default_time_zone()
         self._provider = ElectricityProEntityProvider(
             hass=hass,
