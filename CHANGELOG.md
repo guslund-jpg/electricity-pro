@@ -4,6 +4,11 @@
 
 ### Changed
 
+- Define the forecast action response explicitly, preserve types when merging
+  settings, and validate pricing metadata at its input boundary. Document the
+  remaining framework and persistence typing exceptions; valid response and
+  saved-data formats are unchanged.
+
 - Extend strict type checking to the main setup/options flow, selector schemas
   and forecast estimate navigation. Guard missing estimate settings and Tibber
   sources; valid setup behaviour and saved formats are unchanged.

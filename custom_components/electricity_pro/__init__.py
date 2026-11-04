@@ -53,7 +53,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         # async_setup_entry owns runtime_data for loaded entries in our domain.
         coordinator = cast(ElectricityProCoordinator, entry.runtime_data)
         try:
-            return coordinator.market_price_forecast_response
+            # The serializer's TypedDict contains only JSON-safe fields. Its
+            # nested typed lists are invariant against HA's generic JSON type.
+            return cast(ServiceResponse, coordinator.market_price_forecast_response)
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
 

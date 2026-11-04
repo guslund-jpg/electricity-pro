@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
 from decimal import Decimal, InvalidOperation
 
 from .const import (
@@ -25,7 +24,7 @@ from .settings import resolve_settings
 
 
 def pricing_metadata_from_mapping(
-    settings: Mapping[str, Any],
+    settings: Mapping[str, object],
 ) -> PricingMetadata | None:
     """Deserialize explicitly configured pricing metadata.
 
@@ -46,13 +45,23 @@ def pricing_metadata_from_mapping(
     if not isinstance(raw_components, (list, tuple, set, frozenset)):
         return None
 
+    raw_strategy = settings[CONF_PRICING_STRATEGY]
+    raw_vat = settings[CONF_PRICE_VAT_TREATMENT]
+    raw_completeness = settings[CONF_PRICE_COMPLETENESS]
+    if (
+        not isinstance(raw_strategy, str)
+        or not isinstance(raw_vat, str)
+        or not isinstance(raw_completeness, str)
+    ):
+        return None
+
     try:
-        strategy = PricingStrategy(settings[CONF_PRICING_STRATEGY])
+        strategy = PricingStrategy(raw_strategy)
         components = frozenset(
             PriceComponent(component) for component in raw_components
         )
-        vat = VatTreatment(settings[CONF_PRICE_VAT_TREATMENT])
-        completeness = PriceCompleteness(settings[CONF_PRICE_COMPLETENESS])
+        vat = VatTreatment(raw_vat)
+        completeness = PriceCompleteness(raw_completeness)
     except TypeError, ValueError:
         return None
 
@@ -65,15 +74,15 @@ def pricing_metadata_from_mapping(
 
 
 def resolve_pricing_metadata(
-    data: Mapping[str, Any],
-    options: Mapping[str, Any],
+    data: Mapping[str, object],
+    options: Mapping[str, object],
 ) -> PricingMetadata | None:
     """Resolve pricing metadata with options taking precedence over entry data."""
     settings = resolve_settings(data, options)
     return pricing_metadata_from_mapping(settings)
 
 
-def vat_rate_from_mapping(settings: Mapping[str, Any]) -> Decimal | None:
+def vat_rate_from_mapping(settings: Mapping[str, object]) -> Decimal | None:
     """Read an explicitly configured percentage; never infer a tax rate."""
     raw = settings.get(CONF_PRICE_VAT_RATE)
     if raw is None or isinstance(raw, bool):

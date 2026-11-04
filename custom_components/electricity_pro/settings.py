@@ -1,12 +1,11 @@
 """Resolve saved entry settings without Home Assistant or value normalization."""
 
 from collections.abc import Mapping
-from typing import Any
 
 
-def resolve_settings(
-    data: Mapping[str, Any], options: Mapping[str, Any]
-) -> dict[str, Any]:
+def resolve_settings[T](
+    data: Mapping[str, T], options: Mapping[str, T]
+) -> dict[str, T]:
     """Return a fresh shallow overlay with options taking precedence.
 
     Presence, not truthiness, determines precedence: explicit None, zero, False,

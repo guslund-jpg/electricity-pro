@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+import json
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -359,7 +360,9 @@ def test_serialize_market_price_forecast_returns_json_safe_series() -> None:
         published_at=datetime(2026, 8, 12, 11, tzinfo=UTC),
     )
 
-    assert serialize_market_price_forecast([second, first]) == {
+    response = serialize_market_price_forecast([second, first])
+    assert json.loads(json.dumps(response)) == response
+    assert response == {
         "currency": "SEK",
         "area": "SE3",
         "price_components": ["market_energy"],
