@@ -159,6 +159,7 @@ The current strict scope is:
 | `pricing_config.py` | Saved price semantics and VAT normalization |
 | `vat_suggestions.py` | Confirmed VAT assistance shared by setup and options flows |
 | `workday.py` | Public Workday action responses and non-working dates |
+| `config_flow.py` | Setup/options steps, typed selectors and confirmed forecast estimate navigation |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
@@ -252,7 +253,15 @@ for dispatch back to a named setup/options step. Existing flow tests cover both
 paths, confirmation, manual escape and preservation of saved rates. Tibber price
 rows enter as objects and must be mappings before their fields are validated.
 
-This does not yet check the main `config_flow.py`, tests, or the whole integration.
+The main configuration flow is also checked. Selector choices and form fields
+use Home Assistant's selector types; estimate steps share its base flow contract.
+Missing pending estimate settings return to forecast pricing, while missing
+Tibber sources are rejected without requesting an estimate. Registry fields are
+read-only protocol properties, matching their use during discovery.
+Heterogeneous framework form/settings dictionaries deliberately retain explicit
+`Any`; individual values are narrowed where needed.
+
+This does not yet strictly check tests or the whole integration.
 Remaining work includes narrowing the explicit `Any` in serialized action responses
 and other dynamic boundaries. These findings require review; they
 are not by themselves proof of runtime failures. The whole integration is not
@@ -281,11 +290,8 @@ the same normal generated-directory and Git-ignore handling as the lint check.
 
 Incremental typing work remains tracked in
 [#287](https://github.com/guslund-jpg/electricity-pro/issues/287).
-The remaining explicit-scope module is `config_flow.py`. Finish this
-configuration-flow boundary in reviewable batches. Add modules to the explicit
-list, include their dependencies, and resolve errors before expanding the gate.
-
-Then review remaining dynamic coordinator, configuration and serialization data:
+The agreed module list now includes the main configuration flow. Review
+remaining dynamic coordinator, configuration and serialization data:
 narrow application-owned values and document any justified framework-boundary
 exceptions. Closing #287 requires the agreed scope and checks to be documented
 and the behavioural tests to pass on both pinned Home Assistant environments;

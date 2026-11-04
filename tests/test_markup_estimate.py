@@ -20,6 +20,47 @@ from custom_components.electricity_pro.markup_estimate import (
 NOW = datetime(2026, 9, 25, 12, tzinfo=timezone.utc)
 
 
+@pytest.mark.parametrize("options", [False, True])
+@pytest.mark.parametrize("step", ["tibber_markup_estimate", "tibber_markup_review"])
+async def test_estimate_without_pending_settings_returns_to_pricing(options, step):
+    from custom_components.electricity_pro.config_flow import (
+        ElectricityProConfigFlow,
+        ElectricityProOptionsFlow,
+    )
+
+    flow = ElectricityProOptionsFlow() if options else ElectricityProConfigFlow()
+    result = {"type": "form", "step_id": "tibber_forecast_pricing"}
+    with patch.object(
+        flow, "async_step_tibber_forecast_pricing", AsyncMock(return_value=result)
+    ) as pricing:
+        assert await getattr(flow, f"async_step_{step}")() == result
+    pricing.assert_awaited_once_with()
+
+
+async def test_estimate_without_selected_tibber_source_is_rejected(hass):
+    from custom_components.electricity_pro.config_flow import ElectricityProConfigFlow
+
+    nordpool = MockConfigEntry(
+        domain="nordpool", data={"areas": ["SE3"], "currency": "SEK"}
+    )
+    nordpool.add_to_hass(hass)
+    flow = ElectricityProConfigFlow()
+    flow.hass = hass
+    flow._pending_forecast_settings = {
+        "forecast_nordpool_config_entry": nordpool.entry_id,
+        "price_vat_rate": 25,
+    }
+    with patch(
+        "custom_components.electricity_pro.config_flow.async_estimate_markup",
+        AsyncMock(),
+    ) as estimate:
+        result = await flow.async_step_tibber_markup_estimate(
+            {"forecast_price_area": "SE3", "confirm_matching_area": True}
+        )
+    assert result["errors"] == {"base": "markup_estimate_unavailable"}
+    estimate.assert_not_awaited()
+
+
 def samples(*, negative=False):
     rows, market = [], []
     for index in range(5):

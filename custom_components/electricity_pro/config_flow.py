@@ -11,6 +11,7 @@ import probatio as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import (
     ConfigEntry,
+    ConfigEntryBaseFlow,
     ConfigFlowResult,
     OptionsFlow,
 )
@@ -75,7 +76,7 @@ from .pricing import (
 from .grid_tariff import HighLowGridTariff
 from .source_adapters import DiscoveredSource, discover_tibber_sources
 from .flow_sources import FLOW_KEYS, CONF_CONFIGURE_FLOWS
-from .markup_estimate import CONF_ESTIMATE_MARKUP, async_estimate_markup
+from .markup_estimate import CONF_ESTIMATE_MARKUP, MarkupEstimate, async_estimate_markup
 from .vat_suggestions import CONF_SUGGEST_VAT, VatSuggestionFlow, assistance_field
 from .flow_compatibility import (
     COMPATIBILITY_KEYS,
@@ -102,7 +103,7 @@ def _with_flow_settings(schema: vol.Schema) -> vol.Schema:
 _SETUP_TIBBER = "tibber"
 _SETUP_CUSTOM = "custom"
 
-_PRICING_STRATEGY_OPTIONS = [
+_PRICING_STRATEGY_OPTIONS: list[selector.SelectOptionDict] = [
     {
         "value": PricingStrategy.SUPPLIER_CONTRACTED_PRICE.value,
         "label": "Supplier-contracted price",
@@ -117,7 +118,7 @@ _PRICING_STRATEGY_OPTIONS = [
     },
 ]
 
-_PRICE_COMPONENT_OPTIONS = [
+_PRICE_COMPONENT_OPTIONS: list[selector.SelectOptionDict] = [
     {"value": PriceComponent.MARKET_ENERGY.value, "label": "Market energy"},
     {"value": PriceComponent.SUPPLIER_MARKUP.value, "label": "Supplier markup"},
     {"value": PriceComponent.ENERGY_TAX.value, "label": "Energy tax"},
@@ -127,13 +128,13 @@ _PRICE_COMPONENT_OPTIONS = [
     },
 ]
 
-_VAT_OPTIONS = [
+_VAT_OPTIONS: list[selector.SelectOptionDict] = [
     {"value": VatTreatment.INCLUDED.value, "label": "VAT included"},
     {"value": VatTreatment.EXCLUDED.value, "label": "VAT excluded"},
     {"value": VatTreatment.UNKNOWN.value, "label": "Unknown"},
 ]
 
-_ENERGY_SOURCE_TYPE_OPTIONS = [
+_ENERGY_SOURCE_TYPE_OPTIONS: list[selector.SelectOptionDict] = [
     {
         "value": ENERGY_SOURCE_DAILY,
         "label": "Accumulated since midnight",
@@ -144,7 +145,7 @@ _ENERGY_SOURCE_TYPE_OPTIONS = [
     },
 ]
 
-_GOOD_PRICE_MODE_OPTIONS = [
+_GOOD_PRICE_MODE_OPTIONS: list[selector.SelectOptionDict] = [
     {"value": GOOD_PRICE_MODE_FIXED, "label": "Fixed threshold"},
     {"value": GOOD_PRICE_MODE_ADAPTIVE, "label": "Adaptive"},
 ]
@@ -252,8 +253,12 @@ def _setup_method_schema() -> vol.Schema:
             vol.Required(CONF_SETUP_METHOD): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
-                        {"value": _SETUP_TIBBER, "label": "Tibber fast track"},
-                        {"value": _SETUP_CUSTOM, "label": "Custom or mixed sources"},
+                        selector.SelectOptionDict(
+                            value=_SETUP_TIBBER, label="Tibber fast track"
+                        ),
+                        selector.SelectOptionDict(
+                            value=_SETUP_CUSTOM, label="Custom or mixed sources"
+                        ),
                     ],
                     mode=selector.SelectSelectorMode.LIST,
                 )
@@ -877,11 +882,26 @@ def _entity_schema(
     )
 
 
-class _MarkupEstimateFlow:
+class _MarkupEstimateFlow(ConfigEntryBaseFlow):
     """Shared opt-in estimate and review steps for setup and options."""
 
-    async def async_step_tibber_markup_estimate(self, user_input=None):
+    _pending_forecast_settings: dict[str, Any] | None
+    _selected_tibber_source: DiscoveredSource | None = None
+    _markup_estimate: MarkupEstimate
+    _markup_estimate_area: str
+
+    async def async_step_tibber_forecast_pricing(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Continue through the concrete setup or options flow."""
+        raise NotImplementedError
+
+    async def async_step_tibber_markup_estimate(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         pending = self._pending_forecast_settings
+        if pending is None:
+            return await self.async_step_tibber_forecast_pricing()
         entry = self.hass.config_entries.async_get_entry(
             pending.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY, "")
         )
@@ -892,21 +912,31 @@ class _MarkupEstimateFlow:
                 return await self.async_step_tibber_forecast_pricing()
             area = user_input.get(CONF_FORECAST_PRICE_AREA)
             try:
-                if area not in areas or pending.get(CONF_PRICE_VAT_RATE) is None:
+                if (
+                    entry is None
+                    or not isinstance(area, str)
+                    or area not in areas
+                    or pending.get(CONF_PRICE_VAT_RATE) is None
+                ):
                     raise ValueError("An area and explicit VAT rate are required")
-                selected = getattr(self, "_selected_tibber_source", None)
-                source = (
-                    selected.data
-                    if selected
-                    else {
+                selected = self._selected_tibber_source
+                source: dict[str, object]
+                if selected is not None:
+                    source = selected.data
+                elif isinstance(self, OptionsFlow):
+                    source = {
                         **self.config_entry.data,
                         **self.config_entry.options,
                     }
-                )
+                else:
+                    raise ValueError("A Tibber source is required")
+                price_entity = source.get(CONF_PRICE_ENTITY, "")
+                if not isinstance(price_entity, str):
+                    raise ValueError("A price entity ID is required")
                 async with asyncio.timeout(30):
                     self._markup_estimate = await async_estimate_markup(
                         self.hass,
-                        price_entity=source.get(CONF_PRICE_ENTITY, ""),
+                        price_entity=price_entity,
                         nordpool_entry_id=entry.entry_id,
                         area=area,
                         vat_rate=pending[CONF_PRICE_VAT_RATE],
@@ -936,18 +966,19 @@ class _MarkupEstimateFlow:
             errors=errors,
         )
 
-    async def async_step_tibber_markup_review(self, user_input=None):
+    async def async_step_tibber_markup_review(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        pending = self._pending_forecast_settings
+        if pending is None:
+            return await self.async_step_tibber_forecast_pricing()
         estimate = self._markup_estimate
         if user_input is not None:
             if user_input.get("use_estimate"):
-                self._pending_forecast_settings[CONF_FORECAST_PRICE_AREA] = (
-                    self._markup_estimate_area
-                )
+                pending[CONF_FORECAST_PRICE_AREA] = self._markup_estimate_area
                 return await self.async_step_tibber_forecast_pricing(
                     {
-                        CONF_PRICE_VAT_RATE: self._pending_forecast_settings[
-                            CONF_PRICE_VAT_RATE
-                        ],
+                        CONF_PRICE_VAT_RATE: pending[CONF_PRICE_VAT_RATE],
                         CONF_SUPPLIER_MARKUP_PER_KWH: user_input[
                             CONF_SUPPLIER_MARKUP_PER_KWH
                         ],
@@ -1126,7 +1157,7 @@ class ElectricityProConfigFlow(
             return await self.async_step_tibber_settings()
 
         device_registry = dr.async_get(self.hass)
-        options = []
+        options: list[selector.SelectOptionDict] = []
         for device_id in self._tibber_sources:
             device = device_registry.async_get(device_id)
             label = (
@@ -1743,7 +1774,9 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
                     return await self.async_step_flow_compatibility()
                 return await self.async_step_init(combined)
         values = user_input if user_input is not None else pending
-        fields = {}
+        fields: dict[
+            vol.Marker, selector.EntitySelector | selector.BooleanSelector
+        ] = {}
         for key in FLOW_KEYS:
             marker = vol.Optional(key, description={"suggested_value": values.get(key)})
             fields[marker] = selector.EntitySelector(
@@ -1784,7 +1817,7 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
                 self._pending_compatibility_settings = None
                 return await self.async_step_init(combined)
         values = {**pending, **(user_input or {})}
-        fields = {
+        fields: dict[vol.Marker, selector.BooleanSelector | selector.SelectSelector] = {
             vol.Required(
                 CONF_ENABLED, default=values.get(CONF_ENABLED, False)
             ): selector.BooleanSelector(),
@@ -1943,7 +1976,11 @@ def _prepare_pricing_metadata(user_input: dict[str, Any]) -> bool:
     raw_strategy = user_input.get(CONF_PRICING_STRATEGY)
     raw_components = user_input.get(CONF_PRICE_INCLUDED_COMPONENTS)
     raw_vat = user_input.get(CONF_PRICE_VAT_TREATMENT)
-    if not isinstance(raw_components, list):
+    if (
+        not isinstance(raw_components, list)
+        or not isinstance(raw_strategy, str)
+        or not isinstance(raw_vat, str)
+    ):
         return False
 
     try:
