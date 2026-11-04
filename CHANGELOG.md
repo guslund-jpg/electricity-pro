@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.7.0]
+
+**Unpublished candidate; release date pending approval.** Requires Home Assistant
+Core 2026.9.0 or newer. See the [upgrade notes and release gates](docs/releases/1.7.0.md).
+
 ### Changed
 
 - Define the forecast action response explicitly, preserve types when merging
