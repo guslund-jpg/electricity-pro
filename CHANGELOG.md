@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Extend strict type checking to sensor registration, phase readers and entity
+  attributes, including the flow-compatibility diagnostic payload. Readings,
+  availability rules, entity identities and saved formats are unchanged.
+
 - Extend strict type checking to the Good Time binary sensor and shared device
   metadata. Explicitly type explanatory attributes and numeric setting inputs;
   classification, entity identity and saved settings are unchanged.

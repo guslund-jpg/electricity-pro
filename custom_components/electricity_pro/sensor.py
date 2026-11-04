@@ -6,7 +6,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -145,7 +144,7 @@ def supplier_price(data: ElectricityProData) -> Decimal | None:
     )
 
 
-def _forecast_price_attributes(metadata: PricingMetadata) -> dict[str, Any]:
+def _forecast_price_attributes(metadata: PricingMetadata) -> dict[str, object]:
     """Return transparent component metadata for a forecast-derived price."""
     return {
         "price_components": sorted(
@@ -210,12 +209,24 @@ def projected_remaining_cost(data: ElectricityProData) -> Decimal | None:
 PHASES: tuple[str, ...] = ("l1", "l2", "l3")
 
 
+def _phase_available(
+    reader: Callable[[ElectricityProData], Decimal | None],
+) -> Callable[[ElectricityProData], bool]:
+    """Bind availability to the same explicitly typed phase reader."""
+    return lambda data: reader(data) is not None
+
+
 def _phase_current_descriptions() -> tuple[ElectricityProSensorEntityDescription, ...]:
     """Return current sensor descriptions for all three phases."""
     conf_keys = (
         CONF_CURRENT_L1_ENTITY,
         CONF_CURRENT_L2_ENTITY,
         CONF_CURRENT_L3_ENTITY,
+    )
+    readers: tuple[Callable[[ElectricityProData], Decimal | None], ...] = (
+        lambda data: data.current_l1,
+        lambda data: data.current_l2,
+        lambda data: data.current_l3,
     )
     return tuple(
         ElectricityProSensorEntityDescription(
@@ -226,13 +237,11 @@ def _phase_current_descriptions() -> tuple[ElectricityProSensorEntityDescription
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             suggested_display_precision=2,
-            value_fn=lambda data, p=phase: getattr(data, f"current_{p}"),
-            available_fn=lambda data, p=phase: (
-                getattr(data, f"current_{p}") is not None
-            ),
+            value_fn=reader,
+            available_fn=_phase_available(reader),
             required_config_key=conf_key,
         )
-        for phase, conf_key in zip(PHASES, conf_keys)
+        for phase, conf_key, reader in zip(PHASES, conf_keys, readers)
     )
 
 
@@ -243,6 +252,11 @@ def _phase_voltage_descriptions() -> tuple[ElectricityProSensorEntityDescription
         CONF_VOLTAGE_L2_ENTITY,
         CONF_VOLTAGE_L3_ENTITY,
     )
+    readers: tuple[Callable[[ElectricityProData], Decimal | None], ...] = (
+        lambda data: data.voltage_l1,
+        lambda data: data.voltage_l2,
+        lambda data: data.voltage_l3,
+    )
     return tuple(
         ElectricityProSensorEntityDescription(
             key=f"voltage_{phase}",
@@ -252,13 +266,11 @@ def _phase_voltage_descriptions() -> tuple[ElectricityProSensorEntityDescription
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfElectricPotential.VOLT,
             suggested_display_precision=1,
-            value_fn=lambda data, p=phase: getattr(data, f"voltage_{p}"),
-            available_fn=lambda data, p=phase: (
-                getattr(data, f"voltage_{p}") is not None
-            ),
+            value_fn=reader,
+            available_fn=_phase_available(reader),
             required_config_key=conf_key,
         )
-        for phase, conf_key in zip(PHASES, conf_keys)
+        for phase, conf_key, reader in zip(PHASES, conf_keys, readers)
     )
 
 
@@ -561,7 +573,7 @@ async def async_setup_entry(
         "consumption_weighted_average_price_today",
         "total_supplier_cost_this_month",
     }
-    entities = [
+    entities: list[SensorEntity] = [
         ElectricityProSensor(
             coordinator=entry.runtime_data,
             entry=entry,
@@ -711,7 +723,7 @@ class ElectricityProFlowCompatibilitySensor(
         return self.coordinator.flow_compatibility["status"]
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
+    def extra_state_attributes(self) -> dict[str, object]:
         return {
             key: value
             for key, value in self.coordinator.flow_compatibility.items()
@@ -767,7 +779,7 @@ class ElectricityProFlowSensor(
         return super().available and self.native_value is not None
 
     @property
-    def extra_state_attributes(self) -> dict:
+    def extra_state_attributes(self) -> dict[str, str | int | None]:
         return self.coordinator.flow_values.get(self._key, (None, {}))[1]
 
 
@@ -844,7 +856,7 @@ class ElectricityProSensor(
         )
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, object] | None:
         """Expose source coverage and VAT requirements."""
         if self.entity_description.key in {"total_cost_today", "total_cost_this_month"}:
             data = self.coordinator.data
@@ -1018,14 +1030,14 @@ class ElectricityProCurrentMarketPriceSensor(
         return super().available and self._interval is not None
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, object] | None:
         """Return transparent interval and component metadata."""
         interval = self._interval
         try:
             forecast = self.coordinator.market_price_forecast_response
         except ValueError:
             return None
-        attributes: dict[str, Any] = {
+        attributes: dict[str, object] = {
             "currency": forecast["currency"],
             "price_area": forecast["area"],
             "published_at": forecast["published_at"],
@@ -1090,7 +1102,7 @@ class ElectricityProAverageMarketPriceTodaySensor(
         return super().available and self._result is not None
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, object] | None:
         """Explain the completed period and strictly retrospective purpose."""
         result = self._result
         if result is None:
@@ -1149,7 +1161,7 @@ class ElectricityProConsumptionTimingScoreSensor(
         return super().available and self.native_value is not None
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, object] | None:
         """Return compact metadata explaining the result and availability."""
         stored = self._result
         if stored is None:
@@ -1208,7 +1220,7 @@ class ElectricityProEstimatedBaseLoadSensor(
         return super().available and self.native_value is not None
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, object] | None:
         """Return bounded metadata explaining the rolling estimate."""
         result = self._result
         if result is None:
@@ -1287,7 +1299,7 @@ class ElectricityProAveragePowerTodaySensor(
         return super().available and self.native_value is not None
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, object] | None:
         """Return coverage metadata for the current estimate."""
         stored = self._result
         if stored is None:
@@ -1333,7 +1345,7 @@ class ElectricityProCheapestWindowSensor(ElectricityProForecastInsightSensor):
         return super().available and self._insight is not None
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, object] | None:
         """Return explanatory attributes for the selected window."""
         insight = self._insight
         if insight is None:
@@ -1419,7 +1431,7 @@ class ElectricityProCheapestWindowAverageEffectivePriceSensor(
         return super().available and self._insight is not None
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, object] | None:
         """Return explanatory attributes for the cheapest upcoming window."""
         insight = self._insight
         if insight is None:
@@ -1475,7 +1487,7 @@ class ElectricityProNextInexpensive1hWindowSensor(ElectricityProForecastInsightS
         )
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, object] | None:
         """Return explanatory attributes for the next inexpensive 1h window."""
         insight = self.coordinator.next_inexpensive_1h_window
         if insight is None:
@@ -1549,7 +1561,7 @@ class ElectricityProPriceDirectionSensor(ElectricityProForecastInsightSensor):
         return super().available and self.coordinator.price_direction is not None
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
+    def extra_state_attributes(self) -> dict[str, object] | None:
         """Return explanatory attributes for price direction."""
         insight = self.coordinator.price_direction
         if insight is None:

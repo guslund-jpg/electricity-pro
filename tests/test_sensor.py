@@ -1512,6 +1512,45 @@ async def test_peak_power_today_ignores_export(
     assert Decimal(peak.state) == Decimal(1234)
 
 
+@pytest.mark.parametrize("kind,unit", [("current", "A"), ("voltage", "V")])
+@pytest.mark.parametrize("phase", ["l1", "l2", "l3"])
+async def test_phase_readers_keep_values_and_availability_independent(
+    hass: HomeAssistant,
+    setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],
+    kind: str,
+    unit: str,
+    phase: str,
+) -> None:
+    """Each reader stays bound to its own phase, including zero and missing data."""
+    values = {
+        "current_l1": "4.5",
+        "current_l2": "5.25",
+        "current_l3": "6.75",
+        "voltage_l1": "230.1",
+        "voltage_l2": "231.2",
+        "voltage_l3": "232.3",
+    }
+    await setup_electricity_pro(
+        **{f"{key}_value": value for key, value in values.items()}
+    )
+    selected = f"{kind}_{phase}"
+    for value in ("0", "unknown", values[selected]):
+        hass.states.async_set(
+            f"sensor.test_{selected}",
+            value,
+            {"unit_of_measurement": unit, "device_class": kind},
+        )
+        await hass.async_block_till_done()
+        for key, original in values.items():
+            state = hass.states.get(f"sensor.{DOMAIN}_{key}")
+            assert state is not None
+            expected = value if key == selected else original
+            if expected == "unknown":
+                assert state.state == "unavailable"
+            else:
+                assert Decimal(state.state) == Decimal(expected)
+
+
 async def test_phase_current_initial_values(
     hass: HomeAssistant,
     setup_electricity_pro: Callable[..., CoroutineType[Any, Any, MockConfigEntry]],

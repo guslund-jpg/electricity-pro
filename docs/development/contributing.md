@@ -150,18 +150,19 @@ The current strict scope is:
 | `__init__.py` | Integration lifecycle and action dispatch to the selected loaded coordinator |
 | `binary_sensor.py` | Good Time entity state, explanatory attributes and numeric settings |
 | `device.py` | Fresh, entry-scoped Home Assistant device metadata |
+| `sensor.py` | Sensor registration, phase readers, availability and entity attributes |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
 Assistant's typed state API; `nordpool.py` uses its service API and datetime
 parser, plus the forecast interval model. `calculations.py` uses Home Assistant's
 energy-unit constants. The coordinator and integration setup use Home Assistant's
-entry, lifecycle and service APIs. The Good Time entity and device metadata helper
+entry, lifecycle and service APIs. Sensors, the Good Time entity and device metadata helper
 use Home Assistant's entity and device APIs. The remaining checked modules depend
 only on the standard library and each other. Mypy follows
 imports normally and does not ignore missing imports or errors. Strict mode,
 `disallow_any_unimported` and unused-configuration warnings are enabled; the
-small pilot runs without an incremental cache. The extracted Good Time result
+checked scope runs without an incremental cache. The extracted Good Time result
 uses an explicit attribute-value union; calculation behaviour is unchanged.
 
 The three history/statistics modules accept stored records as
@@ -188,8 +189,9 @@ the explicit CI scope protects these contracts on future changes.
 The flow-compatibility result uses a `Literal` union of supported diagnostic
 statuses, so misspelled or newly introduced statuses require an explicit contract
 update. Input declarations remain strings: unknown or invalid declarations must
-still reach the existing runtime validation. This checks the pure diagnostic,
-not its HA-facing callers, and does not change availability or flow calculations.
+still reach the existing runtime validation. The coordinator's diagnostic payload
+also has an explicit `TypedDict`, with a required status and optional explanatory
+fields. Its sensor caller is checked without changing availability or calculations.
 
 Directional energy counters also read `Mapping[str, object]` and write an explicit
 `TypedDict`. Shared string/decimal readers narrow stored values before existing
@@ -219,10 +221,16 @@ Coordinator snapshot replacements now use a field-specific `TypedDict`; a test
 checks that its keys and value types match `ElectricityProData`. Flow metadata
 and persisted scope are typed without changing saved formats. Compatibility
 declarations remain untrusted objects until runtime validation, including
-non-string and unhashable values. Existing persistence and diagnostic dictionaries
+non-string and unhashable values. Existing persistence and action-response dictionaries
 still contain explicit `Any`; strict checking is not a claim of complete typing.
 
-This does not check all entity callers, tests, or the whole integration.
+Sensor registration explicitly accepts the different sensor subclasses. Phase
+readers use named snapshot fields rather than dynamic attribute lookup, with
+availability bound to the same reader. Tests exercise all six phases independently,
+including zero, unavailable readings and recovery. Entity attribute dictionaries
+use `object` values rather than `Any`; this does not validate their runtime contents.
+
+This does not check configuration flows, provider implementations, tests, or the whole integration.
 Remaining work includes narrowing the explicit `Any` in serialized action responses
 and other dynamic boundaries. These findings require review; they
 are not by themselves proof of runtime failures. The whole integration is not
