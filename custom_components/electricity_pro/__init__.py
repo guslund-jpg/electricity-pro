@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
@@ -13,7 +15,7 @@ from homeassistant.core import (
 )
 from homeassistant.exceptions import ConfigEntryError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.typing import ConfigType
+from homeassistant.helpers.typing import ConfigType, VolSchemaType
 
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
@@ -34,6 +36,14 @@ _GET_MARKET_PRICE_FORECAST_SCHEMA = vol.Schema(
 )
 
 
+def _action_schema(schema: vol.Schema) -> VolSchemaType:
+    """Keep voluptuous validation across supported Home Assistant versions."""
+    # Newer Core annotates this boundary with probatio schema types, but its
+    # service registry still accepts our callable voluptuous validators. Keep
+    # the runtime schema unchanged for the minimum supported Core version.
+    return cast(VolSchemaType, schema)
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up Electricity Pro integration-level actions."""
 
@@ -48,8 +58,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         if entry.state is not ConfigEntryState.LOADED:
             raise ServiceValidationError("Electricity Pro config entry is not loaded")
 
+        # async_setup_entry owns runtime_data for loaded entries in our domain.
+        coordinator = cast(ElectricityProCoordinator, entry.runtime_data)
         try:
-            return entry.runtime_data.market_price_forecast_response
+            return coordinator.market_price_forecast_response
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
 
@@ -57,7 +69,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         DOMAIN,
         SERVICE_GET_MARKET_PRICE_FORECAST,
         async_get_market_price_forecast,
-        schema=_GET_MARKET_PRICE_FORECAST_SCHEMA,
+        schema=_action_schema(_GET_MARKET_PRICE_FORECAST_SCHEMA),
         supports_response=SupportsResponse.ONLY,
     )
 
@@ -68,8 +80,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             raise ServiceValidationError("Electricity Pro config entry not found")
         if entry.state is not ConfigEntryState.LOADED:
             raise ServiceValidationError("Electricity Pro config entry is not loaded")
+        coordinator = cast(ElectricityProCoordinator, entry.runtime_data)
         try:
-            await entry.runtime_data.async_reset_monthly_energy()
+            await coordinator.async_reset_monthly_energy()
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
 
@@ -77,11 +90,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         DOMAIN,
         "reset_monthly_energy",
         async_reset_monthly_energy,
-        schema=vol.Schema(
-            {
-                vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-                vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
-            }
+        schema=_action_schema(
+            vol.Schema(
+                {
+                    vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+                    vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
+                }
+            )
         ),
     )
 
@@ -92,8 +107,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             raise ServiceValidationError("Electricity Pro config entry not found")
         if entry.state is not ConfigEntryState.LOADED:
             raise ServiceValidationError("Electricity Pro config entry is not loaded")
+        coordinator = cast(ElectricityProCoordinator, entry.runtime_data)
         try:
-            await entry.runtime_data.async_confirm_meter_reset()
+            await coordinator.async_confirm_meter_reset()
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
 
@@ -101,11 +117,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         DOMAIN,
         "confirm_meter_reset",
         async_confirm_meter_reset,
-        schema=vol.Schema(
-            {
-                vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-                vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
-            }
+        schema=_action_schema(
+            vol.Schema(
+                {
+                    vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+                    vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
+                }
+            )
         ),
     )
 
@@ -118,8 +136,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             or entry.state is not ConfigEntryState.LOADED
         ):
             raise ServiceValidationError("Electricity Pro configuration must be loaded")
+        coordinator = cast(ElectricityProCoordinator, entry.runtime_data)
         try:
-            await entry.runtime_data.async_confirm_flow_meter_reset(
+            await coordinator.async_confirm_flow_meter_reset(
                 call.data["channel"],
                 call.data["source_entity"],
             )
@@ -130,13 +149,15 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         DOMAIN,
         "confirm_flow_meter_reset",
         async_confirm_flow_meter_reset,
-        schema=vol.Schema(
-            {
-                vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
-                vol.Required("channel"): vol.In(CHANNELS),
-                vol.Required("source_entity"): cv.entity_id,
-                vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
-            }
+        schema=_action_schema(
+            vol.Schema(
+                {
+                    vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+                    vol.Required("channel"): vol.In(CHANNELS),
+                    vol.Required("source_entity"): cv.entity_id,
+                    vol.Required("confirm_reset"): vol.All(bool, vol.In([True])),
+                }
+            )
         ),
     )
     return True

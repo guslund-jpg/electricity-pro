@@ -110,12 +110,14 @@ The current strict scope is:
 | `calculations.py` | Supplier/effective pricing, VAT conversion and cost arithmetic |
 | `forecast_insights.py` | Continuous price windows and duration-weighted two-hour trend |
 | `coordinator.py` | Field-specific snapshot updates, flow metadata and persisted flow scope |
+| `__init__.py` | Integration lifecycle and action dispatch to the selected loaded coordinator |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
 Assistant's typed state API; `nordpool.py` uses its service API and datetime
 parser, plus the forecast interval model. `calculations.py` uses Home Assistant's
-energy-unit constants. The remaining checked modules depend
+energy-unit constants. The coordinator and integration setup use Home Assistant's
+entry, lifecycle and service APIs. The remaining checked modules depend
 only on the standard library and each other. Mypy follows
 imports normally and does not ignore missing imports or errors. Strict mode,
 `disallow_any_unimported` and unused-configuration warnings are enabled; the
@@ -163,14 +165,16 @@ unit conversion, receipt-time provenance, and the 300-second power / 900-second
 energy freshness limits are unchanged. Tests cover all three channels, malformed
 inputs, availability and exact freshness boundaries.
 
-There is one explicit boundary: the exact parent module
-`custom_components.electricity_pro` (`__init__.py`) has `follow_imports = skip`.
-Mypy otherwise discovers that parent while resolving these files and follows
-its HA startup imports outside the reviewed scope. The checked modules do not
-use the parent's exported types. This is **not** a wildcard exclusion of its
-submodules: their bodies and imported dependencies remain checked normally.
+Integration setup now joins the checked scope; there are no `follow_imports = skip`
+overrides. Action handlers narrow `runtime_data` to the coordinator after checking
+the entry's domain and loaded state. Setup owns that runtime-data assignment.
+A small schema adapter isolates a cross-version cast: newer Core annotates action
+schemas with probatio types, while our supported versions accept the existing
+callable voluptuous validators. The adapter returns the same schema object;
+it neither changes validation nor introduces a probatio runtime dependency.
+Tests exercise the entry guards and schema validation on supported Core versions.
 Explicit namespace-package bases keep module names consistent with repository
-imports, so the exception cannot accidentally target a different package name.
+imports.
 See [mypy import handling](https://mypy.readthedocs.io/en/stable/running_mypy.html).
 
 Coordinator snapshot replacements now use a field-specific `TypedDict`; a test
@@ -180,9 +184,9 @@ declarations remain untrusted objects until runtime validation, including
 non-string and unhashable values. Existing persistence and diagnostic dictionaries
 still contain explicit `Any`; strict checking is not a claim of complete typing.
 
-This does not check HA setup, entity callers, tests, or the whole integration.
-Remaining work includes HA action schema/return typing (`__init__.py`) and
-further narrowing of dynamic boundaries. These findings require review; they
+This does not check all entity callers, tests, or the whole integration.
+Remaining work includes narrowing the explicit `Any` in serialized action responses
+and other dynamic boundaries. These findings require review; they
 are not by themselves proof of runtime failures. The whole integration is not
 yet type-clean.
 
@@ -209,11 +213,10 @@ the same normal generated-directory and Git-ignore handling as the lint check.
 
 Incremental typing work remains tracked in
 [#287](https://github.com/guslund-jpg/electricity-pro/issues/287).
-Expand calculation/history modules next, then HA-facing provider/coordinator/entities
-and configuration flows as their boundaries improve. Add modules to the explicit
+Expand HA-facing entities and configuration flows as their boundaries improve,
+and further narrow dynamic coordinator and serialization data. Add modules to the explicit
 list, include their dependencies, and resolve errors before expanding the gate.
-Address the findings above and remove the parent-module boundary when setup joins
-the checked scope. Record remaining uncovered modules and any narrowly justified
+Record remaining uncovered modules and any narrowly justified
 exceptions. Keep each stage reviewable and retain the behavioural test gate.
 
 ### Documentation and fixture checks

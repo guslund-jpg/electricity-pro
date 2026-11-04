@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError, ServiceValidationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.electricity_pro import async_setup_entry
+from custom_components.electricity_pro import _action_schema, async_setup_entry
 from custom_components.electricity_pro.const import (
     ATTR_CONFIG_ENTRY_ID,
     CONF_POWER_ENTITY,
@@ -24,6 +24,61 @@ from custom_components.electricity_pro.const import (
 )
 
 ENTITY_ID = "sensor.electricity_pro_current_power"
+
+
+def test_action_schema_preserves_runtime_validator() -> None:
+    """The cross-version typing adapter must not replace schema validation."""
+    schema = vol.Schema({vol.Required("confirm"): vol.All(bool, vol.In([True]))})
+    adapted = _action_schema(schema)
+    assert adapted is schema
+    assert adapted({"confirm": True}) == {"confirm": True}
+    for data in ({}, {"confirm": False}, {"confirm": True, "extra": 1}):
+        with pytest.raises(vol.Invalid):
+            adapted(data)
+
+
+@pytest.mark.parametrize(
+    "action",
+    [
+        SERVICE_GET_MARKET_PRICE_FORECAST,
+        "reset_monthly_energy",
+        "confirm_meter_reset",
+        "confirm_flow_meter_reset",
+    ],
+)
+@pytest.mark.parametrize("entry_kind", ["missing", "other_domain", "unloaded"])
+async def test_actions_reject_entries_before_accessing_runtime_data(
+    hass, setup_electricity_pro, action, entry_kind
+) -> None:
+    """Only loaded entries owned by this integration reach the typed boundary."""
+    await setup_electricity_pro()
+    entry_id = "missing"
+    if entry_kind != "missing":
+        entry = MockConfigEntry(
+            domain="other_domain" if entry_kind == "other_domain" else DOMAIN,
+            data={},
+        )
+        entry.add_to_hass(hass)
+        # A loaded foreign entry must still be rejected by the domain guard.
+        if entry_kind == "other_domain":
+            entry.mock_state(hass, ConfigEntryState.LOADED)
+        entry_id = entry.entry_id
+        # No runtime_data: reaching it would raise instead of a validation error.
+        assert not hasattr(entry, "runtime_data")
+
+    data = {ATTR_CONFIG_ENTRY_ID: entry_id}
+    if action != SERVICE_GET_MARKET_PRICE_FORECAST:
+        data["confirm_reset"] = True
+    if action == "confirm_flow_meter_reset":
+        data.update(channel="production", source_entity="sensor.production_energy")
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            action,
+            data,
+            blocking=True,
+            return_response=action == SERVICE_GET_MARKET_PRICE_FORECAST,
+        )
 
 
 def test_forecast_action_uses_integration_owned_config_entry_field() -> None:
