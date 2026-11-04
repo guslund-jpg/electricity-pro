@@ -165,13 +165,80 @@ def test_counter_requires_all_stored_fields(field):
         ("power", "MW", "1", None, "unsupported_unit"),
     ],
 )
-async def test_source_normalization(hass, quantity, unit, value, expected, reason):
+@pytest.mark.parametrize("channel", ["production", "grid_export", "household"])
+async def test_source_normalization(
+    hass, channel, quantity, unit, value, expected, reason
+):
     hass.states.async_set("sensor.source", value, {"unit_of_measurement": unit})
-    sources = FlowSources(hass, {f"production_{quantity}_entity": "sensor.source"})
-    reading = sources.read("production", quantity, dt_util.utcnow())
+    sources = FlowSources(hass, {f"{channel}_{quantity}_entity": "sensor.source"})
+    reading = sources.read(channel, quantity, dt_util.utcnow())
     assert reading.value == (Decimal(expected) if expected is not None else None)
     assert reading.reason == reason
     assert reading.observed_at is not None
+    assert reading.original_unit == unit
+    assert reading.source == "sensor.source"
+
+
+@pytest.mark.parametrize(
+    "source", [None, "", False, True, 123, [], {}, ["sensor.power"]]
+)
+async def test_invalid_source_bindings_are_not_entities(hass, source):
+    sources = FlowSources(hass, {"production_power_entity": source})
+    assert sources.entity_ids == ()
+    reading = sources.read("production", "power", dt_util.utcnow())
+    assert reading.reason == "not_configured"
+    assert reading.value is None
+    assert reading.source is None
+
+
+@pytest.mark.parametrize("enabled", [True, False, None, 1, "true"])
+async def test_source_settings_snapshot_and_exact_diagnostic_opt_in(hass, enabled):
+    settings = {
+        "production_power_entity": "sensor.production",
+        "household_energy_entity": "sensor.household",
+        "flow_compatibility_enabled": enabled,
+        "flow_generation_presence": "unverified_value",
+        "unrelated": [123],
+    }
+    sources = FlowSources(hass, MappingProxyType(settings))
+    settings["production_power_entity"] = "sensor.replacement"
+    assert sources.entity_ids == ("sensor.production", "sensor.household")
+    assert sources.compatibility_enabled is (enabled is True)
+    assert (
+        sources.compatibility_settings["flow_generation_presence"] == "unverified_value"
+    )
+    assert "unrelated" not in sources.compatibility_settings
+
+
+@pytest.mark.parametrize("unit", [None, 1, True, [], {}, ["W"]])
+@pytest.mark.parametrize("quantity", ["power", "energy"])
+async def test_source_malformed_units_are_not_measurements(hass, quantity, unit):
+    hass.states.async_set("sensor.source", "100", {"unit_of_measurement": unit})
+    sources = FlowSources(hass, {f"production_{quantity}_entity": "sensor.source"})
+    reading = sources.read("production", quantity, dt_util.utcnow())
+    assert reading.reason == "unsupported_unit"
+    assert reading.value is None
+    assert reading.original_unit is None
+    assert reading.observed_at == hass.states.get("sensor.source").last_reported
+
+
+@pytest.mark.parametrize(
+    "quantity,unit,limit", [("power", "W", 300), ("energy", "kWh", 900)]
+)
+@pytest.mark.parametrize("position", ["future", "now", "limit", "expired"])
+async def test_source_exact_freshness_limits(hass, quantity, unit, limit, position):
+    hass.states.async_set("sensor.source", "1", {"unit_of_measurement": unit})
+    sources = FlowSources(hass, {f"production_{quantity}_entity": "sensor.source"})
+    at = hass.states.get("sensor.source").last_reported
+    age = {"future": -0.001, "now": 0, "limit": limit, "expired": limit + 0.001}[
+        position
+    ]
+    reading = sources.read("production", quantity, at + timedelta(seconds=age))
+    valid = position in ("now", "limit")
+    assert reading.reason == ("measured" if valid else "stale")
+    assert reading.value == (Decimal(1) if valid else None)
+    assert reading.observed_at == at
+    assert reading.original_unit == unit
 
 
 async def test_source_missing_stale_and_future_are_not_zero(hass):

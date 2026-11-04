@@ -1,5 +1,6 @@
 """Explicit, independent AC generation, export and non-storage load sources."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -31,10 +32,14 @@ class FlowReading:
 class FlowSources:
     """Read only explicitly selected compatible sources; never infer a flow."""
 
-    def __init__(self, hass: HomeAssistant, settings: dict) -> None:
+    def __init__(self, hass: HomeAssistant, settings: Mapping[str, object]) -> None:
         self.hass = hass
-        self.bindings = {key: settings.get(key) for key in FLOW_KEYS}
-        self.compatibility_settings = {
+        self.bindings: dict[str, str | None] = {}
+        for key in FLOW_KEYS:
+            source = settings.get(key)
+            # A malformed saved value is not an entity binding.
+            self.bindings[key] = source if isinstance(source, str) else None
+        self.compatibility_settings: dict[str, object] = {
             key: settings.get(key) for key in COMPATIBILITY_KEYS
         }
 
@@ -53,7 +58,8 @@ class FlowSources:
         state = self.hass.states.get(source)
         if state is None:
             return FlowReading(None, source, "unavailable")
-        unit = state.attributes.get("unit_of_measurement")
+        raw_unit: object = state.attributes.get("unit_of_measurement")
+        unit = raw_unit if isinstance(raw_unit, str) else None
         at = state.last_reported
         age = (now - at).total_seconds()
         if age < 0 or age > (300 if quantity == "power" else 900):
