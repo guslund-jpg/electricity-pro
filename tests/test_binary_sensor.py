@@ -6,6 +6,7 @@ from decimal import Decimal
 from types import CoroutineType
 from typing import Any
 
+import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -13,7 +14,11 @@ from custom_components.electricity_pro.adaptive_price import (
     AdaptiveForecastPrice,
     HistoricalPriceObservation,
 )
-from custom_components.electricity_pro.binary_sensor import evaluate_good_time
+from custom_components.electricity_pro.binary_sensor import (
+    _optional_decimal,
+    _percentile_setting,
+    evaluate_good_time,
+)
 from custom_components.electricity_pro.const import (
     DOMAIN,
     GOOD_PRICE_MODE_ADAPTIVE,
@@ -21,6 +26,48 @@ from custom_components.electricity_pro.const import (
 from custom_components.electricity_pro.pricing import PriceCompleteness
 
 ENTITY_ID = f"binary_sensor.{DOMAIN}_good_time_to_use_electricity"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, None),
+        ("1.25", Decimal("1.25")),
+        (0, Decimal(0)),
+        (-1.5, Decimal("-1.5")),
+        (Decimal("2.5"), Decimal("2.5")),
+        ("NaN", None),
+        (float("inf"), None),
+        (True, None),
+        ([], None),
+        ({}, None),
+        ("invalid", None),
+    ],
+)
+def test_optional_numeric_setting_contract(
+    value: object, expected: Decimal | None
+) -> None:
+    """Loose settings retain finite numeric conversion and invalid fallback."""
+    assert _optional_decimal(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("50", Decimal("0.5")),
+        (100, Decimal(1)),
+        (Decimal("0.5"), Decimal("0.005")),
+        (None, Decimal("0.25")),
+        (0, Decimal("0.25")),
+        (-1, Decimal("0.25")),
+        (101, Decimal("0.25")),
+        ("NaN", Decimal("0.25")),
+        ({}, Decimal("0.25")),
+    ],
+)
+def test_percentile_setting_contract(value: object, expected: Decimal) -> None:
+    """Percentages keep their existing range and default behaviour."""
+    assert _percentile_setting(value) == expected
 
 
 async def test_good_time_is_on_at_or_below_threshold(

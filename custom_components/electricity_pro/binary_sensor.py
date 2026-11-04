@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.core import HomeAssistant
@@ -165,7 +164,7 @@ class GoodTimeToUseElectricityBinarySensor(
         )
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
+    def extra_state_attributes(self) -> dict[str, str | int | None]:
         """Expose the selected method and its compact explanation."""
         attributes = self._evaluation.attributes
         history = self.coordinator.adaptive_price_history
@@ -176,7 +175,7 @@ class GoodTimeToUseElectricityBinarySensor(
         return attributes
 
 
-def _optional_decimal(value: Any) -> Decimal | None:
+def _optional_decimal(value: object) -> Decimal | None:
     """Normalize one optional finite numeric setting."""
     if value is None:
         return None
@@ -187,7 +186,7 @@ def _optional_decimal(value: Any) -> Decimal | None:
     return normalized if normalized.is_finite() else None
 
 
-def _percentile_setting(value: Any) -> Decimal:
+def _percentile_setting(value: object) -> Decimal:
     """Normalize a user-facing percentage to the calculation's 0-1 range."""
     percentage = _optional_decimal(value)
     if percentage is None or not Decimal(0) < percentage <= Decimal(100):
