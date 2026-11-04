@@ -137,9 +137,11 @@ negative means export. Export compensation is not inferred from import prices.
 
 ## Roadmap
 
-The next release, **v1.6**, focuses on measured production, export and household
-energy foundations. Flexible-load recommendations and storage planning are
-later directions, not current capabilities.
+The next planned release, **v1.7.0**, focuses on validation, maintainability and
+dashboard reliability, and raises the minimum Home Assistant Core to 2026.9.0.
+See the [draft upgrade notes](docs/releases/1.7.0.md). Flexible-load
+recommendations and storage planning remain later directions, not current
+capabilities.
 
 See the [roadmap](ROADMAP.md) for scope and validation limits, and the
 [changelog](CHANGELOG.md) for released history.
