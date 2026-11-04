@@ -104,6 +104,7 @@ The current strict scope is:
 | `flow_compatibility.py` | Normalized power observations and the supported diagnostic result statuses |
 | `energy_flows.py` | Directional lifetime counters and their persisted state |
 | `flow_sources.py` | Explicit source bindings, normalized readings and freshness checks |
+| `cost_ledger.py` | Observed cost allocation, currency resets and validated persisted totals |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
@@ -155,8 +156,7 @@ See [mypy import handling](https://mypy.readthedocs.io/en/stable/running_mypy.ht
 
 This does not check HA setup, callers in the coordinator/entities, tests, or the
 whole integration. The initial broader scan found work outside the pilot:
-ledger parameter/reset typing (`cost_ledger.py`), action-response narrowing
-(`nordpool.py`), snapshot/update dictionaries (`coordinator.py`), and HA
+action-response narrowing (`nordpool.py`), snapshot/update dictionaries (`coordinator.py`), and HA
 action schema/return typing (`__init__.py`). These findings require review;
 they are not by themselves proof of runtime failures and have not been fixed
 or suppressed as if the whole integration were clean.
