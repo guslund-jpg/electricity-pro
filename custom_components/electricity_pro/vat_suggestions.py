@@ -1,10 +1,13 @@
 """Confirmed household VAT assistance; never a runtime tax-rate override."""
 
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
+from typing import Any, cast
 
 import probatio as vol
+from homeassistant.config_entries import ConfigEntryBaseFlow, ConfigFlowResult
 from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
 
@@ -85,7 +88,9 @@ def country_hint(areas: list[str], selected: str | None = None) -> str | None:
     return countries.pop() if len(countries) == 1 and None not in countries else None
 
 
-def vat_rule(country: str, context: str, on_date: date) -> VatRule | None:
+def vat_rule(country: str | None, context: str, on_date: date) -> VatRule | None:
+    if country is None:
+        return None
     rule = RULES.get((country, context))
     if rule is None or on_date < rule.effective_from:
         return None
@@ -95,14 +100,22 @@ def vat_rule(country: str, context: str, on_date: date) -> VatRule | None:
     return rule
 
 
-def assistance_field():
+def assistance_field() -> dict[vol.Optional, selector.BooleanSelector]:
     return {vol.Optional(CONF_SUGGEST_VAT, default=False): selector.BooleanSelector()}
 
 
-class VatSuggestionFlow:
+class VatSuggestionFlow(ConfigEntryBaseFlow):
     """Reusable setup/options steps with explicit confirmation and manual escape."""
 
-    def _vat_country_hint(self, values):
+    # HA forms/settings carry heterogeneous values. Keep that framework boundary
+    # explicit while typing step results and the internal navigation state.
+    _vat_values: dict[str, Any]
+    _vat_return_step: str
+    _vat_hint: str | None
+    _vat_country: str
+    _vat_context: str
+
+    def _vat_country_hint(self, values: Mapping[str, Any]) -> str | None:
         entry = self.hass.config_entries.async_get_entry(
             values.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY, "") or ""
         )
@@ -111,7 +124,7 @@ class VatSuggestionFlow:
         )
         return country_hint(areas, values.get(CONF_FORECAST_PRICE_AREA))
 
-    def _vat_form_values(self, values):
+    def _vat_form_values(self, values: Mapping[str, Any]) -> dict[str, Any]:
         """Prefill only an unset rate; rendering never changes stored settings."""
         result = dict(values)
         if result.get(CONF_PRICE_VAT_RATE) is None:
@@ -122,7 +135,12 @@ class VatSuggestionFlow:
                 result[CONF_PRICE_VAT_RATE] = rule.rate
         return result
 
-    async def _async_maybe_suggest_vat(self, values, return_step, saved=None):
+    async def _async_maybe_suggest_vat(
+        self,
+        values: dict[str, Any],
+        return_step: str,
+        saved: Mapping[str, Any] | None = None,
+    ) -> ConfigFlowResult | None:
         requested = values.pop(CONF_SUGGEST_VAT, False)
         effective = {**(saved or {}), **values}
         hint = self._vat_country_hint(effective)
@@ -142,7 +160,9 @@ class VatSuggestionFlow:
             return await self.async_step_vat_country({"vat_country": hint})
         return await self.async_step_vat_country()
 
-    async def async_step_vat_country(self, user_input=None):
+    async def async_step_vat_country(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         if user_input is not None:
             self._vat_country = user_input["vat_country"]
             if self._vat_country == "manual":
@@ -163,18 +183,18 @@ class VatSuggestionFlow:
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=[
-                                {"value": "SE", "label": "Sweden"},
-                                {
-                                    "value": "DK",
-                                    "label": "Denmark (excluding Greenland/Faroe Islands)",
-                                },
-                                {"value": "FI", "label": "Finland"},
-                                {"value": "NO", "label": "Norway"},
-                                {"value": "IS", "label": "Iceland"},
-                                {
-                                    "value": "manual",
-                                    "label": "Other / unsure — keep manual settings",
-                                },
+                                selector.SelectOptionDict(value="SE", label="Sweden"),
+                                selector.SelectOptionDict(
+                                    value="DK",
+                                    label="Denmark (excluding Greenland/Faroe Islands)",
+                                ),
+                                selector.SelectOptionDict(value="FI", label="Finland"),
+                                selector.SelectOptionDict(value="NO", label="Norway"),
+                                selector.SelectOptionDict(value="IS", label="Iceland"),
+                                selector.SelectOptionDict(
+                                    value="manual",
+                                    label="Other / unsure — keep manual settings",
+                                ),
                             ]
                         )
                     ),
@@ -182,7 +202,9 @@ class VatSuggestionFlow:
             ),
         )
 
-    async def async_step_vat_context(self, user_input=None):
+    async def async_step_vat_context(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         if user_input is not None:
             self._vat_context = user_input["vat_context"]
             if self._vat_context == "manual":
@@ -211,7 +233,7 @@ class VatSuggestionFlow:
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=[
-                                {"value": value, "label": label}
+                                selector.SelectOptionDict(value=value, label=label)
                                 for value, label in [
                                     *choices,
                                     (
@@ -226,7 +248,9 @@ class VatSuggestionFlow:
             ),
         )
 
-    async def async_step_vat_review(self, user_input=None):
+    async def async_step_vat_review(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         rule = vat_rule(self._vat_country, self._vat_context, dt_util.now().date())
         source_rule = RULES.get((self._vat_country, self._vat_context))
         errors = {}
@@ -280,7 +304,11 @@ class VatSuggestionFlow:
             ),
         )
 
-    async def _async_vat_return(self):
-        return await getattr(self, f"async_step_{self._vat_return_step}")(
-            dict(self._vat_values)
+    async def _async_vat_return(self) -> ConfigFlowResult:
+        # HA dispatches named steps dynamically; callers supply a setup/options
+        # step accepting the same form values and returning a ConfigFlowResult.
+        step = cast(
+            Callable[[dict[str, Any]], Awaitable[ConfigFlowResult]],
+            getattr(self, f"async_step_{self._vat_return_step}"),
         )
+        return await step(dict(self._vat_values))

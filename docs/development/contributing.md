@@ -153,6 +153,12 @@ The current strict scope is:
 | `sensor.py` | Sensor registration, phase readers, availability and entity attributes |
 | `provider.py` | Optional source states, unit normalization and configured adjustments |
 | `source_adapters.py` | Registry metadata, per-home Tibber discovery and capability mappings |
+| `const.py` | Shared integration constants and defaults |
+| `household_cost.py` | Calendar-based fixed-fee accrual and missing-fee metadata |
+| `markup_estimate.py` | Matched Tibber/Nord Pool intervals and validated price responses |
+| `pricing_config.py` | Saved price semantics and VAT normalization |
+| `vat_suggestions.py` | Confirmed VAT assistance shared by setup and options flows |
+| `workday.py` | Public Workday action responses and non-working dates |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
@@ -239,7 +245,14 @@ malformed units cannot become measured readings. Tests cover missing states,
 non-string units and discovery entries with missing or unrelated registry metadata.
 Valid unit conversions, pricing and per-home discovery behaviour are unchanged.
 
-This does not check configuration flows, tests, or the whole integration.
+Supporting helpers retain explicit `Any` for heterogeneous Home Assistant form
+and settings dictionaries. The VAT helper shares Home Assistant's base flow
+contract, types its navigation state and results, and uses one documented cast
+for dispatch back to a named setup/options step. Existing flow tests cover both
+paths, confirmation, manual escape and preservation of saved rates. Tibber price
+rows enter as objects and must be mappings before their fields are validated.
+
+This does not yet check the main `config_flow.py`, tests, or the whole integration.
 Remaining work includes narrowing the explicit `Any` in serialized action responses
 and other dynamic boundaries. These findings require review; they
 are not by themselves proof of runtime failures. The whole integration is not
@@ -268,11 +281,9 @@ the same normal generated-directory and Git-ignore handling as the lint check.
 
 Incremental typing work remains tracked in
 [#287](https://github.com/guslund-jpg/electricity-pro/issues/287).
-The remaining explicit-scope modules are `const.py`, `household_cost.py`,
-`markup_estimate.py`, `pricing_config.py`, `vat_suggestions.py`, `workday.py` and
-`config_flow.py`. Finish the supporting modules before the configuration-flow
-boundary, in reviewable batches. Add modules to the explicit list, include their
-dependencies, and resolve errors before expanding the gate.
+The remaining explicit-scope module is `config_flow.py`. Finish this
+configuration-flow boundary in reviewable batches. Add modules to the explicit
+list, include their dependencies, and resolve errors before expanding the gate.
 
 Then review remaining dynamic coordinator, configuration and serialization data:
 narrow application-owned values and document any justified framework-boundary
