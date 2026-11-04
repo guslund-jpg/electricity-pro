@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Extend the strict type-checking gate to forecast models, price calculations and
+  forecast insights. Limit the price-direction result type to its three supported
+  states without changing calculations, entity behaviour or saved settings.
+
 ### Fixed
 
 - Reject boolean Nord Pool forecast prices and invalid inferred area names with

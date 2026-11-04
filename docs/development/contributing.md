@@ -106,11 +106,15 @@ The current strict scope is:
 | `flow_sources.py` | Explicit source bindings, normalized readings and freshness checks |
 | `cost_ledger.py` | Observed cost allocation, currency resets and validated persisted totals |
 | `nordpool.py` | Native action response validation, interval normalization and delivery dates |
+| `forecast.py` | Forecast interval validation, complete-day averages and serialization |
+| `calculations.py` | Supplier/effective pricing, VAT conversion and cost arithmetic |
+| `forecast_insights.py` | Continuous price windows and duration-weighted two-hour trend |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
 Assistant's typed state API; `nordpool.py` uses its service API and datetime
-parser, plus the forecast interval model. The remaining checked modules depend
+parser, plus the forecast interval model. `calculations.py` uses Home Assistant's
+energy-unit constants. The remaining checked modules depend
 only on the standard library and each other. Mypy follows
 imports normally and does not ignore missing imports or errors. Strict mode,
 `disallow_any_unimported` and unused-configuration warnings are enabled; the
@@ -131,6 +135,12 @@ normalization, then narrows timestamps and numeric prices at runtime. Boolean
 prices and invalid inferred area names are rejected explicitly. Valid negative
 prices, MWh-to-kWh conversion, configured area/currency selection and native
 service errors retain their existing behaviour.
+
+The forecast-insight result limits price direction to `rising`, `falling` or
+`stable` with a `Literal` union. The two-hour boundaries, duration weighting,
+inclusive symmetric 2% tolerance, missing-coverage handling and window selection
+are unchanged. Existing forecast and calculation tests verify runtime behaviour;
+the explicit CI scope protects these contracts on future changes.
 
 The flow-compatibility result uses a `Literal` union of supported diagnostic
 statuses, so misspelled or newly introduced statuses require an explicit contract
@@ -163,11 +173,11 @@ imports, so the exception cannot accidentally target a different package name.
 See [mypy import handling](https://mypy.readthedocs.io/en/stable/running_mypy.html).
 
 This does not check HA setup, callers in the coordinator/entities, tests, or the
-whole integration. The initial broader scan found work outside the pilot:
-action-response narrowing (`nordpool.py`), snapshot/update dictionaries (`coordinator.py`), and HA
-action schema/return typing (`__init__.py`). These findings require review;
-they are not by themselves proof of runtime failures and have not been fixed
-or suppressed as if the whole integration were clean.
+whole integration. Remaining work from the initial broader scan includes
+snapshot/update dictionaries (`coordinator.py`) and HA action schema/return
+typing (`__init__.py`). These findings require review; they are not by themselves
+proof of runtime failures. Nord Pool action-response narrowing is now covered
+by the strict scope above; the whole integration is not yet type-clean.
 
 ### Python formatting
 
