@@ -231,8 +231,16 @@ Coordinator snapshot replacements now use a field-specific `TypedDict`; a test
 checks that its keys and value types match `ElectricityProData`. Flow metadata
 and persisted scope are typed without changing saved formats. Compatibility
 declarations remain untrusted objects until runtime validation, including
-non-string and unhashable values. Existing persistence and action-response dictionaries
-still contain explicit `Any`; strict checking is not a claim of complete typing.
+non-string and unhashable values. Public forecast action responses have explicit
+`TypedDict` contracts, including their interval rows. A JSON round-trip test and
+an exact payload assertion protect their existing wire format. One documented
+cast bridges the nested typed lists to Home Assistant's generic `ServiceResponse`;
+it is not used to validate untrusted input.
+
+Settings merging preserves the input value type. Pricing metadata accepts
+`object` values and validates strings before constructing enums; malformed values
+return no metadata. Coordinator source, scope and entity-attribute mappings use
+`object` where their values are intentionally heterogeneous.
 
 Sensor registration explicitly accepts the different sensor subclasses. Phase
 readers use named snapshot fields rather than dynamic attribute lookup, with
@@ -261,11 +269,22 @@ read-only protocol properties, matching their use during discovery.
 Heterogeneous framework form/settings dictionaries deliberately retain explicit
 `Any`; individual values are narrowed where needed.
 
-This does not yet strictly check tests or the whole integration.
-Remaining work includes narrowing the explicit `Any` in serialized action responses
-and other dynamic boundaries. These findings require review; they
-are not by themselves proof of runtime failures. The whole integration is not
-yet type-clean.
+The remaining explicit `Any` boundaries are deliberate limits of this scope:
+
+- Home Assistant form/settings dictionaries contain heterogeneous framework
+  selectors and submitted values. Runtime validation still owns input checking.
+- The coordinator's `Store` payload and `_statistics_data` aggregate optional
+  snapshots from several persistence schemas, including older saved formats.
+  Component restore routines retain their runtime checks; the aggregate is not
+  asserted to be a fully validated typed object.
+- Adaptive price history serialization/restoration retains dynamic dictionaries
+  for its nested persisted scope and observations. Its restore checks and tests,
+  rather than these annotations, guard malformed saved data.
+
+These exceptions do not establish that every persisted value is validated. A
+complete typed persistence schema would be separate work. Strict checking covers
+the 32 explicitly listed integration modules, not the tests or whole integration;
+it is not a claim of complete typing or additional manual Home Assistant testing.
 
 ### Python formatting
 
@@ -288,15 +307,14 @@ the same normal generated-directory and Git-ignore handling as the lint check.
 
 ### Further typing
 
-Incremental typing work remains tracked in
+The bounded formatting and incremental typing work is tracked in
 [#287](https://github.com/guslund-jpg/electricity-pro/issues/287).
-The agreed module list now includes the main configuration flow. Review
-remaining dynamic coordinator, configuration and serialization data:
-narrow application-owned values and document any justified framework-boundary
-exceptions. Closing #287 requires the agreed scope and checks to be documented
-and the behavioural tests to pass on both pinned Home Assistant environments;
-it does not require eliminating every framework-supplied `Any` or strictly typing
-the entire test suite. Unrelated refactoring should be tracked separately.
+The agreed module list includes the main configuration flow. The boundary review
+and remaining exceptions are documented above. Closing #287 requires formatting,
+lint, strict typing, repository validation and behavioural tests on both pinned
+Home Assistant environments to pass. It does not require eliminating every
+framework-supplied `Any` or strictly typing the entire test suite. Further
+persistence schema work and unrelated refactoring should be tracked separately.
 
 ### Documentation and fixture checks
 

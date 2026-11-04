@@ -1,5 +1,7 @@
 """Tests for pricing metadata configuration serialization."""
 
+import pytest
+
 from custom_components.electricity_pro.const import (
     CONF_PRICE_COMPLETENESS,
     CONF_PRICE_INCLUDED_COMPONENTS,
@@ -73,3 +75,18 @@ def test_resolve_pricing_metadata_prefers_options() -> None:
     assert metadata is not None
     assert metadata.scope.vat is VatTreatment.INCLUDED
     assert metadata.completeness is PriceCompleteness.COMPLETE
+
+
+@pytest.mark.parametrize(
+    "key",
+    [CONF_PRICING_STRATEGY, CONF_PRICE_VAT_TREATMENT, CONF_PRICE_COMPLETENESS],
+)
+@pytest.mark.parametrize("value", [None, False, 1, [], {}, "unsupported"])
+def test_pricing_metadata_rejects_malformed_scalar_fields(
+    key: str, value: object
+) -> None:
+    """Untrusted scalar metadata must not escape validation or raise."""
+    settings = _complete_settings()
+    settings[key] = value
+
+    assert pricing_metadata_from_mapping(settings) is None

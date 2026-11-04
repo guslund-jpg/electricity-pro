@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import TypedDict
 
 from .pricing import (
     PriceCompleteness,
@@ -26,6 +26,26 @@ NORDPOOL_MARKET_PRICE_METADATA = PricingMetadata(
     ),
     completeness=PriceCompleteness.PARTIAL,
 )
+
+
+class MarketPriceForecastIntervalResponse(TypedDict):
+    """Public action interval, with ISO timestamps and a numeric price."""
+
+    start: str
+    end: str
+    price: float
+
+
+class MarketPriceForecastResponse(TypedDict):
+    """Stable public action response; not a schema for untrusted input."""
+
+    currency: str
+    area: str
+    price_components: list[str]
+    vat_treatment: str
+    price_completeness: str
+    published_at: str | None
+    intervals: list[MarketPriceForecastIntervalResponse]
 
 
 @dataclass(frozen=True, slots=True)
@@ -192,7 +212,7 @@ def daily_average_market_price(
 
 def serialize_market_price_forecast(
     intervals: Iterable[ForecastInterval],
-) -> dict[str, Any]:
+) -> MarketPriceForecastResponse:
     """Serialize one validated market-price series for Home Assistant."""
     validated = validate_forecast_series(intervals)
     if not validated:

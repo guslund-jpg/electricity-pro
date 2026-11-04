@@ -81,6 +81,7 @@ from .const import (
 from .forecast import (
     DailyAverageMarketPriceResult,
     ForecastInterval,
+    MarketPriceForecastResponse,
     current_market_price_interval,
     daily_average_market_price,
     serialize_market_price_forecast,
@@ -504,7 +505,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         )
 
     @property
-    def market_price_forecast_response(self) -> dict[str, Any]:
+    def market_price_forecast_response(self) -> MarketPriceForecastResponse:
         """Return the serialized bounded market-price forecast series."""
         return serialize_market_price_forecast(self._forecast_intervals)
 
@@ -732,7 +733,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             self._forecast_intervals = []
 
     @property
-    def _monthly_energy_source(self) -> dict[str, Any]:
+    def _monthly_energy_source(self) -> dict[str, object]:
         """Scope monthly baselines to their source and accumulation semantics."""
         return {
             "entity_id": self._provider.energy_entity_id,
@@ -740,7 +741,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         }
 
     @property
-    def monthly_energy_attributes(self) -> dict[str, Any]:
+    def monthly_energy_attributes(self) -> dict[str, object]:
         """Describe coverage without claiming reconstructed monthly history."""
         snapshot = self._energy_this_month.snapshot
         partial = (
@@ -798,7 +799,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         await self._store.async_save(self._statistics_data())
 
     @property
-    def _local_cost_scope(self) -> dict[str, Any]:
+    def _local_cost_scope(self) -> dict[str, object]:
         """Tie estimates to source, pricing configuration and timezone."""
         settings = resolve_settings(self._entry.data, self._entry.options)
         return {
