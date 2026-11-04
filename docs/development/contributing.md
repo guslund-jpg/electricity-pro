@@ -47,6 +47,43 @@ the optional daily notice and humidity simulation with HA automations and helper
 Manual checks are in the
 [automation examples guide](../../examples/automations/README.md#test-before-connecting-a-device).
 
+## Home Assistant support and release review
+
+The next release and `main` require **Home Assistant 2026.9.0** and Python 3.14.
+Released v1.6.0 keeps its original 2025.9.0 minimum. Historical release notes
+and validation records describe those releases, not the current development floor.
+
+Review the minimum at **every Electricity Pro release**, including maintenance
+releases. This is a review requirement, not an automatic version increase.
+Choose the floor based on required Core APIs and dependencies, maintenance cost,
+upstream support/security information and the versions we can actually test.
+Do not promise indefinite support for older Core versions.
+
+Release checklist:
+
+- [ ] Record the retained or raised minimum and the reason in the release review.
+- [ ] Test the exact minimum and review the main test-harness pin against the
+  current stable Core release. Record the actual Core/Python versions and results;
+  a passing pinned development baseline is not proof of testing current stable.
+- [ ] Keep `hacs.json`, `requirements-minimum-core.txt`, CI Python versions,
+  `ruff.toml`, the README and release requirements consistent. The minimum-Core
+  CI job asserts that installed Core matches the HACS declaration.
+- [ ] Audit compatibility adapters, fallback branches and dependency pins.
+  Remove only those made obsolete by the new floor, with regression tests.
+  Preserve saved-data migrations and user-setting compatibility independently
+  of the supported Home Assistant versions.
+- [ ] Check upgrade, reload and restart on a test installation: settings, entity
+  IDs and accumulated totals must remain intact and readings must continue.
+- [ ] Announce a raised floor in the changelog and new release notes, including
+  the instruction to upgrade Home Assistant first. Users unable to upgrade can
+  remain on the last compatible Electricity Pro release.
+- [ ] Retain historical evidence unchanged and obtain release approval before
+  publishing. A minimum-version change alone does not validate a release.
+
+Core 2026.9 provides Probatio, so validation imports it directly rather than
+using the older Voluptuous name or an action-schema compatibility adapter.
+See the [Home Assistant validation-engine announcement](https://contributors.home-assistant.io/blog/2026/09/30/probatio-validation-engine/).
+
 ## Check scope and documentation
 
 `./scripts/validate.sh` checks YAML, JSON, Python syntax, unique IDs and repository
@@ -168,10 +205,8 @@ inputs, availability and exact freshness boundaries.
 Integration setup now joins the checked scope; there are no `follow_imports = skip`
 overrides. Action handlers narrow `runtime_data` to the coordinator after checking
 the entry's domain and loaded state. Setup owns that runtime-data assignment.
-A small schema adapter isolates a cross-version cast: newer Core annotates action
-schemas with probatio types, while our supported versions accept the existing
-callable voluptuous validators. The adapter returns the same schema object;
-it neither changes validation nor introduces a probatio runtime dependency.
+Action schemas use Probatio directly, provided by Core 2026.9 and newer.
+No cross-version schema adapter or separately pinned runtime validator is needed.
 Tests exercise the entry guards and schema validation on supported Core versions.
 Explicit namespace-package bases keep module names consistent with repository
 imports.
@@ -195,8 +230,8 @@ yet type-clean.
 The **Repository quality** job and local pre-commit hook check formatting across
 `custom_components/`, `tests/` and `scripts/` using the pinned Ruff formatter.
 The policy in `ruff.toml` uses 88 columns, double quotes, spaces and LF endings.
-Its Python 3.13 syntax target preserves compatibility with the minimum supported
-Home Assistant version, even though the main development environment uses Python 3.14.
+Its Python 3.14 syntax target matches the minimum supported Home Assistant
+environment and the main development environment.
 Both checks are read-only: they report formatting differences without changing files.
 
 To apply formatting locally, run:

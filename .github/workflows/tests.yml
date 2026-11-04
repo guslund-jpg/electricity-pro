@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version: "3.14"
           cache: pip
           cache-dependency-path: requirements-minimum-core.txt
       - name: Install the minimum-Core test environment
@@ -38,13 +38,14 @@ jobs:
           actual = version("homeassistant")
           assert actual == declared, f"Installed {actual}, declared {declared}"
           PY
-      - name: Exercise setup, source updates, options and registered actions
+      - name: Exercise setup, source updates, configuration and registered actions
         run: >-
           python -m pytest -q --tb=short
           tests/test_init.py
           tests/test_flow_sensors.py
           tests/test_sensor.py::test_current_power_updates_when_source_changes
-          tests/test_config_flow.py::test_options_flow_saves_adaptive_good_price_settings
+          tests/test_config_flow.py
+          tests/test_config_error_recovery.py
 
   tests:
     name: Python test suite

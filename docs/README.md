@@ -62,6 +62,7 @@ Git history preserves previous versions.
 
 ## Validation and releases
 
+- [Home Assistant support and per-release review checklist](development/contributing.md#home-assistant-support-and-release-review)
 - [Energy-flow test plan](validation/energy-flow-test-plan.md)
 - [v1.6 validation evidence](validation/v1.6.md)
 - [v1.6.0 release notes and completed publication checklist](releases/1.6.0.md)

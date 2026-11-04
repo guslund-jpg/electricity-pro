@@ -815,13 +815,13 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                     self._flow_counters[channel] = FlowCounter.from_dict(
                         saved["counter"]
                     )
-                except (KeyError, ValueError, TypeError, ArithmeticError):
+                except KeyError, ValueError, TypeError, ArithmeticError:
                     _LOGGER.warning("Ignoring invalid %s counter state", channel)
 
         if stored.get("local_cost_scope") == self._local_cost_scope:
             try:
                 self._local_costs = CostLedger.from_dict(stored["local_costs"])
-            except (KeyError, ValueError, TypeError, ArithmeticError):
+            except KeyError, ValueError, TypeError, ArithmeticError:
                 _LOGGER.warning("Ignoring invalid local cost estimate state")
 
         month_scope = stored.get("monthly_energy_source")
@@ -901,7 +901,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 self._timing_result = TimingScoreResult.from_dict(
                     timing_result["result"]
                 )
-            except (KeyError, TypeError, ValueError):
+            except KeyError, TypeError, ValueError:
                 self._timing_result_date = None
                 self._timing_result = None
                 _LOGGER.warning("Ignoring invalid persisted timing score result")
@@ -925,7 +925,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                     restored_summaries
                 ):
                     raise ValueError
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 _LOGGER.warning("Ignoring invalid persisted base-load summaries")
             else:
                 self._base_load_daily_summaries = {

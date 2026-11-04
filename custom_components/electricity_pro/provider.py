@@ -387,7 +387,7 @@ class ElectricityProEntityProvider:
             return None
         try:
             return Decimal(source_state.state)
-        except (InvalidOperation, ValueError):
+        except InvalidOperation, ValueError:
             return None
 
     @staticmethod
@@ -413,7 +413,7 @@ class ElectricityProEntityProvider:
             return None
         try:
             adjustment = Decimal(str(value))
-        except (InvalidOperation, ValueError):
+        except InvalidOperation, ValueError:
             return None
         if not adjustment.is_finite() or adjustment < 0:
             return None
@@ -593,7 +593,7 @@ def _scheduled_grid_tariff(entry: ConfigEntry) -> HighLowGridTariff | None:
                 values.get(CONF_GRID_FEE_HIGH_SEASON_END, "03-31")
             ),
         )
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 

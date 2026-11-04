@@ -7,7 +7,7 @@ from datetime import time
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-import voluptuous as vol
+import probatio as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -913,7 +913,7 @@ class _MarkupEstimateFlow:
                     )
                 self._markup_estimate_area = area
                 return await self.async_step_tibber_markup_review()
-            except (ValueError, HomeAssistantError, TimeoutError):
+            except ValueError, HomeAssistantError, TimeoutError:
                 errors["base"] = "markup_estimate_unavailable"
         return self.async_show_form(
             step_id="tibber_markup_estimate",
@@ -1891,7 +1891,7 @@ def _grid_tariff_input_valid(user_input: dict[str, Any]) -> bool:
             high_season_start=season_start,
             high_season_end=season_end,
         )
-    except (InvalidOperation, TypeError, ValueError):
+    except InvalidOperation, TypeError, ValueError:
         return False
     return True
 
@@ -1912,7 +1912,7 @@ def _good_price_input_valid(user_input: dict[str, Any]) -> bool:
         )
         ceiling_value = user_input.get(CONF_ADAPTIVE_PRICE_CEILING)
         ceiling = Decimal(str(ceiling_value)) if ceiling_value is not None else None
-    except (InvalidOperation, ValueError):
+    except InvalidOperation, ValueError:
         return False
     return (
         target.is_finite()
@@ -1950,7 +1950,7 @@ def _prepare_pricing_metadata(user_input: dict[str, Any]) -> bool:
         strategy = PricingStrategy(raw_strategy)
         components = frozenset(PriceComponent(value) for value in raw_components)
         vat = VatTreatment(raw_vat)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return False
 
     if PriceComponent.MARKET_ENERGY not in components:

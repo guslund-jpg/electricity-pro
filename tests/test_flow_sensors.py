@@ -118,7 +118,7 @@ async def test_action_requires_confirmation_loaded_entry_and_matching_source(
             await hass.services.async_call(
                 DOMAIN, "confirm_flow_meter_reset", {**base, **changes}, blocking=True
             )
-    import voluptuous as vol
+    import probatio as vol
 
     with pytest.raises(vol.Invalid):
         await hass.services.async_call(

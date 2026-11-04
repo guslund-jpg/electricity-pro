@@ -4,6 +4,13 @@
 
 ### Changed
 
+- **Minimum Home Assistant version: 2026.9.0.** Upgrade Home Assistant before
+  installing this release. Use Core's native Probatio validation library and
+  remove the older schema adapter and minimum-test dependency workaround.
+  Saved settings and storage formats are unchanged.
+- Review the Home Assistant minimum, compatibility cleanup and test baselines
+  for every Electricity Pro release; a review does not automatically raise it.
+
 - Extend strict type checking to integration setup and action dispatch. Remove
   the setup-module exclusion while preserving action validation, calculations
   and saved settings across supported Home Assistant versions.

@@ -6,15 +6,15 @@ from types import CoroutineType
 from typing import Any
 from unittest.mock import patch
 
+import probatio as vol
 import pytest
-import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError, ServiceValidationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.electricity_pro import _action_schema, async_setup_entry
+from custom_components.electricity_pro import async_setup_entry
 from custom_components.electricity_pro.const import (
     ATTR_CONFIG_ENTRY_ID,
     CONF_POWER_ENTITY,
@@ -24,17 +24,6 @@ from custom_components.electricity_pro.const import (
 )
 
 ENTITY_ID = "sensor.electricity_pro_current_power"
-
-
-def test_action_schema_preserves_runtime_validator() -> None:
-    """The cross-version typing adapter must not replace schema validation."""
-    schema = vol.Schema({vol.Required("confirm"): vol.All(bool, vol.In([True]))})
-    adapted = _action_schema(schema)
-    assert adapted is schema
-    assert adapted({"confirm": True}) == {"confirm": True}
-    for data in ({}, {"confirm": False}, {"confirm": True, "extra": 1}):
-        with pytest.raises(vol.Invalid):
-            adapted(data)
 
 
 @pytest.mark.parametrize(

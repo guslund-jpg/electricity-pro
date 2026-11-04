@@ -53,7 +53,7 @@ def pricing_metadata_from_mapping(
         )
         vat = VatTreatment(settings[CONF_PRICE_VAT_TREATMENT])
         completeness = PriceCompleteness(settings[CONF_PRICE_COMPLETENESS])
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
     return PricingMetadata(
@@ -80,6 +80,6 @@ def vat_rate_from_mapping(settings: Mapping[str, Any]) -> Decimal | None:
         return None
     try:
         rate = Decimal(str(raw))
-    except (InvalidOperation, ValueError):
+    except InvalidOperation, ValueError:
         return None
     return rate if rate.is_finite() and Decimal(0) <= rate <= Decimal(100) else None

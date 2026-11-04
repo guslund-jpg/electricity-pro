@@ -105,5 +105,11 @@ of new capabilities. Outstanding follow-ups include
 and [recovery policy for inflated historical totals (#313)](https://github.com/guslund-jpg/electricity-pro/issues/313).
 Their existence does not imply implementation or a committed release date.
 
-Use the [draft v1.6 release checklist](docs/releases/1.6.0.md) and
-[validation evidence](docs/validation/v1.6.md) when evaluating release readiness.
+The next release raises the Home Assistant minimum to **2026.9.0** and removes
+compatibility code made obsolete by that floor. Review the minimum at every
+release without automatically increasing it.
+
+Use the [support and release-review checklist](docs/development/contributing.md#home-assistant-support-and-release-review)
+when evaluating release readiness. The completed
+[v1.6 release checklist](docs/releases/1.6.0.md) and
+[validation evidence](docs/validation/v1.6.md) remain historical records.
