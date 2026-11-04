@@ -151,6 +151,8 @@ The current strict scope is:
 | `binary_sensor.py` | Good Time entity state, explanatory attributes and numeric settings |
 | `device.py` | Fresh, entry-scoped Home Assistant device metadata |
 | `sensor.py` | Sensor registration, phase readers, availability and entity attributes |
+| `provider.py` | Optional source states, unit normalization and configured adjustments |
+| `source_adapters.py` | Registry metadata, per-home Tibber discovery and capability mappings |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
@@ -158,7 +160,8 @@ Assistant's typed state API; `nordpool.py` uses its service API and datetime
 parser, plus the forecast interval model. `calculations.py` uses Home Assistant's
 energy-unit constants. The coordinator and integration setup use Home Assistant's
 entry, lifecycle and service APIs. Sensors, the Good Time entity and device metadata helper
-use Home Assistant's entity and device APIs. The remaining checked modules depend
+use Home Assistant's entity and device APIs. The provider uses typed Home Assistant
+states; source discovery accepts a registry-field protocol. The remaining checked modules depend
 only on the standard library and each other. Mypy follows
 imports normally and does not ignore missing imports or errors. Strict mode,
 `disallow_any_unimported` and unused-configuration warnings are enabled; the
@@ -230,7 +233,13 @@ availability bound to the same reader. Tests exercise all six phases independent
 including zero, unavailable readings and recovery. Entity attribute dictionaries
 use `object` values rather than `Any`; this does not validate their runtime contents.
 
-This does not check configuration flows, provider implementations, tests, or the whole integration.
+Provider normalization explicitly checks missing states before reading attributes.
+Unit metadata enters as `object` and is narrowed where strings are required;
+malformed units cannot become measured readings. Tests cover missing states,
+non-string units and discovery entries with missing or unrelated registry metadata.
+Valid unit conversions, pricing and per-home discovery behaviour are unchanged.
+
+This does not check configuration flows, tests, or the whole integration.
 Remaining work includes narrowing the explicit `Any` in serialized action responses
 and other dynamic boundaries. These findings require review; they
 are not by themselves proof of runtime failures. The whole integration is not
@@ -259,11 +268,18 @@ the same normal generated-directory and Git-ignore handling as the lint check.
 
 Incremental typing work remains tracked in
 [#287](https://github.com/guslund-jpg/electricity-pro/issues/287).
-Expand HA-facing entities and configuration flows as their boundaries improve,
-and further narrow dynamic coordinator and serialization data. Add modules to the explicit
-list, include their dependencies, and resolve errors before expanding the gate.
-Record remaining uncovered modules and any narrowly justified
-exceptions. Keep each stage reviewable and retain the behavioural test gate.
+The remaining explicit-scope modules are `const.py`, `household_cost.py`,
+`markup_estimate.py`, `pricing_config.py`, `vat_suggestions.py`, `workday.py` and
+`config_flow.py`. Finish the supporting modules before the configuration-flow
+boundary, in reviewable batches. Add modules to the explicit list, include their
+dependencies, and resolve errors before expanding the gate.
+
+Then review remaining dynamic coordinator, configuration and serialization data:
+narrow application-owned values and document any justified framework-boundary
+exceptions. Closing #287 requires the agreed scope and checks to be documented
+and the behavioural tests to pass on both pinned Home Assistant environments;
+it does not require eliminating every framework-supplied `Any` or strictly typing
+the entire test suite. Unrelated refactoring should be tracked separately.
 
 ### Documentation and fixture checks
 

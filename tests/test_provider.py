@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import (
@@ -32,6 +32,32 @@ from custom_components.electricity_pro.const import (
 from custom_components.electricity_pro.provider import (
     ElectricityProEntityProvider,
 )
+
+
+@pytest.mark.parametrize("unit", [None, 123, [], {}])
+def test_normalizers_reject_non_string_units(unit: object) -> None:
+    """Malformed unit metadata must not escape the source boundary."""
+    state = State("sensor.test_source", "1", {"unit_of_measurement": unit})
+    provider = ElectricityProEntityProvider
+    assert provider._normalize_power(state) is None
+    assert provider._is_negative_power(state) is False
+    assert provider._normalize_energy(state) == (None, None)
+    assert provider._normalize_price(state) == (None, None)
+    assert provider._normalize_cost(state) == (None, None)
+    assert provider._normalize_current(state) is None
+    assert provider._normalize_voltage(state) is None
+
+
+def test_normalizers_accept_missing_source() -> None:
+    """Missing entities remain unavailable without attribute access."""
+    provider = ElectricityProEntityProvider
+    assert provider._normalize_power(None) is None
+    assert provider._is_negative_power(None) is False
+    assert provider._normalize_energy(None) == (None, None)
+    assert provider._normalize_price(None) == (None, None)
+    assert provider._normalize_cost(None) == (None, None)
+    assert provider._normalize_current(None) is None
+    assert provider._normalize_voltage(None) is None
 
 
 def _create_provider(

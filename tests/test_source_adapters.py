@@ -88,6 +88,9 @@ def test_groups_homes_and_ignores_disabled_or_unrelated_entities() -> None:
             FakeRegistryEntity(
                 "sensor.other_power", "power", platform="other_integration"
             ),
+            FakeRegistryEntity("sensor.no_device", "power", device_id=None),
+            FakeRegistryEntity("sensor.no_translation", None),
+            FakeRegistryEntity("sensor.unrelated", "unrelated_translation"),
         ]
     )
 
