@@ -138,9 +138,9 @@ negative means export. Export compensation is not inferred from import prices.
 
 ## Roadmap
 
-The next planned release, **v1.7.0**, focuses on validation, maintainability and
-dashboard reliability, and raises the minimum Home Assistant Core to 2026.9.0.
-See the [draft upgrade notes](docs/releases/1.7.0.md). Flexible-load
+Released **v1.7.0** improves validation, maintainability and dashboard reliability,
+and requires Home Assistant Core 2026.9.0 or newer.
+See the [release and upgrade notes](docs/releases/1.7.0.md). Flexible-load
 recommendations and storage planning remain later directions, not current
 capabilities.
 
