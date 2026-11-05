@@ -5,21 +5,19 @@ See the [changelog](CHANGELOG.md) for delivered changes and the
 [product vision](docs/development/vision.md) and
 [design principles](docs/development/design-principles.md) for project boundaries.
 
-The stable release is [v1.6.0](docs/releases/1.6.0.md). Work on `main` is not
+The stable release is [v1.7.0](docs/releases/1.7.0.md). Work on `main` is not
 automatically released or hardware-validated. Release scope and priorities may
 change as testing and source availability improve.
 
-## v1.7.0 — Validation and maintenance (planned)
+## After v1.7.0 — Maintenance direction
 
-Prepare the merged validation/type-checking improvements and Enhanced forecast
-chart fix for release. Home Assistant Core 2026.9.0 becomes the minimum, allowing
-native Probatio validation and removal of obsolete compatibility code. Review
-the minimum and test baselines at each release; do not raise them automatically.
+The validation/type-checking improvements and Enhanced forecast chart fix shipped
+in v1.7.0, with Home Assistant Core 2026.9.0 as the minimum. Review the minimum
+and test baselines at each release; do not raise them automatically.
 
-See the [draft release notes and readiness checklist](docs/releases/1.7.0.md).
-Publication requires the final upgrade smoke test and maintainer approval.
-This release does not promise flexible-load recommendations, battery control
-or completion of every architecture follow-up in #288.
+Continue the scoped architecture follow-ups in #288. Future release scope must
+be agreed separately; v1.7.0 does not promise flexible-load recommendations,
+battery control or completion of every architecture follow-up.
 
 ## Energy-flow follow-up after v1.6 🔭
 
