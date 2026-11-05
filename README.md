@@ -9,7 +9,7 @@ together in Home Assistant. It works with compatible sensors you already have
 and complements the native Energy Dashboard—you do not need solar panels or a
 battery to get started.
 
-[Install with HACS](#hacs-installation-recommended) ·
+[Install with Marketplace / HACS](#marketplace-and-hacs-installation-recommended) ·
 [Configure your sources](docs/guides/configuration.md) ·
 [Add a dashboard](examples/dashboards/README.md#quick-installation)
 
@@ -159,7 +159,7 @@ Price, current market-price context, and scheduling and retrospective insights.
 | **Standard** | Most users and first-time setup         | None                         |
 | **Enhanced** | Richer presentation and forecast charts | Mushroom and ApexCharts Card |
 
-HACS installs the integration but cannot add a dashboard automatically. The
+Marketplace / HACS installs the integration but does not add a dashboard automatically. The
 [one-minute dashboard guide](examples/dashboards/README.md#quick-installation)
 links directly to both ready-to-copy YAML examples.
 
@@ -195,7 +195,7 @@ Requests have an average-price ceiling and cancel when the selected window
 changes before starting. They do not resume after a restart or silently catch
 up on missed starts. Review the guide's freshness limitations and test the dry
 run before connecting a real appliance. EV charging control remains future work.
-These examples are not installed or enabled by HACS.
+These examples are not installed or enabled by Marketplace / HACS.
 
 Additional [notification and Good Time examples](examples/automations/followups.md)
 cover a daily best-currently-available window notice, a next-inexpensive-hour
@@ -204,22 +204,33 @@ thresholds and unavailable-input handling. No real-device control is enabled.
 
 ## Installation
 
-### HACS installation (recommended)
+### Marketplace and HACS installation (recommended)
 
 The next Electricity Pro release (and the current `main` branch) requires
 Home Assistant **2026.9.0 or newer**. Upgrade Home Assistant before installing it.
 Released v1.6.0 retains its Home Assistant 2025.9.0 minimum; older installations
 can remain on that release until Home Assistant is upgraded.
 
-Electricity Pro currently supports installation as a HACS custom repository:
+Electricity Pro is included in the default HACS / Marketplace catalog. You do
+**not** need to add a custom repository. The [catalog submission](https://github.com/hacs/default/pull/10261)
+was merged on 4 November 2026.
 
-1. Open HACS in your Home Assistant sidebar.
-2. Open the menu and select **Custom repositories**.
-3. Add `https://github.com/guslund-jpg/electricity-pro` with category
-   **Integration**.
-4. Open **Integrations**, search for **Electricity Pro**, and download it.
-5. Restart Home Assistant.
-6. Add **Electricity Pro** from **Settings → Devices & Services**.
+Starting with **Home Assistant 2026.11**, HACS is the built-in **Marketplace**
+under Settings. On earlier supported Home Assistant versions, use HACS instead.
+See the [official Marketplace documentation](https://www.home-assistant.io/integrations/marketplace/)
+for setup and migration information.
+
+1. **Home Assistant 2026.11 or newer:** open **Settings → Marketplace**, search
+   for **Electricity Pro**, and install it.
+   **Earlier supported versions:** open **HACS → Integrations**, search for
+   **Electricity Pro**, and download it. HACS must already be installed.
+2. Restart Home Assistant.
+3. Add **Electricity Pro** from **Settings → Devices & Services → Add integration**.
+
+Existing users do not need to remove or reinstall Electricity Pro just because
+it is now in the default catalog. Home Assistant 2026.11 migrates existing HACS
+installations to Marketplace. Electricity Pro remains a community integration,
+not a Home Assistant Core integration.
 
 Forecast insights additionally require Home Assistant's native Nord Pool
 integration to be configured. They do not use the older HACS Nord Pool custom
@@ -248,7 +259,7 @@ Two optional, ready-to-copy dashboard examples are maintained in
 - [`electricity-pro-enhanced.yaml`](examples/dashboards/electricity-pro-enhanced.yaml)
   adds Mushroom and ApexCharts Card presentation.
 
-Dashboard YAML is not installed or imported by HACS. Follow the
+Dashboard YAML is not installed or imported by Marketplace / HACS. Follow the
 [dashboard installation guide](examples/dashboards/README.md#quick-installation) to
 create a manual dashboard, copy an example, and verify its entity IDs.
 

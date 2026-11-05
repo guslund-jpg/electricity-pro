@@ -9,6 +9,9 @@ Core 2026.9.0 or newer. See the [upgrade notes and release gates](docs/releases/
 
 ### Changed
 
+- Update installation instructions for inclusion in the default HACS catalog
+  and Home Assistant 2026.11's built-in Marketplace; ordinary installation no
+  longer requires adding a custom repository.
 - Define the forecast action response explicitly, preserve types when merging
   settings, and validate pricing metadata at its input boundary. Document the
   remaining framework and persistence typing exceptions; valid response and
