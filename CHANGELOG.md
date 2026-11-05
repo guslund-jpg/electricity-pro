@@ -2,8 +2,16 @@
 
 ## [Unreleased]
 
+## [1.7.0]
+
+**Unpublished candidate; release date pending approval.** Requires Home Assistant
+Core 2026.9.0 or newer. See the [upgrade notes and release gates](docs/releases/1.7.0.md).
+
 ### Changed
 
+- Update installation instructions for inclusion in the default HACS catalog
+  and Home Assistant 2026.11's built-in Marketplace; ordinary installation no
+  longer requires adding a custom repository.
 - Define the forecast action response explicitly, preserve types when merging
   settings, and validate pricing metadata at its input boundary. Document the
   remaining framework and persistence typing exceptions; valid response and
