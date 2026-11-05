@@ -49,7 +49,7 @@ Manual checks are in the
 
 ## Home Assistant support and release review
 
-The next release and `main` require **Home Assistant 2026.9.0** and Python 3.14.
+Electricity Pro v1.7.0 and `main` require **Home Assistant 2026.9.0** and Python 3.14.
 Released v1.6.0 keeps its original 2025.9.0 minimum. Historical release notes
 and validation records describe those releases, not the current development floor.
 
@@ -307,13 +307,13 @@ the same normal generated-directory and Git-ignore handling as the lint check.
 
 ### Further typing
 
-The bounded formatting and incremental typing work is tracked in
+The bounded formatting and incremental typing work was completed in
 [#287](https://github.com/guslund-jpg/electricity-pro/issues/287).
 The agreed module list includes the main configuration flow. The boundary review
-and remaining exceptions are documented above. Closing #287 requires formatting,
+and remaining exceptions are documented above. Its completion included formatting,
 lint, strict typing, repository validation and behavioural tests on both pinned
-Home Assistant environments to pass. It does not require eliminating every
-framework-supplied `Any` or strictly typing the entire test suite. Further
+Home Assistant environments. This does not establish that every framework-supplied
+`Any` was eliminated or that the entire test suite is strictly typed. Further
 persistence schema work and unrelated refactoring should be tracked separately.
 
 ### Documentation and fixture checks

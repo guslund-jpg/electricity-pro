@@ -1,6 +1,6 @@
 # Electricity Pro architecture
 
-This describes `main`. The stable release is [v1.6.0](../releases/1.6.0.md);
+This describes `main`. The stable release is [v1.7.0](../releases/1.7.0.md);
 optional production/export, household-demand and compatibility modules are
 included but remain experimental / not hardware-verified.
 
