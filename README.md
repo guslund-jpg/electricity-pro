@@ -13,7 +13,7 @@ battery to get started.
 [Configure your sources](docs/guides/configuration.md) ·
 [Add a dashboard](examples/dashboards/README.md#quick-installation)
 
-**Stable: [v1.6.0](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.6.0).**
+**Stable: [v1.7.0](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.7.0).**
 See [release scope](#release-scope)
 before installing code or examples from `main`.
 
@@ -60,10 +60,11 @@ source requirements and price-component definitions.
 
 ## Release scope
 
-The latest stable release is [v1.6.0](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.6.0),
-published on 3 November 2026. It adds optional measured energy flows, a two-hour
-price trend, VAT suggestions and reviewed Tibber forecast-addition estimation.
-See the [release and upgrade notes](docs/releases/1.6.0.md).
+The latest stable release is [v1.7.0](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.7.0),
+published on 5 November 2026. This validation and maintenance release strengthens
+input validation and type checking and fixes the Enhanced forecast chart's
+initialization stall. **Home Assistant Core 2026.9.0 or newer is required.**
+See the [release and upgrade notes](docs/releases/1.7.0.md).
 
 Optional production/export/household sources and compatibility diagnostics remain
 **experimental / not hardware-verified**. Synthetic validation does not establish

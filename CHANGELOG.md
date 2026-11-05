@@ -2,10 +2,10 @@
 
 ## [Unreleased]
 
-## [1.7.0]
+## [1.7.0] - 2026-11-05
 
-**Unpublished candidate; release date pending approval.** Requires Home Assistant
-Core 2026.9.0 or newer. See the [upgrade notes and release gates](docs/releases/1.7.0.md).
+Requires Home Assistant Core 2026.9.0 or newer. See the
+[upgrade notes and release validation](docs/releases/1.7.0.md).
 
 ### Changed
 
