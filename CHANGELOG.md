@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve a valid saved Nord Pool area when saving unrelated settings in custom
+  options. Previously, the save discarded the area override and could revert to
+  the original setup area. Single-area sources still need no saved area.
+
 ### Changed
 
 - Share Nord Pool area lookup and saved-area resolution across standard/Tibber
