@@ -154,15 +154,42 @@ async def test_options_reuse_area_only_for_same_source(
         )
         assert result["data"]["forecast_price_area"] == "SE3"
     else:
-        # Preserve the existing path-specific options payloads in this refactor.
-        if profile == "tibber":
-            assert result["data"]["forecast_price_area"] == saved_options.get(
-                "forecast_price_area", "SE4"
-            )
-        else:
-            assert "forecast_price_area" not in result["data"]
+        assert result["data"]["forecast_price_area"] == saved_options.get(
+            "forecast_price_area", "SE4"
+        )
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert dict(entry.data) == original_data
+
+
+async def test_custom_options_keep_area_override_across_repeated_saves(hass):
+    """An unrelated save must keep the user's area instead of reverting to setup."""
+    nordpool = MockConfigEntry(domain="nordpool", data={"areas": ["SE3", "SE4"]})
+    nordpool.add_to_hass(hass)
+    entry, manager, result = await start_flow(
+        hass,
+        "custom",
+        True,
+        data={
+            "forecast_nordpool_config_entry": nordpool.entry_id,
+            "forecast_price_area": "SE4",
+        },
+        saved_options={"forecast_price_area": "SE3"},
+    )
+    for fee in (49, 60):
+        result = await submit(
+            manager,
+            result,
+            {
+                "power_entity": "sensor.power",
+                "forecast_nordpool_config_entry": nordpool.entry_id,
+                "fixed_supplier_fee_monthly": fee,
+            },
+        )
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert entry.options["forecast_price_area"] == "SE3"
+        assert entry.options["fixed_supplier_fee_monthly"] == fee
+        assert entry.data["forecast_price_area"] == "SE4"
+        result = await manager.async_init(entry.entry_id)
 
 
 @pytest.mark.parametrize("profile", ["custom", "tibber"])

@@ -85,6 +85,8 @@ Both options paths use the same saved-area resolver: options override setup data
 and a valid saved area can be reused only for the same effective forecast entry.
 The existing area selector schema remains shared. Track-specific navigation,
 form defaults, confirmation and final saved-payload rules remain at their callers.
+Custom and Tibber options both retain a valid saved multi-area choice on an
+unrelated save; single-area sources do not need a separate saved area.
 
 Live readings are event-driven: source changes prompt normalized reads and
 dependent calculations. Local timers handle elapsed-time coverage, staleness and

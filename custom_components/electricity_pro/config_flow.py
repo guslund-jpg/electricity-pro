@@ -1483,7 +1483,8 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
                         step_id="forecast_area",
                         data_schema=_forecast_area_schema(self._forecast_areas),
                     )
-            user_input.pop(CONF_FORECAST_PRICE_AREA, None)
+            else:
+                user_input.pop(CONF_FORECAST_PRICE_AREA, None)
             return self.async_create_entry(
                 title="",
                 data=user_input,
