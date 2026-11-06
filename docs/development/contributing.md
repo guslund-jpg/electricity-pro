@@ -25,6 +25,12 @@ JUnit results are uploaded as `python-test-results` for 14 days, including on te
 failure; the job log contains pytest's failure details. An installation failure
 can prevent a report from being created but still fails the job.
 
+The **Minimum supported Home Assistant** job also runs the full suite, using
+the isolated pin in `requirements-minimum-core.txt`. It asserts the installed Core
+version matches `hacs.json` and uploads `minimum-core-test-results` for 14 days.
+Both jobs record their Python, Core and test-harness versions. A full development
+suite and a full minimum-Core suite remain separate evidence.
+
 Keep **Python test suite** required in the target branch's GitHub protection
 settings alongside any existing required checks. The workflow supplies the check;
 branch protection controls whether it blocks merging.
@@ -83,6 +89,27 @@ Release checklist:
 Core 2026.9 provides Probatio, so validation imports it directly rather than
 using the older Voluptuous name or an action-schema compatibility adapter.
 See the [Home Assistant validation-engine announcement](https://contributors.home-assistant.io/blog/2026/09/30/probatio-validation-engine/).
+
+### Baseline review — 5 November 2026
+
+Retain the Core **2026.9.0** minimum: the scoped consolidation work introduces no
+API requiring a newer floor. The switch to native Probatio and removal of the
+schema adapter shipped in v1.7.0. Older saved settings, storage formats and flow compatibility
+are separate contracts; a newer Core floor alone does not justify removing them.
+
+Current stable Core is [2026.11.0](https://github.com/home-assistant/core/releases/tag/2026.11.0).
+The latest [published test harness, 0.13.375](https://github.com/MatthewFlamm/pytest-homeassistant-custom-component/releases/tag/0.13.375),
+also listed on [PyPI](https://pypi.org/project/pytest-homeassistant-custom-component/),
+still targets Core **2026.10.4**. Retain that development pin and the separate
+0.13.363 / Core 2026.9.0 minimum pin until a matching current-Core harness is
+available and validated. Do not force an incompatible Core override.
+
+Full automated integration coverage on Core 2026.11 remains pending. The stable
+HA configuration workflow validates only the minimal YAML fixture; it does not
+load an Electricity Pro entry. The maintainer-reported 2026.11 compatibility check
+is recorded in the [v1.7.0 notes](../releases/1.7.0.md#candidate-smoke-review--5-november-2026)
+and does not establish a full suite on that version. Recheck the harness and
+current stable Core during release preparation.
 
 ## Check scope and documentation
 

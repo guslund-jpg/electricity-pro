@@ -80,6 +80,14 @@ reads resolve settings again; this is not a settings cache. Stored cost scopes
 and adaptive tariff signatures use the same effective values as before.
 Configuration-form drafts and their retry/clearing rules remain separate.
 
+Setup and options share Nord Pool area metadata lookup in `config_flow.py`.
+Both options paths use the same saved-area resolver: options override setup data,
+and a valid saved area can be reused only for the same effective forecast entry.
+The existing area selector schema remains shared. Track-specific navigation,
+form defaults, confirmation and final saved-payload rules remain at their callers.
+Custom and Tibber options both retain a valid saved multi-area choice on an
+unrelated save; single-area sources do not need a separate saved area.
+
 Live readings are event-driven: source changes prompt normalized reads and
 dependent calculations. Local timers handle elapsed-time coverage, staleness and
 calendar boundaries; they do not poll the meter. Remaining Cost Today and

@@ -75,6 +75,7 @@ from .pricing import (
 )
 from .grid_tariff import HighLowGridTariff
 from .source_adapters import DiscoveredSource, discover_tibber_sources
+from .settings import resolve_settings
 from .flow_sources import FLOW_KEYS, CONF_CONFIGURE_FLOWS
 from .markup_estimate import CONF_ESTIMATE_MARKUP, MarkupEstimate, async_estimate_markup
 from .vat_suggestions import CONF_SUGGEST_VAT, VatSuggestionFlow, assistance_field
@@ -1102,20 +1103,16 @@ class ElectricityProConfigFlow(
                     ),
                     errors={"base": "pricing_metadata_required"},
                 )
-            nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
-            if isinstance(nordpool_entry_id, str):
-                nordpool_entry = self.hass.config_entries.async_get_entry(
-                    nordpool_entry_id
+            areas = _nordpool_areas(
+                self.hass, user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+            )
+            if len(areas) > 1:
+                self._pending_user_input = user_input
+                self._forecast_areas = [str(area) for area in areas]
+                return self.async_show_form(
+                    step_id="forecast_area",
+                    data_schema=_forecast_area_schema(self._forecast_areas),
                 )
-                if nordpool_entry is not None:
-                    areas = nordpool_entry.data.get("areas", [])
-                    if isinstance(areas, list) and len(areas) > 1:
-                        self._pending_user_input = user_input
-                        self._forecast_areas = [str(area) for area in areas]
-                        return self.async_show_form(
-                            step_id="forecast_area",
-                            data_schema=_forecast_area_schema(self._forecast_areas),
-                        )
 
             user_input.pop(CONF_FORECAST_PRICE_AREA, None)
             return self.async_create_entry(
@@ -1201,27 +1198,19 @@ class ElectricityProConfigFlow(
             ):
                 self._pending_forecast_settings = dict(user_input)
                 return await self.async_step_tibber_forecast_pricing()
-            nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
-            if isinstance(nordpool_entry_id, str):
-                nordpool_entry = self.hass.config_entries.async_get_entry(
-                    nordpool_entry_id
+            areas = _nordpool_areas(
+                self.hass, user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+            )
+            if len(areas) > 1 and user_input.get(CONF_FORECAST_PRICE_AREA) not in areas:
+                self._pending_user_input = {
+                    **self._selected_tibber_source.data,
+                    **user_input,
+                }
+                self._forecast_areas = [str(area) for area in areas]
+                return self.async_show_form(
+                    step_id="forecast_area",
+                    data_schema=_forecast_area_schema(self._forecast_areas),
                 )
-                if nordpool_entry is not None:
-                    areas = nordpool_entry.data.get("areas", [])
-                    if (
-                        isinstance(areas, list)
-                        and len(areas) > 1
-                        and user_input.get(CONF_FORECAST_PRICE_AREA) not in areas
-                    ):
-                        self._pending_user_input = {
-                            **self._selected_tibber_source.data,
-                            **user_input,
-                        }
-                        self._forecast_areas = [str(area) for area in areas]
-                        return self.async_show_form(
-                            step_id="forecast_area",
-                            data_schema=_forecast_area_schema(self._forecast_areas),
-                        )
 
             data = {**self._selected_tibber_source.data, **user_input}
             return self.async_create_entry(title="Electricity Pro", data=data)
@@ -1397,46 +1386,21 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
                     and CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in self.config_entry.data
                 ):
                     user_input[CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] = None
-                nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
-                if isinstance(nordpool_entry_id, str):
-                    nordpool_entry = self.hass.config_entries.async_get_entry(
-                        nordpool_entry_id
+                areas = _nordpool_areas(
+                    self.hass, user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+                )
+                if len(areas) > 1:
+                    selected_area = _restore_forecast_area(
+                        user_input, self.config_entry, areas
                     )
-                    if nordpool_entry is not None:
-                        areas = nordpool_entry.data.get("areas", [])
-                        if isinstance(areas, list) and len(areas) > 1:
-                            selected_area = user_input.get(CONF_FORECAST_PRICE_AREA)
-                            current_nordpool_entry_id = self.config_entry.options.get(
-                                CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
-                                self.config_entry.data.get(
-                                    CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
-                                ),
-                            )
-                            if (
-                                selected_area is None
-                                and nordpool_entry_id == current_nordpool_entry_id
-                            ):
-                                selected_area = self.config_entry.options.get(
-                                    CONF_FORECAST_PRICE_AREA,
-                                    self.config_entry.data.get(
-                                        CONF_FORECAST_PRICE_AREA
-                                    ),
-                                )
-                                if selected_area in areas:
-                                    user_input[CONF_FORECAST_PRICE_AREA] = selected_area
-                            if selected_area not in areas:
-                                self._pending_user_input = user_input
-                                self._forecast_areas = [str(area) for area in areas]
-                                return self.async_show_form(
-                                    step_id="forecast_area",
-                                    data_schema=_forecast_area_schema(
-                                        self._forecast_areas
-                                    ),
-                                )
-                            return self.async_create_entry(
-                                title="",
-                                data=user_input,
-                            )
+                    if selected_area not in areas:
+                        self._pending_user_input = user_input
+                        self._forecast_areas = [str(area) for area in areas]
+                        return self.async_show_form(
+                            step_id="forecast_area",
+                            data_schema=_forecast_area_schema(self._forecast_areas),
+                        )
+                    return self.async_create_entry(title="", data=user_input)
                 user_input.pop(CONF_FORECAST_PRICE_AREA, None)
                 return self.async_create_entry(title="", data=user_input)
             current_grid_fee = self.config_entry.options.get(
@@ -1505,39 +1469,22 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
                 return self._show_init_error(
                     user_input, {"base": "pricing_metadata_required"}
                 )
-            nordpool_entry_id = user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
-            if isinstance(nordpool_entry_id, str):
-                nordpool_entry = self.hass.config_entries.async_get_entry(
-                    nordpool_entry_id
+            areas = _nordpool_areas(
+                self.hass, user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+            )
+            if len(areas) > 1:
+                selected_area = _restore_forecast_area(
+                    user_input, self.config_entry, areas
                 )
-                if nordpool_entry is not None:
-                    areas = nordpool_entry.data.get("areas", [])
-                    if isinstance(areas, list) and len(areas) > 1:
-                        selected_area = user_input.get(CONF_FORECAST_PRICE_AREA)
-                        current_nordpool_entry_id = self.config_entry.options.get(
-                            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
-                            self.config_entry.data.get(
-                                CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
-                            ),
-                        )
-                        if (
-                            selected_area is None
-                            and nordpool_entry_id == current_nordpool_entry_id
-                        ):
-                            selected_area = self.config_entry.options.get(
-                                CONF_FORECAST_PRICE_AREA,
-                                self.config_entry.data.get(CONF_FORECAST_PRICE_AREA),
-                            )
-                            if selected_area in areas:
-                                user_input[CONF_FORECAST_PRICE_AREA] = selected_area
-                        if selected_area not in areas:
-                            self._pending_user_input = user_input
-                            self._forecast_areas = [str(area) for area in areas]
-                            return self.async_show_form(
-                                step_id="forecast_area",
-                                data_schema=_forecast_area_schema(self._forecast_areas),
-                            )
-            user_input.pop(CONF_FORECAST_PRICE_AREA, None)
+                if selected_area not in areas:
+                    self._pending_user_input = user_input
+                    self._forecast_areas = [str(area) for area in areas]
+                    return self.async_show_form(
+                        step_id="forecast_area",
+                        data_schema=_forecast_area_schema(self._forecast_areas),
+                    )
+            else:
+                user_input.pop(CONF_FORECAST_PRICE_AREA, None)
             return self.async_create_entry(
                 title="",
                 data=user_input,
@@ -1881,6 +1828,32 @@ class ElectricityProOptionsFlow(VatSuggestionFlow, _MarkupEstimateFlow, OptionsF
             step_id="forecast_area",
             data_schema=_forecast_area_schema(self._forecast_areas),
         )
+
+
+def _nordpool_areas(hass: HomeAssistant, entry_id: object) -> list[object]:
+    """Read area metadata without changing its values or inferring missing areas."""
+    if not isinstance(entry_id, str):
+        return []
+    entry = hass.config_entries.async_get_entry(entry_id)
+    if entry is None:
+        return []
+    areas: object = entry.data.get("areas", [])
+    return areas if isinstance(areas, list) else []
+
+
+def _restore_forecast_area(
+    user_input: dict[str, Any], entry: ConfigEntry, areas: list[object]
+) -> object:
+    """Reuse a valid saved area only for the same effective forecast source."""
+    selected_area: object = user_input.get(CONF_FORECAST_PRICE_AREA)
+    saved = resolve_settings(entry.data, entry.options)
+    if selected_area is None and user_input.get(
+        CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+    ) == saved.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY):
+        selected_area = saved.get(CONF_FORECAST_PRICE_AREA)
+        if selected_area in areas:
+            user_input[CONF_FORECAST_PRICE_AREA] = selected_area
+    return selected_area
 
 
 def _forecast_area_schema(areas: list[str]) -> vol.Schema:
