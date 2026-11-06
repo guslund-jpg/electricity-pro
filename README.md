@@ -260,6 +260,12 @@ Dashboard YAML is not installed or imported by Marketplace / HACS. Follow the
 [dashboard installation guide](examples/dashboards/README.md#quick-installation) to
 create a manual dashboard, copy an example, and verify its entity IDs.
 
+If Home Assistant stores its database on an SD card, you can reduce writes by
+excluding duplicate meter readings and live diagnostics from Recorder. Keep
+recording Electricity Pro Current Power and the prices used by the example
+dashboards. See the [Recorder guide](docs/guides/recorder.md) for an optional
+configuration example and what to keep recording.
+
 ### Manual installation
 
 1. Copy the `custom_components/electricity_pro` folder into your Home Assistant configuration.

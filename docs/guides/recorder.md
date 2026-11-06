@@ -1,21 +1,27 @@
 # Recorder and database writes
 
-Electricity Pro calculations read the current state of configured Home
-Assistant entities; they do not depend on those source entities being stored by
-Recorder. Excluding an entity from Recorder therefore does not disable its live
-state, Electricity Pro calculations, automations, or live dashboard cards. It
-does remove that entity's history and long-term statistics.
+When Home Assistant stores its Recorder database on an SD card, excluding
+frequently changing entities can reduce database writes. Exclusions stop new
+state history and any new statistics for those sensors. Live states, Electricity
+Pro calculations, and automations that use live states continue to work.
 
-High-frequency meter integrations can otherwise store both the provider source
-and Electricity Pro's normalized mirror. Users who want to minimize database
-writes can retain only the copy whose history they actually use. Keep
-`sensor.electricity_pro_current_power` when using the example dashboards,
-because their recorded power charts depend on its history. Keep energy and cost
-totals when their history or long-term statistics are required.
+- **Keep chart inputs.** The Standard and Enhanced dashboards use recorded
+  history from `sensor.electricity_pro_current_power` and the configured price
+  sensors `sensor.electricity_pro_current_market_price`,
+  `sensor.electricity_pro_current_supplier_price`, and
+  `sensor.electricity_pro_effective_price`.
+- **Keep Energy dashboard inputs.** Retain the energy and cost entities selected
+  in Home Assistant's Energy dashboard, including any provider entities it uses.
+  Keep other entities used by history-based automations or statistics cards.
+- **Start with fast-changing duplicates.** If your charts already use Electricity
+  Pro Current Power and you have no separate need for the provider's power
+  history, exclude the provider's power entity. Both dashboards show Current
+  Cost Rate live, and the Enhanced dashboard also shows live phase current and
+  voltage. Exclude their history if you only use those live values.
 
-Phase current, phase voltage, and Current Cost Rate are displayed as live values
-in the example dashboards and do not require recorded history. They can be
-excluded when historical diagnostics are not needed:
+Merge the relevant entries into `recorder.exclude.entities` in your existing
+`configuration.yaml` or Recorder include file. For a new Recorder
+configuration, add this block to `configuration.yaml`.
 
 ```yaml
 recorder:
@@ -29,15 +35,20 @@ recorder:
       - sensor.electricity_pro_current_l3
       - sensor.electricity_pro_current_cost_rate
 
-      # Optionally exclude equivalent provider entities when their separate
-      # history is not used. Replace these examples with actual entity IDs.
+      # Use the actual provider IDs if you only need their live values.
       # - sensor.your_provider_power
       # - sensor.your_provider_voltage_phase1
 ```
 
-This optimization is optional. Review existing dashboards, automations, and
-Energy dashboard configuration before excluding entities. Recorder exclusions
-reduce future writes but do not remove existing database rows.
+Confirm the entity IDs on each installation. Review broad rules such as an
+`update` domain exclusion or a `sensor.*_last_seen` glob separately, since they
+affect all matching entities. Check the configuration and restart Home Assistant
+to apply the changes. Existing data follows its normal retention policy.
+
+On an SD-card system, you can also set `commit_interval: 30` in the same
+`recorder:` block to commit less often. This reduces disk I/O and increases the
+time before recent changes are committed to disk. See the
+[Home Assistant Recorder documentation](https://www.home-assistant.io/integrations/recorder/).
 
 ## Electricity Pro statistics checkpoints
 
