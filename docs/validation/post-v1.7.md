@@ -35,10 +35,10 @@ intact; resetting them would prevent a continuity comparison.
 | --- | --- | --- |
 | Clean default-catalogue install (#118) | PASS (reported install) | The maintainer reported a successful clean install of published v1.7.0. The catalogue client and exact Core version for that run were not recorded. |
 | HACS-delivered upgrade (#335) | PARTIAL | The maintainer reported testing HACS delivery of published v1.7.0. Record the starting tag, configuration track, and before/after settings, identities, names and totals to complete the upgrade evidence. |
-| Development setup/options (#288) | PARTIAL | Custom options saved without an area prompt for SE3 alone. Adding SE4 to the Nord Pool entry produced an area picker and SE4 could be saved. Fresh setup, pending-change cancellation and Tibber checks remain open. |
+| Development setup/options (#288) | PARTIAL | Custom options saved without an area prompt for SE3 alone. Adding SE4 to the Nord Pool entry produced an area picker and SE4 could be saved. Cancelling a pending fee edit from the optional sources form preserved the original fee and SE4 forecast. Fresh setup and Tibber options on the development build remain open. |
 | Saved-area regression | PASS | The maintainer saved SE4 on a multi-area custom entry, increased the monthly supplier fee by 1 SEK, then restored it in a second save. Both saves completed without an area prompt and SE4 forecasts remained available. |
-| Tibber rejection and retry (#335) | NOT RUN | On a disposable fast-track entry, reject an invalid optional source; verify values survive retry and cancellation leaves saved settings intact. |
-| Forecast chart (#224) | NOT RUN | Open Forecast on desktop/mobile without resizing. Check today-only and today-plus-tomorrow data. Keep the view open across a source update, especially tomorrow-price arrival; new data must appear without refresh or tab switching. The Now marker advances with chart updates. |
+| Tibber rejection and cancellation (#335) | PASS on published v1.7.0 | The fast-track options form rejected a Tibber Pulse power sensor selected for both production and export, retained both selections after rejection, and restored the original fields on reopening after cancellation. |
+| Forecast chart (#224) | PARTIAL | The Enhanced Forecast view rendered today's prices on desktop and mobile. Nord Pool's SE4 tomorrow-price availability was off during the check. The today-plus-tomorrow horizon and automatic refresh when prices arrive remain open. |
 | Development reload/restart | PARTIAL | Configuration checks passed before both restarts. The initial startup was clean and the maintainer reported normal live readings and totals. SE4 prices returned after both an entry reload and a full restart. Exact identity and counter comparisons remain open. |
 
 Catalogue checks validate the published delivery path. They do not test the
@@ -55,10 +55,14 @@ OS **18.4**, and frontend **20261028.4**. The first startup produced no reported
 log errors. The saved-area test used a Nord Pool entry with SE3 and SE4 and SEK
 prices. The Core version above applies to this development run.
 
+The Tibber rejection and cancellation test used published **v1.7.0** on the
+separate semi-production instance, also on Core **2026.11.0**, Supervisor
+**2026.10.5**, Home Assistant OS **18.4**, and frontend **20261028.4**.
+
 On published v1.7.0, the copied Trends chart's supplier series pointed to the
 raw `current_price` entity. The maintainer refreshed the copied dashboards from
-the release examples and confirmed the price display worked. The separate
-Forecast chart horizon and live refresh checks remain open.
+the release examples and confirmed the price display worked. Subsequent Forecast
+checks with those examples on `b44335a` covered the today-only display.
 
 ## Recording results
 
