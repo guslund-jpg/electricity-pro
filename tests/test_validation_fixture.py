@@ -210,19 +210,14 @@ async def test_heartbeat_republishes_only_when_enabled(hass, integration, freeze
 
 
 async def test_fixture_reload_during_dip_preserves_high_water(
-    hass, integration, freezer, hass_storage
+    hass, integration, hass_storage
 ):
     await set_number(hass, "production_energy", 101000)
     await publish(hass)
     await set_number(hass, "production_energy", 97000)
     await publish(hass)
-    assert await hass.config_entries.async_unload(integration.entry_id)
-    # Let the unload callback's scheduled final save run before loading again.
-    freezer.tick(timedelta(seconds=1))
-    async_fire_time_changed(hass, dt_util.utcnow())
-    await hass.async_block_till_done()
+    assert await hass.config_entries.async_reload(integration.entry_id)
     assert f"{DOMAIN}.{integration.entry_id}.statistics" in hass_storage
-    assert await hass.config_entries.async_setup(integration.entry_id)
     await hass.async_block_till_done()
     for value in (100000, 101000, 102000):
         await set_number(hass, "production_energy", value)

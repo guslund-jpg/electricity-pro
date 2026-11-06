@@ -12,6 +12,9 @@
 - Preserve a valid saved Nord Pool area when saving unrelated settings in custom
   options. Previously, the save discarded the area override and could revert to
   the original setup area. Single-area sources still need no saved area.
+- Batch routine statistics writes into one-minute checkpoints, even during
+  continuous meter updates. Flush pending statistics on reload, shutdown,
+  rollover and explicit resets. (#365)
 
 ### Changed
 
