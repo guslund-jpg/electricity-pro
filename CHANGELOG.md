@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Share Nord Pool area lookup and saved-area resolution across standard/Tibber
+  setup and options. Preserve existing form navigation, saved-setting precedence,
+  cancellation and payload behaviour; continues the bounded refactors in #288.
+
 ## [1.7.0] - 2026-11-05
 
 Requires Home Assistant Core 2026.9.0 or newer. See the
