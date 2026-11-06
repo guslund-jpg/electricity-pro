@@ -13,7 +13,7 @@ battery to get started.
 [Configure your sources](docs/guides/configuration.md) ·
 [Add a dashboard](examples/dashboards/README.md#quick-installation)
 
-**Stable: [v1.7.0](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.7.0).**
+**Stable: [v1.7.1](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.7.1).**
 See [release scope](#release-scope)
 before installing code or examples from `main`.
 
@@ -60,11 +60,11 @@ source requirements and price-component definitions.
 
 ## Release scope
 
-The latest stable release is [v1.7.0](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.7.0),
-published on 5 November 2026. This validation and maintenance release strengthens
-input validation and type checking and fixes the Enhanced forecast chart's
-initialization stall. **Home Assistant Core 2026.9.0 or newer is required.**
-See the [release and upgrade notes](docs/releases/1.7.0.md).
+The latest stable release is [v1.7.1](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.7.1),
+published on 6 November 2026. This patch preserves saved Nord Pool areas and
+reduces the storage and processing needed for statistics during frequent meter
+updates. **Home Assistant Core 2026.9.0 or newer is required.**
+See the [release and upgrade notes](docs/releases/1.7.1.md).
 
 Optional production/export/household sources and compatibility diagnostics remain
 **experimental / not hardware-verified**. Synthetic validation does not establish
@@ -138,11 +138,7 @@ negative means export. Export compensation is not inferred from import prices.
 
 ## Roadmap
 
-Released **v1.7.0** improves validation, maintainability and dashboard reliability,
-and requires Home Assistant Core 2026.9.0 or newer.
-See the [release and upgrade notes](docs/releases/1.7.0.md). Flexible-load
-recommendations and storage planning remain later directions, not current
-capabilities.
+Flexible-load recommendations and storage planning are future directions.
 
 See the [roadmap](ROADMAP.md) for scope and validation limits, and the
 [changelog](CHANGELOG.md) for released history.
@@ -207,7 +203,7 @@ thresholds and unavailable-input handling. No real-device control is enabled.
 
 ### Marketplace and HACS installation (recommended)
 
-Electricity Pro v1.7.0 and the current `main` branch require
+Electricity Pro v1.7.1 and the current `main` branch require
 Home Assistant **2026.9.0 or newer**. Upgrade Home Assistant before installing them.
 Released v1.6.0 retains its Home Assistant 2025.9.0 minimum; older installations
 can remain on that release until Home Assistant is upgraded.
