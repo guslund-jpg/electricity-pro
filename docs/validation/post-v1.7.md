@@ -39,7 +39,7 @@ intact; resetting them would prevent a continuity comparison.
 | Saved-area regression | PASS | The maintainer saved SE4 on a multi-area custom entry, increased the monthly supplier fee by 1 SEK, then restored it in a second save. Both saves completed without an area prompt and SE4 forecasts remained available. |
 | Tibber rejection and cancellation (#335) | PASS on published v1.7.0 | The fast-track options form rejected a Tibber Pulse power sensor selected for both production and export, retained both selections after rejection, and restored the original fields on reopening after cancellation. |
 | Forecast chart (#224) | PARTIAL | The Enhanced Forecast view rendered today's prices on desktop and mobile. Nord Pool's SE4 tomorrow-price availability was off during the check. The today-plus-tomorrow horizon and automatic refresh when prices arrive remain open. |
-| Development reload/restart | PARTIAL | Configuration checks passed before both restarts. The initial startup was clean and the maintainer reported normal live readings and totals. SE4 prices returned after both an entry reload and a full restart. Exact identity and counter comparisons remain open. |
+| Development reload/restart | PASS (reported continuity) | Configuration checks passed before restart and startup showed no reported log errors. SE4 prices returned after reload and restart. The maintainer compared before/after snapshots for a reload and a full restart and confirmed matching entity IDs, device IDs and names, with daily and monthly energy and cost totals continuing without resets or jumps. |
 
 Catalogue checks validate the published delivery path. They do not test the
 unreleased setup/options changes; record the later development deployment as a
