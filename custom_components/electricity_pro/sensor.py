@@ -232,6 +232,7 @@ def _phase_current_descriptions() -> tuple[ElectricityProSensorEntityDescription
         ElectricityProSensorEntityDescription(
             key=f"current_{phase}",
             name=f"Current {phase.upper()}",
+            translation_key=f"current_{phase}",
             icon="mdi:current-ac",
             device_class=SensorDeviceClass.CURRENT,
             state_class=SensorStateClass.MEASUREMENT,
@@ -261,6 +262,7 @@ def _phase_voltage_descriptions() -> tuple[ElectricityProSensorEntityDescription
         ElectricityProSensorEntityDescription(
             key=f"voltage_{phase}",
             name=f"Voltage {phase.upper()}",
+            translation_key=f"voltage_{phase}",
             icon="mdi:sine-wave",
             device_class=SensorDeviceClass.VOLTAGE,
             state_class=SensorStateClass.MEASUREMENT,
@@ -293,6 +295,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="current_price",
         name="Current price",
+        translation_key="current_price",
         icon="mdi:currency-usd",
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
@@ -320,6 +323,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="current_cost_rate",
         name="Current cost rate",
+        translation_key="current_cost_rate",
         icon="mdi:cash-clock",
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
@@ -347,6 +351,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="consumption_weighted_average_price_today",
         name="Consumption-weighted average price today",
+        translation_key="consumption_weighted_average_price_today",
         icon="mdi:chart-line",
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
@@ -364,6 +369,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="remaining_cost_today",
         name="Remaining cost today",
+        translation_key="remaining_cost_today",
         icon="mdi:progress-clock",
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
@@ -377,6 +383,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="monthly_peak_hour_consumption",
         name="Monthly peak-hour consumption",
+        translation_key="monthly_peak_hour_consumption",
         icon="mdi:chart-bell-curve",
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL,
@@ -392,6 +399,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="monthly_peak_hour_time",
         name="Monthly peak-hour time",
+        translation_key="monthly_peak_hour_time",
         icon="mdi:clock-outline",
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda data: data.monthly_peak_hour_time,
@@ -401,6 +409,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="total_cost_today",
         name="Total cost estimate today",
+        translation_key="total_cost_today",
         icon="mdi:cash-multiple",
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
@@ -416,6 +425,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="total_cost_this_month",
         name="Total cost estimate this month",
+        translation_key="total_cost_this_month",
         icon="mdi:cash-multiple",
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
@@ -462,6 +472,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="fixed_supplier_fee_this_month",
         name="Fixed supplier fee this month",
+        translation_key="fixed_supplier_fee_this_month",
         icon="mdi:receipt-text-outline",
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
@@ -477,6 +488,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="fixed_grid_fee_this_month",
         name="Fixed grid fee this month",
+        translation_key="fixed_grid_fee_this_month",
         icon="mdi:transmission-tower",
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
@@ -492,6 +504,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="total_supplier_cost_this_month",
         name="Total supplier cost this month",
+        translation_key="total_supplier_cost_this_month",
         icon="mdi:cash-multiple",
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
@@ -510,6 +523,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="peak_power_today",
         name="Peak power today",
+        translation_key="peak_power_today",
         icon="mdi:flash-outline",
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
@@ -521,6 +535,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="peak_power_time_today",
         name="Peak power time today",
+        translation_key="peak_power_time_today",
         icon="mdi:clock-outline",
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda data: data.peak_power_time_today,
@@ -705,14 +720,29 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class ElectricityProFlowCompatibilitySensor(
+class ElectricityProNamedSensor(
     CoordinatorEntity[ElectricityProCoordinator],
     SensorEntity,
 ):
-    """Opt-in input diagnostic, explicitly not a site-balance readiness flag."""
+    """Localize the display name while preserving the original ID base."""
 
     _attr_has_entity_name = True
-    _attr_name = "Flow power compatibility"
+
+    @property
+    def suggested_object_id(self) -> str | None:
+        """Use the original English name when Home Assistant generates an ID."""
+        name = self.entity_description.name
+        return name if isinstance(name, str) else super().suggested_object_id
+
+
+class ElectricityProFlowCompatibilitySensor(ElectricityProNamedSensor):
+    """Opt-in input diagnostic, explicitly not a site-balance readiness flag."""
+
+    entity_description = SensorEntityDescription(
+        key="flow_power_compatibility",
+        name="Flow power compatibility",
+        translation_key="flow_power_compatibility",
+    )
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:check-network-outline"
 
@@ -738,12 +768,8 @@ class ElectricityProFlowCompatibilitySensor(
         }
 
 
-class ElectricityProFlowSensor(
-    CoordinatorEntity[ElectricityProCoordinator], SensorEntity
-):
+class ElectricityProFlowSensor(ElectricityProNamedSensor):
     """Expose an explicitly configured independent directional flow."""
-
-    _attr_has_entity_name = True
 
     def __init__(
         self,
@@ -755,13 +781,16 @@ class ElectricityProFlowSensor(
         super().__init__(coordinator)
         self._key = f"{channel}_{period}"
         label = "Production" if channel == "production" else "Grid export"
-        self._attr_name = f"{label} {period.replace('_', ' ')}"
+        name = f"{label} {period.replace('_', ' ')}"
         if channel == "household":
-            self._attr_name = (
+            name = (
                 "Household demand power"
                 if period == "power"
                 else f"Household energy {period.replace('_', ' ')}"
             )
+        self.entity_description = SensorEntityDescription(
+            key=self._key, name=name, translation_key=self._key
+        )
         self._attr_unique_id = f"{entry.entry_id}_{self._key}"
         self._attr_device_info = device_info_for_entry(entry.entry_id)
         self._attr_device_class = (
@@ -790,13 +819,9 @@ class ElectricityProFlowSensor(
         return self.coordinator.flow_values.get(self._key, (None, {}))[1]
 
 
-class ElectricityProSensor(
-    CoordinatorEntity[ElectricityProCoordinator],
-    SensorEntity,
-):
+class ElectricityProSensor(ElectricityProNamedSensor):
     """Represent an Electricity Pro sensor."""
 
-    _attr_has_entity_name = True
     entity_description: ElectricityProSensorEntityDescription
 
     def __init__(
@@ -811,16 +836,6 @@ class ElectricityProSensor(
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
         self._attr_device_info = device_info_for_entry(entry.entry_id)
-
-    @property
-    def suggested_object_id(self) -> str | None:
-        """Keep the original entity ID base for translated sensors."""
-        description = self.entity_description
-        if description.translation_key is not None and isinstance(
-            description.name, str
-        ):
-            return description.name
-        return super().suggested_object_id
 
     async def async_added_to_hass(self) -> None:
         """Register entity update listeners."""
@@ -962,13 +977,8 @@ class ElectricityProSensor(
         }
 
 
-class ElectricityProForecastInsightSensor(
-    CoordinatorEntity[ElectricityProCoordinator],
-    SensorEntity,
-):
+class ElectricityProForecastInsightSensor(ElectricityProNamedSensor):
     """Base entity for coordinator-backed forecast insight sensors."""
-
-    _attr_has_entity_name = True
 
     def __init__(
         self,
@@ -981,7 +991,9 @@ class ElectricityProForecastInsightSensor(
         """Initialize a forecast insight sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_name = name
+        self.entity_description = SensorEntityDescription(
+            key=key, name=name, translation_key=key
+        )
         self._attr_device_info = device_info_for_entry(entry.entry_id)
 
 
@@ -1138,14 +1150,14 @@ class ElectricityProAverageMarketPriceTodaySensor(
         }
 
 
-class ElectricityProConsumptionTimingScoreSensor(
-    CoordinatorEntity[ElectricityProCoordinator],
-    SensorEntity,
-):
+class ElectricityProConsumptionTimingScoreSensor(ElectricityProNamedSensor):
     """Represent the retrospective Consumption Timing Score."""
 
-    _attr_has_entity_name = True
-    _attr_name = "Consumption timing score yesterday"
+    entity_description = SensorEntityDescription(
+        key="consumption_timing_score_yesterday",
+        name="Consumption timing score yesterday",
+        translation_key="consumption_timing_score_yesterday",
+    )
     _attr_icon = "mdi:meter-electric-outline"
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -1197,14 +1209,14 @@ class ElectricityProConsumptionTimingScoreSensor(
         }
 
 
-class ElectricityProEstimatedBaseLoadSensor(
-    CoordinatorEntity[ElectricityProCoordinator],
-    SensorEntity,
-):
+class ElectricityProEstimatedBaseLoadSensor(ElectricityProNamedSensor):
     """Represent the provider-independent Estimated Base Load."""
 
-    _attr_has_entity_name = True
-    _attr_name = "Estimated base load"
+    entity_description = SensorEntityDescription(
+        key="estimated_base_load",
+        name="Estimated base load",
+        translation_key="estimated_base_load",
+    )
     _attr_icon = "mdi:home-lightning-bolt-outline"
     _attr_device_class = SensorDeviceClass.POWER
     _attr_native_unit_of_measurement = UnitOfPower.WATT
@@ -1255,14 +1267,14 @@ class ElectricityProEstimatedBaseLoadSensor(
         }
 
 
-class ElectricityProAveragePowerTodaySensor(
-    CoordinatorEntity[ElectricityProCoordinator],
-    SensorEntity,
-):
+class ElectricityProAveragePowerTodaySensor(ElectricityProNamedSensor):
     """Represent duration-weighted Average Power Today."""
 
-    _attr_has_entity_name = True
-    _attr_name = "Average power today"
+    entity_description = SensorEntityDescription(
+        key="average_power_today",
+        name="Average power today",
+        translation_key="average_power_today",
+    )
     _attr_icon = "mdi:chart-bell-curve-cumulative"
     _attr_device_class = SensorDeviceClass.POWER
     _attr_native_unit_of_measurement = UnitOfPower.WATT

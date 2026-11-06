@@ -5,63 +5,106 @@ import json
 from pathlib import Path
 
 import pytest
+from freezegun.api import FrozenDateTimeFactory
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import slugify
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import CONF_POWER_ENTITY, DOMAIN
 from custom_components.electricity_pro.device import device_info_for_entry
+from custom_components.electricity_pro.pricing import (
+    PriceComponent,
+    PriceComponentScope,
+    PriceCompleteness,
+    PricingMetadata,
+    PricingStrategy,
+    VatTreatment,
+)
 
-_ENGLISH_NAMES = {
-    "current_power": "Current power",
-    "current_supplier_price": "Current supplier price",
-    "effective_price": "Effective price",
-    "cost_today": "Cost today",
-    "cost_this_month": "Cost this month",
-    "current_energy": "Energy today",
-    "energy_this_month": "Energy this month",
+_INTEGRATION_ROOT = (
+    Path(__file__).resolve().parents[1] / "custom_components/electricity_pro"
+)
+_FIXED_FORECAST_IDS = {
+    f"cheapest_{hours}h_window_average_effective_price" for hours in (1, 2, 3)
 }
-_SWEDISH_NAMES = {
-    "current_power": "Aktuell effekt",
-    "current_supplier_price": "Aktuellt elhandelspris",
-    "effective_price": "Effektivt elpris",
-    "cost_today": "Elhandelskostnad i dag",
-    "cost_this_month": "Elhandelskostnad den här månaden",
-    "current_energy": "Energi i dag",
-    "energy_this_month": "Energi den här månaden",
-}
+
+
+def _entity_names(filename: str) -> dict[tuple[str, str], str]:
+    translations = json.loads(
+        (_INTEGRATION_ROOT / filename).read_text(encoding="utf-8")
+    )
+    return {
+        (platform, key): description["name"]
+        for platform, descriptions in translations["entity"].items()
+        for key, description in descriptions.items()
+    }
 
 
 def test_english_entity_names_match_source_strings() -> None:
     """The custom integration's English resource follows its source strings."""
-    root = Path(__file__).resolve().parents[1] / "custom_components/electricity_pro"
-    source = json.loads((root / "strings.json").read_text(encoding="utf-8"))
-    english = json.loads((root / "translations/en.json").read_text(encoding="utf-8"))
-    assert source["entity"] == english["entity"]
+    assert _entity_names("strings.json") == _entity_names("translations/en.json")
 
 
-@pytest.mark.parametrize(
-    ("language", "names"),
-    [("en", _ENGLISH_NAMES), ("sv", _SWEDISH_NAMES), ("fi", _ENGLISH_NAMES)],
-)
+@pytest.mark.parametrize("language", ["en", "sv", "fi"])
 async def test_fresh_install_translates_names_but_keeps_default_ids(
     hass: HomeAssistant,
+    freezer: FrozenDateTimeFactory,
     setup_electricity_pro: Callable[..., Awaitable[MockConfigEntry]],
     language: str,
-    names: dict[str, str],
 ) -> None:
-    """Built-in dashboard IDs work in Swedish and with English fallback."""
+    """All entities keep their existing IDs in Swedish and with English fallback."""
     hass.config.language = language
+    freezer.move_to("2026-11-06T20:00:00+00:00")
     entry = await setup_electricity_pro(
-        price_value="1.25", energy_value="3.5", accumulated_cost_today_value="4.2"
+        price_value="1.25",
+        energy_value="3.5",
+        accumulated_cost_today_value="4.2",
+        fixed_supplier_fee_monthly=10,
+        fixed_grid_fee_monthly=20,
+        current_l1_value="1",
+        current_l2_value="2",
+        current_l3_value="3",
+        voltage_l1_value="230",
+        voltage_l2_value="230",
+        voltage_l3_value="230",
+        monthly_peak_hour_consumption_value="3",
+        monthly_peak_hour_time_value="2026-11-06T12:00:00+00:00",
+        good_price_threshold=1,
+        price_completeness=PriceCompleteness.COMPLETE,
+        forecast_price_area="SE3",
+        forecast_currency="SEK",
+        forecast_nordpool_config_entry="forecast-entry-id",
+        forecast_pricing_metadata=PricingMetadata(
+            strategy=PricingStrategy.EXTERNAL_COMPLETE_PRICE,
+            scope=PriceComponentScope(
+                frozenset(PriceComponent), vat=VatTreatment.INCLUDED
+            ),
+            completeness=PriceCompleteness.COMPLETE,
+        ),
+        forecast_intervals=[
+            {
+                "start": "2026-11-06T21:00:00+00:00",
+                "end": "2026-11-06T22:00:00+00:00",
+                "price": 600,
+            }
+        ],
+        include_flow_sources=True,
     )
     registry = er.async_get(hass)
+    english = _entity_names("translations/en.json")
+    swedish = _entity_names("translations/sv.json")
+    assert english.keys() == swedish.keys()
+    names = swedish if language == "sv" else english
+    registered_entries = er.async_entries_for_config_entry(registry, entry.entry_id)
+    assert len(registered_entries) == len(names)
 
-    for key, name in names.items():
-        object_id = "energy_today" if key == "current_energy" else key
-        entity_id = f"sensor.{DOMAIN}_{object_id}"
+    for (platform, key), name in names.items():
+        english_name = english[platform, key]
+        object_id = key if key in _FIXED_FORECAST_IDS else slugify(english_name)
+        entity_id = f"{platform}.{DOMAIN}_{object_id}"
         state = hass.states.get(entity_id)
         registered = registry.async_get(entity_id)
         assert state is not None
