@@ -24,7 +24,7 @@ The Core minimum remains 2026.9.0. Full integration-suite coverage on Core
 The previously reported 2026.11 compatibility check is historical evidence,
 not a manual pass for this development runtime.
 
-## Manual checks still required
+## Manual validation
 
 Use a separate development HA instance. Back up and record source bindings,
 pricing settings, entity/device IDs, user names and energy/cost snapshots before
@@ -33,19 +33,32 @@ intact; resetting them would prevent a continuity comparison.
 
 | Check | Status | What to verify |
 | --- | --- | --- |
-| Clean default-catalogue install (#118) | NOT RUN | Install published v1.7.0 without adding a custom repository. Record whether Marketplace or HACS delivered it; create an entry and verify live readings. |
-| HACS-delivered upgrade (#335) | NOT RUN | On standard and Tibber fast-track test entries, record the old tag and upgrade to v1.7.0 through the catalogue. Compare settings, entity/device IDs, user names and continuing totals. A manual ZIP install does not establish this path. |
-| Development setup/options (#288) | NOT RUN | Test standard and Tibber paths on the exact development commit above. A single-area source needs no area prompt; multiple areas offer a choice. Changing the source must request a valid area when needed. Cancel a pending change and verify the saved entry remains intact. |
-| Saved-area regression | NOT RUN | On a disposable custom entry with multiple areas, choose a different area through options, then save an unrelated fee twice. The selected area must remain the options override; verify forecast retrieval uses that area. |
+| Clean default-catalogue install (#118) | PASS (reported install) | The maintainer reported a successful clean install of published v1.7.0. The catalogue client and exact Core version for that run were not recorded. |
+| HACS-delivered upgrade (#335) | PARTIAL | The maintainer reported testing HACS delivery of published v1.7.0. Record the starting tag, configuration track, and before/after settings, identities, names and totals to complete the upgrade evidence. |
+| Development setup/options (#288) | PARTIAL | Custom options saved without an area prompt for SE3 alone. Adding SE4 to the Nord Pool entry produced an area picker and SE4 could be saved. Fresh setup, pending-change cancellation and Tibber checks remain open. |
+| Saved-area regression | PASS | The maintainer saved SE4 on a multi-area custom entry, increased the monthly supplier fee by 1 SEK, then restored it in a second save. Both saves completed without an area prompt and SE4 forecasts remained available. |
 | Tibber rejection and retry (#335) | NOT RUN | On a disposable fast-track entry, reject an invalid optional source; verify values survive retry and cancellation leaves saved settings intact. |
 | Forecast chart (#224) | NOT RUN | Open Forecast on desktop/mobile without resizing. Check today-only and today-plus-tomorrow data. Keep the view open across a source update, especially tomorrow-price arrival; new data must appear without refresh or tab switching. The Now marker advances with chart updates. |
-| Development reload/restart | NOT RUN | Check settings, entity/device IDs, readings, continuing totals and logs after integration reload and HA restart on the development commit. Account for actual source-meter movement between snapshots. |
+| Development reload/restart | PARTIAL | Configuration checks passed before both restarts. The initial startup was clean and the maintainer reported normal live readings and totals. SE4 prices returned after both an entry reload and a full restart. Exact identity and counter comparisons remain open. |
 
 Catalogue checks validate the published delivery path. They do not test the
 unreleased setup/options changes; record the later development deployment as a
 separate step. If a build changes, identify the new commit and reassess only the
 affected checks. Existing copied dashboards need the polling-setting removal
 described in the [v1.7.0 notes](../releases/1.7.0.md).
+
+### Maintainer report — 6 November 2026
+
+The development build `b44335a` was copied over Samba onto the test instance.
+Settings → About showed Core **2026.11.0**, Supervisor **2026.10.5**, Home Assistant
+OS **18.4**, and frontend **20261028.4**. The first startup produced no reported
+log errors. The saved-area test used a Nord Pool entry with SE3 and SE4 and SEK
+prices. The Core version above applies to this development run.
+
+On published v1.7.0, the copied Trends chart's supplier series pointed to the
+raw `current_price` entity. The maintainer refreshed the copied dashboards from
+the release examples and confirmed the price display worked. The separate
+Forecast chart horizon and live refresh checks remain open.
 
 ## Recording results
 
