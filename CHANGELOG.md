@@ -10,6 +10,8 @@
 - Batch routine statistics writes into one-minute checkpoints, even during
   continuous meter updates. Flush pending statistics on reload, shutdown,
   rollover and explicit resets. (#365)
+- Merge adjacent power coverage ranges for Average Power Today and the timing
+  score, reducing state update work and the size of the statistics snapshot.
 
 ### Changed
 
