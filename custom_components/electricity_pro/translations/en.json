@@ -3,7 +3,11 @@
     "sensor": {
       "current_power": { "name": "Current power" },
       "current_supplier_price": { "name": "Current supplier price" },
-      "effective_price": { "name": "Effective price" }
+      "effective_price": { "name": "Effective price" },
+      "cost_today": { "name": "Cost today" },
+      "cost_this_month": { "name": "Cost this month" },
+      "current_energy": { "name": "Energy today" },
+      "energy_this_month": { "name": "Energy this month" }
     }
   },
   "selector": {
