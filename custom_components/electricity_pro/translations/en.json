@@ -1,4 +1,11 @@
 {
+  "entity": {
+    "sensor": {
+      "current_power": { "name": "Current power" },
+      "current_supplier_price": { "name": "Current supplier price" },
+      "effective_price": { "name": "Effective price" }
+    }
+  },
   "selector": {
     "flow_presence": {
       "options": {

@@ -1,0 +1,9 @@
+{
+  "entity": {
+    "sensor": {
+      "current_power": { "name": "Aktuell effekt" },
+      "current_supplier_price": { "name": "Aktuellt elhandelspris" },
+      "effective_price": { "name": "Effektivt elpris" }
+    }
+  }
+}
