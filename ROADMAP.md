@@ -27,7 +27,8 @@ The agreed consolidation scope is prepared as a
 - Reconcile maintained documentation and issue status with delivered work.
 
 The [targeted validation record](docs/validation/post-v1.7.md) covers the
-development build. The versioned package still needs its final smoke check.
+development build. The [v1.7.1 notes](docs/releases/1.7.1.md) record the
+versioned package's Home Assistant smoke test.
 The scope does not include flexible-load recommendations, battery
 control, new accounting or completion of every architecture follow-up.
 
