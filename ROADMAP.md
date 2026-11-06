@@ -15,9 +15,21 @@ The validation/type-checking improvements and Enhanced forecast chart fix shippe
 in v1.7.0, with Home Assistant Core 2026.9.0 as the minimum. Review the minimum
 and test baselines at each release; do not raise them automatically.
 
-Continue the scoped architecture follow-ups in #288. Future release scope must
-be agreed separately; v1.7.0 does not promise flexible-load recommendations,
-battery control or completion of every architecture follow-up.
+The agreed next scope is a small consolidation release, with its version still
+undecided:
+
+- Review the current-Core test baseline, retain exact-minimum testing and remove
+  compatibility code only where the supported floor makes it obsolete.
+- Share Nord Pool area-resolution logic across standard/Tibber setup and options
+  as one behaviour-preserving increment of #288.
+- Record targeted catalogue-install, HACS-upgrade, Tibber identity/options and
+  forecast-chart refresh checks in #118, #335 and #224.
+- Reconcile maintained documentation and issue status with delivered work.
+
+Manual checks remain pending until evidence identifies the tested build and
+environment; use the [targeted validation record](docs/validation/post-v1.7.md).
+The scope does not include flexible-load recommendations, battery
+control, new accounting or completion of every architecture follow-up.
 
 ## Energy-flow follow-up after v1.6 🔭
 
@@ -29,7 +41,7 @@ and opt-in power compatibility diagnostics.
 Calculated site balances, self-consumption/self-sufficiency and export revenue
 remain future work, not delivered by those independent channels. Solar/battery
 hardware validation is still outstanding; track release evidence in
-[#290](https://github.com/guslund-jpg/electricity-pro/issues/290) and the
+[#335](https://github.com/guslund-jpg/electricity-pro/issues/335) and the
 [validation plan](docs/validation/energy-flow-test-plan.md).
 
 ### Goal
@@ -47,9 +59,11 @@ The v1.6 foundation must work without solar, a battery or an EV and must not
 infer missing flows. Device control and vendor-specific integrations remain out
 of scope.
 
-Tracked work: [energy-flow contract #239](https://github.com/guslund-jpg/electricity-pro/issues/239),
-[production analytics #240](https://github.com/guslund-jpg/electricity-pro/issues/240),
-and [export pricing and revenue #241](https://github.com/guslund-jpg/electricity-pro/issues/241).
+Historical foundation issues:
+[energy-flow contract #239](https://github.com/guslund-jpg/electricity-pro/issues/239)
+and [measured production channels #240](https://github.com/guslund-jpg/electricity-pro/issues/240).
+They do not establish delivery of the broader analytics above. Open design work
+includes [export pricing and revenue #241](https://github.com/guslund-jpg/electricity-pro/issues/241).
 
 ---
 
@@ -110,14 +124,15 @@ broader whole-home energy intelligence.
 ## Maintenance alongside feature work
 
 Reliability, documentation and compatibility fixes can proceed independently
-of new capabilities. Outstanding follow-ups include
-[meter-derived monthly peak-hour statistics (#312)](https://github.com/guslund-jpg/electricity-pro/issues/312)
-and [recovery policy for inflated historical totals (#313)](https://github.com/guslund-jpg/electricity-pro/issues/313).
-Their existence does not imply implementation or a committed release date.
+of new capabilities. [Meter-derived monthly peak-hour statistics (#312)](https://github.com/guslund-jpg/electricity-pro/issues/312)
+remain a separately designed feature candidate, with no committed release date.
+The [recovery policy (#313)](https://github.com/guslund-jpg/electricity-pro/issues/313)
+is complete and documented in the [energy and cost recovery guide](docs/guides/monthly-energy-recovery.md);
+it does not add automatic historical repair.
 
-The next release raises the Home Assistant minimum to **2026.9.0** and removes
-compatibility code made obsolete by that floor. Review the minimum at every
-release without automatically increasing it.
+v1.7.0 raised the Home Assistant minimum to **2026.9.0** and removed the obsolete
+schema adapter and minimum-test dependency workaround. Review the minimum at
+every release without automatically increasing it.
 
 Use the [support and release-review checklist](docs/development/contributing.md#home-assistant-support-and-release-review)
 when evaluating release readiness. The completed
