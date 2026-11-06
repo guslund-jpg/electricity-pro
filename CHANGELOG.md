@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.7.1]
+
+**Candidate awaiting publication approval.** Requires Home Assistant Core
+2026.9.0 or newer. See the [candidate and upgrade notes](docs/releases/1.7.1.md).
+
 ### Fixed
 
 - Preserve a valid saved Nord Pool area when saving unrelated settings in custom
@@ -13,6 +18,8 @@
 - Share Nord Pool area lookup and saved-area resolution across standard/Tibber
   setup and options. Preserve existing form navigation, saved-setting precedence,
   cancellation and payload behaviour; continues the bounded refactors in #288.
+- Run the full Python test suite in CI on the minimum supported Home Assistant
+  Core version, alongside the development test suite.
 
 ## [1.7.0] - 2026-11-05
 

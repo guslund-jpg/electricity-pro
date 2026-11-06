@@ -1,7 +1,7 @@
 # Post-v1.7 consolidation — targeted validation
 
-The next release version is undecided. This records the selected follow-up
-checks, not publication approval or a repeat of the completed synthetic lab.
+This records the follow-up checks run before preparing the proposed v1.7.1
+candidate, with the exact runtime identified for each set of checks.
 Broader deferred evidence remains in [#335](https://github.com/guslund-jpg/electricity-pro/issues/335).
 
 ## Builds and automated evidence
