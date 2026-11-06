@@ -4,10 +4,10 @@
 
 ### Added
 
-- Add Swedish names for Current power, Current supplier price, Effective price,
-  and daily and monthly energy and supplier cost sensors. English is the
-  fallback. The default entity IDs stay the same on new installations.
-  Existing entity IDs and user-defined names are preserved. (#289)
+- Add Swedish display names for all Electricity Pro sensors and the Good Time
+  binary sensor. English is the fallback. The default entity IDs stay the same
+  on new installations, and existing IDs and user-defined names are preserved.
+  (#289)
 
 ## [1.7.1] - 2026-11-06
 

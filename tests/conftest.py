@@ -39,6 +39,10 @@ from custom_components.electricity_pro.const import (
     DOMAIN,
 )
 from custom_components.electricity_pro.forecast import ForecastInterval
+from custom_components.electricity_pro.flow_compatibility import (
+    CONF_ENABLED as CONF_FLOW_COMPATIBILITY_ENABLED,
+)
+from custom_components.electricity_pro.flow_sources import FLOW_KEYS
 from custom_components.electricity_pro.pricing import (
     PriceComponent,
     PriceCompleteness,
@@ -93,6 +97,7 @@ def setup_electricity_pro(hass):
         forecast_nordpool_config_entry: str | None = None,
         forecast_intervals: list[dict[str, object]] | None = None,
         forecast_pricing_metadata: PricingMetadata | None = None,
+        include_flow_sources: bool = False,
     ) -> MockConfigEntry:
         """Create and set up an Electricity Pro config entry."""
 
@@ -108,6 +113,9 @@ def setup_electricity_pro(hass):
         entry_data = {
             CONF_POWER_ENTITY: "sensor.test_power",
         }
+        if include_flow_sources:
+            entry_data.update({key: f"sensor.test_{key}" for key in FLOW_KEYS})
+            entry_data[CONF_FLOW_COMPATIBILITY_ENABLED] = True
 
         if grid_fee_per_kwh is not None:
             entry_data[CONF_GRID_FEE_PER_KWH] = grid_fee_per_kwh

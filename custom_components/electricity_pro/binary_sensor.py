@@ -5,7 +5,10 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import (
+    BinarySensorEntity,
+    BinarySensorEntityDescription,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -101,8 +104,13 @@ class GoodTimeToUseElectricityBinarySensor(
     """Represent the Good time to use electricity insight."""
 
     _attr_has_entity_name = True
-    _attr_name = "Good time to use electricity"
     _attr_icon = "mdi:check-circle-outline"
+    _english_name = "Good time to use electricity"
+    entity_description = BinarySensorEntityDescription(
+        key="good_time_to_use_electricity",
+        name=_english_name,
+        translation_key="good_time_to_use_electricity",
+    )
 
     def __init__(self, entry: ElectricityProConfigEntry) -> None:
         """Initialize the insight."""
@@ -128,6 +136,11 @@ class GoodTimeToUseElectricityBinarySensor(
         self._absolute_ceiling = _optional_decimal(
             settings.get(CONF_ADAPTIVE_PRICE_CEILING)
         )
+
+    @property
+    def suggested_object_id(self) -> str:
+        """Use the original English name when Home Assistant generates an ID."""
+        return self._english_name
 
     @property
     def _evaluation(self) -> GoodTimeEvaluation:
