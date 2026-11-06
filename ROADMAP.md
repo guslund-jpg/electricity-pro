@@ -5,7 +5,7 @@ See the [changelog](CHANGELOG.md) for delivered changes and the
 [product vision](docs/development/vision.md) and
 [design principles](docs/development/design-principles.md) for project boundaries.
 
-The stable release is [v1.7.0](docs/releases/1.7.0.md). Work on `main` is not
+The stable release is [v1.7.1](docs/releases/1.7.1.md). Work on `main` is not
 automatically released or hardware-validated. Release scope and priorities may
 change as testing and source availability improve.
 
@@ -15,16 +15,16 @@ The validation/type-checking improvements and Enhanced forecast chart fix shippe
 in v1.7.0, with Home Assistant Core 2026.9.0 as the minimum. Review the minimum
 and test baselines at each release; do not raise them automatically.
 
-The agreed consolidation scope is prepared as a
-[proposed v1.7.1 patch](docs/releases/1.7.1.md):
+The [v1.7.1 patch](docs/releases/1.7.1.md) preserves the selected Nord Pool
+area and improves statistics checkpoints and coverage storage. The consolidation
+also included the following work.
 
-- Review the current-Core test baseline, retain exact-minimum testing and remove
-  compatibility code only where the supported floor makes it obsolete.
-- Share Nord Pool area-resolution logic across standard/Tibber setup and options
+- Reviewed the current Core baseline and ran the full test suite on the minimum
+  supported version.
+- Shared Nord Pool area-resolution logic across standard/Tibber setup and options
   as one behaviour-preserving increment of #288.
-- Record targeted catalogue-install, HACS-upgrade, Tibber identity/options and
+- Recorded targeted catalogue-install, HACS-upgrade, Tibber options and
   forecast-chart refresh checks in #118, #335 and #224.
-- Reconcile maintained documentation and issue status with delivered work.
 
 The [targeted validation record](docs/validation/post-v1.7.md) covers the
 development build. The [v1.7.1 notes](docs/releases/1.7.1.md) record the
