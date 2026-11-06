@@ -38,7 +38,7 @@ intact; resetting them would prevent a continuity comparison.
 | Development setup/options (#288) | PARTIAL | Custom options saved without an area prompt for SE3 alone. Adding SE4 to the Nord Pool entry produced an area picker and SE4 could be saved. Cancelling a pending fee edit from the optional sources form preserved the original fee and SE4 forecast. Fresh setup and Tibber options on the development build remain open. |
 | Saved-area regression | PASS | The maintainer saved SE4 on a multi-area custom entry, increased the monthly supplier fee by 1 SEK, then restored it in a second save. Both saves completed without an area prompt and SE4 forecasts remained available. |
 | Tibber rejection and cancellation (#335) | PASS on published v1.7.0 | The fast-track options form rejected a Tibber Pulse power sensor selected for both production and export, retained both selections after rejection, and restored the original fields on reopening after cancellation. |
-| Forecast chart (#224) | PARTIAL | The Enhanced Forecast view rendered today's prices on desktop and mobile. Nord Pool's SE4 tomorrow-price availability was off during the check. The today-plus-tomorrow horizon and automatic refresh when prices arrive remain open. |
+| Forecast chart (#224) | PASS | The Enhanced Forecast view rendered today's prices on desktop and mobile while Nord Pool's SE4 tomorrow-price availability was off. After publication, the desktop view that had been left open extended into tomorrow automatically, with no refresh, resize or tab switch. |
 | Development reload/restart | PASS (reported continuity) | Configuration checks passed before restart and startup showed no reported log errors. SE4 prices returned after reload and restart. The maintainer compared before/after snapshots for a reload and a full restart and confirmed matching entity IDs, device IDs and names, with daily and monthly energy and cost totals continuing without resets or jumps. |
 
 Catalogue checks validate the published delivery path. They do not test the
@@ -62,7 +62,9 @@ separate semi-production instance, also on Core **2026.11.0**, Supervisor
 On published v1.7.0, the copied Trends chart's supplier series pointed to the
 raw `current_price` entity. The maintainer refreshed the copied dashboards from
 the release examples and confirmed the price display worked. Subsequent Forecast
-checks with those examples on `b44335a` covered the today-only display.
+checks with those examples on `b44335a` covered today-only rendering on desktop
+and mobile and an automatic desktop update to the today-plus-tomorrow horizon
+after 13:00 CET on 6 November.
 
 ## Recording results
 
