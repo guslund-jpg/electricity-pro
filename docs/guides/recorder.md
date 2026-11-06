@@ -38,3 +38,18 @@ recorder:
 This optimization is optional. Review existing dashboards, automations, and
 Energy dashboard configuration before excluding entities. Recorder exclusions
 reduce future writes but do not remove existing database rows.
+
+## Electricity Pro statistics checkpoints
+
+Electricity Pro stores meter baselines, cost totals and recent observations in
+its own Home Assistant storage file. The first routine change schedules a write
+after 60 seconds. Readings during that minute update the snapshot in memory and
+share the same deadline. Reload waits for the latest snapshot to be saved.
+Orderly shutdown uses Home Assistant's final write, and midnight rollover and
+explicit reset actions request a prompt write.
+
+After a power loss, Electricity Pro restores the last successful checkpoint.
+With normal storage operation, up to one minute of cost and observation updates
+can be missing. A continuing cumulative meter can recover some energy deltas.
+Missing historical prices and power observations cannot be recovered from the
+meter total. Recorder exclusions apply to database history separately.

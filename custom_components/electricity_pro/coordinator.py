@@ -205,6 +205,7 @@ _WORKDAY_REFRESH_INTERVAL = timedelta(hours=6)
 _HOLIDAY_LOOKAHEAD_DAYS = 32
 _TIMING_TICK_INTERVAL = timedelta(minutes=5)
 _TIMING_POWER_MAX_HOLD = timedelta(minutes=10)
+_STATISTICS_SAVE_DELAY = 60
 _ADAPTIVE_SCOPE_CONFIG_KEYS = (
     CONF_PRICE_ENTITY,
     CONF_PRICING_STRATEGY,
@@ -287,6 +288,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._forecast_prices_are_comparable = False
         self._adaptive_forecast_prices: tuple[AdaptiveForecastPrice, ...] = ()
         self._price_direction: ForecastDirectionInsight | None = None
+        self._statistics_save_pending = False
         self._store: Store[dict[str, Any]] = Store(
             hass,
             _STORAGE_VERSION,
@@ -296,7 +298,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     async def async_start(self) -> None:
         """Start listening for provider source changes."""
         await self._async_restore_statistics()
-        self._entry.async_on_unload(self._save_statistics)
+        self._entry.async_on_unload(self._async_save_statistics)
         local_today = dt_util.now().astimezone(self._local_timezone).date()
         self._finalize_restored_timing_days(local_today)
         self._finalize_restored_base_load_days(local_today)
@@ -401,9 +403,26 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         return self._adaptive_price_scope
 
     @callback
-    def _save_statistics(self) -> None:
-        """Schedule an immediate final save when the config entry unloads."""
-        self._store.async_delay_save(self._statistics_data, delay=0)
+    def _schedule_statistics_save(self, *, immediate: bool = False) -> None:
+        """Keep the first pending deadline while routine readings accumulate."""
+        if self._statistics_save_pending and not immediate:
+            return
+        self._statistics_save_pending = True
+        self._store.async_delay_save(
+            self._statistics_data_for_save,
+            delay=0 if immediate else _STATISTICS_SAVE_DELAY,
+        )
+
+    @callback
+    def _statistics_data_for_save(self) -> dict[str, Any]:
+        """Capture the latest state at write time and allow the next checkpoint."""
+        data = self._statistics_data()
+        self._statistics_save_pending = False
+        return data
+
+    async def _async_save_statistics(self) -> None:
+        """Flush the latest checkpoint for unload or a user-initiated reset."""
+        await self._store.async_save(self._statistics_data_for_save())
 
     async def _async_timing_tick(self, now: datetime) -> None:
         """Close timing-history segments while source states remain quiet."""
@@ -434,7 +453,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._base_load_buckets.retain_dates({local_now.date()})
         self._adaptive_price_history.retain_for_date(local_now.date())
         peak_cleared = self._peak_power_today.clear()
-        self._store.async_delay_save(self._statistics_data, delay=1)
+        self._schedule_statistics_save(immediate=True)
         if self.data is not None:
             rollover_updates: _DataUpdates = {}
             if self._provider.energy_source_is_lifetime_total:
@@ -776,7 +795,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._energy_today_period_complete = False
         self._local_costs.confirm_meter_reset(energy)
         self.async_set_updated_data(self._read())
-        await self._store.async_save(self._statistics_data())
+        await self._async_save_statistics()
 
     async def async_reset_monthly_energy(self) -> None:
         """Discard only this entry's monthly energy total and establish a baseline."""
@@ -796,7 +815,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 energy_this_month_unit=UnitOfEnergy.KILO_WATT_HOUR,
             )
         )
-        await self._store.async_save(self._statistics_data())
+        await self._async_save_statistics()
 
     @property
     def _local_cost_scope(self) -> dict[str, object]:
@@ -1186,7 +1205,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             updates["total_supplier_cost_this_month_unit"] = None
 
         if should_save:
-            self._store.async_delay_save(self._statistics_data, delay=1)
+            self._schedule_statistics_save()
 
         return replace(data, **updates)
 
@@ -1727,7 +1746,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             raise ValueError("A valid fresh lifetime energy reading is required")
         self._flow_counters[channel].confirm_reset(reading.value, now)
         self.async_set_updated_data(self._read())
-        await self._store.async_save(self._statistics_data())
+        await self._async_save_statistics()
 
 
 def _energy_in_kwh(
