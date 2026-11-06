@@ -9,7 +9,13 @@ from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from typing import TypedDict
 
-from .history_storage import stored_decimal, stored_list, stored_record, stored_string
+from .history_storage import (
+    add_covered_range,
+    stored_decimal,
+    stored_list,
+    stored_record,
+    stored_string,
+)
 
 
 class BaseLoadHistoryData(TypedDict):
@@ -512,8 +518,8 @@ class BaseLoadBucketAccumulator:
                 tzinfo=self._local_timezone,
             ).astimezone(UTC)
             segment_end = min(end, next_midnight)
-            self._covered_ranges.setdefault(local.date(), []).append(
-                (cursor, segment_end)
+            add_covered_range(
+                self._covered_ranges.setdefault(local.date(), []), cursor, segment_end
             )
             cursor = segment_end
 
@@ -545,7 +551,7 @@ class BaseLoadBucketAccumulator:
         day_end: datetime,
     ) -> timedelta:
         """Return the longest gap between merged covered ranges in one day."""
-        ranges = sorted(self._covered_ranges.get(period_start, ()))
+        ranges = self._covered_ranges.get(period_start, ())
         cursor = day_start.astimezone(UTC)
         utc_end = day_end.astimezone(UTC)
         longest = timedelta(0)
@@ -643,8 +649,10 @@ class BaseLoadBucketAccumulator:
                     or end <= start
                 ):
                     raise ValueError
-                accumulator._covered_ranges.setdefault(stored_date, []).append(
-                    (start.astimezone(UTC), end.astimezone(UTC))
+                add_covered_range(
+                    accumulator._covered_ranges.setdefault(stored_date, []),
+                    start.astimezone(UTC),
+                    end.astimezone(UTC),
                 )
             accumulator._bidirectional_dates = {
                 date.fromisoformat(stored_string(value))

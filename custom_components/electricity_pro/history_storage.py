@@ -1,6 +1,8 @@
-"""Narrow untrusted JSON history values before model-specific validation."""
+"""Shared validation and coverage helpers for persisted history."""
 
+from bisect import bisect_left
 from collections.abc import Mapping
+from datetime import datetime
 from decimal import Decimal
 
 
@@ -39,3 +41,19 @@ def stored_record(value: object) -> Mapping[str, object]:
             raise ValueError("expected a stored string key")
         result[key] = item
     return result
+
+
+def add_covered_range(
+    ranges: list[tuple[datetime, datetime]], start: datetime, end: datetime
+) -> None:
+    """Insert an interval into a sorted union, preserving every uncovered gap."""
+    first = bisect_left(ranges, (start, end))
+    if first and ranges[first - 1][1] >= start:
+        first -= 1
+    last = first
+    while last < len(ranges) and ranges[last][0] <= end:
+        existing_start, existing_end = ranges[last]
+        start = min(start, existing_start)
+        end = max(end, existing_end)
+        last += 1
+    ranges[first:last] = [(start, end)]

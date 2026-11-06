@@ -48,6 +48,10 @@ share the same deadline. Reload waits for the latest snapshot to be saved.
 Orderly shutdown uses Home Assistant's final write, and midnight rollover and
 explicit reset actions request a prompt write.
 
+Continuous power coverage is stored as contiguous ranges. Gaps stay separate,
+and older snapshots are compacted when loaded and saved in the same format at
+the next checkpoint.
+
 After a power loss, Electricity Pro restores the last successful checkpoint.
 With normal storage operation, up to one minute of cost and observation updates
 can be missing. A continuing cumulative meter can recover some energy deltas.
