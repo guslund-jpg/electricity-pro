@@ -431,6 +431,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="cost_today",
         name="Cost today",
+        translation_key="cost_today",
         icon="mdi:cash",
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
@@ -446,6 +447,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="cost_this_month",
         name="Cost this month",
+        translation_key="cost_this_month",
         icon="mdi:calendar-month-outline",
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
@@ -527,6 +529,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="current_energy",
         name="Energy today",
+        translation_key="current_energy",
         icon="mdi:lightning-bolt",
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
@@ -541,6 +544,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="energy_this_month",
         name="Energy this month",
+        translation_key="energy_this_month",
         icon="mdi:calendar-month",
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL,

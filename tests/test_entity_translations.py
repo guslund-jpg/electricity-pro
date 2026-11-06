@@ -18,11 +18,19 @@ _ENGLISH_NAMES = {
     "current_power": "Current power",
     "current_supplier_price": "Current supplier price",
     "effective_price": "Effective price",
+    "cost_today": "Cost today",
+    "cost_this_month": "Cost this month",
+    "current_energy": "Energy today",
+    "energy_this_month": "Energy this month",
 }
 _SWEDISH_NAMES = {
     "current_power": "Aktuell effekt",
     "current_supplier_price": "Aktuellt elhandelspris",
     "effective_price": "Effektivt elpris",
+    "cost_today": "Elhandelskostnad i dag",
+    "cost_this_month": "Elhandelskostnad den här månaden",
+    "current_energy": "Energi i dag",
+    "energy_this_month": "Energi den här månaden",
 }
 
 
@@ -46,11 +54,14 @@ async def test_fresh_install_translates_names_but_keeps_default_ids(
 ) -> None:
     """Built-in dashboard IDs work in Swedish and with English fallback."""
     hass.config.language = language
-    entry = await setup_electricity_pro(price_value="1.25")
+    entry = await setup_electricity_pro(
+        price_value="1.25", energy_value="3.5", accumulated_cost_today_value="4.2"
+    )
     registry = er.async_get(hass)
 
     for key, name in names.items():
-        entity_id = f"sensor.{DOMAIN}_{key}"
+        object_id = "energy_today" if key == "current_energy" else key
+        entity_id = f"sensor.{DOMAIN}_{object_id}"
         state = hass.states.get(entity_id)
         registered = registry.async_get(entity_id)
         assert state is not None

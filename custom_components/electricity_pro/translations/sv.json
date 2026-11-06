@@ -3,7 +3,11 @@
     "sensor": {
       "current_power": { "name": "Aktuell effekt" },
       "current_supplier_price": { "name": "Aktuellt elhandelspris" },
-      "effective_price": { "name": "Effektivt elpris" }
+      "effective_price": { "name": "Effektivt elpris" },
+      "cost_today": { "name": "Elhandelskostnad i dag" },
+      "cost_this_month": { "name": "Elhandelskostnad den här månaden" },
+      "current_energy": { "name": "Energi i dag" },
+      "energy_this_month": { "name": "Energi den här månaden" }
     }
   }
 }
