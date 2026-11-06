@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add Swedish names for Current power, Current supplier price and Effective
+  price, with English as the fallback. The default entity IDs stay the same on
+  new installations. Existing entity IDs and user-defined names are preserved.
+  (#289)
+
 ## [1.7.1] - 2026-11-06
 
 Requires Home Assistant Core 2026.9.0 or newer. See the

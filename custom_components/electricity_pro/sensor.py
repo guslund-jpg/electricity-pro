@@ -281,6 +281,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="current_power",
         name="Current power",
+        translation_key="current_power",
         icon="mdi:flash",
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
@@ -305,6 +306,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="current_supplier_price",
         name="Current supplier price",
+        translation_key="current_supplier_price",
         icon="mdi:currency-usd",
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
@@ -331,6 +333,7 @@ SENSOR_DESCRIPTIONS: tuple[
     ElectricityProSensorEntityDescription(
         key="effective_price",
         name="Effective price",
+        translation_key="effective_price",
         icon="mdi:cash-plus",
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
@@ -804,6 +807,16 @@ class ElectricityProSensor(
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
         self._attr_device_info = device_info_for_entry(entry.entry_id)
+
+    @property
+    def suggested_object_id(self) -> str | None:
+        """Keep the original entity ID base for translated sensors."""
+        description = self.entity_description
+        if description.translation_key is not None and isinstance(
+            description.name, str
+        ):
+            return description.name
+        return super().suggested_object_id
 
     async def async_added_to_hass(self) -> None:
         """Register entity update listeners."""
