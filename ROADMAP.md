@@ -15,8 +15,8 @@ The validation/type-checking improvements and Enhanced forecast chart fix shippe
 in v1.7.0, with Home Assistant Core 2026.9.0 as the minimum. Review the minimum
 and test baselines at each release; do not raise them automatically.
 
-The agreed next scope is a small consolidation release, with its version still
-undecided:
+The agreed consolidation scope is prepared as a
+[proposed v1.7.1 patch](docs/releases/1.7.1.md):
 
 - Review the current-Core test baseline, retain exact-minimum testing and remove
   compatibility code only where the supported floor makes it obsolete.
@@ -26,8 +26,9 @@ undecided:
   forecast-chart refresh checks in #118, #335 and #224.
 - Reconcile maintained documentation and issue status with delivered work.
 
-Manual checks remain pending until evidence identifies the tested build and
-environment; use the [targeted validation record](docs/validation/post-v1.7.md).
+The [targeted validation record](docs/validation/post-v1.7.md) covers the
+development build. The [v1.7.1 notes](docs/releases/1.7.1.md) record the
+versioned package's Home Assistant smoke test.
 The scope does not include flexible-load recommendations, battery
 control, new accounting or completion of every architecture follow-up.
 
