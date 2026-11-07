@@ -4,6 +4,12 @@
 
 ### Added
 
+- Add a shared Grid charges screen (Elnät in Swedish) to Custom/Tibber setup
+  and Configure. Choose unconfigured charges, a single rate or a high/low
+  tariff; review only the applicable fees and schedule. Preserve explicit
+  zero, clears, unrelated settings and existing accounting. Grid labels and
+  guidance are translated into Swedish. (#373)
+
 - Add a shared Electricity supplier screen (Elhandel in Swedish) for live price
   declarations, VAT, markup, fixed supplier fees and optional daily cost sources.
   Tibber's known contract is displayed without repeating its declarations;

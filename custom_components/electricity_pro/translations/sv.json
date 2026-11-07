@@ -24,17 +24,24 @@
     },
     "energy_source_type": {
       "options": { "daily": "Återställs dagligen", "lifetime": "Ackumulerad import under mätarens livstid" }
+    },
+    "grid_mode": {
+      "options": {
+        "unconfigured": "Inte konfigurerat",
+        "constant": "Enhetlig taxa",
+        "time_of_use": "Hög-/lågtariff"
+      }
     }
   },
   "config": {
     "step": {
       "manual": {
-        "title": "Elnät och övriga inställningar",
-        "description": "Ange valfria elnätsavgifter och inställningar för elanvändningsråd. Mätvärden, spotpriser och elhandel har egna inställningar."
+        "title": "Elanvändningsråd och övriga inställningar",
+        "description": "Ange inställningar för elanvändningsråd. Mätvärden, spotpriser, elhandel och elnät har egna inställningar. Valfria energiflöden kan konfigureras efter installationen."
       },
       "tibber_settings": {
-        "title": "Elnät och övriga inställningar",
-        "description": "Ange valfria elnätsavgifter och inställningar för elanvändningsråd. Mätvärden, spotpriser och elhandel har egna inställningar."
+        "title": "Elanvändningsråd och övriga inställningar",
+        "description": "Ange inställningar för elanvändningsråd. Mätvärden, spotpriser, elhandel och elnät har egna inställningar. Valfria energiflöden kan konfigureras efter installationen."
       },
       "supplier": {
         "title": "Elhandel",
@@ -134,15 +141,54 @@
         "data": {
           "energy_source_type": "Energimätarens period"
         }
+      },
+      "grid": {
+        "title": "Elnät",
+        "description": "Välj vilka elnätsavgifter du vill ange. När du byter tariff visas dess fält innan du sparar. Använd belopp från ditt elnätsavtal eller din faktura, inklusive moms, i samma valuta som elpriserna. Tomt betyder okänt; ange bara 0 om avgiften faktiskt är noll. Delar som anges som redan inkluderade under Elhandel läggs inte till igen i aktuella priser. Beloppen kan fortfarande användas för Nord Pool-prognoser.",
+        "data": {
+          "grid_mode": "Elnätstariff",
+          "grid_fee_per_kwh": "Rörlig elnätsavgift per kWh (inklusive moms)",
+          "energy_tax_per_kwh": "Energiskatt per kWh (inklusive moms)",
+          "fixed_grid_fee_monthly": "Fast elnätsavgift per månad (inklusive moms)",
+          "grid_fee_high_per_kwh": "Högperiodens elnätsavgift per kWh (inklusive moms)",
+          "grid_fee_high_start": "Högperioden börjar (TT:MM)",
+          "grid_fee_high_end": "Högperioden slutar (TT:MM)",
+          "grid_fee_high_season_start": "Högsäsongen börjar (MM-DD)",
+          "grid_fee_high_season_end": "Högsäsongen slutar (MM-DD)",
+          "grid_fee_workday_entity": "Workday-sensor (valfritt)"
+        },
+        "data_description": {
+          "grid_mode": "Inte konfigurerat rensar elnätsbeloppen och schemat utan att anta att avgifterna är noll. Enhetlig taxa kan ha rörlig avgift, energiskatt och/eller fast månadsavgift. Hög-/lågtariff kräver båda avgifterna och ett schema.",
+          "grid_fee_per_kwh": "Valfritt vid enhetlig taxa. Vid hög-/lågtariff är detta lågperiodens avgift och måste anges.",
+          "energy_tax_per_kwh": "Valfritt. Använd skatten på din faktura, med eventuell regional nedsättning. Ingen nationell skattesats antas. (I Sverige normalt 0,45kr/kWh)",
+          "fixed_grid_fee_monthly": "Valfritt. Fast avgift från elnätsföretaget. Ange inte effektavgifter eller elhandelsavgifter här.",
+          "grid_fee_high_per_kwh": "Högperiodens hela avgift, inte ett tillägg till lågperiodens avgift. Noll är ett giltigt belopp.",
+          "grid_fee_high_start": "Lokal starttid måndag–fredag, exempelvis 06:00. Perioder över midnatt stöds.",
+          "grid_fee_high_end": "Lokal sluttid måndag–fredag, exempelvis 22:00. Måste skilja sig från starttiden.",
+          "grid_fee_high_season_start": "Första dagen i den återkommande säsongen, exempelvis 11-01.",
+          "grid_fee_high_season_end": "Sista dagen i den återkommande säsongen, exempelvis 03-31. Säsongen kan gå över årsskiftet.",
+          "grid_fee_workday_entity": "Valfri sensor från Workday-integrationen för att undanta helgdagar. Utan den gäller högperioden måndag–fredag under säsongen."
+        }
       }
     },
-    "error": { "pricing_metadata_required": "Ange priskällans typ, ingående delar och moms. Spotpris måste ingå.", "electricity_pro_source": "Välj en extern källa. Electricity Pros egna givare kan inte användas som indata.", "invalid_supplier_amount": "Ange ett giltigt belopp som är noll eller större. Moms måste vara mellan 0 och 100 procent.", "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet.", "invalid_market_source": "Välj en Nord Pool-integration med giltiga elområden och valuta, eller lämna källan tom.", "invalid_market_area": "Välj ett elområde som finns i den valda Nord Pool-integrationen." }
+    "error": {
+      "pricing_metadata_required": "Ange priskällans typ, ingående delar och moms. Spotpris måste ingå.",
+      "electricity_pro_source": "Välj en extern källa. Electricity Pros egna givare kan inte användas som indata.",
+      "invalid_supplier_amount": "Ange ett giltigt belopp som är noll eller större. Moms måste vara mellan 0 och 100 procent.",
+      "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet.",
+      "invalid_market_source": "Välj en Nord Pool-integration med giltiga elområden och valuta, eller lämna källan tom.",
+      "invalid_market_area": "Välj ett elområde som finns i den valda Nord Pool-integrationen.",
+      "invalid_grid_tariff": "Ange både låg- och högperiodens avgift samt giltiga tider (TT:MM) och säsongsdatum (MM-DD). Start- och sluttiden måste skilja sig åt.",
+      "invalid_grid_amount": "Ange ett giltigt belopp som är noll eller större.",
+      "grid_amount_required": "Ange minst ett belopp eller välj Inte konfigurerat.",
+      "grid_rate_required": "Ange både lågperiodens och högperiodens avgift. Noll är tillåtet."
+    }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Elnät och övriga inställningar",
-        "description": "Ange valfria elnätsavgifter och inställningar för elanvändningsråd. Mätvärden, spotpriser och elhandel har egna inställningar."
+        "title": "Elanvändningsråd och övriga inställningar",
+        "description": "Ange inställningar för elanvändningsråd och valfria energiflöden. Mätvärden, spotpriser, elhandel och elnät har egna inställningar."
       },
       "supplier": {
         "title": "Elhandel",
@@ -246,10 +292,55 @@
       "menu": {
         "title": "Konfigurera Electricity Pro",
         "description": "Välj den del av konfigurationen som du vill ändra.",
-        "menu_options": { "measurements": "Mätvärden", "market_prices": "Spotpriser (Nord Pool)", "supplier": "Elhandel", "settings": "Elnät och övriga inställningar" }
+        "menu_options": {
+          "measurements": "Mätvärden",
+          "market_prices": "Spotpriser (Nord Pool)",
+          "supplier": "Elhandel",
+          "settings": "Elanvändningsråd och övriga inställningar",
+          "grid": "Elnät"
+        }
+      },
+      "grid": {
+        "title": "Elnät",
+        "description": "Välj vilka elnätsavgifter du vill ange. När du byter tariff visas dess fält innan du sparar. Använd belopp från ditt elnätsavtal eller din faktura, inklusive moms, i samma valuta som elpriserna. Tomt betyder okänt; ange bara 0 om avgiften faktiskt är noll. Delar som anges som redan inkluderade under Elhandel läggs inte till igen i aktuella priser. Beloppen kan fortfarande användas för Nord Pool-prognoser.",
+        "data": {
+          "grid_mode": "Elnätstariff",
+          "grid_fee_per_kwh": "Rörlig elnätsavgift per kWh (inklusive moms)",
+          "energy_tax_per_kwh": "Energiskatt per kWh (inklusive moms)",
+          "fixed_grid_fee_monthly": "Fast elnätsavgift per månad (inklusive moms)",
+          "grid_fee_high_per_kwh": "Högperiodens elnätsavgift per kWh (inklusive moms)",
+          "grid_fee_high_start": "Högperioden börjar (TT:MM)",
+          "grid_fee_high_end": "Högperioden slutar (TT:MM)",
+          "grid_fee_high_season_start": "Högsäsongen börjar (MM-DD)",
+          "grid_fee_high_season_end": "Högsäsongen slutar (MM-DD)",
+          "grid_fee_workday_entity": "Workday-sensor (valfritt)"
+        },
+        "data_description": {
+          "grid_mode": "Inte konfigurerat rensar elnätsbeloppen och schemat utan att anta att avgifterna är noll. Enhetlig taxa kan ha rörlig avgift, energiskatt och/eller fast månadsavgift. Hög-/lågtariff kräver båda avgifterna och ett schema.",
+          "grid_fee_per_kwh": "Valfritt vid enhetlig taxa. Vid hög-/lågtariff är detta lågperiodens avgift och måste anges.",
+          "energy_tax_per_kwh": "Valfritt. Använd skatten på din faktura, med eventuell regional nedsättning. Ingen nationell skattesats antas. (I Sverige normalt 0,45kr/kWh)",
+          "fixed_grid_fee_monthly": "Valfritt. Fast avgift från elnätsföretaget. Ange inte effektavgifter eller elhandelsavgifter här.",
+          "grid_fee_high_per_kwh": "Högperiodens hela avgift, inte ett tillägg till lågperiodens avgift. Noll är ett giltigt belopp.",
+          "grid_fee_high_start": "Lokal starttid måndag–fredag, exempelvis 06:00. Perioder över midnatt stöds.",
+          "grid_fee_high_end": "Lokal sluttid måndag–fredag, exempelvis 22:00. Måste skilja sig från starttiden.",
+          "grid_fee_high_season_start": "Första dagen i den återkommande säsongen, exempelvis 11-01.",
+          "grid_fee_high_season_end": "Sista dagen i den återkommande säsongen, exempelvis 03-31. Säsongen kan gå över årsskiftet.",
+          "grid_fee_workday_entity": "Valfri sensor från Workday-integrationen för att undanta helgdagar. Utan den gäller högperioden måndag–fredag under säsongen."
+        }
       }
     },
-    "error": { "pricing_metadata_required": "Ange priskällans typ, ingående delar och moms. Spotpris måste ingå.", "electricity_pro_source": "Välj en extern källa. Electricity Pros egna givare kan inte användas som indata.", "invalid_supplier_amount": "Ange ett giltigt belopp som är noll eller större. Moms måste vara mellan 0 och 100 procent.", "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet.", "invalid_market_source": "Välj en Nord Pool-integration med giltiga elområden och valuta, eller lämna källan tom.", "invalid_market_area": "Välj ett elområde som finns i den valda Nord Pool-integrationen." }
+    "error": {
+      "pricing_metadata_required": "Ange priskällans typ, ingående delar och moms. Spotpris måste ingå.",
+      "electricity_pro_source": "Välj en extern källa. Electricity Pros egna givare kan inte användas som indata.",
+      "invalid_supplier_amount": "Ange ett giltigt belopp som är noll eller större. Moms måste vara mellan 0 och 100 procent.",
+      "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet.",
+      "invalid_market_source": "Välj en Nord Pool-integration med giltiga elområden och valuta, eller lämna källan tom.",
+      "invalid_market_area": "Välj ett elområde som finns i den valda Nord Pool-integrationen.",
+      "invalid_grid_tariff": "Ange både låg- och högperiodens avgift samt giltiga tider (TT:MM) och säsongsdatum (MM-DD). Start- och sluttiden måste skilja sig åt.",
+      "invalid_grid_amount": "Ange ett giltigt belopp som är noll eller större.",
+      "grid_amount_required": "Ange minst ett belopp eller välj Inte konfigurerat.",
+      "grid_rate_required": "Ange både lågperiodens och högperiodens avgift. Noll är tillåtet."
+    }
   },
   "entity": {
     "sensor": {

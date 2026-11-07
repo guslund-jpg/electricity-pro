@@ -16,8 +16,8 @@ current/voltage inputs, an energy-period override and optional external monthly
 peak-hour readings.
 
 The Configure menu offers Measurements, Market prices (Nord Pool), Electricity
-supplier, and Grid and other settings. Saving a section applies its own edits.
-The remaining settings retain the existing measurement, market and supplier
+supplier, Grid charges, and Insights and other settings. Saving a section applies its own edits.
+The remaining settings retain the existing measurement, market, supplier and grid
 bindings.
 The new screens have English and Swedish text. Publication remains tracked by
 the [changelog](../../CHANGELOG.md).
@@ -57,7 +57,7 @@ the rate used for calculated forecast prices. Raw market prices do not include V
 ## Supplier screen on the development branch
 
 Both setup paths review **Electricity supplier** (**Elhandel** in Swedish) after
-Market prices and before Grid and other settings. The same supplier section is
+Market prices and before Grid charges. The same supplier section is
 available from Configure. It groups the optional live price and its declared
 contents, VAT treatment/rate, supplier markup, fixed monthly supplier fee and
 optional daily supplier-cost source.
@@ -87,8 +87,46 @@ energy. See [cost sources and estimates](costs-and-pricing.md).
 Saved values are editable suggestions. Clearing a visible source or amount
 overrides its original setup value, while explicit zero remains a configured
 value. Canceling saves nothing. A supplier save retains meter sources, Nord Pool
-selection, grid charges, optional flow sources and insights. Saving Grid and
-other settings likewise retains the supplier configuration.
+selection, grid charges, optional flow sources and insights. Saving Grid charges or Insights and other settings likewise retains the
+supplier configuration.
+
+## Grid screen on the development branch
+
+Both setup paths continue from Supplier to **Grid charges** (**Elnät** in
+Swedish). Configure offers the same separate screen. The saved amounts select
+one of three tariff types automatically; zero counts as a configured amount,
+while an old schedule without any amounts does not enable charges.
+
+- **Unconfigured** leaves grid charges unknown. Saving clears the owned grid
+  amounts and schedule; it does not assume that charges are zero.
+- **Single rate** offers the variable grid fee, energy tax and fixed monthly
+  grid fee. Enter at least one known amount; leave the others blank if unknown.
+- **High/low tariff** additionally requires both variable rates and a valid
+  daily/seasonal schedule. The ordinary variable fee is the low-period rate.
+  The high-period fee is the full rate, not an addition. Workday is optional.
+
+When changing tariff type, confirm once to display its applicable fields, then
+review them and confirm to save. Choosing Unconfigured saves the explicit clear
+immediately. Canceling any draft leaves the entry untouched. Switching from
+high/low to a single rate clears the inactive high rate, schedule and Workday
+source. An unchanged high/low save retains the existing rates and schedule,
+including overnight periods and seasons spanning New Year.
+
+All amounts include VAT and use the price source's currency. Use your agreement
+or bill; grid rates and energy tax are not inferred from the Nord Pool area.
+Blank means unknown and 0 means an actual zero charge. Clearing a visible amount
+overrides its original setup value. Components declared as already included
+under Supplier are not added twice to live prices, while the configured rates
+can still be needed for raw Nord Pool forecasts. A grid save preserves supplier,
+market, meter, optional-flow and insight settings. Remaining insights and energy
+flows are available under **Insights and other settings**.
+
+The Swedish help text's 0.45 SEK/kWh example is the ordinary **2026** energy
+tax including VAT, not a default or a regional rate. See
+[Skatteverket's 2026 rate](https://www.skatteverket.se/elskatt)
+(0.36 SEK/kWh before VAT) and
+[Energimarknadsbyrån's VAT-inclusive amount](https://www.energimarknadsbyran.se/el/dina-elavtal-och-kostnader/fakturering-och-betalning/elrakningen/energiskatt/).
+The example does not set or change the configured amount.
 
 ## Guided Tibber setup
 

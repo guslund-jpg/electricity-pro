@@ -72,6 +72,7 @@ from .pricing import (
     VatTreatment,
 )
 from .grid_tariff import HighLowGridTariff
+from .grid_config import GRID_KEYS, GridFlow, without_grid_fields
 from .source_adapters import DiscoveredSource, discover_tibber_sources
 from .settings import resolve_settings
 from .measurement_config import (
@@ -104,7 +105,9 @@ from .flow_compatibility import (
 
 def _with_flow_settings(schema: vol.Schema) -> vol.Schema:
     """Offer an optional follow-up without expanding the initial setup path."""
-    return without_supplier_fields(without_market_fields(schema)).extend(
+    return without_grid_fields(
+        without_supplier_fields(without_market_fields(schema))
+    ).extend(
         {
             vol.Optional(
                 CONF_CONFIGURE_FLOWS, default=False
@@ -1079,6 +1082,7 @@ class ElectricityProConfigFlow(
     MeasurementFlow,
     MarketPriceFlow,
     SupplierFlow,
+    GridFlow,
     _MarkupEstimateFlow,
     config_entries.ConfigFlow,
     domain=DOMAIN,
@@ -1167,11 +1171,25 @@ class ElectricityProConfigFlow(
     async def _async_supplier_complete(
         self, values: dict[str, Any]
     ) -> ConfigFlowResult:
+        self._grid_tibber = (
+            self._selected_tibber_source is not None
+            and self._selected_tibber_source.is_complete_tibber_fast_track
+        )
         if self._selected_tibber_source is not None:
-            known_contract = self._selected_tibber_source.is_complete_tibber_fast_track
             self._selected_tibber_source.data.update(values)
-            if known_contract:
-                return await self.async_step_tibber_settings()
+        return await self.async_step_grid()
+
+    def _grid_defaults(self) -> dict[str, Any]:
+        return (
+            dict(self._selected_tibber_source.data)
+            if self._selected_tibber_source
+            else {}
+        )
+
+    async def _async_grid_complete(self, values: dict[str, Any]) -> ConfigFlowResult:
+        self._grid_values = values
+        if self._grid_tibber:
+            return await self.async_step_tibber_settings()
         return await self.async_step_manual()
 
     def _manual_schema(self) -> vol.Schema:
@@ -1185,6 +1203,8 @@ class ElectricityProConfigFlow(
             schema = without_market_fields(schema)
         if self._supplier_values is not None:
             schema = without_supplier_fields(schema)
+        if self._grid_values is not None:
+            schema = without_grid_fields(schema)
         return (
             remaining_settings_schema(schema)
             if self._measurement_values is not None
@@ -1202,6 +1222,8 @@ class ElectricityProConfigFlow(
             user_input = {**user_input, **self._market_values}
         if user_input is not None and self._supplier_values is not None:
             user_input = {**user_input, **self._supplier_values}
+        if user_input is not None and self._grid_values is not None:
+            user_input = {**user_input, **self._grid_values}
         if user_input is not None and self._supplier_values is None:
             result = await self._async_maybe_suggest_vat(user_input, "manual")
             if result is not None:
@@ -1217,7 +1239,7 @@ class ElectricityProConfigFlow(
                 errors=errors,
             )
         if user_input is not None:
-            if not _grid_tariff_input_valid(user_input):
+            if self._grid_values is None and not _grid_tariff_input_valid(user_input):
                 return self.async_show_form(
                     step_id="manual",
                     data_schema=self.add_suggested_values_to_schema(
@@ -1326,8 +1348,10 @@ class ElectricityProConfigFlow(
                 user_input = {**user_input, **self._market_values}
             if self._supplier_values is not None:
                 user_input = {**user_input, **self._supplier_values}
+            if self._grid_values is not None:
+                user_input = {**user_input, **self._grid_values}
             errors = {}
-            if not _grid_tariff_input_valid(user_input):
+            if self._grid_values is None and not _grid_tariff_input_valid(user_input):
                 errors = {"base": "invalid_grid_tariff"}
             elif not _good_price_input_valid(user_input):
                 errors = {"base": "invalid_good_price_settings"}
@@ -1363,8 +1387,10 @@ class ElectricityProConfigFlow(
         return self.async_show_form(
             step_id="tibber_settings",
             data_schema=self.add_suggested_values_to_schema(
-                without_supplier_fields(
-                    without_market_fields(_tibber_settings_schema())
+                without_grid_fields(
+                    without_supplier_fields(
+                        without_market_fields(_tibber_settings_schema())
+                    )
                 ),
                 user_input,
             ),
@@ -1399,6 +1425,7 @@ class ElectricityProOptionsFlow(
     MeasurementFlow,
     MarketPriceFlow,
     SupplierFlow,
+    GridFlow,
     _MarkupEstimateFlow,
     OptionsFlow,
 ):
@@ -1477,6 +1504,14 @@ class ElectricityProOptionsFlow(
             data={**self.config_entry.options, **(self._market_values or {}), **values},
         )
 
+    def _grid_defaults(self) -> dict[str, Any]:
+        return self._settings_defaults()
+
+    async def _async_grid_complete(self, values: dict[str, Any]) -> ConfigFlowResult:
+        return self.async_create_entry(
+            title="", data={**self.config_entry.options, **values}
+        )
+
     async def async_step_settings(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -1490,7 +1525,13 @@ class ElectricityProOptionsFlow(
         """Choose the configuration section to edit."""
         return self.async_show_menu(
             step_id="menu",
-            menu_options=["measurements", "market_prices", "supplier", "settings"],
+            menu_options=[
+                "measurements",
+                "market_prices",
+                "supplier",
+                "grid",
+                "settings",
+            ],
         )
 
     def _show_init_error(
@@ -1522,7 +1563,9 @@ class ElectricityProOptionsFlow(
         if user_input is None and not self._settings_open:
             return await self.async_step_menu()
         if user_input is not None:
-            user_input = dict(user_input)
+            user_input = {
+                key: value for key, value in user_input.items() if key not in GRID_KEYS
+            }
             saved = {
                 **self._settings_defaults(),
                 **self._source_settings_draft,
@@ -1532,7 +1575,9 @@ class ElectricityProOptionsFlow(
                 if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
                 else remaining_settings_schema(_entity_schema(hass=self.hass))
             )
-            schema = without_supplier_fields(without_market_fields(schema))
+            schema = without_grid_fields(
+                without_supplier_fields(without_market_fields(schema))
+            )
             for marker in schema.schema:
                 if (
                     isinstance(marker, vol.Optional)
@@ -1546,7 +1591,12 @@ class ElectricityProOptionsFlow(
             user_input = {
                 **{
                     key: saved[key]
-                    for key in (*MEASUREMENT_KEYS, *MARKET_KEYS, *SUPPLIER_KEYS)
+                    for key in (
+                        *MEASUREMENT_KEYS,
+                        *MARKET_KEYS,
+                        *SUPPLIER_KEYS,
+                        *GRID_KEYS,
+                    )
                     if key in saved
                 },
                 **user_input,
@@ -1568,8 +1618,6 @@ class ElectricityProOptionsFlow(
             errors := _source_input_errors(self.hass, user_input)
         ):
             return self._show_init_error(user_input, errors)
-        if user_input is not None and not _grid_tariff_input_valid(user_input):
-            return self._show_init_error(user_input, {"base": "invalid_grid_tariff"})
         if user_input is not None and not _good_price_input_valid(user_input):
             return self._show_init_error(
                 user_input, {"base": "invalid_good_price_settings"}

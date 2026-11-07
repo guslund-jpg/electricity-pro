@@ -112,11 +112,20 @@ component/completeness rules and saved formats are unchanged. Visible supplier
 values use suggestions rather than schema defaults so clearing a field can
 override setup data; hidden confirmed values remain in the flow draft.
 
-Options start with a section menu. Measurement, market and supplier saves overlay only
-their owned keys onto the latest options, including explicit clears. The
-remaining settings form retains both sets of effective bindings when saving
-grid fees, insights or optional flows. VAT remains a supplier declaration: displaying a
-suggestion or saving only the market screen does not persist a tax rate.
+`GridFlow` in `grid_config.py` follows Supplier in both setup paths and owns
+only existing grid-charge, schedule and Workday keys. A UI-only tariff choice is
+inferred from effective amounts: unconfigured, constant or high/low. Zero is a
+known amount; dormant schedules alone do not enable a tariff. Fields are
+clearable suggestions, mode changes stay in the draft, and high/low validation
+uses the existing pure tariff model. Switching to constant clears inactive
+schedule keys; unconfigured explicitly clears all owned keys without inventing
+zero fees. The runtime tariff model and stored formats remain unchanged.
+
+Options start with a section menu. Measurement, market, supplier and grid saves
+overlay only their owned keys onto the latest options, including explicit clears.
+The remaining insights/optional-flow form retains these effective bindings.
+VAT remains a supplier declaration: displaying a suggestion or saving only the
+market screen does not persist a tax rate.
 An older multi-area configuration without a valid area resolves it before
 opening the supplier form; its correction stays in the flow draft until the final save.
 Draft forms do not update the entry before completion. Stored keys, source

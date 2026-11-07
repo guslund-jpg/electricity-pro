@@ -190,6 +190,7 @@ The current strict scope is:
 | `measurement_config.py` | Shared measurement selection, source validation and energy-period confirmation |
 | `market_config.py` | Shared native Nord Pool selection, area resolution and inherited metadata display |
 | `supplier_config.py` | Shared supplier declarations, fees, explicit clears and VAT/estimate navigation |
+| `grid_config.py` | Shared grid tariff selection, clearable charges and schedule validation |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
@@ -313,7 +314,7 @@ The remaining explicit `Any` boundaries are deliberate limits of this scope:
 
 These exceptions do not establish that every persisted value is validated. A
 complete typed persistence schema would be separate work. Strict checking covers
-the 35 explicitly listed integration modules, not the tests or whole integration;
+the 36 explicitly listed integration modules, not the tests or whole integration;
 it is not a claim of complete typing or additional manual Home Assistant testing.
 
 ### Python formatting

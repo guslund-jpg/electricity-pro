@@ -15,6 +15,7 @@ from tests.flow_helpers import (
     confirm_measurements,
     confirm_market,
     confirm_supplier,
+    confirm_grid,
 )
 
 from custom_components.electricity_pro.const import DOMAIN
@@ -75,20 +76,13 @@ async def start(hass, profile, options):
     result = await confirm_measurements(manager, result)
     result = await confirm_market(manager, result)
     result = await confirm_supplier(manager, result)
+    result = await confirm_grid(manager, result)
     return None, manager, result
 
 
 @pytest.mark.parametrize("options", [False, True], ids=["setup", "options"])
-@pytest.mark.parametrize(
-    ("profile", "error"),
-    [
-        ("custom", "tariff"),
-        ("tibber", "tariff"),
-        ("custom", "good_time"),
-        ("tibber", "good_time"),
-    ],
-)
-async def test_repeated_error_preserves_displayed_values(hass, profile, options, error):
+@pytest.mark.parametrize("profile", ["custom", "tibber"])
+async def test_repeated_error_preserves_displayed_values(hass, profile, options):
     """Retry the displayed form, changing only the invalid field, then save."""
     entry, manager, result = await start(hass, profile, options)
     original_keys = set(result["data_schema"].schema)
@@ -96,29 +90,17 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
     original_data = dict(entry.data) if entry else None
     submitted = {
         **form_values(result),
-        "grid_fee_per_kwh": 0,
-        "fixed_grid_fee_monthly": 0,
         "good_price_mode": "adaptive",
         "adaptive_target_percentile": 37,
         "adaptive_price_ceiling": 1.7,
-        "grid_fee_high_start": "07:30",
     }
-    expected = {
-        "base": {
-            "tariff": "invalid_grid_tariff",
-            "good_time": "invalid_good_price_settings",
-        }.get(error)
-    }
-    if error == "tariff":
-        submitted["grid_fee_high_start"] = "bad-time"
-    elif error == "good_time":
-        submitted["adaptive_price_ceiling"] = float("nan")
+    submitted["adaptive_price_ceiling"] = float("nan")
     result = await configure_settings(manager, result, submitted)
-    assert result["errors"] == expected
+    assert result["errors"] == {"base": "invalid_good_price_settings"}
     assert set(result["data_schema"].schema) == original_keys
     shown = form_values(result)
     for key, value in submitted.items():
-        if key == "adaptive_price_ceiling" and error == "good_time":
+        if key == "adaptive_price_ceiling":
             assert isnan(shown[key])
         else:
             assert shown[key] == value
@@ -135,16 +117,14 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
 
     # Another error after clearing an optional field must not resurrect it.
     shown.pop("adaptive_price_ceiling", None)
-    shown["grid_fee_high_start"] = "still-bad"
+    shown["adaptive_target_percentile"] = float("nan")
     result = await configure_settings(manager, result, shown)
-    assert result["errors"] == {"base": "invalid_grid_tariff"}
+    assert result["errors"] == {"base": "invalid_good_price_settings"}
     shown = form_values(result)
     assert "adaptive_price_ceiling" not in shown
-    assert shown["fixed_grid_fee_monthly"] == 0
-    shown["grid_fee_high_start"] = "07:30"
+    shown["adaptive_target_percentile"] = 37
     result = await configure_settings(manager, result, shown)
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"]["fixed_grid_fee_monthly"] == 0
     assert result["data"].get("adaptive_price_ceiling") is None
     if entry:
         # Explicit None must override the original setup data, not fall back to it.
@@ -182,7 +162,8 @@ async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel)
     submitted = {
         **form_values(result),
         "configure_energy_flows": True,
-        "grid_fee_high_start": "invalid",
+        "good_price_mode": "adaptive",
+        "adaptive_target_percentile": float("nan"),
     }
     result = await configure_settings(manager, result, submitted)
     assert result["step_id"] == "energy_flows"
@@ -220,16 +201,16 @@ async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel)
     shown["flow_generation_presence"] = "present"
     result = await configure_settings(manager, result, shown)
     assert result["step_id"] == "init"
-    assert result["errors"] == {"base": "invalid_grid_tariff"}
+    assert result["errors"] == {"base": "invalid_good_price_settings"}
     assert dict(entry.options) == saved
     assert "configure_energy_flows" in result["data_schema"].schema
     assert (
         not set((*FLOW_KEYS, *COMPATIBILITY_KEYS)) & result["data_schema"].schema.keys()
     )
     shown = form_values(result)
-    shown["grid_fee_high_start"] = "another-error"
+    shown["adaptive_target_percentile"] = float("nan")
     result = await configure_settings(manager, result, shown)
-    assert result["errors"] == {"base": "invalid_grid_tariff"}
+    assert result["errors"] == {"base": "invalid_good_price_settings"}
     if cancel:
         manager.async_abort(result["flow_id"])
         assert dict(entry.options) == saved
@@ -240,7 +221,7 @@ async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel)
         assert "production_power_entity" not in result["data"]
         return
     shown = form_values(result)
-    shown["grid_fee_high_start"] = "08:00"
+    shown["adaptive_target_percentile"] = 50
     result = await configure_settings(manager, result, shown)
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["production_power_entity"] == "sensor.production"
@@ -263,16 +244,16 @@ async def test_source_error_keeps_follow_up_available(hass, profile):
         },
     )
     saved = dict(entry.options)
-    submitted = {**form_values(result), "fixed_grid_fee_monthly": 0}
+    submitted = form_values(result)
     result = await configure_settings(manager, result, submitted)
     assert result["errors"] == {"base": "invalid_flow_source"}
     assert dict(entry.options) == saved
     shown = form_values(result)
-    assert shown["fixed_grid_fee_monthly"] == 0
+    assert "fixed_grid_fee_monthly" not in shown
     shown["configure_energy_flows"] = True
     result = await configure_settings(manager, result, shown)
     assert result["step_id"] == "energy_flows"
     result = await configure_settings(manager, result, {})
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["production_power_entity"] is None
-    assert result["data"]["fixed_grid_fee_monthly"] == 0
+    assert result["data"]["fixed_grid_fee_monthly"] == 600
