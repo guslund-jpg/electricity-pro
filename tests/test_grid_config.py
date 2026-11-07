@@ -7,6 +7,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.grid_config import GRID_KEYS
 from tests.flow_helpers import (
+    confirm_production,
     TIBBER_CONTRACT,
     confirm_grid,
     confirm_market,
@@ -70,6 +71,8 @@ async def test_setup_grid_after_supplier_before_insights(hass, profile):
     assert result["step_id"] == "grid"
     assert form_values(result) == {"grid_mode": "unconfigured"}
     result = await confirm_grid(manager, result, TARIFF)
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(manager, result)
     assert result["step_id"] == ("manual" if profile == "custom" else "tibber_settings")
     assert not set(GRID_KEYS) & {key.schema for key in result["data_schema"].schema}
     result = await manager.async_configure(result["flow_id"], {})
@@ -148,6 +151,8 @@ async def test_mode_change_drafts_then_clears_inactive_tariff(hass, mode):
         assert not entry.options
         assert "grid_fee_high_per_kwh" not in result["data_schema"].schema
         result = await confirm_grid(manager, result)
+        if result.get("step_id") == "energy_flows":
+            result = await confirm_production(manager, result)
         assert entry.options["grid_fee_per_kwh"] == 0.125
         assert entry.options["fixed_grid_fee_monthly"] == 0
     else:
@@ -194,6 +199,8 @@ async def test_retry_keeps_values_and_explicit_clear_until_save_or_cancel(hass, 
         assert form_values(result)["grid_fee_high_start"] == "22:30"
     else:
         result = await confirm_grid(manager, result, {"grid_fee_high_start": "21:30"})
+        if result.get("step_id") == "energy_flows":
+            result = await confirm_production(manager, result)
         assert result["type"] == "create_entry"
         assert entry.options["energy_tax_per_kwh"] is None
         assert entry.options["grid_fee_high_start"] == "21:30"

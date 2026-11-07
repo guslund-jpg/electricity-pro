@@ -10,6 +10,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.flow_helpers import (
+    confirm_production,
     start_settings,
     configure_settings,
     confirm_measurements,
@@ -77,6 +78,8 @@ async def start(hass, profile, options):
     result = await confirm_market(manager, result)
     result = await confirm_supplier(manager, result)
     result = await confirm_grid(manager, result)
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(manager, result)
     return None, manager, result
 
 
@@ -138,122 +141,21 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options)
 
 
 @pytest.mark.parametrize("profile", ["custom", "tibber"])
-@pytest.mark.parametrize("cancel", [False, True])
-async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel):
-    """Keep confirmed hidden bindings/clears/declarations until save or cancel."""
+async def test_insight_save_does_not_validate_or_repair_other_sections(hass, profile):
     entry, manager, result = await start(hass, profile, True)
-    hass.config_entries.async_update_entry(
-        entry,
-        options={
-            **entry.options,
-            "grid_export_power_entity": "sensor.old_export",
-            "flow_storage_presence": "present",
-        },
-    )
-    saved = dict(entry.options)
-    hass.states.async_set(
-        "sensor.production",
-        "100",
-        {
-            "device_class": "power",
-            "unit_of_measurement": "W",
-        },
-    )
-    submitted = {
-        **form_values(result),
-        "configure_energy_flows": True,
-        "good_price_mode": "adaptive",
-        "adaptive_target_percentile": float("nan"),
+    saved = {
+        **entry.options,
+        "production_power_entity": "sensor.old_power",
+        "grid_export_power_entity": "sensor.old_power",
+        "flow_storage_presence": "present",
+        "flow_compatibility_enabled": False,
+        "household_energy_entity": None,
     }
-    result = await configure_settings(manager, result, submitted)
-    assert result["step_id"] == "energy_flows"
-    result = await configure_settings(
-        manager,
-        result,
-        {
-            "production_power_entity": "sensor.missing",
-            "confirm_flow_semantics": True,
-        },
-    )
-    assert result["errors"]["production_power_entity"] == "invalid_flow_source"
-    shown = form_values(result)
-    assert shown["confirm_flow_semantics"] is True
-    assert "configure_flow_compatibility" not in result["data_schema"].schema
-    assert "grid_export_power_entity" not in shown
-    shown["production_power_entity"] = "sensor.production"
-    result = await configure_settings(manager, result, shown)
-    assert result["step_id"] == "flow_compatibility"
-    result = await configure_settings(
-        manager,
-        result,
-        {
-            **form_values(result),
-            "flow_generation_presence": "absent",
-            "flow_storage_presence": "absent",
-            "flow_compatibility_enabled": False,
-            "production_power_phase_convention": "net_across_phases",
-        },
-    )
-    assert result["errors"] == {"flow_generation_presence": "contradictory_topology"}
-    shown = form_values(result)
-    assert shown["flow_compatibility_enabled"] is False
-    assert shown["flow_storage_presence"] == "absent"
-    shown["flow_generation_presence"] = "present"
-    result = await configure_settings(manager, result, shown)
-    assert result["step_id"] == "init"
-    assert result["errors"] == {"base": "invalid_good_price_settings"}
-    assert dict(entry.options) == saved
-    assert "configure_energy_flows" in result["data_schema"].schema
-    assert (
-        not set((*FLOW_KEYS, *COMPATIBILITY_KEYS)) & result["data_schema"].schema.keys()
-    )
-    shown = form_values(result)
-    shown["adaptive_target_percentile"] = float("nan")
-    result = await configure_settings(manager, result, shown)
-    assert result["errors"] == {"base": "invalid_good_price_settings"}
-    if cancel:
-        manager.async_abort(result["flow_id"])
-        assert dict(entry.options) == saved
-        # A fresh attempt must not inherit the cancelled source draft.
-        result = await start_settings(manager, entry.entry_id)
-        result = await configure_settings(manager, result, form_values(result))
-        assert result["data"]["grid_export_power_entity"] == "sensor.old_export"
-        assert "production_power_entity" not in result["data"]
-        return
-    shown = form_values(result)
-    shown["adaptive_target_percentile"] = 50
-    result = await configure_settings(manager, result, shown)
+    hass.config_entries.async_update_entry(entry, options=saved)
+    fields = {marker.schema for marker in result["data_schema"].schema}
+    assert not set((*FLOW_KEYS, *COMPATIBILITY_KEYS, "configure_energy_flows")) & fields
+    result = await configure_settings(manager, result, form_values(result))
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"]["production_power_entity"] == "sensor.production"
-    assert result["data"]["grid_export_power_entity"] is None
-    assert result["data"]["flow_storage_presence"] == "absent"
-    assert result["data"]["flow_compatibility_enabled"] is False
-    assert result["data"]["production_power_phase_convention"] == "net_across_phases"
-
-
-@pytest.mark.parametrize("profile", ["custom", "tibber"])
-async def test_source_error_keeps_follow_up_available(hass, profile):
-    """A source conflict can still be corrected through the optional form."""
-    entry, manager, result = await start(hass, profile, True)
-    hass.config_entries.async_update_entry(
-        entry,
-        options={
-            **entry.options,
-            "production_power_entity": "sensor.old_power",
-            "grid_export_power_entity": "sensor.old_power",
-        },
-    )
-    saved = dict(entry.options)
-    submitted = form_values(result)
-    result = await configure_settings(manager, result, submitted)
-    assert result["errors"] == {"base": "invalid_flow_source"}
-    assert dict(entry.options) == saved
-    shown = form_values(result)
-    assert "fixed_grid_fee_monthly" not in shown
-    shown["configure_energy_flows"] = True
-    result = await configure_settings(manager, result, shown)
-    assert result["step_id"] == "energy_flows"
-    result = await configure_settings(manager, result, {})
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"]["production_power_entity"] is None
-    assert result["data"]["fixed_grid_fee_monthly"] == 600
+    for key in (*FLOW_KEYS, *COMPATIBILITY_KEYS):
+        if key in saved:
+            assert result["data"][key] == saved[key]

@@ -8,6 +8,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.flow_helpers import (
+    confirm_production,
     confirm_grid,
     confirm_measurements,
     confirm_supplier,
@@ -105,6 +106,8 @@ async def test_setup_resolves_market_before_vat_and_inherits_currency(
     result = await manager.async_configure(result["flow_id"], values)
     assert result["step_id"] == "grid"
     result = await confirm_grid(manager, result)
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(manager, result)
     assert result["step_id"] in ("manual", "tibber_settings")
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"
@@ -131,6 +134,8 @@ async def test_multi_country_area_determines_subsequent_editable_vat(
     result = await manager.async_configure(result["flow_id"], values)
     assert result["step_id"] == "grid"
     result = await confirm_grid(manager, result)
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(manager, result)
     assert result["step_id"] in ("manual", "tibber_settings")
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"

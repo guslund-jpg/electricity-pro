@@ -16,9 +16,9 @@ current/voltage inputs, an energy-period override and optional external monthly
 peak-hour readings.
 
 The Configure menu offers Measurements, Market prices (Nord Pool), Electricity
-supplier, Grid charges, and Insights and other settings. Saving a section applies its own edits.
-The remaining settings retain the existing measurement, market, supplier and grid
-bindings.
+supplier, Grid charges, Production and export, and Usage insights. Saving a
+section applies its own edits. The remaining settings retain the existing
+measurement, market, supplier, grid and optional-source bindings.
 The new screens have English and Swedish text. Publication remains tracked by
 the [changelog](../../CHANGELOG.md).
 
@@ -87,8 +87,8 @@ energy. See [cost sources and estimates](costs-and-pricing.md).
 Saved values are editable suggestions. Clearing a visible source or amount
 overrides its original setup value, while explicit zero remains a configured
 value. Canceling saves nothing. A supplier save retains meter sources, Nord Pool
-selection, grid charges, optional flow sources and insights. Saving Grid charges or Insights and other settings likewise retains the
-supplier configuration.
+selection, grid charges, optional flow sources and insights. Saving Grid charges, Production and export or Usage insights likewise retains
+the supplier configuration.
 
 ## Grid screen on the development branch
 
@@ -119,7 +119,7 @@ overrides its original setup value. Components declared as already included
 under Supplier are not added twice to live prices, while the configured rates
 can still be needed for raw Nord Pool forecasts. A grid save preserves supplier,
 market, meter, optional-flow and insight settings. Remaining insights and energy
-flows are available under **Insights and other settings**.
+flows are available under **Usage insights**.
 
 The Swedish help text's 0.45 SEK/kWh example is the ordinary **2026** energy
 tax including VAT, not a default or a regional rate. See
@@ -127,6 +127,38 @@ tax including VAT, not a default or a regional rate. See
 (0.36 SEK/kWh before VAT) and
 [Energimarknadsbyrån's VAT-inclusive amount](https://www.energimarknadsbyran.se/el/dina-elavtal-och-kostnader/fakturering-och-betalning/elrakningen/energiskatt/).
 The example does not set or change the configured amount.
+
+## Production and export screen on the development branch
+
+Both setup paths continue from Grid charges to **Production and export**
+(**Produktion och export** in Swedish), before Usage insights. Configure offers
+this section directly; optional sources are no longer a detour from insights.
+
+The optional-source switch is inferred from existing bindings. Leave it off for
+ordinary import monitoring. Enabling it and confirming displays the six existing
+AC production, directional export and non-storage household selectors. Select
+only verified whole-site sources; power and lifetime energy are independent.
+Confirm their meanings before continuing. See the
+[source requirements](production-export.md#what-this-increment-provides).
+
+Any selected source requires installation review. Generation and battery
+presence stay Unknown unless explicitly declared; missing sensors never imply
+absence. Phase questions appear only for selected power channels, not for
+energy-only sources. Replacing or clearing a power binding resets only that
+channel's phase convention. The compatibility diagnostic remains a separate
+opt-in and does not establish a site balance. Unknown facts are valid.
+
+Clearing all selectors or turning the switch off explicitly clears the six
+bindings and disables the diagnostic. Remembered generation/storage-presence
+answers remain; turning off measurements does not declare equipment absent.
+Canceling either screen saves nothing. A successful section save preserves all
+other sections, entity identities and unaffected energy tracking. Saving Usage
+insights retains optional bindings and does not validate or repair them.
+Fresh setup follows the same review rules for Custom and Tibber.
+
+These navigation changes add no balance, battery attribution or export revenue.
+Real solar/battery validation remains outstanding in
+[#335](https://github.com/guslund-jpg/electricity-pro/issues/335).
 
 ## Guided Tibber setup
 

@@ -7,6 +7,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.flow_helpers import (
+    confirm_production,
     start_market,
     start_supplier,
     confirm_supplier,
@@ -75,6 +76,8 @@ async def finish_setup(manager, result):
         )
     if result.get("step_id") == "grid":
         result = await confirm_grid(manager, result, {"fixed_grid_fee_monthly": 0})
+        if result.get("step_id") == "energy_flows":
+            result = await confirm_production(manager, result)
     if result.get("step_id") in ("manual", "tibber_settings"):
         result = await manager.async_configure(result["flow_id"], {})
     return result

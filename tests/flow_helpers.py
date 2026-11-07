@@ -9,6 +9,8 @@ from custom_components.electricity_pro.measurement_config import (
 from custom_components.electricity_pro.market_config import MARKET_KEYS
 from custom_components.electricity_pro.supplier_config import SUPPLIER_KEYS
 from custom_components.electricity_pro.grid_config import GRID_KEYS, grid_mode
+from custom_components.electricity_pro.production_config import PRODUCTION_KEYS
+from custom_components.electricity_pro.flow_sources import FLOW_KEYS
 
 TIBBER_CONTRACT = {
     "price_entity": "sensor.price",
@@ -58,6 +60,49 @@ async def start_grid(manager, entry_id):
     """Open grid charges through the section menu."""
     result = await manager.async_init(entry_id)
     return await manager.async_configure(result["flow_id"], {"next_step_id": "grid"})
+
+
+async def start_production(manager, entry_id):
+    """Open the dedicated optional-source section."""
+    result = await manager.async_init(entry_id)
+    return await manager.async_configure(
+        result["flow_id"], {"next_step_id": "energy_flows"}
+    )
+
+
+async def open_production_sources(manager, result):
+    """Reveal source fields if they are not already displayed."""
+    if form_values(result)["configure_energy_flows"]:
+        return result
+    return await manager.async_configure(
+        result["flow_id"], {"configure_energy_flows": True}
+    )
+
+
+async def confirm_production(manager, result, values=None):
+    """Accept visible source suggestions, optionally changing or clearing them."""
+    values = values or {}
+    submitted = form_values(result)
+    enabled = values.get(
+        "configure_energy_flows",
+        submitted["configure_energy_flows"]
+        or any(values.get(key) for key in FLOW_KEYS),
+    )
+    if enabled != submitted["configure_energy_flows"]:
+        result = await manager.async_configure(
+            result["flow_id"], {**submitted, "configure_energy_flows": enabled}
+        )
+        if result.get("step_id") != "energy_flows":
+            return result
+        submitted = form_values(result)
+    fields = {marker.schema for marker in result["data_schema"].schema}
+    for key, value in values.items():
+        if key in fields:
+            if value is None:
+                submitted.pop(key, None)
+            else:
+                submitted[key] = value
+    return await manager.async_configure(result["flow_id"], submitted)
 
 
 async def confirm_grid(manager, result, values=None):
@@ -152,6 +197,18 @@ async def confirm_measurements(manager, result, values=None):
 
 async def configure_settings(manager, result, values):
     """Submit moved measurement fields on their screen and settings on theirs."""
+    if result.get("step_id") == "flow_compatibility":
+        fields = {marker.schema for marker in result["data_schema"].schema}
+        values = {key: value for key, value in values.items() if key in fields}
+    if result.get("step_id") == "energy_flows":
+        fields = {marker.schema for marker in result["data_schema"].schema}
+        return await manager.async_configure(
+            result["flow_id"],
+            {
+                "configure_energy_flows": form_values(result)["configure_energy_flows"],
+                **{key: value for key, value in values.items() if key in fields},
+            },
+        )
     if result.get("step_id") == "measurements":
         result = await confirm_measurements(manager, result, values)
         if result.get("step_id") == "measurements":
@@ -170,6 +227,10 @@ async def configure_settings(manager, result, values):
         result = await confirm_grid(manager, result, values)
         if result.get("step_id") == "grid":
             return result
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(manager, result, values)
+        if result.get("step_id") in ("energy_flows", "flow_compatibility"):
+            return result
     if result.get("step_id") in ("init", "manual", "tibber_settings"):
         values = {
             key: value
@@ -180,6 +241,9 @@ async def configure_settings(manager, result, values):
                 *MARKET_KEYS,
                 *SUPPLIER_KEYS,
                 *GRID_KEYS,
+                *PRODUCTION_KEYS,
+                "configure_energy_flows",
+                "confirm_flow_semantics",
                 "grid_mode",
                 "suggest_vat_rate",
                 "estimate_supplier_markup",
@@ -188,6 +252,8 @@ async def configure_settings(manager, result, values):
     result = await manager.async_configure(result["flow_id"], values)
     if result.get("step_id") == "grid" and not result.get("errors"):
         result = await confirm_grid(manager, result)
+    if result.get("step_id") == "energy_flows" and not result.get("errors"):
+        result = await confirm_production(manager, result)
     if result.get("step_id") in ("manual", "tibber_settings") and not result.get(
         "errors"
     ):

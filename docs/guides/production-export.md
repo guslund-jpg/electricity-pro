@@ -37,7 +37,25 @@ visible. Tap a tile for history and source/coverage attributes.
 Copy the updated example YAML to your dashboard to see these cards;
 updating the integration alone does not update a manually copied dashboard.
 
-## Configure
+## Development navigation on main
+
+The unreleased shared configuration screens offer **Production and export**
+(**Produktion och export**) directly in Configure and after Grid charges in both
+Custom and Tibber setup. Leave the optional-source switch off for import-only
+monitoring. Enabling it displays the six source selectors before saving.
+
+Source meanings still require confirmation, followed by installation review for
+any selected source. Only configured power channels have phase questions;
+energy-only channels need no phase declaration. Unknown installation answers are
+accepted and the diagnostic stays a separate opt-in. Canceling either screen
+saves nothing. Switching off clears bindings and disables the diagnostic while
+retaining remembered generation/storage-presence answers. It does not declare
+solar or battery equipment absent. Other configuration sections are preserved.
+
+This is a configuration change; the measurement and counter contracts below
+are unchanged. See [configuration](configuration.md#production-and-export-screen-on-the-development-branch).
+
+## Configure released v1.7.1
 
 1. Open **Settings → Devices & services → Electricity Pro → Configure**.
 2. Select **Configure optional production, export and household sources**, then submit.

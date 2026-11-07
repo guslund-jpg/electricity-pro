@@ -8,6 +8,7 @@ from homeassistant.helpers.selector import EntitySelector
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.flow_helpers import (
+    confirm_production,
     start_market,
     start_grid,
     confirm_grid,
@@ -395,6 +396,8 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
     assert result["step_id"] == "grid"
     assert [key.schema for key in result["data_schema"].schema] == ["grid_mode"]
     result = await confirm_grid(hass.config_entries.flow, result)
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(hass.config_entries.flow, result)
     keys = [key.schema for key in result["data_schema"].schema]
     assert CONF_GOOD_PRICE_MODE in keys
     assert CONF_GRID_FEE_PER_KWH not in keys
