@@ -18,7 +18,7 @@
         },
         "sections": {
           "advanced_measurements": {
-            "name": "Avancerade mätvärden",
+            "name": "Ytterligare mätvärden",
             "data": {
               "current_l1_entity": "Ström L1",
               "voltage_l1_entity": "Spänning L1",
@@ -60,7 +60,7 @@
         },
         "sections": {
           "advanced_measurements": {
-            "name": "Avancerade mätvärden",
+            "name": "Ytterligare mätvärden",
             "data": {
               "current_l1_entity": "Ström L1",
               "voltage_l1_entity": "Spänning L1",
