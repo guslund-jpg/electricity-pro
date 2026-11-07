@@ -8,12 +8,18 @@ import pytest
 from homeassistant import config_entries
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from tests.flow_helpers import start_market, start_settings, configure_settings
+from tests.flow_helpers import (
+    start_market,
+    start_supplier,
+    configure_settings,
+    form_values,
+    TIBBER_CONTRACT,
+)
 
 from custom_components.electricity_pro.config_flow import (
     _entity_schema,
     _tibber_settings_schema,
-    _tibber_forecast_pricing_schema,
+    _supplier_schema,
 )
 from custom_components.electricity_pro.vat_suggestions import (
     VERIFIED_ON,
@@ -77,7 +83,10 @@ def test_unknown_context_never_infers_exemption():
 def test_assistance_visibility_and_translations():
     assert "suggest_vat_rate" in {k.schema for k in _entity_schema().schema}
     assert "suggest_vat_rate" in {
-        k.schema for k in _tibber_forecast_pricing_schema({}).schema
+        k.schema
+        for k in _supplier_schema(
+            None, {"forecast_nordpool_config_entry": "selected"}, True
+        ).schema
     }
     assert "suggest_vat_rate" not in {
         k.schema for k in _tibber_settings_schema().schema
@@ -90,16 +99,16 @@ def test_assistance_visibility_and_translations():
             "vat_country",
             "vat_context",
             "vat_review",
-            "tibber_forecast_pricing",
+            "supplier_tibber",
         ):
             assert strings[flow]["step"][step] == english[flow]["step"][step]
         assert (
-            strings[flow]["step"]["tibber_forecast_pricing"]["data"]["price_vat_rate"]
+            strings[flow]["step"]["supplier_tibber"]["data"]["price_vat_rate"]
             == "VAT to add to Nord Pool forecasts (%)"
         )
         assert (
             "spot prices without VAT"
-            in strings[flow]["step"]["tibber_forecast_pricing"]["description"]
+            in strings[flow]["step"]["supplier_tibber"]["description"]
         )
 
 
@@ -108,12 +117,13 @@ async def start(hass, profile, **data):
         domain="electricity_pro",
         data={
             "source_profile": profile,
+            **(TIBBER_CONTRACT if profile == "tibber" else {}),
             "power_entity": "sensor.power",
             **data,
         },
     )
     entry.add_to_hass(hass)
-    flow = await start_settings(hass.config_entries.options, entry.entry_id)
+    flow = await start_supplier(hass.config_entries.options, entry.entry_id)
     return entry, flow
 
 
@@ -132,11 +142,10 @@ async def test_automatic_hint_requires_pricing_save(hass, freezer, profile):
         flow["flow_id"], {"forecast_nordpool_config_entry": nordpool.entry_id}
     )
     assert "price_vat_rate" not in entry.options
-    flow = await start_settings(manager, entry.entry_id)
+    flow = await start_supplier(manager, entry.entry_id)
     if profile == "tibber":
-        flow = await configure_settings(manager, flow, {})
-        assert flow["step_id"] == "tibber_forecast_pricing"
-    assert flow["data_schema"]({})["price_vat_rate"] == 25.5
+        assert flow["step_id"] == "supplier_tibber"
+    assert form_values(flow)["price_vat_rate"] == 25.5
     assert "price_vat_rate" not in entry.options
     # Saving the screen confirms its visible default, without another VAT review.
     flow = await configure_settings(manager, flow, {})
@@ -162,11 +171,8 @@ async def test_saved_rates_unchanged_on_source_change(hass, profile, saved):
         flow["flow_id"], {"forecast_nordpool_config_entry": nordpool.entry_id}
     )
     assert entry.options.get("price_vat_rate", entry.data["price_vat_rate"]) == saved
-    flow = await start_settings(manager, entry.entry_id)
-    flow = await configure_settings(manager, flow, {})
-    if profile == "tibber":
-        assert flow["step_id"] == "tibber_forecast_pricing"
-        flow = await configure_settings(manager, flow, {"price_vat_rate": saved})
+    flow = await start_supplier(manager, entry.entry_id)
+    flow = await configure_settings(manager, flow, {"price_vat_rate": saved})
     assert flow["type"] == "create_entry"
     assert flow["data"]["price_vat_rate"] == saved
 
@@ -212,9 +218,9 @@ async def test_exception_context_required(hass, freezer, country, context, rate)
     )
     flow = await configure_settings(manager, flow, {"vat_country": country})
     assert flow["step_id"] == "vat_context"
-    assert flow["data_schema"]({})["vat_context"] == "manual"
+    assert form_values(flow)["vat_context"] == "manual"
     flow = await configure_settings(manager, flow, {"vat_context": context})
-    assert flow["data_schema"]({})["price_vat_rate"] == rate
+    assert form_values(flow)["price_vat_rate"] == rate
     flow = await configure_settings(
         manager, flow, {"price_vat_rate": rate, "use_vat_suggestion": True}
     )
@@ -229,7 +235,7 @@ async def test_expired_rule_allows_manual_escape(hass, freezer):
         manager, flow, {"power_entity": "sensor.power", "suggest_vat_rate": True}
     )
     flow = await configure_settings(manager, flow, {"vat_country": "SE"})
-    assert "price_vat_rate" not in flow["data_schema"]({})
+    assert "price_vat_rate" not in form_values(flow)
     flow = await configure_settings(manager, flow, {"use_vat_suggestion": False})
     assert flow["data"]["price_vat_rate"] == 17
 
@@ -247,11 +253,8 @@ async def test_configured_area_prefills_editable_rate_without_country_question(
     )
     manager = hass.config_entries.options
     if profile == "tibber":
-        flow = await configure_settings(
-            manager, flow, {"forecast_nordpool_config_entry": nordpool.entry_id}
-        )
-        assert flow["step_id"] == "tibber_forecast_pricing"
-    assert flow["data_schema"]({})["price_vat_rate"] == expected
+        assert flow["step_id"] == "supplier_tibber"
+    assert form_values(flow)["price_vat_rate"] == expected
     assert "price_vat_rate" not in entry.data
     assert not entry.options  # Form rendering never persists the suggestion.
     values = {"price_vat_rate": 12.3}
@@ -277,13 +280,7 @@ async def test_prefill_never_replaces_saved_rate(hass, freezer, profile, saved):
         forecast_nordpool_config_entry=nordpool.entry_id,
         price_vat_rate=saved,
     )
-    if profile == "tibber":
-        flow = await configure_settings(
-            hass.config_entries.options,
-            flow,
-            {"forecast_nordpool_config_entry": nordpool.entry_id},
-        )
-    assert flow["data_schema"]({})["price_vat_rate"] == saved
+    assert form_values(flow)["price_vat_rate"] == saved
 
 
 @pytest.mark.parametrize("profile", ["custom", "tibber"])
@@ -300,14 +297,11 @@ async def test_norwegian_area_skips_country_but_requires_household_context(
     values = {"forecast_nordpool_config_entry": nordpool.entry_id}
     if profile == "custom":
         values["power_entity"] = "sensor.power"
-        assert "price_vat_rate" not in flow["data_schema"]({})
+        assert "price_vat_rate" not in form_values(flow)
     flow = await configure_settings(manager, flow, values)
-    if profile == "tibber":
-        assert "price_vat_rate" not in flow["data_schema"]({})
-        flow = await configure_settings(manager, flow, {})
     assert flow["step_id"] == "vat_context"
     flow = await configure_settings(manager, flow, {"vat_context": "north_household"})
-    assert flow["data_schema"]({})["price_vat_rate"] == 0
+    assert form_values(flow)["price_vat_rate"] == 0
 
 
 @pytest.mark.parametrize("areas", [["SE3", "FI"], ["EE"], []])
@@ -318,7 +312,7 @@ async def test_ambiguous_or_unknown_area_does_not_prefill(hass, freezer, areas):
     _, flow = await start(
         hass, "custom", forecast_nordpool_config_entry=nordpool.entry_id
     )
-    assert "price_vat_rate" not in flow["data_schema"]({})
+    assert "price_vat_rate" not in form_values(flow)
 
 
 async def test_expired_rule_does_not_prefill(hass, freezer):
@@ -328,4 +322,4 @@ async def test_expired_rule_does_not_prefill(hass, freezer):
     _, flow = await start(
         hass, "custom", forecast_nordpool_config_entry=nordpool.entry_id
     )
-    assert "price_vat_rate" not in flow["data_schema"]({})
+    assert "price_vat_rate" not in form_values(flow)

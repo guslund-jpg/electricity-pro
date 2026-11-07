@@ -97,13 +97,28 @@ is editable on the market screen; a different entry requires its own area choice
 Single-area sources inherit the area without persisting a redundant override.
 The Tibber markup estimate is constrained to the resolved forecast area.
 
-Options start with a section menu. Measurement and market saves overlay only
+`SupplierFlow` in `supplier_config.py` follows the market screen and collects
+supplier-owned live price declarations, VAT, markup, fixed fees and the optional
+daily cost source. Both setup paths and options use the same navigation and
+validation. `config_flow.py` composes its controls from the existing selector
+builders. Unknown declarations stay editable; a supported, fully declared Tibber
+contract shows its known bindings and hides redundant declarations. Forecast
+VAT/markup and estimation controls appear only when applicable. Meter-only Tibber
+discovery does not imply a contract or supplier cost source.
+
+`pricing_config.prepare_pricing_metadata` normalizes explicit declarations for
+both the new supplier form and the former first-form submission path. Its
+component/completeness rules and saved formats are unchanged. Visible supplier
+values use suggestions rather than schema defaults so clearing a field can
+override setup data; hidden confirmed values remain in the flow draft.
+
+Options start with a section menu. Measurement, market and supplier saves overlay only
 their owned keys onto the latest options, including explicit clears. The
 remaining settings form retains both sets of effective bindings when saving
-prices, fees or optional flows. VAT remains a pricing declaration: displaying a
+grid fees, insights or optional flows. VAT remains a supplier declaration: displaying a
 suggestion or saving only the market screen does not persist a tax rate.
 An older multi-area configuration without a valid area resolves it before
-opening pricing; its correction stays in the flow draft until the final save.
+opening the supplier form; its correction stays in the flow draft until the final save.
 Draft forms do not update the entry before completion. Stored keys, source
 scoping and entity identities use their existing contracts.
 

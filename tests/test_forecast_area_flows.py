@@ -8,7 +8,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.flow_helpers import (
     start_market,
-    start_settings,
+    start_supplier,
+    confirm_supplier,
     configure_settings,
     confirm_measurements,
 )
@@ -67,21 +68,13 @@ async def submit(manager, result, values):
 
 
 async def finish_setup(manager, result):
+    if result.get("step_id") in ("supplier", "supplier_tibber"):
+        result = await confirm_supplier(
+            manager, result, {"price_vat_rate": 25, "supplier_markup_per_kwh": 0}
+        )
     if result.get("step_id") in ("manual", "tibber_settings"):
         result = await manager.async_configure(
-            result["flow_id"],
-            {
-                key: value
-                for key, value in {
-                    "price_vat_rate": 25,
-                    "fixed_grid_fee_monthly": 0,
-                }.items()
-                if key in {marker.schema for marker in result["data_schema"].schema}
-            },
-        )
-    if result.get("step_id") == "tibber_forecast_pricing":
-        result = await manager.async_configure(
-            result["flow_id"], {"price_vat_rate": 25, "supplier_markup_per_kwh": 0}
+            result["flow_id"], {"fixed_grid_fee_monthly": 0}
         )
     return result
 
@@ -221,7 +214,7 @@ async def test_custom_options_keep_area_override_across_repeated_saves(hass):
     )
     manager.async_abort(result["flow_id"])
     for fee in (49, 60):
-        result = await start_settings(manager, entry.entry_id)
+        result = await start_supplier(manager, entry.entry_id)
         result = await configure_settings(
             manager,
             result,

@@ -14,6 +14,7 @@ from tests.flow_helpers import (
     configure_settings,
     confirm_measurements,
     confirm_market,
+    confirm_supplier,
 )
 
 from custom_components.electricity_pro.const import DOMAIN
@@ -73,6 +74,7 @@ async def start(hass, profile, options):
     result = await configure_settings(manager, result, {"setup_method": profile})
     result = await confirm_measurements(manager, result)
     result = await confirm_market(manager, result)
+    result = await confirm_supplier(manager, result)
     return None, manager, result
 
 
@@ -84,7 +86,6 @@ async def start(hass, profile, options):
         ("tibber", "tariff"),
         ("custom", "good_time"),
         ("tibber", "good_time"),
-        ("custom", "pricing"),
     ],
 )
 async def test_repeated_error_preserves_displayed_values(hass, profile, options, error):
@@ -97,32 +98,21 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
         **form_values(result),
         "grid_fee_per_kwh": 0,
         "fixed_grid_fee_monthly": 0,
-        "fixed_supplier_fee_monthly": 49,
         "good_price_mode": "adaptive",
         "adaptive_target_percentile": 37,
         "adaptive_price_ceiling": 1.7,
         "grid_fee_high_start": "07:30",
     }
-    if profile == "custom":
-        submitted.update(price_vat_rate=0)
     expected = {
         "base": {
             "tariff": "invalid_grid_tariff",
             "good_time": "invalid_good_price_settings",
-            "pricing": "pricing_metadata_required",
         }.get(error)
     }
     if error == "tariff":
         submitted["grid_fee_high_start"] = "bad-time"
     elif error == "good_time":
         submitted["adaptive_price_ceiling"] = float("nan")
-    elif error == "pricing":
-        submitted.update(
-            price_entity="sensor.price",
-            pricing_strategy="market_price_plus_tariff",
-            price_vat_treatment="excluded",
-            price_included_components=[],
-        )
     result = await configure_settings(manager, result, submitted)
     assert result["errors"] == expected
     assert set(result["data_schema"].schema) == original_keys
@@ -152,8 +142,6 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
     assert "adaptive_price_ceiling" not in shown
     assert shown["fixed_grid_fee_monthly"] == 0
     shown["grid_fee_high_start"] = "07:30"
-    if error == "pricing":
-        shown["price_included_components"] = ["market_energy"]
     result = await configure_settings(manager, result, shown)
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["fixed_grid_fee_monthly"] == 0
@@ -275,16 +263,16 @@ async def test_source_error_keeps_follow_up_available(hass, profile):
         },
     )
     saved = dict(entry.options)
-    submitted = {**form_values(result), "fixed_supplier_fee_monthly": 0}
+    submitted = {**form_values(result), "fixed_grid_fee_monthly": 0}
     result = await configure_settings(manager, result, submitted)
     assert result["errors"] == {"base": "invalid_flow_source"}
     assert dict(entry.options) == saved
     shown = form_values(result)
-    assert shown["fixed_supplier_fee_monthly"] == 0
+    assert shown["fixed_grid_fee_monthly"] == 0
     shown["configure_energy_flows"] = True
     result = await configure_settings(manager, result, shown)
     assert result["step_id"] == "energy_flows"
     result = await configure_settings(manager, result, {})
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["production_power_entity"] is None
-    assert result["data"]["fixed_supplier_fee_monthly"] == 0
+    assert result["data"]["fixed_grid_fee_monthly"] == 0
