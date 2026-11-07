@@ -58,9 +58,9 @@ Forecast pairs use **Billigaste 1h period** and **Snittpris 1h period** (also
 The sensor's price-direction states have English/Swedish frontend translations;
 raw states remain `rising`, `falling` and `stable` for existing automations.
 Entity state presentation follows the Home Assistant profile language, separately
-from the chosen dashboard YAML. Install the matching development integration
-build and restart to obtain these state translations. Other dashboard labels
-only require copying the selected YAML.
+from the chosen dashboard YAML. State translations require Electricity Pro
+1.7.2 or newer and a restart. Other dashboard labels only require copying the
+selected YAML.
 
 **Svenska:** Välj svensk YAML ovan och följ installationsstegen nedan. Standard
 använder enbart inbyggda kort; Enhanced kräver Mushroom och ApexCharts Card.

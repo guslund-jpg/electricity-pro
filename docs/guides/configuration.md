@@ -2,7 +2,11 @@
 
 Electricity Pro uses existing Home Assistant sensor entities as data sources.
 
-## Measurements screen on the development branch
+The shared screens below are included in
+[v1.7.2](../releases/1.7.2.md). Released v1.7.1 uses its earlier configuration
+layout; saved setting keys and values remain compatible.
+
+## Measurements screen
 
 On `main`, both setup paths start with a shared Measurements screen. Review
 the current grid-power source and optionally select imported energy. A single
@@ -22,7 +26,7 @@ measurement, market, supplier, grid and optional-source bindings.
 The new screens have English and Swedish text. Publication remains tracked by
 the [changelog](../../CHANGELOG.md).
 
-## Market prices screen on the development branch
+## Market prices screen
 
 Both setup paths continue from Measurements to **Market prices (Nord Pool)**
 (**Spotpriser (Nord Pool)** in Swedish), before the supplier price inputs.
@@ -54,7 +58,7 @@ to an existing installation
 without a VAT rate, review **Electricity supplier** afterward to confirm
 the rate used for calculated forecast prices. Raw market prices do not include VAT.
 
-## Supplier screen on the development branch
+## Supplier screen
 
 Both setup paths review **Electricity supplier** (**Elhandel** in Swedish) after
 Market prices and before Grid charges. The same supplier section is
@@ -90,7 +94,7 @@ value. Canceling saves nothing. A supplier save retains meter sources, Nord Pool
 selection, grid charges, optional flow sources and insights. Saving Grid charges, Production and export or Usage insights likewise retains
 the supplier configuration.
 
-## Grid screen on the development branch
+## Grid screen
 
 Both setup paths continue from Supplier to **Grid charges** (**Elnät** in
 Swedish). Configure offers the same separate screen. The saved amounts select
@@ -128,7 +132,7 @@ tax including VAT, not a default or a regional rate. See
 [Energimarknadsbyrån's VAT-inclusive amount](https://www.energimarknadsbyran.se/el/dina-elavtal-och-kostnader/fakturering-och-betalning/elrakningen/energiskatt/).
 The example does not set or change the configured amount.
 
-## Production and export screen on the development branch
+## Production and export screen
 
 Both setup paths continue from Grid charges to **Production and export**
 (**Produktion och export** in Swedish), before Usage insights. Configure offers
@@ -160,7 +164,7 @@ These navigation changes add no balance, battery attribution or export revenue.
 Real solar/battery validation remains outstanding in
 [#335](https://github.com/guslund-jpg/electricity-pro/issues/335).
 
-## Usage insights screen on the development branch
+## Usage insights screen
 
 Both setup paths finish their inputs with **Usage insights**
 (**Användarpreferenser för el** in Swedish) after Production and export. Configure
@@ -199,7 +203,7 @@ An insight-only save does not validate or repair unrelated source settings.
 Existing entity identities, comparable price history and accumulated totals
 retain their contracts.
 
-## Configuration overview on the development branch
+## Configuration overview
 
 Both setup paths continue from Usage insights to **Overview** (**Översikt** in
 Swedish). Expand the groups to check measurements, Nord Pool context, supplier

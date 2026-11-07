@@ -1,7 +1,8 @@
 # Electricity Pro architecture
 
-This describes `main`. The stable release is [v1.7.0](../releases/1.7.0.md);
-optional production/export, household-demand and compatibility modules are
+This describes `main`. See the [latest published release](https://github.com/guslund-jpg/electricity-pro/releases/latest)
+for the stable version. Optional production/export, household-demand and
+compatibility modules are
 included but remain experimental / not hardware-verified.
 
 ## Data flow and ownership
@@ -62,7 +63,7 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `flow_sources.py` | Explicit optional source bindings, HA state reading, unit/freshness validation |
 | `flow_compatibility.py` | Boundary, declaration, freshness and timestamp-alignment diagnostic |
 | `sensor.py`, `binary_sensor.py` | Entities, metadata, availability and some calculation orchestration |
-| `strings.json`, `translations/en.json`, `manifest.json`, `brand/` | UI text, integration metadata and branding |
+| `strings.json`, `translations/en.json`, `translations/sv.json`, `manifest.json`, `brand/` | UI text, integration metadata and branding |
 
 ## Lifecycle and persistence
 
@@ -316,7 +317,8 @@ The code is not yet a completely separated analytics engine:
 - Raw normalized inputs and derived outputs share `ElectricityProData`.
 - Sensor helpers still invoke calculations and normalize inputs; the extracted
   Good Time decision module is one bounded separation, not an entity-layer rewrite.
-- Setup/options flows and translation strings contain duplicated structures.
+- The primary setup/options sections are shared; former submission paths remain
+  for compatibility, and language resources still mirror setup/options keys.
 
 These are targets for small, behaviour-preserving changes in
 [#288](https://github.com/guslund-jpg/electricity-pro/issues/288), not a wholesale

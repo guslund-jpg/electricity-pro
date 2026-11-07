@@ -13,7 +13,7 @@ battery to get started.
 [Configure your sources](docs/guides/configuration.md) ·
 [Add a dashboard](examples/dashboards/README.md#quick-installation)
 
-**Stable: [v1.7.1](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.7.1).**
+**Stable: [latest published release](https://github.com/guslund-jpg/electricity-pro/releases/latest).**
 See [release scope](#release-scope)
 before installing code or examples from `main`.
 
@@ -60,11 +60,16 @@ source requirements and price-component definitions.
 
 ## Release scope
 
-The latest stable release is [v1.7.1](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.7.1),
-published on 6 November 2026. This patch preserves saved Nord Pool areas and
-reduces the storage and processing needed for statistics during frequent meter
-updates. **Home Assistant Core 2026.9.0 or newer is required.**
-See the [release and upgrade notes](docs/releases/1.7.1.md).
+Use the [latest published release](https://github.com/guslund-jpg/electricity-pro/releases/latest)
+for ordinary installations. The current source includes the **v1.7.2**
+maintenance update: simplified Custom/Tibber configuration screens, reviewed
+Swedish entity labels and Swedish dashboard examples. Existing calculations,
+IDs and accumulated totals are preserved. **Home Assistant Core 2026.9.0 or
+newer is required.** See the [release and upgrade notes](docs/releases/1.7.2.md).
+
+A source version on `main` can precede publication. GitHub releases and their
+tags identify what has actually been published; the source version alone does
+not make an update available through HACS.
 
 Optional production/export/household sources and compatibility diagnostics remain
 **experimental / not hardware-verified**. Synthetic validation does not establish
@@ -203,7 +208,7 @@ thresholds and unavailable-input handling. No real-device control is enabled.
 
 ### Marketplace and HACS installation (recommended)
 
-Electricity Pro v1.7.1 and the current `main` branch require
+Electricity Pro v1.7.x and the current `main` branch require
 Home Assistant **2026.9.0 or newer**. Upgrade Home Assistant before installing them.
 Released v1.6.0 retains its Home Assistant 2025.9.0 minimum; older installations
 can remain on that release until Home Assistant is upgraded.

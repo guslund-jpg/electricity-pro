@@ -5,7 +5,8 @@ See the [changelog](CHANGELOG.md) for delivered changes and the
 [product vision](docs/development/vision.md) and
 [design principles](docs/development/design-principles.md) for project boundaries.
 
-The stable release is [v1.7.1](docs/releases/1.7.1.md). Work on `main` is not
+The [latest published release](https://github.com/guslund-jpg/electricity-pro/releases/latest)
+identifies the stable version. Work on `main` is not
 automatically released or hardware-validated. Release scope and priorities may
 change as testing and source availability improve.
 
@@ -31,6 +32,22 @@ development build. The [v1.7.1 notes](docs/releases/1.7.1.md) record the
 versioned package's Home Assistant smoke test.
 The scope does not include flexible-load recommendations, battery
 control, new accounting or completion of every architecture follow-up.
+
+## v1.7.2 — Configuration and Swedish-language maintenance
+
+The **1.7.2** maintenance scope groups existing configuration into shared
+Custom/Tibber sections and a read-only overview, adds reviewed Swedish
+entity/configuration text and
+Standard/Enhanced dashboard examples, and uses Spot price consistently in the
+English examples. Existing algorithms, accounting and persisted data contracts
+remain unchanged. See the [release notes](docs/releases/1.7.2.md).
+
+The configuration work in #373 and entity translation work in #289 are complete.
+The remaining #288 architecture work is deferred; #335 remains open for real
+solar/battery hardware evidence. The Core minimum remains 2026.9.0 after review.
+Versioned-package verification and publication approval are tracked in the
+release-preparation PR; the published-release link above distinguishes source
+changes from an actual release.
 
 ## Energy-flow follow-up after v1.6 🔭
 

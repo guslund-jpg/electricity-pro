@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.7.2]
+
+Requires Home Assistant Core 2026.9.0 or newer. See the
+[upgrade notes and release validation](docs/releases/1.7.2.md).
+
 ### Added
 
 - Add Swedish Standard and Enhanced dashboard examples with translated tabs,
@@ -58,6 +63,7 @@
 
 ### Changed
 
+- Clarify Recorder retention and write guidance for installations using SD cards.
 - Refine Swedish configuration, overview and entity names after the bilingual
   review; translate the initial setup instructions and keep menu labels aligned.
   Preserve entity IDs, saved settings and calculations.

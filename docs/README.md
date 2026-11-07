@@ -4,8 +4,9 @@ Start with [configuration](guides/configuration.md) after installing Electricity
 Pro using the [root README](../README.md#installation).
 
 These documents describe maintained behaviour on `main`.
-[v1.7.0](releases/1.7.0.md) is the stable release; later development may move ahead
-of that tag. Optional energy-flow features remain experimental.
+The [latest published release](https://github.com/guslund-jpg/electricity-pro/releases/latest)
+identifies the stable version; `main` can move ahead of that tag. The
+[v1.7.2 notes](releases/1.7.2.md) describe the current maintenance scope. Optional energy-flow features remain experimental.
 Test evidence is not a claim of real solar/battery hardware validation.
 
 ## Setup and troubleshooting
@@ -62,6 +63,9 @@ Git history preserves previous versions.
 
 ## Validation and releases
 
+- [v1.7.2 maintenance update, upgrade notes and validation](releases/1.7.2.md)
+- [v1.7.1 release, upgrade notes and validation](releases/1.7.1.md)
+- [English/Swedish wording and standard entity-ID review](validation/translation-review-sv.md)
 - [Post-v1.7 consolidation: development build and pending manual checks](validation/post-v1.7.md)
 - [v1.7.0 release, upgrade notes and validation](releases/1.7.0.md)
 - [Home Assistant support and per-release review checklist](development/contributing.md#home-assistant-support-and-release-review)

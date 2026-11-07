@@ -1,12 +1,21 @@
 # Electricity Pro Sensor Catalog
 
-This catalogue describes implemented entities on `main`. The stable release is
-[v1.6.0](../releases/1.6.0.md); optional flow/compatibility entities below remain
+This catalogue describes implemented entities on `main`. See the
+[latest published release](https://github.com/guslund-jpg/electricity-pro/releases/latest)
+for the stable version; optional flow/compatibility entities below remain
 **experimental / not hardware-verified**.
 
 Keys identify implementation/unique-ID suffixes, not guaranteed entity IDs.
 Home Assistant derives IDs from names and retains user renames. For example,
 Energy Today retains key `current_energy`; dashboard labels can also differ.
+
+All 49 sensors and the Good Time binary sensor have English and Swedish display
+resources. English is the fallback for other languages. Existing entity IDs,
+unique IDs and user-defined display names are retained; new installations keep
+the established English ID bases even when the display language is Swedish.
+The [bilingual review](../validation/translation-review-sv.md#sensorer) lists the
+verified default IDs and both display names. Dashboard YAML has its own labels
+and is selected/copied separately from the Home Assistant profile language.
 
 Configured inputs control entity creation, while valid data and sufficient
 coverage control availability. “Available” below means implemented, not that
