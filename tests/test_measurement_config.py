@@ -281,3 +281,17 @@ async def test_legacy_invalid_energy_period_keeps_its_effective_daily_semantics(
     )
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["energy_source_type"] == "daily"
+
+
+async def test_temporarily_unavailable_existing_sources_can_be_retained(hass):
+    hass.states.async_set("sensor.old_power", "unavailable")
+    hass.states.async_set("sensor.energy", "unavailable")
+    _, manager, result = await start_options(
+        hass, energy_entity="sensor.energy", energy_source_type="lifetime"
+    )
+    result = await manager.async_configure(
+        result["flow_id"],
+        {"power_entity": "sensor.old_power", "energy_entity": "sensor.energy"},
+    )
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"]["energy_source_type"] == "lifetime"

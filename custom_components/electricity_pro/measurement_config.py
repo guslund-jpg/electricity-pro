@@ -124,7 +124,10 @@ class MeasurementFlow(ConfigEntryBaseFlow):
                 errors[
                     key if key in (CONF_POWER_ENTITY, CONF_ENERGY_ENTITY) else "base"
                 ] = "invalid_flow_source"
-            elif (state := self.hass.states.get(entity_id)) is not None:
+            elif (
+                entity_id != self._measurement_reference.get(key)
+                and (state := self.hass.states.get(entity_id)) is not None
+            ):
                 if state.attributes.get("device_class") not in (None, device_class) or (
                     units and state.attributes.get("unit_of_measurement") not in units
                 ):
