@@ -104,6 +104,12 @@
         "constant": "Single rate",
         "time_of_use": "High/low tariff"
       }
+    },
+    "good_price_mode": {
+      "options": {
+        "fixed": "Fixed threshold",
+        "adaptive": "Adaptive"
+      }
     }
   },
   "title": "Electricity Pro",
@@ -286,10 +292,10 @@
           "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider.",
-          "good_price_threshold": "In Fixed mode, this is the maximum Effective Price considered good. In Adaptive mode, it is the optional fallback while history is warming up.",
-          "good_price_mode": "Fixed preserves the existing threshold rule. Adaptive compares the current complete Effective Price with comparable historical local hours.",
-          "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
-          "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
+          "good_price_threshold": "Use the same currency per kWh as Effective Price. At or below this limit, the fixed rule considers the price good. In Adaptive mode it is the fallback when comparable history is insufficient. Leave blank to have no fixed rule or fallback; zero is an actual zero limit.",
+          "good_price_mode": "Fixed compares the current Effective Price with your price limit. Adaptive uses comparable historical local hours. Changing the method displays its settings before saving; the other method's values are retained.",
+          "adaptive_target_percentile": "The cheapest share of comparable historical price observations considered favourable, weighted by duration and recency. The default is 25%. Higher values admit a larger share of prices.",
+          "adaptive_price_ceiling": "Use the same currency per kWh as Effective Price. With enough comparable history, a price above this ceiling is not adaptively good. During history warm-up the fixed fallback uses its own limit; this ceiling does not constrain that fallback. Leave blank for no adaptive ceiling. Zero and negative ceilings are supported.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically.",
           "suggest_vat_rate": "Optional: review a VAT suggestion or choose a country if no Nord Pool area is known. A known country is used directly. Existing rates, including 0%, stay unchanged unless you replace them."
         }
@@ -336,10 +342,10 @@
           "grid_fee_high_season_start": "First date of the recurring high season, written MM-DD; for example 11-01.",
           "grid_fee_high_season_end": "Last date of the recurring high season, written MM-DD; for example 03-31.",
           "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
-          "good_price_threshold": "In Fixed mode, this is the maximum Effective Price considered good. In Adaptive mode, it is the optional fallback while history is warming up.",
-          "good_price_mode": "Fixed preserves the existing threshold rule. Adaptive compares the current complete Effective Price with comparable historical local hours.",
-          "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
-          "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
+          "good_price_threshold": "Use the same currency per kWh as Effective Price. At or below this limit, the fixed rule considers the price good. In Adaptive mode it is the fallback when comparable history is insufficient. Leave blank to have no fixed rule or fallback; zero is an actual zero limit.",
+          "good_price_mode": "Fixed compares the current Effective Price with your price limit. Adaptive uses comparable historical local hours. Changing the method displays its settings before saving; the other method's values are retained.",
+          "adaptive_target_percentile": "The cheapest share of comparable historical price observations considered favourable, weighted by duration and recency. The default is 25%. Higher values admit a larger share of prices.",
+          "adaptive_price_ceiling": "Use the same currency per kWh as Effective Price. With enough comparable history, a price above this ceiling is not adaptively good. During history warm-up the fixed fallback uses its own limit; this ceiling does not constrain that fallback. Leave blank for no adaptive ceiling. Zero and negative ceilings are supported.",
           "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
           "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider.",
           "suggest_vat_rate": "Optional: review a VAT suggestion or choose a country if no Nord Pool area is known. A known country is used directly. Existing rates, including 0%, stay unchanged unless you replace them."
@@ -453,6 +459,34 @@
           "grid_export_power_phase_convention": "Grid-export power phase convention",
           "household_power_phase_convention": "Household demand power phase convention"
         }
+      },
+      "insights": {
+        "title": "Usage insights",
+        "description": "Choose how Electricity Pro assesses whether the current Effective Price is favourable. Fixed uses your price limit. Without a fixed limit there is no fixed Good Time assessment.",
+        "data": {
+          "good_price_mode": "Good Time method",
+          "good_price_threshold": "Fixed price limit per kWh (optional)"
+        },
+        "data_description": {
+          "good_price_mode": "Fixed compares the current Effective Price with your price limit. Adaptive uses comparable historical local hours. Changing the method displays its settings before saving; the other method's values are retained.",
+          "good_price_threshold": "Use the same currency per kWh as Effective Price. At or below this limit, the fixed rule considers the price good. In Adaptive mode it is the fallback when comparable history is insufficient. Leave blank to have no fixed rule or fallback; zero is an actual zero limit."
+        }
+      },
+      "insights_adaptive": {
+        "title": "Usage insights",
+        "description": "Assess when the current Effective Price is favourable. Adaptive requires complete, comparable pricing. It compares historical local hours and uses a fixed fallback if history is insufficient. A compatible Nord Pool forecast can refine the advice when a better price is expected.",
+        "data": {
+          "good_price_mode": "Good Time method",
+          "good_price_threshold": "Fixed fallback limit per kWh (optional)",
+          "adaptive_target_percentile": "Target percentile (%)",
+          "adaptive_price_ceiling": "Adaptive price ceiling per kWh (optional)"
+        },
+        "data_description": {
+          "good_price_mode": "Fixed compares the current Effective Price with your price limit. Adaptive uses comparable historical local hours. Changing the method displays its settings before saving; the other method's values are retained.",
+          "good_price_threshold": "Use the same currency per kWh as Effective Price. At or below this limit, the fixed rule considers the price good. In Adaptive mode it is the fallback when comparable history is insufficient. Leave blank to have no fixed rule or fallback; zero is an actual zero limit.",
+          "adaptive_target_percentile": "The cheapest share of comparable historical price observations considered favourable, weighted by duration and recency. The default is 25%. Higher values admit a larger share of prices.",
+          "adaptive_price_ceiling": "Use the same currency per kWh as Effective Price. With enough comparable history, a price above this ceiling is not adaptively good. During history warm-up the fixed fallback uses its own limit; this ceiling does not constrain that fallback. Leave blank for no adaptive ceiling. Zero and negative ceilings are supported."
+        }
       }
     },
     "error": {
@@ -472,7 +506,10 @@
       "grid_rate_required": "Enter both the low-period and high-period rates. Zero is allowed.",
       "invalid_flow_source": "Choose distinct external power (W/kW) or lifetime energy (Wh/kWh) sources. Do not reuse an import source.",
       "confirm_flow_semantics": "Confirm the selected whole-site AC source meanings, including household load excluding battery charging, and lifetime energy registers.",
-      "contradictory_topology": "Production sources are selected. Declare generation present or unknown, or return and remove those sources before declaring it absent."
+      "contradictory_topology": "Production sources are selected. Declare generation present or unknown, or return and remove those sources before declaring it absent.",
+      "invalid_insight_threshold": "Enter a finite price limit of zero or more, or leave it blank.",
+      "invalid_insight_percentile": "Enter a finite percentile from 1 to 100.",
+      "invalid_insight_ceiling": "Enter a finite price ceiling or leave it blank. Zero and negative ceilings are allowed."
     }
   },
   "options": {
@@ -619,85 +656,9 @@
           "measurements": "Measurements",
           "market_prices": "Market prices (Nord Pool)",
           "supplier": "Electricity supplier",
-          "settings": "Usage insights",
           "grid": "Grid charges",
-          "energy_flows": "Production and export"
-        }
-      },
-      "init": {
-        "title": "Usage insights",
-        "description": "Choose when Electricity Pro recommends electricity use. Measurements, market prices, supplier, grid charges, and production/export have their own settings.",
-        "data": {
-          "power_entity": "Power sensor",
-          "price_entity": "Electricity price sensor",
-          "pricing_strategy": "Price source type",
-          "price_included_components": "Components already included in the price",
-          "price_vat_treatment": "VAT treatment of the price",
-          "price_vat_rate": "VAT to add to VAT-exclusive prices (%)",
-          "energy_entity": "Accumulated energy sensor",
-          "energy_source_type": "Energy sensor accumulation period",
-          "accumulated_cost_today_entity": "Today's accumulated cost sensor",
-          "current_l1_entity": "Current L1 sensor",
-          "current_l2_entity": "Current L2 sensor",
-          "current_l3_entity": "Current L3 sensor",
-          "voltage_l1_entity": "Voltage L1 sensor",
-          "voltage_l2_entity": "Voltage L2 sensor",
-          "voltage_l3_entity": "Voltage L3 sensor",
-          "monthly_peak_hour_consumption_entity": "Monthly peak hour consumption sensor",
-          "monthly_peak_hour_time_entity": "Monthly peak hour time sensor",
-          "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
-          "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
-          "energy_tax_per_kwh": "Energy tax per kWh (including VAT)",
-          "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
-          "grid_fee_high_start": "High period starts (HH:MM)",
-          "grid_fee_high_end": "High period ends (HH:MM)",
-          "grid_fee_high_season_start": "High season starts (MM-DD)",
-          "grid_fee_high_season_end": "High season ends (MM-DD)",
-          "grid_fee_workday_entity": "Public holidays (Home Assistant Workday)",
-          "fixed_supplier_fee_monthly": "Fixed monthly electricity supplier fee (including VAT)",
-          "fixed_grid_fee_monthly": "Fixed monthly grid-provider fee (including VAT)",
-          "good_price_threshold": "Fixed good-price threshold per kWh",
-          "good_price_mode": "Good Time method",
-          "adaptive_target_percentile": "Adaptive target percentile",
-          "adaptive_price_ceiling": "Optional adaptive price ceiling per kWh",
-          "forecast_nordpool_config_entry": "Nord Pool forecast config entry",
-          "suggest_vat_rate": "Suggest VAT from country/region"
-        },
-        "data_description": {
-          "power_entity": "Required sensor providing the current power.",
-          "price_entity": "Optional sensor providing the current electricity price.",
-          "pricing_strategy": "Required when a price sensor is selected. Saving an older configuration confirms and activates the normalized pricing model.",
-          "price_included_components": "Select every variable component already contained in the sensor value; Market energy must be included.",
-          "price_vat_treatment": "State whether the selected price sensor includes VAT. VAT-excluded prices require a rate below; unknown VAT makes Effective Price unavailable.",
-          "price_vat_rate": "Rate added only to VAT-exclusive live prices and Nord Pool forecasts. Already VAT-inclusive prices and configured VAT-inclusive fees are not taxed again. An unset rate is prefilled from a known Swedish, Danish or Finnish area. Check or edit before saving. Norway requires household-location confirmation and Iceland depends on supply type; use the suggestion helper if unsure. 0 means actual zero VAT, not that the source excludes VAT.",
-          "energy_entity": "Optional sensor providing either today's consumption or a total accumulated energy reading.",
-          "energy_source_type": "Choose whether the selected energy sensor resets each day or reports total accumulated imported energy. Total accumulated readings start with partial-day coverage until Electricity Pro observes the next local midnight.",
-          "accumulated_cost_today_entity": "Optional external supplier-cost sensor reporting cost accumulated since midnight. Leave empty to estimate costs from the configured energy and price sources. Estimates have partial coverage. Do not select a fixed monthly fee.",
-          "current_l1_entity": "Optional sensor providing instantaneous current for phase L1.",
-          "current_l2_entity": "Optional sensor providing instantaneous current for phase L2.",
-          "current_l3_entity": "Optional sensor providing instantaneous current for phase L3.",
-          "voltage_l1_entity": "Optional sensor providing instantaneous voltage for phase L1.",
-          "voltage_l2_entity": "Optional sensor providing instantaneous voltage for phase L2.",
-          "voltage_l3_entity": "Optional sensor providing instantaneous voltage for phase L3.",
-          "monthly_peak_hour_consumption_entity": "Optional sensor providing monthly peak hour consumption.",
-          "monthly_peak_hour_time_entity": "Optional timestamp sensor providing when the monthly peak hour occurred.",
-          "grid_fee_per_kwh": "Optional: Grid fee in the same currency per kWh as the selected price sensor, including VAT. In Sweden, this is typically 0.10–0.35 SEK/kWh, depending on the grid provider.",
-          "supplier_markup_per_kwh": "Optional: Supplier markup in the same currency per kWh as the selected price sensor, including VAT. It is ignored for the live price when supplier markup is declared as already included, but is still used for market-only forecast scheduling prices.",
-          "energy_tax_per_kwh": "Optional: Energy tax per kWh in the local currency, including VAT. For example, 0.45 SEK/kWh in Sweden. Check your grid agreement or bill because rates can change and reduced regional rates may apply.",
-          "grid_fee_high_per_kwh": "Optional: Add a high-period fee to enable a weekday high/low tariff. The ordinary grid fee above is then used as the low-period fee.",
-          "grid_fee_high_start": "Local start time for the high fee on Monday–Friday, for example 06:00.",
-          "grid_fee_high_end": "Local end time for the high fee on Monday–Friday, for example 22:00.",
-          "grid_fee_high_season_start": "First date of the recurring high season, written MM-DD; for example 11-01.",
-          "grid_fee_high_season_end": "Last date of the recurring high season, written MM-DD; for example 03-31.",
-          "grid_fee_workday_entity": "Optional: First add Home Assistant's Workday integration and configure your country (for example Sweden) with Holidays excluded. Then select its Workday sensor here. Dates reported as non-working use the low grid fee.",
-          "fixed_supplier_fee_monthly": "Optional: Monthly fixed cost from the electricity supplier, if any.",
-          "fixed_grid_fee_monthly": "Optional: Monthly fixed cost from the grid provider.",
-          "good_price_threshold": "In Fixed mode, this is the maximum Effective Price considered good. In Adaptive mode, it is the optional fallback while history is warming up.",
-          "good_price_mode": "Fixed preserves the existing threshold rule. Adaptive compares the current complete Effective Price with comparable historical local hours.",
-          "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
-          "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
-          "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically.",
-          "suggest_vat_rate": "Optional: review a VAT suggestion or choose a country if no Nord Pool area is known. A known country is used directly. Existing rates, including 0%, stay unchanged unless you replace them."
+          "energy_flows": "Production and export",
+          "insights": "Usage insights"
         }
       },
       "forecast_area": {
@@ -772,6 +733,34 @@
           "grid_fee_high_season_end": "Last date of the recurring season, for example 03-31. A season can span New Year.",
           "grid_fee_workday_entity": "Optional sensor from the Workday integration to exclude holidays. Without it, the high period applies Monday–Friday during the season."
         }
+      },
+      "insights": {
+        "title": "Usage insights",
+        "description": "Choose how Electricity Pro assesses whether the current Effective Price is favourable. Fixed uses your price limit. Without a fixed limit there is no fixed Good Time assessment.",
+        "data": {
+          "good_price_mode": "Good Time method",
+          "good_price_threshold": "Fixed price limit per kWh (optional)"
+        },
+        "data_description": {
+          "good_price_mode": "Fixed compares the current Effective Price with your price limit. Adaptive uses comparable historical local hours. Changing the method displays its settings before saving; the other method's values are retained.",
+          "good_price_threshold": "Use the same currency per kWh as Effective Price. At or below this limit, the fixed rule considers the price good. In Adaptive mode it is the fallback when comparable history is insufficient. Leave blank to have no fixed rule or fallback; zero is an actual zero limit."
+        }
+      },
+      "insights_adaptive": {
+        "title": "Usage insights",
+        "description": "Assess when the current Effective Price is favourable. Adaptive requires complete, comparable pricing. It compares historical local hours and uses a fixed fallback if history is insufficient. A compatible Nord Pool forecast can refine the advice when a better price is expected.",
+        "data": {
+          "good_price_mode": "Good Time method",
+          "good_price_threshold": "Fixed fallback limit per kWh (optional)",
+          "adaptive_target_percentile": "Target percentile (%)",
+          "adaptive_price_ceiling": "Adaptive price ceiling per kWh (optional)"
+        },
+        "data_description": {
+          "good_price_mode": "Fixed compares the current Effective Price with your price limit. Adaptive uses comparable historical local hours. Changing the method displays its settings before saving; the other method's values are retained.",
+          "good_price_threshold": "Use the same currency per kWh as Effective Price. At or below this limit, the fixed rule considers the price good. In Adaptive mode it is the fallback when comparable history is insufficient. Leave blank to have no fixed rule or fallback; zero is an actual zero limit.",
+          "adaptive_target_percentile": "The cheapest share of comparable historical price observations considered favourable, weighted by duration and recency. The default is 25%. Higher values admit a larger share of prices.",
+          "adaptive_price_ceiling": "Use the same currency per kWh as Effective Price. With enough comparable history, a price above this ceiling is not adaptively good. During history warm-up the fixed fallback uses its own limit; this ceiling does not constrain that fallback. Leave blank for no adaptive ceiling. Zero and negative ceilings are supported."
+        }
       }
     },
     "error": {
@@ -790,7 +779,10 @@
       "invalid_market_area": "Choose an area configured in the selected Nord Pool integration.",
       "invalid_grid_amount": "Enter a finite amount of zero or more.",
       "grid_amount_required": "Enter at least one amount or choose Unconfigured.",
-      "grid_rate_required": "Enter both the low-period and high-period rates. Zero is allowed."
+      "grid_rate_required": "Enter both the low-period and high-period rates. Zero is allowed.",
+      "invalid_insight_threshold": "Enter a finite price limit of zero or more, or leave it blank.",
+      "invalid_insight_percentile": "Enter a finite percentile from 1 to 100.",
+      "invalid_insight_ceiling": "Enter a finite price ceiling or leave it blank. Zero and negative ceilings are allowed."
     }
   }
 }

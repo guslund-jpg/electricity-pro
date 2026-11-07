@@ -348,7 +348,12 @@ async def test_tibber_options_preserve_existing_nordpool_area(hass) -> None:
         {CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id"},
     )
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert result["data"][CONF_FORECAST_PRICE_AREA] == "SE3"
+    assert (
+        entry.options.get(
+            CONF_FORECAST_PRICE_AREA, entry.data.get(CONF_FORECAST_PRICE_AREA)
+        )
+        == "SE3"
+    )
 
 
 async def test_tibber_options_can_disable_initial_nordpool_forecast(hass) -> None:
@@ -584,7 +589,6 @@ async def test_options_flow_saves_adaptive_good_price_settings(hass) -> None:
     }
     assert defaults == {
         CONF_GOOD_PRICE_MODE: GOOD_PRICE_MODE_FIXED,
-        CONF_ADAPTIVE_TARGET_PERCENTILE: 25,
     }
 
     result = await configure_settings(

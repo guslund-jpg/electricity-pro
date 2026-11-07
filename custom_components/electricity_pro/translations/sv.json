@@ -45,6 +45,12 @@
         "net_across_phases": "Netto över faserna",
         "gross_directional": "Summerat per riktning över faserna"
       }
+    },
+    "good_price_mode": {
+      "options": {
+        "fixed": "Fast prisgräns",
+        "adaptive": "Adaptiv bedömning"
+      }
     }
   },
   "config": {
@@ -219,6 +225,34 @@
           "grid_export_power_phase_convention": "Fashantering för exporteffekt",
           "household_power_phase_convention": "Fashantering för hushållets effekt"
         }
+      },
+      "insights": {
+        "title": "Elanvändningsråd",
+        "description": "Välj hur Electricity Pro bedömer om aktuellt Effektivt elpris är fördelaktigt. Med fast metod gäller din prisgräns. Utan fast gräns ges inget fast elanvändningsråd.",
+        "data": {
+          "good_price_mode": "Metod för elanvändningsråd",
+          "good_price_threshold": "Fast prisgräns per kWh (valfritt)"
+        },
+        "data_description": {
+          "good_price_mode": "Fast metod jämför aktuellt Effektivt elpris med din prisgräns. Adaptiv metod använder jämförbara historiska lokala timmar. När du byter metod visas dess inställningar innan du sparar. Den andra metodens värden behålls.",
+          "good_price_threshold": "Ange samma valuta per kWh som Effektivt elpris. Vid eller under gränsen bedöms priset som fördelaktigt med fast metod. I adaptivt läge används gränsen som reserv när jämförbar historik inte räcker. Tomt betyder ingen fast gräns eller reservgräns; noll är en faktisk nollgräns."
+        }
+      },
+      "insights_adaptive": {
+        "title": "Elanvändningsråd",
+        "description": "Bedöm när aktuellt Effektivt elpris är fördelaktigt. Adaptiv metod kräver ett komplett, jämförbart prisunderlag. Den jämför med historiska lokala timmar och använder en fast reservgräns om historiken inte räcker. En kompatibel Nord Pool-prognos kan påverka rådet om ett bättre pris väntas.",
+        "data": {
+          "good_price_mode": "Metod för elanvändningsråd",
+          "good_price_threshold": "Fast reservgräns per kWh (valfritt)",
+          "adaptive_target_percentile": "Målpercentil (%)",
+          "adaptive_price_ceiling": "Adaptivt pristak per kWh (valfritt)"
+        },
+        "data_description": {
+          "good_price_mode": "Fast metod jämför aktuellt Effektivt elpris med din prisgräns. Adaptiv metod använder jämförbara historiska lokala timmar. När du byter metod visas dess inställningar innan du sparar. Den andra metodens värden behålls.",
+          "good_price_threshold": "Ange samma valuta per kWh som Effektivt elpris. Vid eller under gränsen bedöms priset som fördelaktigt med fast metod. I adaptivt läge används gränsen som reserv när jämförbar historik inte räcker. Tomt betyder ingen fast gräns eller reservgräns; noll är en faktisk nollgräns.",
+          "adaptive_target_percentile": "Den billigaste andelen av jämförbara historiska prisobservationer som bedöms fördelaktiga, viktade efter varaktighet och hur aktuella de är. Standard är 25 %. Ett högre värde gör att en större andel priser kan bedömas som fördelaktiga.",
+          "adaptive_price_ceiling": "Ange samma valuta per kWh som Effektivt elpris. När jämförbar historik räcker bedöms ett pris över taket inte som adaptivt fördelaktigt. Medan historiken byggs upp används den fasta reservgränsen; det här taket begränsar inte reservgränsen. Tomt betyder inget adaptivt tak. Noll och negativa tak stöds."
+        }
       }
     },
     "error": {
@@ -234,15 +268,14 @@
       "grid_rate_required": "Ange både lågperiodens och högperiodens avgift. Noll är tillåtet.",
       "invalid_flow_source": "Välj separata externa effektkällor (W/kW) eller livstidsregister för energi (Wh/kWh). Återanvänd inte en importkälla.",
       "confirm_flow_semantics": "Bekräfta källornas betydelse som AC-mätvärden för hela anläggningen, inklusive hushållslast utan batteriladdning och livstidsregister för energi.",
-      "contradictory_topology": "Produktionskällor är valda. Ange att produktion finns eller är okänd, eller ta bort källorna innan du anger att produktion saknas."
+      "contradictory_topology": "Produktionskällor är valda. Ange att produktion finns eller är okänd, eller ta bort källorna innan du anger att produktion saknas.",
+      "invalid_insight_threshold": "Ange en giltig prisgräns som är noll eller större, eller lämna fältet tomt.",
+      "invalid_insight_percentile": "Ange en giltig percentil mellan 1 och 100.",
+      "invalid_insight_ceiling": "Ange ett giltigt pristak eller lämna fältet tomt. Noll och negativa tak är tillåtna."
     }
   },
   "options": {
     "step": {
-      "init": {
-        "title": "Elanvändningsråd",
-        "description": "Ange när Electricity Pro ska rekommendera elanvändning. Mätvärden, spotpriser, elhandel, elnät samt produktion och export har egna inställningar."
-      },
       "supplier": {
         "title": "Elhandel",
         "description": "Välj en valfri källa för aktuellt elpris och ange vad priset redan innehåller. Granska moms, påslag och fasta elhandelsavgifter. Nord Pool och elnätsavgifter har egna inställningar.",
@@ -349,9 +382,9 @@
           "measurements": "Mätvärden",
           "market_prices": "Spotpriser (Nord Pool)",
           "supplier": "Elhandel",
-          "settings": "Elanvändningsråd",
           "grid": "Elnät",
-          "energy_flows": "Produktion och export"
+          "energy_flows": "Produktion och export",
+          "insights": "Elanvändningsråd"
         }
       },
       "grid": {
@@ -417,6 +450,34 @@
           "grid_export_power_phase_convention": "Fashantering för exporteffekt",
           "household_power_phase_convention": "Fashantering för hushållets effekt"
         }
+      },
+      "insights": {
+        "title": "Elanvändningsråd",
+        "description": "Välj hur Electricity Pro bedömer om aktuellt Effektivt elpris är fördelaktigt. Med fast metod gäller din prisgräns. Utan fast gräns ges inget fast elanvändningsråd.",
+        "data": {
+          "good_price_mode": "Metod för elanvändningsråd",
+          "good_price_threshold": "Fast prisgräns per kWh (valfritt)"
+        },
+        "data_description": {
+          "good_price_mode": "Fast metod jämför aktuellt Effektivt elpris med din prisgräns. Adaptiv metod använder jämförbara historiska lokala timmar. När du byter metod visas dess inställningar innan du sparar. Den andra metodens värden behålls.",
+          "good_price_threshold": "Ange samma valuta per kWh som Effektivt elpris. Vid eller under gränsen bedöms priset som fördelaktigt med fast metod. I adaptivt läge används gränsen som reserv när jämförbar historik inte räcker. Tomt betyder ingen fast gräns eller reservgräns; noll är en faktisk nollgräns."
+        }
+      },
+      "insights_adaptive": {
+        "title": "Elanvändningsråd",
+        "description": "Bedöm när aktuellt Effektivt elpris är fördelaktigt. Adaptiv metod kräver ett komplett, jämförbart prisunderlag. Den jämför med historiska lokala timmar och använder en fast reservgräns om historiken inte räcker. En kompatibel Nord Pool-prognos kan påverka rådet om ett bättre pris väntas.",
+        "data": {
+          "good_price_mode": "Metod för elanvändningsråd",
+          "good_price_threshold": "Fast reservgräns per kWh (valfritt)",
+          "adaptive_target_percentile": "Målpercentil (%)",
+          "adaptive_price_ceiling": "Adaptivt pristak per kWh (valfritt)"
+        },
+        "data_description": {
+          "good_price_mode": "Fast metod jämför aktuellt Effektivt elpris med din prisgräns. Adaptiv metod använder jämförbara historiska lokala timmar. När du byter metod visas dess inställningar innan du sparar. Den andra metodens värden behålls.",
+          "good_price_threshold": "Ange samma valuta per kWh som Effektivt elpris. Vid eller under gränsen bedöms priset som fördelaktigt med fast metod. I adaptivt läge används gränsen som reserv när jämförbar historik inte räcker. Tomt betyder ingen fast gräns eller reservgräns; noll är en faktisk nollgräns.",
+          "adaptive_target_percentile": "Den billigaste andelen av jämförbara historiska prisobservationer som bedöms fördelaktiga, viktade efter varaktighet och hur aktuella de är. Standard är 25 %. Ett högre värde gör att en större andel priser kan bedömas som fördelaktiga.",
+          "adaptive_price_ceiling": "Ange samma valuta per kWh som Effektivt elpris. När jämförbar historik räcker bedöms ett pris över taket inte som adaptivt fördelaktigt. Medan historiken byggs upp används den fasta reservgränsen; det här taket begränsar inte reservgränsen. Tomt betyder inget adaptivt tak. Noll och negativa tak stöds."
+        }
       }
     },
     "error": {
@@ -432,7 +493,10 @@
       "grid_rate_required": "Ange både lågperiodens och högperiodens avgift. Noll är tillåtet.",
       "invalid_flow_source": "Välj separata externa effektkällor (W/kW) eller livstidsregister för energi (Wh/kWh). Återanvänd inte en importkälla.",
       "confirm_flow_semantics": "Bekräfta källornas betydelse som AC-mätvärden för hela anläggningen, inklusive hushållslast utan batteriladdning och livstidsregister för energi.",
-      "contradictory_topology": "Produktionskällor är valda. Ange att produktion finns eller är okänd, eller ta bort källorna innan du anger att produktion saknas."
+      "contradictory_topology": "Produktionskällor är valda. Ange att produktion finns eller är okänd, eller ta bort källorna innan du anger att produktion saknas.",
+      "invalid_insight_threshold": "Ange en giltig prisgräns som är noll eller större, eller lämna fältet tomt.",
+      "invalid_insight_percentile": "Ange en giltig percentil mellan 1 och 100.",
+      "invalid_insight_ceiling": "Ange ett giltigt pristak eller lämna fältet tomt. Noll och negativa tak är tillåtna."
     }
   },
   "entity": {

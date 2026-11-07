@@ -108,7 +108,7 @@ async def test_setup_resolves_market_before_vat_and_inherits_currency(
     result = await confirm_grid(manager, result)
     if result.get("step_id") == "energy_flows":
         result = await confirm_production(manager, result)
-    assert result["step_id"] in ("manual", "tibber_settings")
+    assert result["step_id"] == "insights"
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"
     assert result["data"][SOURCE] == market.entry_id
@@ -136,7 +136,7 @@ async def test_multi_country_area_determines_subsequent_editable_vat(
     result = await confirm_grid(manager, result)
     if result.get("step_id") == "energy_flows":
         result = await confirm_production(manager, result)
-    assert result["step_id"] in ("manual", "tibber_settings")
+    assert result["step_id"] == "insights"
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"
     assert result["data"][AREA] == "FI"

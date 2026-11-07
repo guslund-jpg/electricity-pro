@@ -12,6 +12,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from tests.flow_helpers import (
     confirm_production,
     start_settings,
+    select_insight_method,
     configure_settings,
     confirm_measurements,
     confirm_market,
@@ -88,6 +89,7 @@ async def start(hass, profile, options):
 async def test_repeated_error_preserves_displayed_values(hass, profile, options):
     """Retry the displayed form, changing only the invalid field, then save."""
     entry, manager, result = await start(hass, profile, options)
+    result = await select_insight_method(manager, result, "adaptive")
     original_keys = set(result["data_schema"].schema)
     original_options = dict(entry.options) if entry else None
     original_data = dict(entry.data) if entry else None
@@ -99,7 +101,7 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options)
     }
     submitted["adaptive_price_ceiling"] = float("nan")
     result = await configure_settings(manager, result, submitted)
-    assert result["errors"] == {"base": "invalid_good_price_settings"}
+    assert result["errors"] == {"adaptive_price_ceiling": "invalid_insight_ceiling"}
     assert set(result["data_schema"].schema) == original_keys
     shown = form_values(result)
     for key, value in submitted.items():
@@ -112,17 +114,17 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options)
             not {"price_entity", "price_vat_rate", "supplier_markup_per_kwh"}
             & shown.keys()
         )
-        if not options:
-            assert result["description_placeholders"]["power_entity"]
     if entry:
         assert dict(entry.options) == original_options
         assert dict(entry.data) == original_data
 
     # Another error after clearing an optional field must not resurrect it.
-    shown.pop("adaptive_price_ceiling", None)
+    shown["adaptive_price_ceiling"] = None
     shown["adaptive_target_percentile"] = float("nan")
     result = await configure_settings(manager, result, shown)
-    assert result["errors"] == {"base": "invalid_good_price_settings"}
+    assert result["errors"] == {
+        "adaptive_target_percentile": "invalid_insight_percentile"
+    }
     shown = form_values(result)
     assert "adaptive_price_ceiling" not in shown
     shown["adaptive_target_percentile"] = 37

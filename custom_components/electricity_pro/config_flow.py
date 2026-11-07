@@ -53,7 +53,6 @@ from .const import (
     CONF_PRICE_VAT_RATE,
     CONF_PRICING_STRATEGY,
     CONF_SETUP_METHOD,
-    CONF_SOURCE_PROFILE,
     CONF_SUPPLIER_MARKUP_PER_KWH,
     CONF_TIBBER_DEVICE,
     CONF_VOLTAGE_L1_ENTITY,
@@ -72,11 +71,10 @@ from .pricing import (
     VatTreatment,
 )
 from .grid_tariff import HighLowGridTariff
-from .grid_config import GRID_KEYS, GridFlow, without_grid_fields
+from .grid_config import GridFlow, without_grid_fields
 from .source_adapters import DiscoveredSource, discover_tibber_sources
 from .settings import resolve_settings
 from .measurement_config import (
-    MEASUREMENT_KEYS,
     MeasurementFlow,
     measurement_suggestions,
     remaining_settings_schema,
@@ -90,14 +88,10 @@ from .market_config import (
 from .supplier_config import SUPPLIER_KEYS, SupplierFlow, without_supplier_fields
 from .pricing_config import prepare_pricing_metadata as _prepare_pricing_metadata
 from .flow_sources import FLOW_KEYS
-from .production_config import PRODUCTION_KEYS, ProductionFlow
+from .production_config import ProductionFlow
+from .insight_config import InsightFlow
 from .markup_estimate import CONF_ESTIMATE_MARKUP, MarkupEstimate, async_estimate_markup
 from .vat_suggestions import CONF_SUGGEST_VAT, assistance_field
-
-
-def _insight_schema(schema: vol.Schema) -> vol.Schema:
-    """Keep other sections off the remaining insight controls."""
-    return without_grid_fields(without_supplier_fields(without_market_fields(schema)))
 
 
 _SETUP_TIBBER = "tibber"
@@ -1068,6 +1062,7 @@ class ElectricityProConfigFlow(
     SupplierFlow,
     GridFlow,
     ProductionFlow,
+    InsightFlow,
     _MarkupEstimateFlow,
     config_entries.ConfigFlow,
     domain=DOMAIN,
@@ -1196,9 +1191,39 @@ class ElectricityProConfigFlow(
         self, values: dict[str, Any]
     ) -> ConfigFlowResult:
         self._production_values = values
-        if self._setup_tibber:
-            return await self.async_step_tibber_settings()
-        return await self.async_step_manual()
+        return await self.async_step_insights()
+
+    def _insight_defaults(self) -> dict[str, Any]:
+        return {**self._production_defaults(), **(self._production_values or {})}
+
+    async def _async_insights_complete(
+        self, values: dict[str, Any]
+    ) -> ConfigFlowResult:
+        data = {
+            **(
+                self._selected_tibber_source.data
+                if self._setup_tibber and self._selected_tibber_source
+                else {}
+            ),
+            **(self._measurement_values or {}),
+            **(self._market_values or {}),
+            **(self._supplier_values or {}),
+            **(self._grid_values or {}),
+            **(self._production_values or {}),
+            **{key: value for key, value in values.items() if value is not None},
+        }
+        # Unset thresholds must not create an unavailable Good Time entity by default.
+        # Single-area entries inherit the area without a redundant stored override.
+        if (
+            len(
+                _nordpool_areas(
+                    self.hass, data.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+                )
+            )
+            <= 1
+        ):
+            data.pop(CONF_FORECAST_PRICE_AREA, None)
+        return self.async_create_entry(title="Electricity Pro", data=data)
 
     def _manual_schema(self) -> vol.Schema:
         schema = _entity_schema(
@@ -1439,6 +1464,7 @@ class ElectricityProOptionsFlow(
     SupplierFlow,
     GridFlow,
     ProductionFlow,
+    InsightFlow,
     _MarkupEstimateFlow,
     OptionsFlow,
 ):
@@ -1447,7 +1473,6 @@ class ElectricityProOptionsFlow(
     def __init__(self) -> None:
         """Initialize the options flow."""
         self._pending_forecast_settings: dict[str, Any] | None = None
-        self._settings_open = False
         self._supplier_open = False
 
     def _measurement_defaults(self) -> dict[str, Any]:
@@ -1542,17 +1567,26 @@ class ElectricityProOptionsFlow(
             title="", data={**self.config_entry.options, **values}
         )
 
-    async def async_step_settings(
+    def _insight_defaults(self) -> dict[str, Any]:
+        return self._settings_defaults()
+
+    async def _async_insights_complete(
+        self, values: dict[str, Any]
+    ) -> ConfigFlowResult:
+        return self.async_create_entry(
+            title="", data={**self.config_entry.options, **values}
+        )
+
+    async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Open settings that have not yet moved to dedicated screens."""
-        self._settings_open = True
-        return await self.async_step_init(user_input)
+        """Choose the configuration section to edit."""
+        return await self.async_step_menu()
 
     async def async_step_menu(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Choose the configuration section to edit."""
+        """Expose the same shared sections used during setup."""
         return self.async_show_menu(
             step_id="menu",
             menu_options=[
@@ -1561,337 +1595,8 @@ class ElectricityProOptionsFlow(
                 "supplier",
                 "grid",
                 "energy_flows",
-                "settings",
+                "insights",
             ],
-        )
-
-    def _show_init_error(
-        self, user_input: dict[str, Any], errors: dict[str, str]
-    ) -> ConfigFlowResult:
-        """Redisplay submitted values with the same track-specific controls."""
-        tibber = self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
-        return self.async_show_form(
-            step_id="init",
-            data_schema=self.add_suggested_values_to_schema(
-                _insight_schema(
-                    _tibber_settings_schema()
-                    if tibber
-                    else remaining_settings_schema(_entity_schema(hass=self.hass))
-                ),
-                user_input,
-            ),
-            errors=errors,
-            description_placeholders={"source_profile": "Tibber fast track"}
-            if tibber
-            else None,
-        )
-
-    async def async_step_init(
-        self,
-        user_input: dict[str, Any] | None = None,
-    ) -> ConfigFlowResult:
-        """Manage source entity options."""
-        if user_input is None and not self._settings_open:
-            return await self.async_step_menu()
-        if user_input is not None:
-            user_input = {
-                key: value
-                for key, value in user_input.items()
-                if key not in (*GRID_KEYS, *PRODUCTION_KEYS)
-            }
-            saved = self._settings_defaults()
-            schema = (
-                _tibber_settings_schema()
-                if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
-                else remaining_settings_schema(_entity_schema(hass=self.hass))
-            )
-            schema = without_grid_fields(
-                without_supplier_fields(without_market_fields(schema))
-            )
-            for marker in schema.schema:
-                if (
-                    isinstance(marker, vol.Optional)
-                    and marker.default is vol.UNDEFINED
-                    and marker.schema in saved
-                    and marker.schema not in user_input
-                ):
-                    # An omitted editable value is a clear, not permission to
-                    # resurrect its initial config-entry data on the next save.
-                    user_input[marker.schema] = None
-            user_input = {
-                **{
-                    key: saved[key]
-                    for key in (
-                        *MEASUREMENT_KEYS,
-                        *MARKET_KEYS,
-                        *SUPPLIER_KEYS,
-                        *GRID_KEYS,
-                        *PRODUCTION_KEYS,
-                    )
-                    if key in saved
-                },
-                **user_input,
-            }
-        if user_input is not None and not _good_price_input_valid(user_input):
-            return self._show_init_error(
-                user_input, {"base": "invalid_good_price_settings"}
-            )
-        if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER:
-            if user_input is not None:
-                saved = self._settings_defaults()
-                for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
-                    if key not in user_input and key in saved:
-                        user_input[key] = saved[key]
-                return self.async_create_entry(title="", data=user_input)
-            current_grid_fee = self.config_entry.options.get(
-                CONF_GRID_FEE_PER_KWH,
-                self.config_entry.data.get(CONF_GRID_FEE_PER_KWH),
-            )
-            current_energy_tax = self.config_entry.options.get(
-                CONF_ENERGY_TAX_PER_KWH,
-                self.config_entry.data.get(CONF_ENERGY_TAX_PER_KWH),
-            )
-            current_supplier_markup = self.config_entry.options.get(
-                CONF_SUPPLIER_MARKUP_PER_KWH,
-                self.config_entry.data.get(CONF_SUPPLIER_MARKUP_PER_KWH),
-            )
-            current_threshold = self.config_entry.options.get(
-                CONF_GOOD_PRICE_THRESHOLD,
-                self.config_entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
-            )
-            values = self._settings_defaults()
-            return self.async_show_form(
-                step_id="init",
-                data_schema=_insight_schema(
-                    _tibber_settings_schema(
-                        vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
-                        grid_fee_default=current_grid_fee,
-                        forecast_nordpool_config_entry_default=values.get(
-                            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
-                        ),
-                        energy_tax_default=current_energy_tax,
-                        supplier_markup_default=current_supplier_markup,
-                        good_price_threshold_default=current_threshold,
-                        good_price_mode_default=values.get(
-                            CONF_GOOD_PRICE_MODE,
-                            GOOD_PRICE_MODE_FIXED,
-                        ),
-                        adaptive_target_percentile_default=values.get(
-                            CONF_ADAPTIVE_TARGET_PERCENTILE,
-                            DEFAULT_ADAPTIVE_TARGET_PERCENTILE,
-                        ),
-                        adaptive_price_ceiling_default=values.get(
-                            CONF_ADAPTIVE_PRICE_CEILING
-                        ),
-                        high_fee_default=values.get(CONF_GRID_FEE_HIGH_PER_KWH),
-                        high_start_default=values.get(
-                            CONF_GRID_FEE_HIGH_START, "06:00"
-                        ),
-                        high_end_default=values.get(CONF_GRID_FEE_HIGH_END, "22:00"),
-                        season_start_default=values.get(
-                            CONF_GRID_FEE_HIGH_SEASON_START, "11-01"
-                        ),
-                        season_end_default=values.get(
-                            CONF_GRID_FEE_HIGH_SEASON_END, "03-31"
-                        ),
-                        workday_entity_default=values.get(CONF_GRID_FEE_WORKDAY_ENTITY),
-                        fixed_supplier_fee_default=values.get(
-                            CONF_FIXED_SUPPLIER_FEE_MONTHLY
-                        ),
-                        fixed_grid_fee_default=values.get(CONF_FIXED_GRID_FEE_MONTHLY),
-                    )
-                ),
-                description_placeholders={"source_profile": "Tibber fast track"},
-            )
-
-        if user_input is not None:
-            return self.async_create_entry(
-                title="",
-                data=user_input,
-            )
-
-        current_power = self.config_entry.options.get(
-            CONF_POWER_ENTITY,
-            self.config_entry.data[CONF_POWER_ENTITY],
-        )
-
-        current_price = self.config_entry.options.get(
-            CONF_PRICE_ENTITY,
-            self.config_entry.data.get(CONF_PRICE_ENTITY),
-        )
-        current_pricing_strategy = self.config_entry.options.get(
-            CONF_PRICING_STRATEGY,
-            self.config_entry.data.get(CONF_PRICING_STRATEGY),
-        )
-        current_price_components = self.config_entry.options.get(
-            CONF_PRICE_INCLUDED_COMPONENTS,
-            self.config_entry.data.get(CONF_PRICE_INCLUDED_COMPONENTS),
-        )
-        current_vat_treatment = self.config_entry.options.get(
-            CONF_PRICE_VAT_TREATMENT,
-            self.config_entry.data.get(CONF_PRICE_VAT_TREATMENT),
-        )
-
-        current_energy = self.config_entry.options.get(
-            CONF_ENERGY_ENTITY,
-            self.config_entry.data.get(CONF_ENERGY_ENTITY),
-        )
-        current_energy_source_type = self.config_entry.options.get(
-            CONF_ENERGY_SOURCE_TYPE,
-            self.config_entry.data.get(
-                CONF_ENERGY_SOURCE_TYPE,
-                ENERGY_SOURCE_DAILY,
-            ),
-        )
-
-        current_accumulated_cost_today = self.config_entry.options.get(
-            CONF_ACCUMULATED_COST_TODAY_ENTITY,
-            self.config_entry.data.get(
-                CONF_ACCUMULATED_COST_TODAY_ENTITY,
-            ),
-        )
-        current_l1 = self.config_entry.options.get(
-            CONF_CURRENT_L1_ENTITY,
-            self.config_entry.data.get(CONF_CURRENT_L1_ENTITY),
-        )
-
-        current_l2 = self.config_entry.options.get(
-            CONF_CURRENT_L2_ENTITY,
-            self.config_entry.data.get(CONF_CURRENT_L2_ENTITY),
-        )
-
-        current_l3 = self.config_entry.options.get(
-            CONF_CURRENT_L3_ENTITY,
-            self.config_entry.data.get(CONF_CURRENT_L3_ENTITY),
-        )
-        current_voltage_l1 = self.config_entry.options.get(
-            CONF_VOLTAGE_L1_ENTITY,
-            self.config_entry.data.get(CONF_VOLTAGE_L1_ENTITY),
-        )
-
-        current_voltage_l2 = self.config_entry.options.get(
-            CONF_VOLTAGE_L2_ENTITY,
-            self.config_entry.data.get(CONF_VOLTAGE_L2_ENTITY),
-        )
-
-        current_voltage_l3 = self.config_entry.options.get(
-            CONF_VOLTAGE_L3_ENTITY,
-            self.config_entry.data.get(CONF_VOLTAGE_L3_ENTITY),
-        )
-        current_monthly_peak_hour_consumption = self.config_entry.options.get(
-            CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
-            self.config_entry.data.get(CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY),
-        )
-        current_monthly_peak_hour_time = self.config_entry.options.get(
-            CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
-            self.config_entry.data.get(CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY),
-        )
-        current_grid_fee = self.config_entry.options.get(
-            CONF_GRID_FEE_PER_KWH,
-            self.config_entry.data.get(CONF_GRID_FEE_PER_KWH),
-        )
-        current_energy_tax = self.config_entry.options.get(
-            CONF_ENERGY_TAX_PER_KWH,
-            self.config_entry.data.get(CONF_ENERGY_TAX_PER_KWH),
-        )
-        current_supplier_markup = self.config_entry.options.get(
-            CONF_SUPPLIER_MARKUP_PER_KWH,
-            self.config_entry.data.get(CONF_SUPPLIER_MARKUP_PER_KWH),
-        )
-        tariff_values = {**self.config_entry.data, **self.config_entry.options}
-        current_fixed_supplier_fee = self.config_entry.options.get(
-            CONF_FIXED_SUPPLIER_FEE_MONTHLY,
-            self.config_entry.data.get(CONF_FIXED_SUPPLIER_FEE_MONTHLY),
-        )
-        current_fixed_grid_fee = self.config_entry.options.get(
-            CONF_FIXED_GRID_FEE_MONTHLY,
-            self.config_entry.data.get(CONF_FIXED_GRID_FEE_MONTHLY),
-        )
-        current_good_price_threshold = self.config_entry.options.get(
-            CONF_GOOD_PRICE_THRESHOLD,
-            self.config_entry.data.get(CONF_GOOD_PRICE_THRESHOLD),
-        )
-        current_good_price_mode = self.config_entry.options.get(
-            CONF_GOOD_PRICE_MODE,
-            self.config_entry.data.get(
-                CONF_GOOD_PRICE_MODE,
-                GOOD_PRICE_MODE_FIXED,
-            ),
-        )
-        current_adaptive_target_percentile = self.config_entry.options.get(
-            CONF_ADAPTIVE_TARGET_PERCENTILE,
-            self.config_entry.data.get(
-                CONF_ADAPTIVE_TARGET_PERCENTILE,
-                DEFAULT_ADAPTIVE_TARGET_PERCENTILE,
-            ),
-        )
-        current_adaptive_price_ceiling = self.config_entry.options.get(
-            CONF_ADAPTIVE_PRICE_CEILING,
-            self.config_entry.data.get(CONF_ADAPTIVE_PRICE_CEILING),
-        )
-        current_forecast_nordpool_config_entry = self.config_entry.options.get(
-            CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
-            self.config_entry.data.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY),
-        )
-
-        return self.async_show_form(
-            step_id="init",
-            data_schema=_insight_schema(
-                remaining_settings_schema(
-                    _entity_schema(
-                        hass=self.hass,
-                        power_default=current_power,
-                        price_default=current_price,
-                        pricing_strategy_default=current_pricing_strategy,
-                        price_included_components_default=current_price_components,
-                        price_vat_treatment_default=current_vat_treatment,
-                        vat_rate_default=self._vat_form_values(
-                            self._settings_defaults()
-                        ).get(CONF_PRICE_VAT_RATE),
-                        energy_default=current_energy,
-                        energy_source_type_default=current_energy_source_type,
-                        accumulated_cost_today_default=current_accumulated_cost_today,
-                        current_l1_default=current_l1,
-                        current_l2_default=current_l2,
-                        current_l3_default=current_l3,
-                        voltage_l1_default=current_voltage_l1,
-                        voltage_l2_default=current_voltage_l2,
-                        voltage_l3_default=current_voltage_l3,
-                        monthly_peak_hour_consumption_default=current_monthly_peak_hour_consumption,
-                        monthly_peak_hour_time_default=current_monthly_peak_hour_time,
-                        grid_fee_per_kwh_default=current_grid_fee,
-                        energy_tax_per_kwh_default=current_energy_tax,
-                        supplier_markup_per_kwh_default=current_supplier_markup,
-                        good_price_threshold_default=current_good_price_threshold,
-                        good_price_mode_default=current_good_price_mode,
-                        adaptive_target_percentile_default=(
-                            current_adaptive_target_percentile
-                        ),
-                        adaptive_price_ceiling_default=current_adaptive_price_ceiling,
-                        forecast_nordpool_config_entry_default=current_forecast_nordpool_config_entry,
-                        grid_fee_high_per_kwh_default=tariff_values.get(
-                            CONF_GRID_FEE_HIGH_PER_KWH
-                        ),
-                        grid_fee_high_start_default=tariff_values.get(
-                            CONF_GRID_FEE_HIGH_START, "06:00"
-                        ),
-                        grid_fee_high_end_default=tariff_values.get(
-                            CONF_GRID_FEE_HIGH_END, "22:00"
-                        ),
-                        grid_fee_high_season_start_default=tariff_values.get(
-                            CONF_GRID_FEE_HIGH_SEASON_START, "11-01"
-                        ),
-                        grid_fee_high_season_end_default=tariff_values.get(
-                            CONF_GRID_FEE_HIGH_SEASON_END, "03-31"
-                        ),
-                        grid_fee_workday_entity_default=tariff_values.get(
-                            CONF_GRID_FEE_WORKDAY_ENTITY
-                        ),
-                        fixed_supplier_fee_monthly_default=current_fixed_supplier_fee,
-                        fixed_grid_fee_monthly_default=current_fixed_grid_fee,
-                    )
-                )
-            ),
         )
 
 

@@ -75,7 +75,12 @@ async def test_opt_in_and_preserve_bindings_on_normal_save(hass, profile):
         },
     )
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"]["production_energy_entity"] == "sensor.production"
+    assert (
+        entry.options.get(
+            "production_energy_entity", entry.data.get("production_energy_entity")
+        )
+        == "sensor.production"
+    )
     assert CONF_CONFIGURE_FLOWS not in result["data"]
 
 
