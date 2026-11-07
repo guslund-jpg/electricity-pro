@@ -192,7 +192,6 @@ Recorder stores published entity history and eligible long-term statistics.
 Excluding source entities does not stop live calculations, but removes their
 recorded history.
 
-
 ## Measurement and price semantics
 
 - Current Power is **signed whole-home net grid exchange**: import positive,
