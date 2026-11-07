@@ -48,6 +48,13 @@
   on new installations, and existing IDs and user-defined names are preserved.
   (#289)
 
+### Changed
+
+- Use Spot price consistently in the English dashboard examples, including
+  historical comparison and forecast chart labels. Entity IDs, chart data and
+  integration calculations are unchanged. Copy the updated dashboard YAML to
+  apply the presentation change.
+
 ## [1.7.1] - 2026-11-06
 
 Requires Home Assistant Core 2026.9.0 or newer. See the
