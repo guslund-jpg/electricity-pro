@@ -163,8 +163,8 @@ Real solar/battery validation remains outstanding in
 ## Usage insights screen on the development branch
 
 Both setup paths finish their inputs with **Usage insights**
-(**Elanvändningsråd** in Swedish) after Production and export. Configure opens
-the same shared section directly. The four existing Good Time settings keep
+(**Användarpreferenser för el** in Swedish) after Production and export. Configure
+opens the same shared section directly. The four existing Good Time settings keep
 their keys and meaning; calculations and history collection are unchanged.
 
 - **Fixed threshold** compares the current Effective Price with the optional

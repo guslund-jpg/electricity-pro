@@ -17,8 +17,8 @@
   usage insights, with separate live/forecast variable-price coverage and unknown
   fixed fees. Final setup requires confirmation; existing-entry overview leaves
   settings and runtime state untouched. (#373)
-- Add a shared Usage insights screen (Elanvändningsråd in Swedish) for Custom,
-  Tibber and Configure. Show adaptive controls only in Adaptive mode, retain
+- Add a shared Usage insights screen (Användarpreferenser för el in Swedish) for
+  Custom, Tibber and Configure. Show adaptive controls only in Adaptive mode, retain
   inactive values on method changes, and preserve zero and explicit clears.
   Translate method choices and explain the fixed fallback and adaptive-only
   ceiling without changing Good Time calculations or price history. (#373)
@@ -58,6 +58,9 @@
 
 ### Changed
 
+- Refine Swedish configuration, overview and entity names after the bilingual
+  review; translate the initial setup instructions and keep menu labels aligned.
+  Preserve entity IDs, saved settings and calculations.
 - Use Spot price consistently in the English dashboard examples, including
   historical comparison and forecast chart labels. Entity IDs, chart data and
   integration calculations are unchanged. Copy the updated dashboard YAML to
