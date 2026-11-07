@@ -6,6 +6,8 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from tests.flow_helpers import start_settings, configure_settings, confirm_measurements
+
 from custom_components.electricity_pro.const import DOMAIN
 
 
@@ -23,7 +25,7 @@ async def start_flow(hass, profile, options, data=None, saved_options=None):
         )
         entry.add_to_hass(hass)
         manager = hass.config_entries.options
-        return entry, manager, await manager.async_init(entry.entry_id)
+        return entry, manager, await start_settings(manager, entry.entry_id)
     if profile == "tibber":
         tibber = MockConfigEntry(domain="tibber")
         tibber.add_to_hass(hass)
@@ -39,7 +41,8 @@ async def start_flow(hass, profile, options, data=None, saved_options=None):
     result = await manager.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
-    result = await manager.async_configure(result["flow_id"], {"setup_method": profile})
+    result = await configure_settings(manager, result, {"setup_method": profile})
+    result = await confirm_measurements(manager, result)
     return None, manager, result
 
 
@@ -51,10 +54,10 @@ async def submit(manager, result, values):
         for key, value in {"price_vat_rate": 25, **values}.items()
         if key in fields and value is not None
     }
-    result = await manager.async_configure(result["flow_id"], values)
+    result = await configure_settings(manager, result, values)
     if result.get("step_id") == "tibber_forecast_pricing":
-        result = await manager.async_configure(
-            result["flow_id"], {"price_vat_rate": 25, "supplier_markup_per_kwh": 0}
+        result = await configure_settings(
+            manager, result, {"price_vat_rate": 25, "supplier_markup_per_kwh": 0}
         )
     return result
 
@@ -83,8 +86,8 @@ async def test_area_prompt_depends_on_source_metadata(hass, profile, options, ar
         assert selector.config["options"] == ["SE3", "SE4"]
         if entry:
             assert entry.options == {}
-        result = await manager.async_configure(
-            result["flow_id"], {"forecast_price_area": "SE4"}
+        result = await configure_settings(
+            manager, result, {"forecast_price_area": "SE4"}
         )
         assert result["data"]["forecast_price_area"] == "SE4"
     else:
@@ -139,7 +142,7 @@ async def test_options_reuse_area_only_for_same_source(
         assert dict(entry.options) == original_options
         manager.async_abort(result["flow_id"])
         assert dict(entry.options) == original_options
-        result = await manager.async_init(entry.entry_id)
+        result = await start_settings(manager, entry.entry_id)
         result = await submit(
             manager,
             result,
@@ -149,8 +152,8 @@ async def test_options_reuse_area_only_for_same_source(
             },
         )
         assert result["step_id"] == "forecast_area"
-        result = await manager.async_configure(
-            result["flow_id"], {"forecast_price_area": "SE3"}
+        result = await configure_settings(
+            manager, result, {"forecast_price_area": "SE3"}
         )
         assert result["data"]["forecast_price_area"] == "SE3"
     else:
@@ -189,7 +192,7 @@ async def test_custom_options_keep_area_override_across_repeated_saves(hass):
         assert entry.options["forecast_price_area"] == "SE3"
         assert entry.options["fixed_supplier_fee_monthly"] == fee
         assert entry.data["forecast_price_area"] == "SE4"
-        result = await manager.async_init(entry.entry_id)
+        result = await start_settings(manager, entry.entry_id)
 
 
 @pytest.mark.parametrize("profile", ["custom", "tibber"])

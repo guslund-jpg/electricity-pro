@@ -56,6 +56,9 @@
     }
   },
   "selector": {
+    "energy_source_type": {
+      "options": { "daily": "Resets daily", "lifetime": "Lifetime accumulated import" }
+    },
     "flow_presence": {
       "options": {
         "unknown": "Unknown / not confirmed",
@@ -73,6 +76,43 @@
   },
   "config": {
     "step": {
+      "measurements": {
+        "title": "Measurements",
+        "description": "Choose readings from your electricity meter. Suggested sources can be changed. For a signed source, positive power means import and negative power means export.\\n\\n{sources}",
+        "data": {
+          "power_entity": "Current grid power",
+          "energy_entity": "Imported energy (optional)"
+        },
+        "data_description": {
+          "energy_entity": "Choose a daily or lifetime import-energy counter. Power readings remain usable without an energy source."
+        },
+        "sections": {
+          "advanced_measurements": {
+            "name": "Advanced measurements",
+            "data": {
+              "current_l1_entity": "Current L1",
+              "voltage_l1_entity": "Voltage L1",
+              "current_l2_entity": "Current L2",
+              "voltage_l2_entity": "Voltage L2",
+              "current_l3_entity": "Current L3",
+              "voltage_l3_entity": "Voltage L3",
+              "monthly_peak_hour_consumption_entity": "External monthly peak-hour consumption",
+              "monthly_peak_hour_time_entity": "External monthly peak-hour timestamp",
+              "energy_source_type": "Energy counter period"
+            },
+            "data_description": {
+              "energy_source_type": "Review the known accumulation period for the selected counter and change it when necessary."
+            }
+          }
+        }
+      },
+      "measurement_energy": {
+        "title": "How does this energy counter accumulate?",
+        "description": "Confirm whether the selected import-energy counter resets daily or reports a lifetime register.\\n\\n{sources}",
+        "data": {
+          "energy_source_type": "Energy counter period"
+        }
+      },
       "user": {
         "title": "Choose setup method",
         "description": "Use the Tibber fast track when Tibber supplies both your Pulse measurements and electricity contract. Choose custom or mixed sources for every other combination.",
@@ -277,13 +317,51 @@
       "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
-      "tibber_sources_not_found": "No enabled Tibber home with both a current-power entity and contracted-price entity was found. Return and use Custom or mixed sources, or enable the required Tibber entities first.",
+      "tibber_sources_not_found": "No enabled Tibber home with a current-power entity was found. Choose Custom or mixed sources, or enable the Tibber power entity.",
       "markup_estimate_unavailable": "No reliable estimate is available. Check the VAT rate, matching area, source availability, unique Tibber home names and currency. Prices must have at least four exact completed intervals covering one hour, with a nonnegative addition varying by no more than 0.01 per kWh. Multiple Tibber accounts are unsupported. Retry later, or uncheck confirmation to use manual pricing.",
-      "invalid_vat_suggestion": "Enter a finite VAT percentage between 0 and 100 before confirming, or leave confirmation off to keep the previous setting."
+      "invalid_vat_suggestion": "Enter a finite VAT percentage between 0 and 100 before confirming, or leave confirmation off to keep the previous setting.",
+      "invalid_measurement_source": "Choose a sensor with a compatible measurement and unit."
     }
   },
   "options": {
     "step": {
+      "measurements": {
+        "title": "Measurements",
+        "description": "Choose readings from your electricity meter. Suggested sources can be changed. For a signed source, positive power means import and negative power means export.\\n\\n{sources}",
+        "data": {
+          "power_entity": "Current grid power",
+          "energy_entity": "Imported energy (optional)"
+        },
+        "data_description": {
+          "energy_entity": "Choose a daily or lifetime import-energy counter. Power readings remain usable without an energy source."
+        },
+        "sections": {
+          "advanced_measurements": {
+            "name": "Advanced measurements",
+            "data": {
+              "current_l1_entity": "Current L1",
+              "voltage_l1_entity": "Voltage L1",
+              "current_l2_entity": "Current L2",
+              "voltage_l2_entity": "Voltage L2",
+              "current_l3_entity": "Current L3",
+              "voltage_l3_entity": "Voltage L3",
+              "monthly_peak_hour_consumption_entity": "External monthly peak-hour consumption",
+              "monthly_peak_hour_time_entity": "External monthly peak-hour timestamp",
+              "energy_source_type": "Energy counter period"
+            },
+            "data_description": {
+              "energy_source_type": "Review the known accumulation period for the selected counter and change it when necessary."
+            }
+          }
+        }
+      },
+      "measurement_energy": {
+        "title": "How does this energy counter accumulate?",
+        "description": "Confirm whether the selected import-energy counter resets daily or reports a lifetime register.\\n\\n{sources}",
+        "data": {
+          "energy_source_type": "Energy counter period"
+        }
+      },
       "energy_flows": {
         "title": "Optional production, export and household demand",
         "description": "Select only separate, non-negative whole-site AC measurements. Production must exclude battery discharge; export must be a directional grid measurement, not signed net power. Household demand must measure non-storage loads, including ordinary EV charging and distribution losses but excluding battery charging. Do not use grid import as household demand. Energy sources must be lifetime registers, not daily-reset counters or DC battery/inverter totals. Leave unsupported channels unconfigured. No household balance, battery attribution or export revenue is calculated.",
@@ -307,6 +385,14 @@
           "production_power_phase_convention": "Production power phase convention",
           "grid_export_power_phase_convention": "Grid-export power phase convention",
           "household_power_phase_convention": "Household demand power phase convention"
+        }
+      },
+      "menu": {
+        "title": "Configure Electricity Pro",
+        "description": "Choose the part of the configuration to edit.",
+        "menu_options": {
+          "measurements": "Measurements",
+          "settings": "Prices and other settings"
         }
       },
       "init": {
@@ -458,7 +544,8 @@
       "contradictory_topology": "Production sources are selected. Declare generation present or unknown, or return and remove those sources before declaring it absent.",
       "confirm_flow_semantics": "Confirm the selected whole-site AC source meanings, including household load excluding battery charging, and lifetime energy registers.",
       "markup_estimate_unavailable": "No reliable estimate is available. Check the VAT rate, matching area, source availability, unique Tibber home names and currency. Prices must have at least four exact completed intervals covering one hour, with a nonnegative addition varying by no more than 0.01 per kWh. Multiple Tibber accounts are unsupported. Retry later, or uncheck confirmation to use manual pricing.",
-      "invalid_vat_suggestion": "Enter a finite VAT percentage between 0 and 100 before confirming, or leave confirmation off to keep the previous setting."
+      "invalid_vat_suggestion": "Enter a finite VAT percentage between 0 and 100 before confirming, or leave confirmation off to keep the previous setting.",
+      "invalid_measurement_source": "Choose a sensor with a compatible measurement and unit."
     }
   }
 }

@@ -10,6 +10,8 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from tests.flow_helpers import start_settings, configure_settings
+
 from custom_components.electricity_pro.forecast import ForecastInterval
 from custom_components.electricity_pro.markup_estimate import (
     MarkupEstimate,
@@ -258,12 +260,15 @@ async def test_options_estimate_requires_review_and_allows_edit(hass, accept):
         },
     )
     entry.add_to_hass(hass)
-    flow = await hass.config_entries.options.async_init(entry.entry_id)
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"forecast_nordpool_config_entry": nordpool.entry_id}
+    flow = await start_settings(hass.config_entries.options, entry.entry_id)
+    flow = await configure_settings(
+        hass.config_entries.options,
+        flow,
+        {"forecast_nordpool_config_entry": nordpool.entry_id},
     )
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"],
+    flow = await configure_settings(
+        hass.config_entries.options,
+        flow,
         {
             "supplier_markup_per_kwh": 0.12,
             "price_vat_rate": 25,
@@ -277,14 +282,17 @@ async def test_options_estimate_requires_review_and_allows_edit(hass, accept):
             return_value=MarkupEstimate(Decimal("0.18"), Decimal("0.001"), 12, "SEK")
         ),
     ):
-        flow = await hass.config_entries.options.async_configure(
-            flow["flow_id"],
+        flow = await configure_settings(
+            hass.config_entries.options,
+            flow,
             {"forecast_price_area": "SE3", "confirm_matching_area": True},
         )
     assert flow["step_id"] == "tibber_markup_review"
     assert entry.options == {}
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"supplier_markup_per_kwh": 0.19, "use_estimate": accept}
+    flow = await configure_settings(
+        hass.config_entries.options,
+        flow,
+        {"supplier_markup_per_kwh": 0.19, "use_estimate": accept},
     )
     if accept:
         assert flow["type"] == "create_entry"
@@ -293,12 +301,14 @@ async def test_options_estimate_requires_review_and_allows_edit(hass, accept):
         assert "estimate_supplier_markup" not in flow["data"]
     else:
         assert flow["step_id"] == "tibber_forecast_pricing"
-        flow = await hass.config_entries.options.async_configure(
-            flow["flow_id"], {"supplier_markup_per_kwh": 0.12, "price_vat_rate": 25}
+        flow = await configure_settings(
+            hass.config_entries.options,
+            flow,
+            {"supplier_markup_per_kwh": 0.12, "price_vat_rate": 25},
         )
         assert flow["step_id"] == "forecast_area"
-        flow = await hass.config_entries.options.async_configure(
-            flow["flow_id"], {"forecast_price_area": "SE3"}
+        flow = await configure_settings(
+            hass.config_entries.options, flow, {"forecast_price_area": "SE3"}
         )
         assert flow["data"]["supplier_markup_per_kwh"] == 0.12
 
@@ -327,27 +337,34 @@ async def test_initial_setup_accepts_estimate_for_confirmed_area(hass, areas):
     flow = await hass.config_entries.flow.async_init(
         "electricity_pro", context={"source": config_entries.SOURCE_USER}
     )
-    flow = await hass.config_entries.flow.async_configure(
-        flow["flow_id"], {"setup_method": "tibber"}
+    flow = await configure_settings(
+        hass.config_entries.flow, flow, {"setup_method": "tibber"}
     )
-    flow = await hass.config_entries.flow.async_configure(
-        flow["flow_id"], {"forecast_nordpool_config_entry": nordpool.entry_id}
+    flow = await configure_settings(
+        hass.config_entries.flow,
+        flow,
+        {"forecast_nordpool_config_entry": nordpool.entry_id},
     )
-    flow = await hass.config_entries.flow.async_configure(
-        flow["flow_id"], {"price_vat_rate": 25, "estimate_supplier_markup": True}
+    flow = await configure_settings(
+        hass.config_entries.flow,
+        flow,
+        {"price_vat_rate": 25, "estimate_supplier_markup": True},
     )
     assert flow["step_id"] == "tibber_markup_estimate"
     with patch(
         "custom_components.electricity_pro.config_flow.async_estimate_markup",
         AsyncMock(return_value=MarkupEstimate(Decimal("0.18"), Decimal(0), 4, "SEK")),
     ):
-        flow = await hass.config_entries.flow.async_configure(
-            flow["flow_id"],
+        flow = await configure_settings(
+            hass.config_entries.flow,
+            flow,
             {"forecast_price_area": "SE3", "confirm_matching_area": True},
         )
     assert flow["step_id"] == "tibber_markup_review"
-    flow = await hass.config_entries.flow.async_configure(
-        flow["flow_id"], {"supplier_markup_per_kwh": 0.18, "use_estimate": True}
+    flow = await configure_settings(
+        hass.config_entries.flow,
+        flow,
+        {"supplier_markup_per_kwh": 0.18, "use_estimate": True},
     )
     assert flow["type"] == "create_entry"
     assert flow["data"]["supplier_markup_per_kwh"] == 0.18
@@ -369,12 +386,15 @@ async def test_failed_estimate_can_return_to_manual_without_saving(hass, error):
         },
     )
     entry.add_to_hass(hass)
-    flow = await hass.config_entries.options.async_init(entry.entry_id)
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"forecast_nordpool_config_entry": nordpool.entry_id}
+    flow = await start_settings(hass.config_entries.options, entry.entry_id)
+    flow = await configure_settings(
+        hass.config_entries.options,
+        flow,
+        {"forecast_nordpool_config_entry": nordpool.entry_id},
     )
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"],
+    flow = await configure_settings(
+        hass.config_entries.options,
+        flow,
         {
             "supplier_markup_per_kwh": 0.12,
             "price_vat_rate": 25,
@@ -385,18 +405,21 @@ async def test_failed_estimate_can_return_to_manual_without_saving(hass, error):
         "custom_components.electricity_pro.config_flow.async_estimate_markup",
         AsyncMock(side_effect=error),
     ):
-        flow = await hass.config_entries.options.async_configure(
-            flow["flow_id"],
+        flow = await configure_settings(
+            hass.config_entries.options,
+            flow,
             {"forecast_price_area": "SE3", "confirm_matching_area": True},
         )
     assert flow["errors"] == {"base": "markup_estimate_unavailable"}
     assert entry.options == {}
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"confirm_matching_area": False}
+    flow = await configure_settings(
+        hass.config_entries.options, flow, {"confirm_matching_area": False}
     )
     assert flow["step_id"] == "tibber_forecast_pricing"
-    flow = await hass.config_entries.options.async_configure(
-        flow["flow_id"], {"supplier_markup_per_kwh": 0.12, "price_vat_rate": 25}
+    flow = await configure_settings(
+        hass.config_entries.options,
+        flow,
+        {"supplier_markup_per_kwh": 0.12, "price_vat_rate": 25},
     )
     assert flow["data"]["supplier_markup_per_kwh"] == 0.12
 

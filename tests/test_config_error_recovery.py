@@ -9,6 +9,8 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from tests.flow_helpers import start_settings, configure_settings, confirm_measurements
+
 from custom_components.electricity_pro.const import DOMAIN
 from custom_components.electricity_pro.flow_sources import FLOW_KEYS
 from custom_components.electricity_pro.flow_compatibility import COMPATIBILITY_KEYS
@@ -42,7 +44,7 @@ async def start(hass, profile, options):
         return (
             entry,
             hass.config_entries.options,
-            await hass.config_entries.options.async_init(entry.entry_id),
+            await start_settings(hass.config_entries.options, entry.entry_id),
         )
     if profile == "tibber":
         tibber = MockConfigEntry(domain="tibber")
@@ -63,7 +65,8 @@ async def start(hass, profile, options):
     result = await manager.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
-    result = await manager.async_configure(result["flow_id"], {"setup_method": profile})
+    result = await configure_settings(manager, result, {"setup_method": profile})
+    result = await confirm_measurements(manager, result)
     return None, manager, result
 
 
@@ -75,7 +78,6 @@ async def start(hass, profile, options):
         ("tibber", "tariff"),
         ("custom", "good_time"),
         ("tibber", "good_time"),
-        ("custom", "source"),
         ("custom", "pricing"),
     ],
 )
@@ -96,7 +98,7 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
         "grid_fee_high_start": "07:30",
     }
     if profile == "custom":
-        submitted.update(power_entity="sensor.new_power", price_vat_rate=0)
+        submitted.update(price_vat_rate=0)
     expected = {
         "base": {
             "tariff": "invalid_grid_tariff",
@@ -115,12 +117,7 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
             price_vat_treatment="excluded",
             price_included_components=[],
         )
-    else:
-        # Create after the form so server-side ownership validation catches it.
-        own = er.async_get(hass).async_get_or_create("sensor", DOMAIN, "own")
-        submitted["power_entity"] = own.entity_id
-        expected = {"power_entity": "electricity_pro_source"}
-    result = await manager.async_configure(result["flow_id"], submitted)
+    result = await configure_settings(manager, result, submitted)
     assert result["errors"] == expected
     assert set(result["data_schema"].schema) == original_keys
     shown = form_values(result)
@@ -143,9 +140,7 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
     # Another error after clearing an optional field must not resurrect it.
     shown.pop("adaptive_price_ceiling", None)
     shown["grid_fee_high_start"] = "still-bad"
-    if error == "source":
-        shown["power_entity"] = "sensor.new_power"
-    result = await manager.async_configure(result["flow_id"], shown)
+    result = await configure_settings(manager, result, shown)
     assert result["errors"] == {"base": "invalid_grid_tariff"}
     shown = form_values(result)
     assert "adaptive_price_ceiling" not in shown
@@ -153,7 +148,7 @@ async def test_repeated_error_preserves_displayed_values(hass, profile, options,
     shown["grid_fee_high_start"] = "07:30"
     if error == "pricing":
         shown["price_included_components"] = ["market_energy"]
-    result = await manager.async_configure(result["flow_id"], shown)
+    result = await configure_settings(manager, result, shown)
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["fixed_grid_fee_monthly"] == 0
     assert result["data"].get("adaptive_price_ceiling") is None
@@ -195,10 +190,11 @@ async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel)
         "configure_energy_flows": True,
         "grid_fee_high_start": "invalid",
     }
-    result = await manager.async_configure(result["flow_id"], submitted)
+    result = await configure_settings(manager, result, submitted)
     assert result["step_id"] == "energy_flows"
-    result = await manager.async_configure(
-        result["flow_id"],
+    result = await configure_settings(
+        manager,
+        result,
         {
             "production_power_entity": "sensor.missing",
             "confirm_flow_semantics": True,
@@ -210,10 +206,11 @@ async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel)
     assert "configure_flow_compatibility" not in result["data_schema"].schema
     assert "grid_export_power_entity" not in shown
     shown["production_power_entity"] = "sensor.production"
-    result = await manager.async_configure(result["flow_id"], shown)
+    result = await configure_settings(manager, result, shown)
     assert result["step_id"] == "flow_compatibility"
-    result = await manager.async_configure(
-        result["flow_id"],
+    result = await configure_settings(
+        manager,
+        result,
         {
             **form_values(result),
             "flow_generation_presence": "absent",
@@ -227,7 +224,7 @@ async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel)
     assert shown["flow_compatibility_enabled"] is False
     assert shown["flow_storage_presence"] == "absent"
     shown["flow_generation_presence"] = "present"
-    result = await manager.async_configure(result["flow_id"], shown)
+    result = await configure_settings(manager, result, shown)
     assert result["step_id"] == "init"
     assert result["errors"] == {"base": "invalid_grid_tariff"}
     assert dict(entry.options) == saved
@@ -237,20 +234,20 @@ async def test_follow_up_choices_survive_main_form_errors(hass, profile, cancel)
     )
     shown = form_values(result)
     shown["grid_fee_high_start"] = "another-error"
-    result = await manager.async_configure(result["flow_id"], shown)
+    result = await configure_settings(manager, result, shown)
     assert result["errors"] == {"base": "invalid_grid_tariff"}
     if cancel:
         manager.async_abort(result["flow_id"])
         assert dict(entry.options) == saved
         # A fresh attempt must not inherit the cancelled source draft.
-        result = await manager.async_init(entry.entry_id)
-        result = await manager.async_configure(result["flow_id"], form_values(result))
+        result = await start_settings(manager, entry.entry_id)
+        result = await configure_settings(manager, result, form_values(result))
         assert result["data"]["grid_export_power_entity"] == "sensor.old_export"
         assert "production_power_entity" not in result["data"]
         return
     shown = form_values(result)
     shown["grid_fee_high_start"] = "08:00"
-    result = await manager.async_configure(result["flow_id"], shown)
+    result = await configure_settings(manager, result, shown)
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["production_power_entity"] == "sensor.production"
     assert result["data"]["grid_export_power_entity"] is None
@@ -273,15 +270,15 @@ async def test_source_error_keeps_follow_up_available(hass, profile):
     )
     saved = dict(entry.options)
     submitted = {**form_values(result), "fixed_supplier_fee_monthly": 0}
-    result = await manager.async_configure(result["flow_id"], submitted)
+    result = await configure_settings(manager, result, submitted)
     assert result["errors"] == {"base": "invalid_flow_source"}
     assert dict(entry.options) == saved
     shown = form_values(result)
     assert shown["fixed_supplier_fee_monthly"] == 0
     shown["configure_energy_flows"] = True
-    result = await manager.async_configure(result["flow_id"], shown)
+    result = await configure_settings(manager, result, shown)
     assert result["step_id"] == "energy_flows"
-    result = await manager.async_configure(result["flow_id"], {})
+    result = await configure_settings(manager, result, {})
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["production_power_entity"] is None
     assert result["data"]["fixed_supplier_fee_monthly"] == 0

@@ -4,6 +4,10 @@
 
 ### Added
 
+- Add a shared Measurements screen for Custom and Tibber setup, with optional
+  advanced readings and energy-counter confirmation. Configure now offers a
+  menu for measurement sources and the remaining settings. Tibber meter
+  detection can also be used with a different electricity-price provider.
 - Add Swedish display names for all Electricity Pro sensors and the Good Time
   binary sensor. English is the fallback. The default entity IDs stay the same
   on new installations, and existing IDs and user-defined names are preserved.
