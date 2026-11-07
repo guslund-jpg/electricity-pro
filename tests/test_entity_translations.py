@@ -10,8 +10,12 @@ from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.setup import async_setup_component
 from homeassistant.util import slugify
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_mock_service,
+)
 
 from custom_components.electricity_pro.const import CONF_POWER_ENTITY, DOMAIN
 from custom_components.electricity_pro.device import device_info_for_entry
@@ -115,10 +119,10 @@ async def test_fresh_install_translates_names_but_keeps_default_ids(
 
 
 @pytest.mark.parametrize("customize", [False, True])
-async def test_upgrade_preserves_existing_entity_identity(
+async def test_upgrade_preserves_existing_entity_identity_and_automation(
     hass: HomeAssistant, customize: bool
 ) -> None:
-    """A v1.7.1 registry entry acquires a translation without being replaced."""
+    """An existing automation follows the same entity through naming and reload."""
     hass.config.language = "sv"
     source = "sensor.test_power"
     hass.states.async_set(source, "1234", {"unit_of_measurement": "W"})
@@ -150,6 +154,55 @@ async def test_upgrade_preserves_existing_entity_identity(
         )
     assert original.translation_key is None
 
+    # Model the old entity's state and an already-working ID-based automation.
+    old_name = original.name or "Electricity Pro Current power"
+    hass.states.async_set(original.entity_id, "1234", {"friendly_name": old_name})
+    actions = async_mock_service(hass, "test", "record_power_alert")
+    assert await async_setup_component(
+        hass,
+        "automation",
+        {
+            "automation": [
+                {
+                    "alias": "Existing power alert",
+                    "triggers": [
+                        {
+                            "trigger": "numeric_state",
+                            "entity_id": original.entity_id,
+                            "above": 2000,
+                        }
+                    ],
+                    "actions": [
+                        {
+                            "action": "test.record_power_alert",
+                            "data": {
+                                "entity_id": "{{ trigger.entity_id }}",
+                                "reading": "{{ trigger.to_state.state }} W",
+                                "display_name": "{{ trigger.to_state.name }}",
+                            },
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+    await hass.async_start()
+    await hass.async_block_till_done()
+    hass.states.async_set(original.entity_id, "2345", {"friendly_name": old_name})
+    await hass.async_block_till_done()
+    assert [call.data for call in actions] == [
+        {
+            "entity_id": original.entity_id,
+            "reading": "2345 W",
+            "display_name": old_name,
+        }
+    ]
+    hass.states.async_set(original.entity_id, "1234", {"friendly_name": old_name})
+    await hass.async_block_till_done()
+
+    # Unload the old runtime state, retaining the registry and automation.
+    hass.states.async_remove(original.entity_id)
+    await hass.async_block_till_done()
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
@@ -164,9 +217,37 @@ async def test_upgrade_preserves_existing_entity_identity(
     state = hass.states.get(original.entity_id)
     assert state is not None
     assert state.state == "1234"
-    assert state.name == (
-        "My grid power" if customize else "Electricity Pro Aktuell effekt"
-    )
+    expected_name = "My grid power" if customize else "Electricity Pro Aktuell effekt"
+    assert state.name == expected_name
+    assert len(actions) == 1
+
+    # Real source updates must still reach the untouched automation after upgrade.
+    hass.states.async_set(source, "2345", {"unit_of_measurement": "W"})
+    await hass.async_block_till_done()
+    assert len(actions) == 2
+    assert actions[-1].data == {
+        "entity_id": original.entity_id,
+        "reading": "2345 W",
+        "display_name": expected_name,
+    }
+
+    hass.states.async_set(source, "1234", {"unit_of_measurement": "W"})
+    await hass.async_block_till_done()
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert registry.async_get(original.entity_id).id == original.id
+    assert hass.states.get(original.entity_id).name == expected_name
+    assert hass.states.get("automation.existing_power_alert").state == "on"
+    assert len(actions) == 2
+
+    hass.states.async_set(source, "3456", {"unit_of_measurement": "W"})
+    await hass.async_block_till_done()
+    assert len(actions) == 3
+    assert actions[-1].data == {
+        "entity_id": original.entity_id,
+        "reading": "3456 W",
+        "display_name": expected_name,
+    }
 
 
 @pytest.mark.parametrize("language", ["en", "sv", "fi"])
