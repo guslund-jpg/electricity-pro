@@ -193,6 +193,7 @@ The current strict scope is:
 | `grid_config.py` | Shared grid tariff selection, clearable charges and schedule validation |
 | `production_config.py` | Shared optional-source selection, draft installation review and scoped clears |
 | `insight_config.py` | Shared Good Time method review, applicable controls and scoped numeric validation |
+| `review_config.py` | Read-only setup/options overview and pricing-contract coverage |
 
 The calculation modules form a pure dependency graph: `good_time.py` uses
 `adaptive_price.py`, which uses `pricing.py`. `flow_sources.py` also uses Home
@@ -316,7 +317,7 @@ The remaining explicit `Any` boundaries are deliberate limits of this scope:
 
 These exceptions do not establish that every persisted value is validated. A
 complete typed persistence schema would be separate work. Strict checking covers
-the 38 explicitly listed integration modules, not the tests or whole integration;
+the 39 explicitly listed integration modules, not the tests or whole integration;
 it is not a claim of complete typing or additional manual Home Assistant testing.
 
 ### Python formatting

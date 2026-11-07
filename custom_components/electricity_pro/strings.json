@@ -60,7 +60,8 @@
       "options": {
         "supplier_contracted_price": "Supplier-contracted price",
         "market_price_plus_tariff": "Market price plus configured tariffs",
-        "external_complete_price": "Externally calculated complete price"
+        "external_complete_price": "Externally calculated complete price",
+        "unknown": "Unknown"
       }
     },
     "price_included_components": {
@@ -81,7 +82,8 @@
     "energy_source_type": {
       "options": {
         "daily": "Resets daily",
-        "lifetime": "Lifetime accumulated import"
+        "lifetime": "Lifetime accumulated import",
+        "unknown": "Unknown"
       }
     },
     "flow_presence": {
@@ -102,13 +104,49 @@
       "options": {
         "unconfigured": "Unconfigured",
         "constant": "Single rate",
-        "time_of_use": "High/low tariff"
+        "time_of_use": "High/low tariff",
+        "unknown": "Unknown"
       }
     },
     "good_price_mode": {
       "options": {
         "fixed": "Fixed threshold",
-        "adaptive": "Adaptive"
+        "adaptive": "Adaptive",
+        "unknown": "Unknown"
+      }
+    },
+    "review_status": {
+      "options": {
+        "not_configured": "Not configured",
+        "unknown": "Unspecified / unknown",
+        "partial": "Partially covered price components",
+        "complete": "Complete under the pricing model",
+        "conflict": "Review source declarations and additions"
+      }
+    },
+    "review_origin": {
+      "options": {
+        "inherited": "Inherited from Nord Pool",
+        "selected": "Configured/confirmed",
+        "default": "Includes built-in defaults",
+        "unknown": "Unknown"
+      }
+    },
+    "review_gaps": {
+      "options": {
+        "market_energy": "Market energy",
+        "supplier_markup": "Supplier markup",
+        "energy_tax": "Energy tax",
+        "variable_grid_fee": "Variable grid fee",
+        "vat_rate": "VAT rate for VAT-exclusive prices",
+        "vat_treatment": "VAT treatment of the source",
+        "price_declaration": "Valid price-source declarations",
+        "price_additions": "Additions incompatible with a declared complete source",
+        "forecast_context": "Valid Nord Pool area and currency",
+        "fixed_supplier_fee": "Fixed monthly supplier fee",
+        "fixed_grid_fee": "Fixed monthly grid fee",
+        "grid_schedule": "Valid high/low rates and schedule",
+        "insight_settings": "Valid method, price limits and percentile"
       }
     }
   },
@@ -486,6 +524,121 @@
           "adaptive_target_percentile": "The cheapest share of comparable historical price observations considered favourable, weighted by duration and recency. The default is 25%. Higher values admit a larger share of prices.",
           "adaptive_price_ceiling": "Use the same currency per kWh as Effective Price. With enough comparable history, a price above this ceiling is not adaptively good. During history warm-up the fixed fallback uses its own limit; this ceiling does not constrain that fallback. Leave blank for no adaptive ceiling. Zero and negative ceilings are supported."
         }
+      },
+      "review": {
+        "title": "Configuration overview",
+        "description": "Review sources and pricing before adding Electricity Pro. Values are read-only. Expand the groups for details and confirm to finish setup. Unspecified / unknown means the information is missing. Zero is a configured value.",
+        "sections": {
+          "price_coverage": {
+            "name": "Configured price components",
+            "data": {
+              "live_price_coverage": "Live price: variable component coverage",
+              "live_missing": "Missing live-price information",
+              "forecast_price_coverage": "Nord Pool forecast: variable component coverage",
+              "forecast_missing": "Missing forecast-price information",
+              "fixed_fees_missing": "Unknown fixed fees",
+              "grid_warning": "Grid tariff needs review",
+              "insight_warning": "Insight settings need review"
+            },
+            "data_description": {
+              "live_price_coverage": "Describes configured variable price components under the pricing model. Sensor availability and historical cost coverage are reported by the sensors.",
+              "forecast_price_coverage": "Starts with VAT-exclusive Nord Pool market energy and configured additions, independently of the live source contents.",
+              "fixed_fees_missing": "Unknown fixed fees are separate from variable price components. Zero counts as a configured amount."
+            }
+          },
+          "measurements": {
+            "name": "Measurements",
+            "data": {
+              "power_entity": "Current grid power",
+              "energy_entity": "Imported energy (optional)",
+              "current_l1_entity": "Current L1",
+              "voltage_l1_entity": "Voltage L1",
+              "current_l2_entity": "Current L2",
+              "voltage_l2_entity": "Voltage L2",
+              "current_l3_entity": "Current L3",
+              "voltage_l3_entity": "Voltage L3",
+              "monthly_peak_hour_consumption_entity": "External monthly peak-hour consumption",
+              "monthly_peak_hour_time_entity": "External monthly peak-hour timestamp",
+              "energy_source_type": "Energy counter period"
+            }
+          },
+          "market_prices": {
+            "name": "Market prices (Nord Pool)",
+            "data": {
+              "forecast_configured": "Nord Pool forecasting configured",
+              "forecast_source": "Selected Nord Pool integration",
+              "forecast_area": "Bidding area",
+              "area_origin": "Area selection",
+              "forecast_currency": "Currency from Nord Pool",
+              "forecast_country": "Country inferred from area"
+            },
+            "data_description": {
+              "area_origin": "A sole area is inherited from Nord Pool; with several areas this shows the configured selection.",
+              "forecast_currency": "Inherited from the selected native Nord Pool entry.",
+              "forecast_country": "Inferred from the selected bidding area."
+            }
+          },
+          "supplier": {
+            "name": "Electricity supplier",
+            "data": {
+              "price_entity": "Electricity price sensor",
+              "pricing_strategy": "Price source type",
+              "price_included_components": "Components already included in the price",
+              "price_vat_treatment": "VAT treatment of the price",
+              "price_vat_rate": "VAT to add to VAT-exclusive prices (%)",
+              "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
+              "fixed_supplier_fee_monthly": "Fixed monthly electricity supplier fee (including VAT)",
+              "accumulated_cost_today_entity": "Today's accumulated cost sensor"
+            },
+            "data_description": {
+              "price_included_components": "Declared included components are not added twice. Markup and grid amounts are shown separately because raw Nord Pool forecasts may still need them.",
+              "price_vat_rate": "Configured/confirmed VAT rate for VAT-exclusive prices and forecasts. Older saved values do not record how they were entered."
+            }
+          },
+          "grid": {
+            "name": "Grid charges",
+            "data": {
+              "grid_mode": "Grid tariff",
+              "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
+              "energy_tax_per_kwh": "Energy tax per kWh (including VAT)",
+              "fixed_grid_fee_monthly": "Fixed monthly grid fee (including VAT)",
+              "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
+              "grid_fee_high_start": "High period starts (HH:MM)",
+              "grid_fee_high_end": "High period ends (HH:MM)",
+              "grid_fee_high_season_start": "High season starts (MM-DD)",
+              "grid_fee_high_season_end": "High season ends (MM-DD)",
+              "grid_fee_workday_entity": "Workday sensor (optional)",
+              "schedule_origin": "Schedule origin"
+            }
+          },
+          "energy_flows": {
+            "name": "Production and export",
+            "data": {
+              "production_power_entity": "AC production power",
+              "production_energy_entity": "Lifetime AC production energy",
+              "grid_export_power_entity": "Directional grid-export power",
+              "grid_export_energy_entity": "Lifetime grid-export energy",
+              "household_power_entity": "Measured household demand power (excluding battery charging)",
+              "household_energy_entity": "Lifetime household energy (excluding battery charging)",
+              "flow_compatibility_enabled": "Enable Flow power compatibility diagnostic",
+              "flow_generation_presence": "Local generation installed",
+              "flow_storage_presence": "Battery storage installed",
+              "production_power_phase_convention": "Production power phase convention",
+              "grid_export_power_phase_convention": "Grid-export power phase convention",
+              "household_power_phase_convention": "Household demand power phase convention",
+              "optional_sources_configured": "Optional measurement sources configured"
+            }
+          },
+          "insights": {
+            "name": "Usage insights",
+            "data": {
+              "good_price_mode": "Good Time method",
+              "good_price_threshold": "Fixed limit / fallback per kWh",
+              "adaptive_target_percentile": "Target percentile (%)",
+              "adaptive_price_ceiling": "Adaptive price ceiling per kWh (optional)"
+            }
+          }
+        }
       }
     },
     "error": {
@@ -509,6 +662,9 @@
       "invalid_insight_threshold": "Enter a finite price limit of zero or more, or leave it blank.",
       "invalid_insight_percentile": "Enter a finite percentile from 1 to 100.",
       "invalid_insight_ceiling": "Enter a finite price ceiling or leave it blank. Zero and negative ceilings are allowed."
+    },
+    "abort": {
+      "review_unavailable": "No setup configuration is available to review. Start setup again."
     }
   },
   "options": {
@@ -657,7 +813,8 @@
           "supplier": "Electricity supplier",
           "grid": "Grid charges",
           "energy_flows": "Production and export",
-          "insights": "Usage insights"
+          "insights": "Usage insights",
+          "overview": "Configuration overview"
         }
       },
       "forecast_area": {
@@ -759,6 +916,121 @@
           "good_price_threshold": "Use the same currency per kWh as Effective Price. At or below this limit, the fixed rule considers the price good. In Adaptive mode it is the fallback when comparable history is insufficient. Leave blank to have no fixed rule or fallback; zero is an actual zero limit.",
           "adaptive_target_percentile": "The cheapest share of comparable historical price observations considered favourable, weighted by duration and recency. The default is 25%. Higher values admit a larger share of prices.",
           "adaptive_price_ceiling": "Use the same currency per kWh as Effective Price. With enough comparable history, a price above this ceiling is not adaptively good. During history warm-up the fixed fallback uses its own limit; this ceiling does not constrain that fallback. Leave blank for no adaptive ceiling. Zero and negative ceilings are supported."
+        }
+      },
+      "overview": {
+        "title": "Configuration overview",
+        "description": "This read-only overview shows your existing configuration. Confirm to return to the menu. Edit settings through their section menu entries. Unspecified / unknown means the information is missing. Zero is a configured value.",
+        "sections": {
+          "price_coverage": {
+            "name": "Configured price components",
+            "data": {
+              "live_price_coverage": "Live price: variable component coverage",
+              "live_missing": "Missing live-price information",
+              "forecast_price_coverage": "Nord Pool forecast: variable component coverage",
+              "forecast_missing": "Missing forecast-price information",
+              "fixed_fees_missing": "Unknown fixed fees",
+              "grid_warning": "Grid tariff needs review",
+              "insight_warning": "Insight settings need review"
+            },
+            "data_description": {
+              "live_price_coverage": "Describes configured variable price components under the pricing model. Sensor availability and historical cost coverage are reported by the sensors.",
+              "forecast_price_coverage": "Starts with VAT-exclusive Nord Pool market energy and configured additions, independently of the live source contents.",
+              "fixed_fees_missing": "Unknown fixed fees are separate from variable price components. Zero counts as a configured amount."
+            }
+          },
+          "measurements": {
+            "name": "Measurements",
+            "data": {
+              "power_entity": "Current grid power",
+              "energy_entity": "Imported energy (optional)",
+              "current_l1_entity": "Current L1",
+              "voltage_l1_entity": "Voltage L1",
+              "current_l2_entity": "Current L2",
+              "voltage_l2_entity": "Voltage L2",
+              "current_l3_entity": "Current L3",
+              "voltage_l3_entity": "Voltage L3",
+              "monthly_peak_hour_consumption_entity": "External monthly peak-hour consumption",
+              "monthly_peak_hour_time_entity": "External monthly peak-hour timestamp",
+              "energy_source_type": "Energy counter period"
+            }
+          },
+          "market_prices": {
+            "name": "Market prices (Nord Pool)",
+            "data": {
+              "forecast_configured": "Nord Pool forecasting configured",
+              "forecast_source": "Selected Nord Pool integration",
+              "forecast_area": "Bidding area",
+              "area_origin": "Area selection",
+              "forecast_currency": "Currency from Nord Pool",
+              "forecast_country": "Country inferred from area"
+            },
+            "data_description": {
+              "area_origin": "A sole area is inherited from Nord Pool; with several areas this shows the configured selection.",
+              "forecast_currency": "Inherited from the selected native Nord Pool entry.",
+              "forecast_country": "Inferred from the selected bidding area."
+            }
+          },
+          "supplier": {
+            "name": "Electricity supplier",
+            "data": {
+              "price_entity": "Electricity price sensor",
+              "pricing_strategy": "Price source type",
+              "price_included_components": "Components already included in the price",
+              "price_vat_treatment": "VAT treatment of the price",
+              "price_vat_rate": "VAT to add to VAT-exclusive prices (%)",
+              "supplier_markup_per_kwh": "Supplier markup per kWh (including VAT)",
+              "fixed_supplier_fee_monthly": "Fixed monthly electricity supplier fee (including VAT)",
+              "accumulated_cost_today_entity": "Today's accumulated cost sensor"
+            },
+            "data_description": {
+              "price_included_components": "Declared included components are not added twice. Markup and grid amounts are shown separately because raw Nord Pool forecasts may still need them.",
+              "price_vat_rate": "Configured/confirmed VAT rate for VAT-exclusive prices and forecasts. Older saved values do not record how they were entered."
+            }
+          },
+          "grid": {
+            "name": "Grid charges",
+            "data": {
+              "grid_mode": "Grid tariff",
+              "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
+              "energy_tax_per_kwh": "Energy tax per kWh (including VAT)",
+              "fixed_grid_fee_monthly": "Fixed monthly grid fee (including VAT)",
+              "grid_fee_high_per_kwh": "High-period grid fee per kWh (including VAT)",
+              "grid_fee_high_start": "High period starts (HH:MM)",
+              "grid_fee_high_end": "High period ends (HH:MM)",
+              "grid_fee_high_season_start": "High season starts (MM-DD)",
+              "grid_fee_high_season_end": "High season ends (MM-DD)",
+              "grid_fee_workday_entity": "Workday sensor (optional)",
+              "schedule_origin": "Schedule origin"
+            }
+          },
+          "energy_flows": {
+            "name": "Production and export",
+            "data": {
+              "production_power_entity": "AC production power",
+              "production_energy_entity": "Lifetime AC production energy",
+              "grid_export_power_entity": "Directional grid-export power",
+              "grid_export_energy_entity": "Lifetime grid-export energy",
+              "household_power_entity": "Measured household demand power (excluding battery charging)",
+              "household_energy_entity": "Lifetime household energy (excluding battery charging)",
+              "flow_compatibility_enabled": "Enable Flow power compatibility diagnostic",
+              "flow_generation_presence": "Local generation installed",
+              "flow_storage_presence": "Battery storage installed",
+              "production_power_phase_convention": "Production power phase convention",
+              "grid_export_power_phase_convention": "Grid-export power phase convention",
+              "household_power_phase_convention": "Household demand power phase convention",
+              "optional_sources_configured": "Optional measurement sources configured"
+            }
+          },
+          "insights": {
+            "name": "Usage insights",
+            "data": {
+              "good_price_mode": "Good Time method",
+              "good_price_threshold": "Fixed limit / fallback per kWh",
+              "adaptive_target_percentile": "Target percentile (%)",
+              "adaptive_price_ceiling": "Adaptive price ceiling per kWh (optional)"
+            }
+          }
         }
       }
     },

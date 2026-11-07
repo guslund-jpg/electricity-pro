@@ -4,7 +4,8 @@
       "options": {
         "supplier_contracted_price": "Elhandelspris från leverantören",
         "market_price_plus_tariff": "Spotpris med angivna tillägg",
-        "external_complete_price": "Externt beräknat komplett pris"
+        "external_complete_price": "Externt beräknat komplett pris",
+        "unknown": "Okänt"
       }
     },
     "price_included_components": {
@@ -23,13 +24,18 @@
       }
     },
     "energy_source_type": {
-      "options": { "daily": "Återställs dagligen", "lifetime": "Ackumulerad import under mätarens livstid" }
+      "options": {
+        "daily": "Återställs dagligen",
+        "lifetime": "Ackumulerad import under mätarens livstid",
+        "unknown": "Okänt"
+      }
     },
     "grid_mode": {
       "options": {
         "unconfigured": "Inte konfigurerat",
         "constant": "Enhetlig taxa",
-        "time_of_use": "Hög-/lågtariff"
+        "time_of_use": "Hög-/lågtariff",
+        "unknown": "Okänt"
       }
     },
     "flow_presence": {
@@ -49,7 +55,42 @@
     "good_price_mode": {
       "options": {
         "fixed": "Fast prisgräns",
-        "adaptive": "Adaptiv bedömning"
+        "adaptive": "Adaptiv bedömning",
+        "unknown": "Okänt"
+      }
+    },
+    "review_status": {
+      "options": {
+        "not_configured": "Inte konfigurerat",
+        "unknown": "Ej angivet / okänt",
+        "partial": "Delvis täckta prisdelar",
+        "complete": "Komplett enligt prismodellen",
+        "conflict": "Prisdeklaration och tillägg behöver granskas"
+      }
+    },
+    "review_origin": {
+      "options": {
+        "inherited": "Hämtat från Nord Pool",
+        "selected": "Konfigurerat/bekräftat",
+        "default": "Innehåller inbyggda standardvärden",
+        "unknown": "Okänt"
+      }
+    },
+    "review_gaps": {
+      "options": {
+        "market_energy": "Spotpris",
+        "supplier_markup": "Elhandelspåslag",
+        "energy_tax": "Energiskatt",
+        "variable_grid_fee": "Rörlig elnätsavgift",
+        "vat_rate": "Momssats för priser utan moms",
+        "vat_treatment": "Priskällans momshantering",
+        "price_declaration": "Giltiga uppgifter om priskällans innehåll",
+        "price_additions": "Tillägg som inte är förenliga med en deklarerat komplett priskälla",
+        "forecast_context": "Giltigt Nord Pool-elområde och valuta",
+        "fixed_supplier_fee": "Fast elhandelsavgift per månad",
+        "fixed_grid_fee": "Fast elnätsavgift per månad",
+        "grid_schedule": "Giltiga hög-/lågavgifter och tidsplan",
+        "insight_settings": "Giltig metod, prisgränser och percentil"
       }
     }
   },
@@ -253,6 +294,121 @@
           "adaptive_target_percentile": "Den billigaste andelen av jämförbara historiska prisobservationer som bedöms fördelaktiga, viktade efter varaktighet och hur aktuella de är. Standard är 25 %. Ett högre värde gör att en större andel priser kan bedömas som fördelaktiga.",
           "adaptive_price_ceiling": "Ange samma valuta per kWh som Effektivt elpris. När jämförbar historik räcker bedöms ett pris över taket inte som adaptivt fördelaktigt. Medan historiken byggs upp används den fasta reservgränsen; det här taket begränsar inte reservgränsen. Tomt betyder inget adaptivt tak. Noll och negativa tak stöds."
         }
+      },
+      "review": {
+        "title": "Översikt",
+        "description": "Granska källor och prisuppgifter innan Electricity Pro läggs till. Uppgifterna är skrivskyddade. Öppna grupperna för detaljer och bekräfta för att slutföra installationen. Ej angivet / okänt betyder att uppgiften saknas. Noll är ett konfigurerat värde.",
+        "sections": {
+          "price_coverage": {
+            "name": "Konfigurationens prisdelar",
+            "data": {
+              "live_price_coverage": "Aktuellt pris: täckning av rörliga prisdelar",
+              "live_missing": "Saknade uppgifter för aktuellt pris",
+              "forecast_price_coverage": "Nord Pool-prognos: täckning av rörliga prisdelar",
+              "forecast_missing": "Saknade uppgifter för prognospriset",
+              "fixed_fees_missing": "Fasta avgifter med okänt belopp",
+              "grid_warning": "Elnätstariffen behöver granskas",
+              "insight_warning": "Elanvändningsråden behöver granskas"
+            },
+            "data_description": {
+              "live_price_coverage": "Visar konfigurerade rörliga prisdelar enligt prismodellen. Aktuell tillgänglighet och historisk kostnadstäckning visas av sensorerna.",
+              "forecast_price_coverage": "Utgår från Nord Pools spotpris utan moms och de konfigurerade tilläggen, oberoende av vad den aktuella priskällan innehåller.",
+              "fixed_fees_missing": "Okända fasta avgifter visas separat från de rörliga prisdelarna. Noll räknas som ett angivet belopp."
+            }
+          },
+          "measurements": {
+            "name": "Mätvärden",
+            "data": {
+              "power_entity": "Aktuell effekt vid elnätet",
+              "energy_entity": "Importerad energi (valfritt)",
+              "current_l1_entity": "Ström L1",
+              "voltage_l1_entity": "Spänning L1",
+              "current_l2_entity": "Ström L2",
+              "voltage_l2_entity": "Spänning L2",
+              "current_l3_entity": "Ström L3",
+              "voltage_l3_entity": "Spänning L3",
+              "monthly_peak_hour_consumption_entity": "Extern energiförbrukning under månadens topptimme",
+              "monthly_peak_hour_time_entity": "Extern tid för månadens topptimme",
+              "energy_source_type": "Energimätarens period"
+            }
+          },
+          "market_prices": {
+            "name": "Spotpriser (Nord Pool)",
+            "data": {
+              "forecast_configured": "Nord Pool-prognoser konfigurerade",
+              "forecast_source": "Vald Nord Pool-integration",
+              "forecast_area": "Elområde",
+              "area_origin": "Elområdets ursprung",
+              "forecast_currency": "Valuta från Nord Pool",
+              "forecast_country": "Land härlett från elområdet"
+            },
+            "data_description": {
+              "area_origin": "Ett ensamt elområde hämtas från Nord Pool. Vid flera områden visas det konfigurerade valet.",
+              "forecast_currency": "Hämtad från den valda Nord Pool-integrationen.",
+              "forecast_country": "Härlett från det valda elområdet."
+            }
+          },
+          "supplier": {
+            "name": "Elhandel",
+            "data": {
+              "price_entity": "Aktuellt elpris (valfritt)",
+              "pricing_strategy": "Typ av priskälla",
+              "price_included_components": "Delar som redan ingår i priset",
+              "price_vat_treatment": "Moms i priskällan",
+              "price_vat_rate": "Moms att lägga till på priser utan moms (%)",
+              "supplier_markup_per_kwh": "Elhandelspåslag per kWh (inklusive moms)",
+              "fixed_supplier_fee_monthly": "Fast elhandelsavgift per månad (inklusive moms)",
+              "accumulated_cost_today_entity": "Ackumulerad elhandelskostnad i dag (valfritt)"
+            },
+            "data_description": {
+              "price_included_components": "Deklarerade delar som redan ingår i priskällan läggs inte till igen. Beloppen för påslag och elnät visas separat eftersom råa Nord Pool-prognoser kan behöva dem.",
+              "price_vat_rate": "Konfigurerad/bekräftad momssats för priser utan moms och prognoser. Äldre sparade värden har ingen separat uppgift om hur de matades in."
+            }
+          },
+          "grid": {
+            "name": "Elnät",
+            "data": {
+              "grid_mode": "Elnätstariff",
+              "grid_fee_per_kwh": "Rörlig elnätsavgift per kWh (inklusive moms)",
+              "energy_tax_per_kwh": "Energiskatt per kWh (inklusive moms)",
+              "fixed_grid_fee_monthly": "Fast elnätsavgift per månad (inklusive moms)",
+              "grid_fee_high_per_kwh": "Högperiodens elnätsavgift per kWh (inklusive moms)",
+              "grid_fee_high_start": "Högperioden börjar (TT:MM)",
+              "grid_fee_high_end": "Högperioden slutar (TT:MM)",
+              "grid_fee_high_season_start": "Högsäsongen börjar (MM-DD)",
+              "grid_fee_high_season_end": "Högsäsongen slutar (MM-DD)",
+              "grid_fee_workday_entity": "Workday-sensor (valfritt)",
+              "schedule_origin": "Tidsplanens ursprung"
+            }
+          },
+          "energy_flows": {
+            "name": "Produktion och export",
+            "data": {
+              "production_power_entity": "Produktionseffekt på AC-sidan",
+              "production_energy_entity": "Producerad AC-energi under mätarens livstid",
+              "grid_export_power_entity": "Riktad exporteffekt till elnätet",
+              "grid_export_energy_entity": "Exporterad energi under mätarens livstid",
+              "household_power_entity": "Hushållets uppmätta effekt (exklusive batteriladdning)",
+              "household_energy_entity": "Hushållets energi under mätarens livstid (exklusive batteriladdning)",
+              "flow_compatibility_enabled": "Aktivera diagnostik för effektvärdenas kompatibilitet",
+              "flow_generation_presence": "Lokal elproduktion installerad",
+              "flow_storage_presence": "Batterilagring installerad",
+              "production_power_phase_convention": "Fashantering för produktionseffekt",
+              "grid_export_power_phase_convention": "Fashantering för exporteffekt",
+              "household_power_phase_convention": "Fashantering för hushållets effekt",
+              "optional_sources_configured": "Valfria mätkällor konfigurerade"
+            }
+          },
+          "insights": {
+            "name": "Elanvändningsråd",
+            "data": {
+              "good_price_mode": "Metod för elanvändningsråd",
+              "good_price_threshold": "Fast gräns / reservgräns per kWh",
+              "adaptive_target_percentile": "Målpercentil (%)",
+              "adaptive_price_ceiling": "Adaptivt pristak per kWh (valfritt)"
+            }
+          }
+        }
       }
     },
     "error": {
@@ -272,6 +428,9 @@
       "invalid_insight_threshold": "Ange en giltig prisgräns som är noll eller större, eller lämna fältet tomt.",
       "invalid_insight_percentile": "Ange en giltig percentil mellan 1 och 100.",
       "invalid_insight_ceiling": "Ange ett giltigt pristak eller lämna fältet tomt. Noll och negativa tak är tillåtna."
+    },
+    "abort": {
+      "review_unavailable": "Ingen installationskonfiguration finns att granska. Starta installationen igen."
     }
   },
   "options": {
@@ -384,7 +543,8 @@
           "supplier": "Elhandel",
           "grid": "Elnät",
           "energy_flows": "Produktion och export",
-          "insights": "Elanvändningsråd"
+          "insights": "Elanvändningsråd",
+          "overview": "Översikt"
         }
       },
       "grid": {
@@ -477,6 +637,121 @@
           "good_price_threshold": "Ange samma valuta per kWh som Effektivt elpris. Vid eller under gränsen bedöms priset som fördelaktigt med fast metod. I adaptivt läge används gränsen som reserv när jämförbar historik inte räcker. Tomt betyder ingen fast gräns eller reservgräns; noll är en faktisk nollgräns.",
           "adaptive_target_percentile": "Den billigaste andelen av jämförbara historiska prisobservationer som bedöms fördelaktiga, viktade efter varaktighet och hur aktuella de är. Standard är 25 %. Ett högre värde gör att en större andel priser kan bedömas som fördelaktiga.",
           "adaptive_price_ceiling": "Ange samma valuta per kWh som Effektivt elpris. När jämförbar historik räcker bedöms ett pris över taket inte som adaptivt fördelaktigt. Medan historiken byggs upp används den fasta reservgränsen; det här taket begränsar inte reservgränsen. Tomt betyder inget adaptivt tak. Noll och negativa tak stöds."
+        }
+      },
+      "overview": {
+        "title": "Översikt",
+        "description": "Här visas din befintliga konfiguration med skrivskyddade uppgifter. Bekräfta för att återgå till menyn. Inställningarna ändras genom respektive menyval. Ej angivet / okänt betyder att uppgiften saknas. Noll är ett konfigurerat värde.",
+        "sections": {
+          "price_coverage": {
+            "name": "Konfigurationens prisdelar",
+            "data": {
+              "live_price_coverage": "Aktuellt pris: täckning av rörliga prisdelar",
+              "live_missing": "Saknade uppgifter för aktuellt pris",
+              "forecast_price_coverage": "Nord Pool-prognos: täckning av rörliga prisdelar",
+              "forecast_missing": "Saknade uppgifter för prognospriset",
+              "fixed_fees_missing": "Fasta avgifter med okänt belopp",
+              "grid_warning": "Elnätstariffen behöver granskas",
+              "insight_warning": "Elanvändningsråden behöver granskas"
+            },
+            "data_description": {
+              "live_price_coverage": "Visar konfigurerade rörliga prisdelar enligt prismodellen. Aktuell tillgänglighet och historisk kostnadstäckning visas av sensorerna.",
+              "forecast_price_coverage": "Utgår från Nord Pools spotpris utan moms och de konfigurerade tilläggen, oberoende av vad den aktuella priskällan innehåller.",
+              "fixed_fees_missing": "Okända fasta avgifter visas separat från de rörliga prisdelarna. Noll räknas som ett angivet belopp."
+            }
+          },
+          "measurements": {
+            "name": "Mätvärden",
+            "data": {
+              "power_entity": "Aktuell effekt vid elnätet",
+              "energy_entity": "Importerad energi (valfritt)",
+              "current_l1_entity": "Ström L1",
+              "voltage_l1_entity": "Spänning L1",
+              "current_l2_entity": "Ström L2",
+              "voltage_l2_entity": "Spänning L2",
+              "current_l3_entity": "Ström L3",
+              "voltage_l3_entity": "Spänning L3",
+              "monthly_peak_hour_consumption_entity": "Extern energiförbrukning under månadens topptimme",
+              "monthly_peak_hour_time_entity": "Extern tid för månadens topptimme",
+              "energy_source_type": "Energimätarens period"
+            }
+          },
+          "market_prices": {
+            "name": "Spotpriser (Nord Pool)",
+            "data": {
+              "forecast_configured": "Nord Pool-prognoser konfigurerade",
+              "forecast_source": "Vald Nord Pool-integration",
+              "forecast_area": "Elområde",
+              "area_origin": "Elområdets ursprung",
+              "forecast_currency": "Valuta från Nord Pool",
+              "forecast_country": "Land härlett från elområdet"
+            },
+            "data_description": {
+              "area_origin": "Ett ensamt elområde hämtas från Nord Pool. Vid flera områden visas det konfigurerade valet.",
+              "forecast_currency": "Hämtad från den valda Nord Pool-integrationen.",
+              "forecast_country": "Härlett från det valda elområdet."
+            }
+          },
+          "supplier": {
+            "name": "Elhandel",
+            "data": {
+              "price_entity": "Aktuellt elpris (valfritt)",
+              "pricing_strategy": "Typ av priskälla",
+              "price_included_components": "Delar som redan ingår i priset",
+              "price_vat_treatment": "Moms i priskällan",
+              "price_vat_rate": "Moms att lägga till på priser utan moms (%)",
+              "supplier_markup_per_kwh": "Elhandelspåslag per kWh (inklusive moms)",
+              "fixed_supplier_fee_monthly": "Fast elhandelsavgift per månad (inklusive moms)",
+              "accumulated_cost_today_entity": "Ackumulerad elhandelskostnad i dag (valfritt)"
+            },
+            "data_description": {
+              "price_included_components": "Deklarerade delar som redan ingår i priskällan läggs inte till igen. Beloppen för påslag och elnät visas separat eftersom råa Nord Pool-prognoser kan behöva dem.",
+              "price_vat_rate": "Konfigurerad/bekräftad momssats för priser utan moms och prognoser. Äldre sparade värden har ingen separat uppgift om hur de matades in."
+            }
+          },
+          "grid": {
+            "name": "Elnät",
+            "data": {
+              "grid_mode": "Elnätstariff",
+              "grid_fee_per_kwh": "Rörlig elnätsavgift per kWh (inklusive moms)",
+              "energy_tax_per_kwh": "Energiskatt per kWh (inklusive moms)",
+              "fixed_grid_fee_monthly": "Fast elnätsavgift per månad (inklusive moms)",
+              "grid_fee_high_per_kwh": "Högperiodens elnätsavgift per kWh (inklusive moms)",
+              "grid_fee_high_start": "Högperioden börjar (TT:MM)",
+              "grid_fee_high_end": "Högperioden slutar (TT:MM)",
+              "grid_fee_high_season_start": "Högsäsongen börjar (MM-DD)",
+              "grid_fee_high_season_end": "Högsäsongen slutar (MM-DD)",
+              "grid_fee_workday_entity": "Workday-sensor (valfritt)",
+              "schedule_origin": "Tidsplanens ursprung"
+            }
+          },
+          "energy_flows": {
+            "name": "Produktion och export",
+            "data": {
+              "production_power_entity": "Produktionseffekt på AC-sidan",
+              "production_energy_entity": "Producerad AC-energi under mätarens livstid",
+              "grid_export_power_entity": "Riktad exporteffekt till elnätet",
+              "grid_export_energy_entity": "Exporterad energi under mätarens livstid",
+              "household_power_entity": "Hushållets uppmätta effekt (exklusive batteriladdning)",
+              "household_energy_entity": "Hushållets energi under mätarens livstid (exklusive batteriladdning)",
+              "flow_compatibility_enabled": "Aktivera diagnostik för effektvärdenas kompatibilitet",
+              "flow_generation_presence": "Lokal elproduktion installerad",
+              "flow_storage_presence": "Batterilagring installerad",
+              "production_power_phase_convention": "Fashantering för produktionseffekt",
+              "grid_export_power_phase_convention": "Fashantering för exporteffekt",
+              "household_power_phase_convention": "Fashantering för hushållets effekt",
+              "optional_sources_configured": "Valfria mätkällor konfigurerade"
+            }
+          },
+          "insights": {
+            "name": "Elanvändningsråd",
+            "data": {
+              "good_price_mode": "Metod för elanvändningsråd",
+              "good_price_threshold": "Fast gräns / reservgräns per kWh",
+              "adaptive_target_percentile": "Målpercentil (%)",
+              "adaptive_price_ceiling": "Adaptivt pristak per kWh (valfritt)"
+            }
+          }
         }
       }
     },
