@@ -488,11 +488,11 @@ views:
             state_not: unknown
         card:
           type: history-graph
-          title: Market, supplier, and effective price — last 24 hours
+          title: Spot, supplier, and effective price — last 24 hours
           hours_to_show: 24
           entities:
             - entity: sensor.electricity_pro_current_market_price
-              name: Market price
+              name: Spot price
             - entity: sensor.electricity_pro_current_supplier_price
               name: Supplier price
             - entity: sensor.electricity_pro_effective_price

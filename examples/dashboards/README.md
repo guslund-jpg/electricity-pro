@@ -61,7 +61,7 @@ name was already in use.
 `electricity-pro.yaml` contains four views:
 
 - **Overview** — the most important live values and today's key figures
-- **Live** — current power, market, supplier, and Effective Price, plus recent
+- **Live** — current power, spot, supplier, and Effective Price, plus recent
   history
 - **Statistics** — today's energy, cost, average and peak power, peak time, the
   previous day's Consumption Timing Score, and this month's energy, cost, and
@@ -143,11 +143,11 @@ and history graph cards. No HACS frontend cards are required.
 `electricity-pro-enhanced.yaml` contains four views:
 
 - **Overview** — insight, live values, and daily and monthly statistics
-- **Trends** — recorded power history plus market, supplier, and effective-price
+- **Trends** — recorded power history plus spot, supplier, and effective-price
   comparison
 - **Details** — optional three-phase current and voltage measurements plus a
   six-hour raw power-detail chart
-- **Forecast** — a forward market-price chart and Mushroom presentation of the
+- **Forecast** — a forward spot-price chart and Mushroom presentation of the
   scheduling insights
 
 ![Illustrative Electricity Pro enhanced dashboard](electricity-pro-enhanced-preview.svg)
@@ -184,8 +184,8 @@ wrapped in built-in conditional cards and are hidden when their entities are
 `unknown` or `unavailable`.
 
 When a Nord Pool forecast source is configured, the Trends price chart adds the
-raw market price alongside the contracted supplier price and Electricity Pro's
-effective price. These lines deliberately represent different scopes: market
+raw spot price alongside the contracted supplier price and Electricity Pro's
+effective price. These lines deliberately represent different scopes: spot
 price is the underlying exchange price, supplier price includes VAT and supplier
 markup, and effective price adds configured costs such as grid fees and energy
 tax. The supplier line uses `sensor.electricity_pro_current_supplier_price`.
@@ -194,7 +194,7 @@ copied dashboard to use this entity instead of `sensor.electricity_pro_current_p
 If the input includes inseparable grid charges or lacks VAT/markup information,
 the supplier sensor is unavailable instead of showing the source as supplier price.
 
-The Forecast view plots every market-price interval retained by Electricity Pro
+The Forecast view plots every spot-price interval retained by Electricity Pro
 from the start of today through tomorrow, with a red **Now** marker. Before Nord
 Pool publishes tomorrow's prices, normally around 13:00 local market time, the
 unpublished part of the chart remains blank. The 50-hour display span also
@@ -206,7 +206,7 @@ source-entity-driven updates. It deliberately omits `update_interval`: interval
 polling can leave ApexCharts Card 2.2.3 stuck on **Loading** during initialization
 ([upstream report](https://github.com/RomRider/apexcharts-card/issues/1120)).
 If you copied an earlier Enhanced example, remove `update_interval: 1min` from
-the **Market price forecast** card; updating the integration alone does not
+the **Spot price forecast** card; updating the integration alone does not
 change a manually copied dashboard. Keep the other chart settings unchanged.
 The **Now** marker advances when the chart updates, not on a separate
 one-minute timer.

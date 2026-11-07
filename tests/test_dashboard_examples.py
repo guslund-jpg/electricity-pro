@@ -323,7 +323,7 @@ def test_enhanced_dashboard_advice_formats_effective_price_to_two_decimals() -> 
     assert "'%.2f' | format" in advice_card["secondary"]
 
 
-def test_enhanced_dashboard_market_price_presentation() -> None:
+def test_enhanced_dashboard_spot_price_presentation() -> None:
     """Enhanced dashboard compares and previews provider-independent prices."""
     dashboard = yaml.safe_load(
         (DASHBOARD_EXAMPLES / "electricity-pro-enhanced.yaml").read_text(
@@ -339,8 +339,7 @@ def test_enhanced_dashboard_market_price_presentation() -> None:
     comparison = next(
         chart
         for chart in charts
-        if chart.get("header", {}).get("title")
-        == "Market, supplier, and effective price"
+        if chart.get("header", {}).get("title") == "Spot, supplier, and effective price"
     )
     assert comparison["yaxis"][0]["min"] == "~0"
     assert [series["entity"] for series in comparison["series"]] == [
@@ -352,7 +351,7 @@ def test_enhanced_dashboard_market_price_presentation() -> None:
     forecast = next(
         chart
         for chart in charts
-        if chart.get("header", {}).get("title") == "Market price forecast"
+        if chart.get("header", {}).get("title") == "Spot price forecast"
     )
     assert forecast["graph_span"] == "50h"
     assert forecast["span"] == {"start": "day"}
