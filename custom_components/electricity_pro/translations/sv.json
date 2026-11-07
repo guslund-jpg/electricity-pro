@@ -6,6 +6,25 @@
   },
   "config": {
     "step": {
+      "market_prices": {
+        "title": "Marknadspriser (Nord Pool)",
+        "description": "Välj den inbyggda Nord Pool-integrationen för marknadspriser och prognoser. Lämna fältet tomt om du inte vill använda Nord Pool. Elområde och valuta hämtas från den valda integrationen; välj elområde om flera finns. Moms granskas under priser och övriga inställningar.\n\nKälla: {source}\n\nElområde: {area}\n\nValuta: {currency}\n\nLand från elområdet: {country}",
+        "data": {
+          "forecast_nordpool_config_entry": "Nord Pool-integration (valfritt)",
+          "forecast_price_area": "Elområde"
+        },
+        "data_description": {
+          "forecast_nordpool_config_entry": "Installera först den inbyggda Nord Pool-integrationen om ingen källa finns att välja. Töm fältet för att stänga av marknadspriser och prognoser från Nord Pool.",
+          "forecast_price_area": "Välj ett av elområdena i Nord Pool-integrationen. Vid byte av integration visas dess elområden efter att du har fortsatt."
+        }
+      },
+      "market_area": {
+        "title": "Elområde (Nord Pool)",
+        "description": "Välj elområde i {source}. Valutan {currency} hämtas från Nord Pool. Landet för det valda elområdet används för att föreslå moms senare.",
+        "data": {
+          "forecast_price_area": "Elområde"
+        }
+      },
       "measurements": {
         "title": "Mätvärden",
         "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\n\n{sources}",
@@ -44,10 +63,29 @@
         }
       }
     },
-    "error": { "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet." }
+    "error": { "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet.", "invalid_market_source": "Välj en Nord Pool-integration med giltiga elområden och valuta, eller lämna källan tom.", "invalid_market_area": "Välj ett elområde som finns i den valda Nord Pool-integrationen." }
   },
   "options": {
     "step": {
+      "market_prices": {
+        "title": "Marknadspriser (Nord Pool)",
+        "description": "Välj den inbyggda Nord Pool-integrationen för marknadspriser och prognoser. Lämna fältet tomt om du inte vill använda Nord Pool. Elområde och valuta hämtas från den valda integrationen; välj elområde om flera finns. Moms granskas under priser och övriga inställningar.\n\nKälla: {source}\n\nElområde: {area}\n\nValuta: {currency}\n\nLand från elområdet: {country}",
+        "data": {
+          "forecast_nordpool_config_entry": "Nord Pool-integration (valfritt)",
+          "forecast_price_area": "Elområde"
+        },
+        "data_description": {
+          "forecast_nordpool_config_entry": "Installera först den inbyggda Nord Pool-integrationen om ingen källa finns att välja. Töm fältet för att stänga av marknadspriser och prognoser från Nord Pool.",
+          "forecast_price_area": "Välj ett av elområdena i Nord Pool-integrationen. Vid byte av integration visas dess elområden efter att du har fortsatt."
+        }
+      },
+      "market_area": {
+        "title": "Elområde (Nord Pool)",
+        "description": "Välj elområde i {source}. Valutan {currency} hämtas från Nord Pool. Landet för det valda elområdet används för att föreslå moms senare.",
+        "data": {
+          "forecast_price_area": "Elområde"
+        }
+      },
       "measurements": {
         "title": "Mätvärden",
         "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\n\n{sources}",
@@ -88,10 +126,10 @@
       "menu": {
         "title": "Konfigurera Electricity Pro",
         "description": "Välj den del av konfigurationen som du vill ändra.",
-        "menu_options": { "measurements": "Mätvärden", "settings": "Priser och övriga inställningar" }
+        "menu_options": { "measurements": "Mätvärden", "market_prices": "Marknadspriser (Nord Pool)", "settings": "Priser och övriga inställningar" }
       }
     },
-    "error": { "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet." }
+    "error": { "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet.", "invalid_market_source": "Välj en Nord Pool-integration med giltiga elområden och valuta, eller lämna källan tom.", "invalid_market_area": "Välj ett elområde som finns i den valda Nord Pool-integrationen." }
   },
   "entity": {
     "sensor": {

@@ -6,6 +6,7 @@ from custom_components.electricity_pro.measurement_config import (
     ADVANCED_MEASUREMENTS,
     MEASUREMENT_KEYS,
 )
+from custom_components.electricity_pro.market_config import MARKET_KEYS
 
 
 async def start_settings(manager, entry_id):
@@ -14,6 +15,36 @@ async def start_settings(manager, entry_id):
     return await manager.async_configure(
         result["flow_id"], {"next_step_id": "settings"}
     )
+
+
+async def start_market(manager, entry_id):
+    """Open the shared market section without saving another section."""
+    result = await manager.async_init(entry_id)
+    return await manager.async_configure(
+        result["flow_id"], {"next_step_id": "market_prices"}
+    )
+
+
+async def confirm_market(manager, result, values=None):
+    """Select a forecast source on its own screen in settings-focused tests."""
+    values = values or {}
+    shown = {
+        marker.schema: (marker.description or {}).get("suggested_value")
+        for marker in result["data_schema"].schema
+    }
+    result = await manager.async_configure(
+        result["flow_id"],
+        {
+            key: values.get(key, shown.get(key))
+            for key in MARKET_KEYS
+            if key in shown and values.get(key, shown.get(key)) is not None
+        },
+    )
+    if result.get("step_id") == "market_area" and values.get("forecast_price_area"):
+        result = await manager.async_configure(
+            result["flow_id"], {"forecast_price_area": values["forecast_price_area"]}
+        )
+    return result
 
 
 async def confirm_measurements(manager, result, values=None):
@@ -51,8 +82,16 @@ async def configure_settings(manager, result, values):
         result = await confirm_measurements(manager, result, values)
         if result.get("step_id") == "measurements":
             return result
-    if result.get("step_id") in ("init", "manual"):
+    if result.get("step_id") == "market_prices":
+        result = await confirm_market(manager, result, values)
+        if result.get("step_id") in ("market_prices", "market_area"):
+            return result
+        if result["type"] == "create_entry":
+            return result
+    if result.get("step_id") in ("init", "manual", "tibber_settings"):
         values = {
-            key: value for key, value in values.items() if key not in MEASUREMENT_KEYS
+            key: value
+            for key, value in values.items()
+            if key not in (*MEASUREMENT_KEYS, *MARKET_KEYS)
         }
     return await manager.async_configure(result["flow_id"], values)

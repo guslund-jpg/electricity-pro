@@ -7,7 +7,13 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.selector import EntitySelector
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from tests.flow_helpers import start_settings, configure_settings, confirm_measurements
+from tests.flow_helpers import (
+    start_market,
+    start_settings,
+    configure_settings,
+    confirm_measurements,
+    confirm_market,
+)
 
 from custom_components.electricity_pro.config_flow import (
     _entity_schema,
@@ -218,12 +224,14 @@ async def test_tibber_initial_setup_stores_nordpool_forecast(hass) -> None:
     )
     assert result["step_id"] == "measurements"
     result = await confirm_measurements(hass.config_entries.flow, result)
+    assert result["step_id"] == "market_prices"
+    result = await confirm_market(hass.config_entries.flow, result)
     assert result["step_id"] == "tibber_settings"
 
     result = await configure_settings(
         hass.config_entries.flow,
         result,
-        {CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id"},
+        {},
     )
     assert result["step_id"] == "tibber_forecast_pricing"
     keys = [key.schema for key in result["data_schema"].schema]
@@ -263,7 +271,7 @@ async def test_tibber_options_add_single_area_nordpool_entry(hass) -> None:
     )
     entry.add_to_hass(hass)
 
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
+    result = await start_market(hass.config_entries.options, entry.entry_id)
     keys = [key.schema for key in result["data_schema"].schema]
     assert keys[0] == CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
 
@@ -272,23 +280,9 @@ async def test_tibber_options_add_single_area_nordpool_entry(hass) -> None:
         result,
         {CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id"},
     )
-    assert result["step_id"] == "tibber_forecast_pricing"
-    keys = [key.schema for key in result["data_schema"].schema]
-    assert set(keys) == {
-        CONF_PRICE_VAT_RATE,
-        CONF_SUPPLIER_MARKUP_PER_KWH,
-        "estimate_supplier_markup",
-        "suggest_vat_rate",
-    }
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {CONF_PRICE_VAT_RATE: 25, CONF_SUPPLIER_MARKUP_PER_KWH: 0.18},
-    )
-
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == ("nordpool-entry-id")
-    assert CONF_FORECAST_PRICE_AREA not in result["data"]
+    assert result["data"][CONF_FORECAST_PRICE_AREA] is None
 
 
 async def test_tibber_options_select_multi_area_nordpool_entry(hass) -> None:
@@ -310,28 +304,13 @@ async def test_tibber_options_select_multi_area_nordpool_entry(hass) -> None:
     )
     entry.add_to_hass(hass)
 
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
+    result = await start_market(hass.config_entries.options, entry.entry_id)
     result = await configure_settings(
         hass.config_entries.options,
         result,
         {CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id"},
     )
-    assert result["step_id"] == "tibber_forecast_pricing"
-    keys = [key.schema for key in result["data_schema"].schema]
-    assert set(keys) == {
-        CONF_PRICE_VAT_RATE,
-        CONF_SUPPLIER_MARKUP_PER_KWH,
-        "estimate_supplier_markup",
-        "suggest_vat_rate",
-    }
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {CONF_PRICE_VAT_RATE: 25, CONF_SUPPLIER_MARKUP_PER_KWH: 0.18},
-    )
-
-    assert result["type"] == data_entry_flow.FlowResultType.FORM
-    assert result["step_id"] == "forecast_area"
+    assert result["step_id"] == "market_area"
 
     result = await configure_settings(
         hass.config_entries.options,
@@ -400,12 +379,8 @@ async def test_tibber_options_can_disable_initial_nordpool_forecast(hass) -> Non
     )
     entry.add_to_hass(hass)
 
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {},
-    )
+    result = await start_market(hass.config_entries.options, entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
 
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] is None
@@ -429,7 +404,10 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
     ]
     result = await confirm_measurements(hass.config_entries.flow, result)
     keys = [key.schema for key in result["data_schema"].schema]
-    assert keys[0] == CONF_FORECAST_NORDPOOL_CONFIG_ENTRY
+    assert keys == [CONF_FORECAST_NORDPOOL_CONFIG_ENTRY]
+    result = await confirm_market(hass.config_entries.flow, result)
+    keys = [key.schema for key in result["data_schema"].schema]
+    assert CONF_FORECAST_NORDPOOL_CONFIG_ENTRY not in keys
     assert keys[
         keys.index(CONF_GRID_FEE_PER_KWH) + 1 : keys.index(
             CONF_FIXED_SUPPLIER_FEE_MONTHLY
@@ -550,13 +528,16 @@ async def test_user_step_asks_for_area_for_multi_area_nordpool_entry(hass) -> No
     )
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
-    assert result["step_id"] == "forecast_area"
+    assert result["step_id"] == "market_area"
 
     result = await configure_settings(
         hass.config_entries.flow,
         result,
         {CONF_FORECAST_PRICE_AREA: "SE4"},
     )
+
+    assert result["step_id"] == "manual"
+    result = await configure_settings(hass.config_entries.flow, result, {})
 
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_FORECAST_PRICE_AREA] == "SE4"
@@ -586,7 +567,7 @@ async def test_options_flow_updates_forecast_config(hass) -> None:
     )
     entry.add_to_hass(hass)
 
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
+    result = await start_market(hass.config_entries.options, entry.entry_id)
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
 
@@ -594,15 +575,12 @@ async def test_options_flow_updates_forecast_config(hass) -> None:
         hass.config_entries.options,
         result,
         {
-            CONF_POWER_ENTITY: "sensor.test_power",
             CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "other-nordpool-entry-id",
-            CONF_GRID_FEE_PER_KWH: 0.1,
-            CONF_GOOD_PRICE_THRESHOLD: 1.0,
         },
     )
 
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert CONF_FORECAST_PRICE_AREA not in result["data"]
+    assert result["data"][CONF_FORECAST_PRICE_AREA] is None
     assert (
         result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] == "other-nordpool-entry-id"
     )
@@ -832,30 +810,42 @@ async def test_tibber_hidden_forecast_values_survive_disabling(hass) -> None:
         },
     )
     entry.add_to_hass(hass)
+    result = await start_market(hass.config_entries.options, entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_FORECAST_NORDPOOL_CONFIG_ENTRY] is None
     result = await start_settings(hass.config_entries.options, entry.entry_id)
     keys = [key.schema for key in result["data_schema"].schema]
     assert CONF_PRICE_VAT_RATE not in keys
     assert CONF_SUPPLIER_MARKUP_PER_KWH not in keys
     result = await configure_settings(hass.config_entries.options, result, {})
-    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_PRICE_VAT_RATE] == 0
     assert result["data"][CONF_SUPPLIER_MARKUP_PER_KWH] == 0.18
 
 
 async def test_tibber_forecast_form_restores_saved_zero_values(hass) -> None:
     """Re-enabling forecasting restores explicit zero VAT and markup."""
+    nordpool = MockConfigEntry(
+        domain="nordpool",
+        entry_id="nordpool-entry-id",
+        data={"areas": ["SE3"], "currency": "SEK"},
+    )
+    nordpool.add_to_hass(hass)
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={CONF_SOURCE_PROFILE: "tibber", CONF_POWER_ENTITY: "sensor.power"},
         options={CONF_PRICE_VAT_RATE: 0, CONF_SUPPLIER_MARKUP_PER_KWH: 0},
     )
     entry.add_to_hass(hass)
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
+    result = await start_market(hass.config_entries.options, entry.entry_id)
     result = await configure_settings(
         hass.config_entries.options,
         result,
         {CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id"},
     )
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    result = await start_settings(hass.config_entries.options, entry.entry_id)
+    result = await configure_settings(hass.config_entries.options, result, {})
     assert result["step_id"] == "tibber_forecast_pricing"
     defaults = result["data_schema"]({})
     assert defaults[CONF_PRICE_VAT_RATE] == 0

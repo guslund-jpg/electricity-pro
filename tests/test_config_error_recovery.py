@@ -9,7 +9,12 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from tests.flow_helpers import start_settings, configure_settings, confirm_measurements
+from tests.flow_helpers import (
+    start_settings,
+    configure_settings,
+    confirm_measurements,
+    confirm_market,
+)
 
 from custom_components.electricity_pro.const import DOMAIN
 from custom_components.electricity_pro.flow_sources import FLOW_KEYS
@@ -67,6 +72,7 @@ async def start(hass, profile, options):
     )
     result = await configure_settings(manager, result, {"setup_method": profile})
     result = await confirm_measurements(manager, result)
+    result = await confirm_market(manager, result)
     return None, manager, result
 
 

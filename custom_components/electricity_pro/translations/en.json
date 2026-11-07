@@ -77,6 +77,25 @@
   "title": "Electricity Pro",
   "config": {
     "step": {
+      "market_prices": {
+        "title": "Market prices (Nord Pool)",
+        "description": "Select the native Nord Pool integration for market prices and forecasts, or leave it empty to continue without Nord Pool. Area and currency come from that integration; choose an area when it has several. VAT is reviewed under Prices and other settings.\n\nSource: {source}\n\nBidding area: {area}\n\nCurrency: {currency}\n\nCountry from the bidding area: {country}",
+        "data": {
+          "forecast_nordpool_config_entry": "Nord Pool integration (optional)",
+          "forecast_price_area": "Bidding area"
+        },
+        "data_description": {
+          "forecast_nordpool_config_entry": "If no source is available, first set up the native Nord Pool integration. Clear this field to disable Nord Pool market prices and forecasts.",
+          "forecast_price_area": "Choose one of this Nord Pool entry’s areas. When changing the integration, its areas are shown after you continue."
+        }
+      },
+      "market_area": {
+        "title": "Bidding area (Nord Pool)",
+        "description": "Choose an area in {source}. Currency {currency} is inherited from Nord Pool. The selected area’s country is used for a VAT suggestion later.",
+        "data": {
+          "forecast_price_area": "Bidding area"
+        }
+      },
       "measurements": {
         "title": "Measurements",
         "description": "Choose readings from your electricity meter. Suggested sources can be changed. For a signed source, positive power means import and negative power means export.\n\n{sources}",
@@ -321,11 +340,32 @@
       "tibber_sources_not_found": "No enabled Tibber home with a current-power entity was found. Choose Custom or mixed sources, or enable the Tibber power entity.",
       "markup_estimate_unavailable": "No reliable estimate is available. Check the VAT rate, matching area, source availability, unique Tibber home names and currency. Prices must have at least four exact completed intervals covering one hour, with a nonnegative addition varying by no more than 0.01 per kWh. Multiple Tibber accounts are unsupported. Retry later, or uncheck confirmation to use manual pricing.",
       "invalid_vat_suggestion": "Enter a finite VAT percentage between 0 and 100 before confirming, or leave confirmation off to keep the previous setting.",
-      "invalid_measurement_source": "Choose a sensor with a compatible measurement and unit."
+      "invalid_measurement_source": "Choose a sensor with a compatible measurement and unit.",
+      "invalid_market_source": "Choose a native Nord Pool entry with valid areas and currency, or leave the source empty.",
+      "invalid_market_area": "Choose an area configured in the selected Nord Pool integration."
     }
   },
   "options": {
     "step": {
+      "market_prices": {
+        "title": "Market prices (Nord Pool)",
+        "description": "Select the native Nord Pool integration for market prices and forecasts, or leave it empty to continue without Nord Pool. Area and currency come from that integration; choose an area when it has several. VAT is reviewed under Prices and other settings.\n\nSource: {source}\n\nBidding area: {area}\n\nCurrency: {currency}\n\nCountry from the bidding area: {country}",
+        "data": {
+          "forecast_nordpool_config_entry": "Nord Pool integration (optional)",
+          "forecast_price_area": "Bidding area"
+        },
+        "data_description": {
+          "forecast_nordpool_config_entry": "If no source is available, first set up the native Nord Pool integration. Clear this field to disable Nord Pool market prices and forecasts.",
+          "forecast_price_area": "Choose one of this Nord Pool entry’s areas. When changing the integration, its areas are shown after you continue."
+        }
+      },
+      "market_area": {
+        "title": "Bidding area (Nord Pool)",
+        "description": "Choose an area in {source}. Currency {currency} is inherited from Nord Pool. The selected area’s country is used for a VAT suggestion later.",
+        "data": {
+          "forecast_price_area": "Bidding area"
+        }
+      },
       "measurements": {
         "title": "Measurements",
         "description": "Choose readings from your electricity meter. Suggested sources can be changed. For a signed source, positive power means import and negative power means export.\n\n{sources}",
@@ -393,6 +433,7 @@
         "description": "Choose the part of the configuration to edit.",
         "menu_options": {
           "measurements": "Measurements",
+          "market_prices": "Market prices (Nord Pool)",
           "settings": "Prices and other settings"
         }
       },
@@ -546,7 +587,9 @@
       "confirm_flow_semantics": "Confirm the selected whole-site AC source meanings, including household load excluding battery charging, and lifetime energy registers.",
       "markup_estimate_unavailable": "No reliable estimate is available. Check the VAT rate, matching area, source availability, unique Tibber home names and currency. Prices must have at least four exact completed intervals covering one hour, with a nonnegative addition varying by no more than 0.01 per kWh. Multiple Tibber accounts are unsupported. Retry later, or uncheck confirmation to use manual pricing.",
       "invalid_vat_suggestion": "Enter a finite VAT percentage between 0 and 100 before confirming, or leave confirmation off to keep the previous setting.",
-      "invalid_measurement_source": "Choose a sensor with a compatible measurement and unit."
+      "invalid_measurement_source": "Choose a sensor with a compatible measurement and unit.",
+      "invalid_market_source": "Choose a native Nord Pool entry with valid areas and currency, or leave the source empty.",
+      "invalid_market_area": "Choose an area configured in the selected Nord Pool integration."
     }
   }
 }

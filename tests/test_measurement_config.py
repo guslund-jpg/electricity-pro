@@ -60,7 +60,7 @@ async def start_options(hass, profile="custom", **data):
     manager = hass.config_entries.options
     menu = await manager.async_init(entry.entry_id)
     assert menu["type"] == FlowResultType.MENU
-    assert list(menu["menu_options"]) == ["measurements", "settings"]
+    assert list(menu["menu_options"]) == ["measurements", "market_prices", "settings"]
     result = await manager.async_configure(
         menu["flow_id"], {"next_step_id": "measurements"}
     )
@@ -78,6 +78,8 @@ async def test_custom_setup_moves_measurements_out_of_remaining_settings(hass):
     result = await manager.async_configure(
         result["flow_id"], {"power_entity": "sensor.power"}
     )
+    assert result["step_id"] == "market_prices"
+    result = await manager.async_configure(result["flow_id"], {})
     assert result["step_id"] == "manual"
     assert "power_entity" not in {key.schema for key in result["data_schema"].schema}
     result = await manager.async_configure(result["flow_id"], {})
@@ -98,6 +100,8 @@ async def test_supported_meter_suggestions_do_not_require_supplier_price(
     assert values["energy_entity"] == "sensor.test_accumulated_consumption"
     assert "My meter" in result["description_placeholders"]["sources"]
     result = await manager.async_configure(result["flow_id"], values)
+    assert result["step_id"] == "market_prices"
+    result = await manager.async_configure(result["flow_id"], {})
     assert result["step_id"] == (
         "tibber_settings" if profile == "tibber" and price else "manual"
     )
@@ -116,6 +120,8 @@ async def test_unknown_energy_period_is_confirmed_after_source_selection(hass):
     result = await manager.async_configure(
         result["flow_id"], {"energy_source_type": "lifetime"}
     )
+    assert result["step_id"] == "market_prices"
+    result = await manager.async_configure(result["flow_id"], {})
     result = await manager.async_configure(result["flow_id"], {})
     assert result["data"]["energy_entity"] == "sensor.energy"
     assert result["data"]["energy_source_type"] == "lifetime"
