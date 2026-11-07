@@ -437,8 +437,8 @@
           "production_energy_entity": "Lifetime AC generation register excluding battery discharge, in Wh/kWh. Daily-reset and DC registers are unsupported.",
           "grid_export_power_entity": "Separate, non-negative directional grid export in W/kW. Signed net-grid power is not an export source.",
           "grid_export_energy_entity": "Lifetime energy delivered to the grid, in Wh/kWh. Keep it separate from imported energy.",
-          "household_power_entity": "Whole-site non-storage AC load, including ordinary EV charging and distribution losses, excluding battery charging. Grid import is not household demand.",
-          "household_energy_entity": "Lifetime register for the same non-storage household boundary, in Wh/kWh. Do not use an import counter.",
+          "household_power_entity": "Whole-site AC load, including ordinary EV charging and distribution losses, excluding battery charging. A grid-import sensor measures only power drawn from the grid. It excludes the share of household demand supplied by local generation or battery discharge and can also include battery charging. Select a separate household-load source.",
+          "household_energy_entity": "Lifetime register for the same household load, excluding battery charging, in Wh/kWh. It must cover household consumption whether supplied by the grid, local generation or battery discharge. An import register measures only energy drawn from the grid and can also include battery charging.",
           "confirm_flow_semantics": "The selected sources have these whole-site AC meanings and lifetime energy periods. No site balance, battery attribution or export revenue is calculated."
         }
       },
@@ -595,8 +595,8 @@
           "production_energy_entity": "Lifetime AC generation register excluding battery discharge, in Wh/kWh. Daily-reset and DC registers are unsupported.",
           "grid_export_power_entity": "Separate, non-negative directional grid export in W/kW. Signed net-grid power is not an export source.",
           "grid_export_energy_entity": "Lifetime energy delivered to the grid, in Wh/kWh. Keep it separate from imported energy.",
-          "household_power_entity": "Whole-site non-storage AC load, including ordinary EV charging and distribution losses, excluding battery charging. Grid import is not household demand.",
-          "household_energy_entity": "Lifetime register for the same non-storage household boundary, in Wh/kWh. Do not use an import counter.",
+          "household_power_entity": "Whole-site AC load, including ordinary EV charging and distribution losses, excluding battery charging. A grid-import sensor measures only power drawn from the grid. It excludes the share of household demand supplied by local generation or battery discharge and can also include battery charging. Select a separate household-load source.",
+          "household_energy_entity": "Lifetime register for the same household load, excluding battery charging, in Wh/kWh. It must cover household consumption whether supplied by the grid, local generation or battery discharge. An import register measures only energy drawn from the grid and can also include battery charging.",
           "confirm_flow_semantics": "The selected sources have these whole-site AC meanings and lifetime energy periods. No site balance, battery attribution or export revenue is calculated."
         }
       },

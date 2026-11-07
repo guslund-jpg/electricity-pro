@@ -203,8 +203,8 @@
           "production_energy_entity": "Livstidsregister för AC-produktion exklusive batteriurladdning, i Wh/kWh. Register som återställs dagligen och DC-register stöds inte.",
           "grid_export_power_entity": "Separat, icke-negativ riktad export till elnätet i W/kW. Signerad nettoeffekt vid elnätet är inte en exportkälla.",
           "grid_export_energy_entity": "Livstidsregister för energi som levererats till elnätet, i Wh/kWh. Ska vara separat från importerad energi.",
-          "household_power_entity": "Hela hushållets AC-last, inklusive vanlig elbilsladdning och distributionsförluster men exklusive batteriladdning. Import från elnätet är inte hushållets elanvändning.",
-          "household_energy_entity": "Livstidsregister för samma hushållslast exklusive batteriladdning, i Wh/kWh. Använd inte ett importregister.",
+          "household_power_entity": "Hela hushållets AC-last, inklusive vanlig elbilsladdning och distributionsförluster men exklusive batteriladdning. En importgivare mäter bara effekten som tas från elnätet. Den visar inte den del av hushållets behov som täcks av egen produktion eller batteri och kan även inkludera batteriladdning. Välj därför en separat källa för hushållets last.",
+          "household_energy_entity": "Livstidsregister för samma hushållslast exklusive batteriladdning, i Wh/kWh. Registret ska omfatta hushållets elanvändning oavsett om elen kommer från nätet, egen produktion eller batteri. Ett importregister mäter bara energin från nätet och kan även inkludera batteriladdning.",
           "confirm_flow_semantics": "De valda källorna har dessa betydelser för hela anläggningen på AC-sidan och visar livstidsenergi. Ingen anläggningsbalans, batterifördelning eller exportintäkt beräknas."
         }
       },
@@ -401,8 +401,8 @@
           "production_energy_entity": "Livstidsregister för AC-produktion exklusive batteriurladdning, i Wh/kWh. Register som återställs dagligen och DC-register stöds inte.",
           "grid_export_power_entity": "Separat, icke-negativ riktad export till elnätet i W/kW. Signerad nettoeffekt vid elnätet är inte en exportkälla.",
           "grid_export_energy_entity": "Livstidsregister för energi som levererats till elnätet, i Wh/kWh. Ska vara separat från importerad energi.",
-          "household_power_entity": "Hela hushållets AC-last, inklusive vanlig elbilsladdning och distributionsförluster men exklusive batteriladdning. Import från elnätet är inte hushållets elanvändning.",
-          "household_energy_entity": "Livstidsregister för samma hushållslast exklusive batteriladdning, i Wh/kWh. Använd inte ett importregister.",
+          "household_power_entity": "Hela hushållets AC-last, inklusive vanlig elbilsladdning och distributionsförluster men exklusive batteriladdning. En importgivare mäter bara effekten som tas från elnätet. Den visar inte den del av hushållets behov som täcks av egen produktion eller batteri och kan även inkludera batteriladdning. Välj därför en separat källa för hushållets last.",
+          "household_energy_entity": "Livstidsregister för samma hushållslast exklusive batteriladdning, i Wh/kWh. Registret ska omfatta hushållets elanvändning oavsett om elen kommer från nätet, egen produktion eller batteri. Ett importregister mäter bara energin från nätet och kan även inkludera batteriladdning.",
           "confirm_flow_semantics": "De valda källorna har dessa betydelser för hela anläggningen på AC-sidan och visar livstidsenergi. Ingen anläggningsbalans, batterifördelning eller exportintäkt beräknas."
         }
       },
