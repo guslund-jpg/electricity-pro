@@ -4,6 +4,11 @@
 
 ### Added
 
+- Add a read-only Overview (Översikt in Swedish) after new Custom/Tibber setup
+  and in Configure. Review sources, inherited Nord Pool context, tariffs and
+  usage insights, with separate live/forecast variable-price coverage and unknown
+  fixed fees. Final setup requires confirmation; existing-entry overview leaves
+  settings and runtime state untouched. (#373)
 - Add a shared Usage insights screen (Elanvändningsråd in Swedish) for Custom,
   Tibber and Configure. Show adaptive controls only in Adaptive mode, retain
   inactive values on method changes, and preserve zero and explicit clears.

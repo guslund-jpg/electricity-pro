@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from copy import deepcopy
 from datetime import time
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -90,6 +91,7 @@ from .pricing_config import prepare_pricing_metadata as _prepare_pricing_metadat
 from .flow_sources import FLOW_KEYS
 from .production_config import ProductionFlow
 from .insight_config import InsightFlow
+from .review_config import ReviewFlow
 from .markup_estimate import CONF_ESTIMATE_MARKUP, MarkupEstimate, async_estimate_markup
 from .vat_suggestions import CONF_SUGGEST_VAT, assistance_field
 
@@ -1063,6 +1065,7 @@ class ElectricityProConfigFlow(
     GridFlow,
     ProductionFlow,
     InsightFlow,
+    ReviewFlow,
     _MarkupEstimateFlow,
     config_entries.ConfigFlow,
     domain=DOMAIN,
@@ -1073,6 +1076,7 @@ class ElectricityProConfigFlow(
 
     def __init__(self) -> None:
         """Initialize the config flow."""
+        self._pending_review_values: dict[str, Any] | None = None
         self._pending_user_input: dict[str, Any] | None = None
         self._pending_forecast_settings: dict[str, Any] | None = None
         self._forecast_areas: list[str] = []
@@ -1223,7 +1227,14 @@ class ElectricityProConfigFlow(
             <= 1
         ):
             data.pop(CONF_FORECAST_PRICE_AREA, None)
-        return self.async_create_entry(title="Electricity Pro", data=data)
+        self._pending_review_values = deepcopy(data)
+        return await self.async_step_review()
+
+    def _review_defaults(self) -> dict[str, Any] | None:
+        return deepcopy(self._pending_review_values)
+
+    async def _async_review_complete(self, values: dict[str, Any]) -> ConfigFlowResult:
+        return self.async_create_entry(title="Electricity Pro", data=values)
 
     def _manual_schema(self) -> vol.Schema:
         schema = _entity_schema(
@@ -1465,10 +1476,13 @@ class ElectricityProOptionsFlow(
     GridFlow,
     ProductionFlow,
     InsightFlow,
+    ReviewFlow,
     _MarkupEstimateFlow,
     OptionsFlow,
 ):
     """Handle Electricity Pro options."""
+
+    _review_step_id = "overview"
 
     def __init__(self) -> None:
         """Initialize the options flow."""
@@ -1577,6 +1591,12 @@ class ElectricityProOptionsFlow(
             title="", data={**self.config_entry.options, **values}
         )
 
+    def _review_defaults(self) -> dict[str, Any]:
+        return self._settings_defaults()
+
+    async def _async_review_complete(self, values: dict[str, Any]) -> ConfigFlowResult:
+        return await self.async_step_menu()
+
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -1596,6 +1616,7 @@ class ElectricityProOptionsFlow(
                 "grid",
                 "energy_flows",
                 "insights",
+                "overview",
             ],
         )
 

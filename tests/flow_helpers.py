@@ -50,6 +50,13 @@ async def select_insight_method(manager, result, mode):
     )
 
 
+async def confirm_review(manager, result):
+    """Confirm the final setup draft when the flow has reached its overview."""
+    if result.get("step_id") == "review":
+        return await manager.async_configure(result["flow_id"], {})
+    return result
+
+
 async def confirm_insights(manager, result, values=None):
     """Review a method change, then accept only its visible values."""
     values = values or {}
@@ -67,7 +74,8 @@ async def confirm_insights(manager, result, values=None):
                 submitted.pop(key, None)
             else:
                 submitted[key] = value
-    return await manager.async_configure(result["flow_id"], submitted)
+    result = await manager.async_configure(result["flow_id"], submitted)
+    return await confirm_review(manager, result)
 
 
 async def start_market(manager, entry_id):

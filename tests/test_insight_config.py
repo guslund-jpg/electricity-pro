@@ -14,6 +14,7 @@ from custom_components.electricity_pro.binary_sensor import async_setup_entry
 from custom_components.electricity_pro.insight_config import INSIGHT_KEYS
 from custom_components.electricity_pro.pricing import PriceCompleteness
 from tests.flow_helpers import (
+    confirm_review,
     confirm_grid,
     confirm_insights,
     confirm_market,
@@ -104,6 +105,7 @@ async def test_default_setup_does_not_create_an_unconfigured_good_time_entity(
 ):
     manager, result = await open_setup(hass, profile)
     result = await manager.async_configure(result["flow_id"], {})
+    result = await confirm_review(manager, result)
     assert result["type"] == "create_entry"
     assert FIXED not in result["data"]
     add_entities = Mock()

@@ -7,7 +7,12 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import DOMAIN
-from tests.flow_helpers import confirm_supplier, confirm_grid, confirm_production
+from tests.flow_helpers import (
+    confirm_review,
+    confirm_supplier,
+    confirm_grid,
+    confirm_production,
+)
 
 
 def form_values(result):
@@ -68,6 +73,7 @@ async def start_options(hass, profile="custom", **data):
         "grid",
         "energy_flows",
         "insights",
+        "overview",
     ]
     result = await manager.async_configure(
         menu["flow_id"], {"next_step_id": "measurements"}
@@ -96,6 +102,7 @@ async def test_custom_setup_moves_measurements_out_of_remaining_settings(hass):
     assert result["step_id"] == "insights"
     assert "power_entity" not in {key.schema for key in result["data_schema"].schema}
     result = await manager.async_configure(result["flow_id"], {})
+    result = await confirm_review(manager, result)
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["power_entity"] == "sensor.power"
 
@@ -121,6 +128,7 @@ async def test_supported_meter_suggestions_do_not_require_supplier_price(
         result = await confirm_production(manager, result)
     assert result["step_id"] == "insights"
     result = await manager.async_configure(result["flow_id"], {})
+    result = await confirm_review(manager, result)
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["energy_source_type"] == "daily"
 
@@ -142,6 +150,7 @@ async def test_unknown_energy_period_is_confirmed_after_source_selection(hass):
     if result.get("step_id") == "energy_flows":
         result = await confirm_production(manager, result)
     result = await manager.async_configure(result["flow_id"], {})
+    result = await confirm_review(manager, result)
     assert result["data"]["energy_entity"] == "sensor.energy"
     assert result["data"]["energy_source_type"] == "lifetime"
 

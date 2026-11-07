@@ -42,6 +42,7 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `__init__.py`, `const.py`, `services.yaml` | Config-entry lifecycle, platforms, constants and public actions |
 | `config_flow.py` | Standard/Tibber setup, options, validation, drafts and confirmations |
 | `measurement_config.py` | Shared measurement forms, source review and energy-counter confirmation |
+| `review_config.py` | Read-only final setup draft and options overview with configured price-component coverage |
 | `source_adapters.py` | Guided discovery and provider-specific configuration assistance |
 | `provider.py` | HA state reading, normalization, configured tariffs and snapshot construction |
 | `pricing_config.py`, `vat_suggestions.py` | Price declarations and editable regional VAT suggestions |
@@ -144,6 +145,22 @@ outside this form. Fresh setup omits unset amounts to preserve default entity
 creation behavior and assembles the preceding section drafts once at completion.
 The former first-form setup submission retains its separate compatibility path.
 
+Configuration review lives in `review_config.py`. Shared setup reaches it after
+Insights and creates the entry only after final confirmation. Options use the
+same read-only groups but return to the menu without an options update or reload.
+The displayed selector payload is ignored: it cannot overwrite the assembled
+setup draft or saved settings. Native selectors carry English/Swedish labels and
+choices through Home Assistant's frontend translations. No review-only fields
+are persisted.
+
+Component coverage delegates to the existing pricing/VAT calculations and
+complete-source guard. Live declarations and raw Nord Pool forecasts are reviewed
+separately; fixed fees, context and invalid schedules have distinct missing-data
+indicators. This is configuration coverage, not live availability, historical
+cost completeness or physical installation validation. Native market facts,
+configured declarations and runtime schedule defaults are identified without
+inventing provenance for previously stored VAT rates.
+
 Options start with a section menu. Measurement, market, supplier, grid,
 production and insight saves overlay only their owned keys onto the latest
 options, including explicit clears. The duplicated track-specific remaining
@@ -174,6 +191,7 @@ or historical interval costs. See [meter protection](../guides/meter-reading-pro
 Recorder stores published entity history and eligible long-term statistics.
 Excluding source entities does not stop live calculations, but removes their
 recorded history.
+
 
 ## Measurement and price semantics
 

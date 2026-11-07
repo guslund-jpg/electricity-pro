@@ -7,6 +7,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.grid_config import GRID_KEYS
 from tests.flow_helpers import (
+    confirm_review,
     confirm_production,
     TIBBER_CONTRACT,
     confirm_grid,
@@ -76,6 +77,7 @@ async def test_setup_grid_after_supplier_before_insights(hass, profile):
     assert result["step_id"] == "insights"
     assert not set(GRID_KEYS) & {key.schema for key in result["data_schema"].schema}
     result = await manager.async_configure(result["flow_id"], {})
+    result = await confirm_review(manager, result)
     assert result["type"] == "create_entry"
     assert {key: result["data"][key] for key in GRID_KEYS} == TARIFF
     assert result["data"]["fixed_supplier_fee_monthly"] == 49

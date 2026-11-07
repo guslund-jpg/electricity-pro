@@ -16,7 +16,7 @@ current/voltage inputs, an energy-period override and optional external monthly
 peak-hour readings.
 
 The Configure menu offers Measurements, Market prices (Nord Pool), Electricity
-supplier, Grid charges, Production and export, and Usage insights. Saving a
+supplier, Grid charges, Production and export, Usage insights, and Overview. Saving a
 section applies its own edits. The remaining settings retain the existing
 measurement, market, supplier, grid and optional-source bindings.
 The new screens have English and Swedish text. Publication remains tracked by
@@ -118,8 +118,8 @@ Blank means unknown and 0 means an actual zero charge. Clearing a visible amount
 overrides its original setup value. Components declared as already included
 under Supplier are not added twice to live prices, while the configured rates
 can still be needed for raw Nord Pool forecasts. A grid save preserves supplier,
-market, meter, optional-flow and insight settings. Remaining insights and energy
-flows are available under **Usage insights**.
+market, meter, optional-flow and insight settings. Optional sources and advice
+have their own **Production and export** and **Usage insights** sections.
 
 The Swedish help text's 0.45 SEK/kWh example is the ordinary **2026** energy
 tax including VAT, not a default or a regional rate. See
@@ -197,8 +197,39 @@ A save changes only the four insight settings. Meter sources, Nord Pool,
 supplier/grid charges and optional source/declaration settings are preserved.
 An insight-only save does not validate or repair unrelated source settings.
 Existing entity identities, comparable price history and accumulated totals
-retain their contracts. A final cross-section setup review is still a later
-increment of [#373](https://github.com/guslund-jpg/electricity-pro/issues/373).
+retain their contracts.
+
+## Configuration overview on the development branch
+
+Both setup paths continue from Usage insights to **Overview** (**Översikt** in
+Swedish). Expand the groups to check measurements, Nord Pool context, supplier
+price declarations, grid charges, optional sources and usage insights. Confirming
+this final screen creates the entry from the draft assembled on the earlier
+screens. Closing it cancels setup without creating an entry.
+
+Existing installations have the same read-only overview in **Configure**.
+Confirming returns to the section menu; opening, closing or confirming this
+screen does not save settings or reload the integration. Use the relevant menu
+section to edit values. Each section still saves independently.
+
+The price summary describes **configured variable components**, separately for
+the current price and raw Nord Pool forecast. It follows the existing pricing
+model: declared included components are not added twice, while raw forecasts
+need their own configured additions and VAT rate. An unavailable live sensor or
+incomplete historical cost coverage must still be checked on the entities.
+Unknown fixed fees are listed separately; zero is a known configured amount.
+An incomplete declaration or incompatible extra additions are shown for review,
+without repairing the saved settings or assuming missing charges are zero.
+
+A single bidding area and the currency come from the selected Nord Pool entry;
+a selection among several areas is marked configured. The country is derived
+from the bidding area, never guessed from currency. The VAT rate is shown as
+configured/confirmed: older stored rates have no separate input-provenance record.
+A missing high/low schedule field is identified as using a runtime default;
+explicitly cleared or invalid values remain unknown and can trigger a warning.
+Installation-presence answers remain unknown unless declared, independently of
+whether optional measurement sources have been selected. This summary does not
+establish a household balance or solar/battery hardware validation.
 
 ## Guided Tibber setup
 

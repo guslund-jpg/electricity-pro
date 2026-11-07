@@ -7,6 +7,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.flow_helpers import (
+    confirm_review,
     confirm_production,
     start_market,
     start_supplier,
@@ -80,7 +81,7 @@ async def finish_setup(manager, result):
             result = await confirm_production(manager, result)
     if result.get("step_id") in ("insights", "insights_adaptive"):
         result = await manager.async_configure(result["flow_id"], {})
-    return result
+    return await confirm_review(manager, result)
 
 
 @pytest.mark.parametrize("profile", ["custom", "tibber"])

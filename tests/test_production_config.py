@@ -10,6 +10,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.electricity_pro.flow_sources import FLOW_KEYS
 from custom_components.electricity_pro.production_config import PRODUCTION_KEYS
 from tests.flow_helpers import (
+    confirm_review,
     confirm_grid,
     confirm_market,
     confirm_measurements,
@@ -70,6 +71,7 @@ async def test_import_only_setup_skips_sources_and_installation_questions(
     )
     assert result["step_id"] == "insights"
     result = await manager.async_configure(result["flow_id"], {})
+    result = await confirm_review(manager, result)
     assert result["type"] == "create_entry"
     assert all(result["data"][key] is None for key in FLOW_KEYS)
     assert result["data"]["flow_storage_presence"] == "unknown"
@@ -99,6 +101,7 @@ async def test_each_source_can_be_reviewed_during_both_setup_paths(hass, profile
     assert result["step_id"] == "insights"
     assert not set(PRODUCTION_KEYS) & result["data_schema"].schema.keys()
     result = await manager.async_configure(result["flow_id"], {})
+    result = await confirm_review(manager, result)
     assert result["type"] == "create_entry"
     assert result["data"][key] == "sensor.optional"
     assert result["data"]["flow_storage_presence"] == "unknown"

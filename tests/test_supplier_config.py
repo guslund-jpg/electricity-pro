@@ -6,6 +6,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.flow_helpers import (
+    confirm_review,
     confirm_production,
     confirm_grid,
     start_grid,
@@ -128,6 +129,7 @@ async def test_setup_reviews_supplier_before_grid_without_redeclaring_tibber(
         & fields
     )
     result = await manager.async_configure(result["flow_id"], {})
+    result = await confirm_review(manager, result)
     assert result["type"] == "create_entry"
     assert result["data"]["fixed_supplier_fee_monthly"] == 0
     if forecast:
@@ -388,6 +390,7 @@ async def test_meter_only_tibber_uses_explicit_custom_supplier_inputs(hass):
         result = await confirm_production(manager, result)
     assert result["step_id"] == "insights"
     result = await manager.async_configure(result["flow_id"], {})
+    result = await confirm_review(manager, result)
     assert result["type"] == "create_entry"
     assert result["data"].get("source_profile") != "tibber"
     assert result["data"]["price_entity"] == "sensor.other_supplier"
