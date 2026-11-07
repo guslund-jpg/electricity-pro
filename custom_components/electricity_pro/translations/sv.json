@@ -7,7 +7,7 @@
   "config": {
     "step": {
       "measurements": {
-        "title": "Mätningar",
+        "title": "Mätvärden",
         "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\n\n{sources}",
         "data": {
           "power_entity": "Aktuell effekt vid elnätet",
@@ -18,7 +18,7 @@
         },
         "sections": {
           "advanced_measurements": {
-            "name": "Avancerade mätningar",
+            "name": "Avancerade mätvärden",
             "data": {
               "current_l1_entity": "Ström L1",
               "voltage_l1_entity": "Spänning L1",
@@ -49,7 +49,7 @@
   "options": {
     "step": {
       "measurements": {
-        "title": "Mätningar",
+        "title": "Mätvärden",
         "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\n\n{sources}",
         "data": {
           "power_entity": "Aktuell effekt vid elnätet",
@@ -60,7 +60,7 @@
         },
         "sections": {
           "advanced_measurements": {
-            "name": "Avancerade mätningar",
+            "name": "Avancerade mätvärden",
             "data": {
               "current_l1_entity": "Ström L1",
               "voltage_l1_entity": "Spänning L1",
@@ -88,7 +88,7 @@
       "menu": {
         "title": "Konfigurera Electricity Pro",
         "description": "Välj den del av konfigurationen som du vill ändra.",
-        "menu_options": { "measurements": "Mätningar", "settings": "Priser och övriga inställningar" }
+        "menu_options": { "measurements": "Mätvärden", "settings": "Priser och övriga inställningar" }
       }
     },
     "error": { "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet." }
