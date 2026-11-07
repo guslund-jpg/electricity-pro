@@ -146,6 +146,11 @@ class MeasurementFlow(ConfigEntryBaseFlow):
                 for key, value in self._measurement_reference.items()
                 if key in MEASUREMENT_KEYS
             }
+            if self._measurement_values.get(CONF_ENERGY_SOURCE_TYPE) not in (
+                ENERGY_SOURCE_DAILY,
+                ENERGY_SOURCE_LIFETIME,
+            ):
+                self._measurement_values[CONF_ENERGY_SOURCE_TYPE] = ENERGY_SOURCE_DAILY
         errors = {}
         if user_input is not None:
             advanced = user_input.get("advanced_measurements", self._measurement_values)
@@ -162,8 +167,7 @@ class MeasurementFlow(ConfigEntryBaseFlow):
                 if energy == self._measurement_reference.get(CONF_ENERGY_ENTITY):
                     values[CONF_ENERGY_SOURCE_TYPE] = advanced.get(
                         CONF_ENERGY_SOURCE_TYPE,
-                        self._measurement_reference.get(CONF_ENERGY_SOURCE_TYPE)
-                        or ENERGY_SOURCE_DAILY,
+                        previous.get(CONF_ENERGY_SOURCE_TYPE, ENERGY_SOURCE_DAILY),
                     )
                 elif energy:
                     registered = er.async_get(self.hass).async_get(energy)
@@ -197,13 +201,14 @@ class MeasurementFlow(ConfigEntryBaseFlow):
             (CONF_ENERGY_ENTITY, "energy"),
         ):
             marker_type = vol.Required if key == CONF_POWER_ENTITY else vol.Optional
+            config = selector.EntitySelectorConfig(
+                domain="sensor", exclude_entities=own
+            )
+            if key == CONF_POWER_ENTITY:
+                config["device_class"] = device_class
             fields[
                 marker_type(key, description={"suggested_value": values.get(key)})
-            ] = selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    domain="sensor", device_class=device_class, exclude_entities=own
-                )
-            )
+            ] = selector.EntitySelector(config)
         advanced_fields: dict[
             vol.Marker, selector.EntitySelector | selector.SelectSelector
         ] = {

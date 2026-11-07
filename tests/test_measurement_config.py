@@ -250,3 +250,34 @@ async def test_advanced_energy_period_can_be_corrected_without_changing_source(h
     )
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["energy_source_type"] == "lifetime"
+
+
+async def test_generic_energy_sensor_without_device_class_is_selectable(hass):
+    hass.states.async_set("sensor.generic_energy", "12", {"unit_of_measurement": "kWh"})
+    manager, result = await start_setup(hass, "custom")
+    energy_selector = next(
+        value
+        for key, value in result["data_schema"].schema.items()
+        if key.schema == "energy_entity"
+    )
+    assert "device_class" not in energy_selector.config
+    result = await manager.async_configure(
+        result["flow_id"],
+        {"power_entity": "sensor.power", "energy_entity": "sensor.generic_energy"},
+    )
+    assert result["step_id"] == "measurement_energy"
+
+
+async def test_legacy_invalid_energy_period_keeps_its_effective_daily_semantics(hass):
+    _, manager, result = await start_options(
+        hass, energy_entity="sensor.energy", energy_source_type="legacy_unknown"
+    )
+    result = await manager.async_configure(
+        result["flow_id"],
+        {
+            "power_entity": "sensor.old_power",
+            "energy_entity": "sensor.energy",
+        },
+    )
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"]["energy_source_type"] == "daily"
