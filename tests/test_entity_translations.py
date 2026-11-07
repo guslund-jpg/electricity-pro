@@ -167,3 +167,63 @@ async def test_upgrade_preserves_existing_entity_identity(
     assert state.name == (
         "My grid power" if customize else "Electricity Pro Aktuell effekt"
     )
+
+
+@pytest.mark.parametrize("language", ["en", "sv", "fi"])
+@pytest.mark.parametrize(
+    ("second_price", "raw_state"),
+    [(2000, "rising"), (500, "falling"), (1000, "stable")],
+)
+async def test_price_direction_translations_keep_raw_states_and_identity(
+    hass, freezer, setup_electricity_pro, language, second_price, raw_state
+):
+    from homeassistant.helpers import translation
+
+    hass.config.language = language
+    freezer.move_to("2026-11-07T12:00:00Z")
+    entry = await setup_electricity_pro(
+        forecast_price_area="SE3",
+        forecast_currency="SEK",
+        forecast_nordpool_config_entry="native-forecast",
+        forecast_pricing_metadata=PricingMetadata(
+            strategy=PricingStrategy.EXTERNAL_COMPLETE_PRICE,
+            scope=PriceComponentScope(
+                frozenset(PriceComponent), vat=VatTreatment.INCLUDED
+            ),
+            completeness=PriceCompleteness.COMPLETE,
+        ),
+        forecast_intervals=[
+            {
+                "start": "2026-11-07T12:00:00Z",
+                "end": "2026-11-07T13:00:00Z",
+                "price": 1000,
+            },
+            {
+                "start": "2026-11-07T13:00:00Z",
+                "end": "2026-11-07T14:00:00Z",
+                "price": second_price,
+            },
+        ],
+    )
+    entity_id = "sensor.electricity_pro_price_direction"
+    state = hass.states.get(entity_id)
+    assert state.state == raw_state
+    assert state.attributes["device_class"] == "enum"
+    assert state.attributes["options"] == ["rising", "falling", "stable"]
+    assert "unit_of_measurement" not in state.attributes
+    assert "state_class" not in state.attributes
+    registered = er.async_get(hass).async_get(entity_id)
+    assert registered.unique_id == f"{entry.entry_id}_price_direction"
+    labels = await translation.async_get_translations(
+        hass, language, "entity", {DOMAIN}
+    )
+    expected = (
+        {"rising": "Stigande", "falling": "Fallande", "stable": "Stabil"}
+        if language == "sv"
+        else {"rising": "Rising", "falling": "Falling", "stable": "Stable"}
+    )
+    for key, text in expected.items():
+        assert (
+            labels[f"component.{DOMAIN}.entity.sensor.price_direction.state.{key}"]
+            == text
+        )

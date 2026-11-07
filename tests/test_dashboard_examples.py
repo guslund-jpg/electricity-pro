@@ -12,6 +12,11 @@ from homeassistant.helpers.template import Template
 DASHBOARD_EXAMPLES = Path(__file__).parents[1] / "examples" / "dashboards"
 
 
+def _language(path, english, swedish):
+    """Select the expected user-facing assertion for each maintained example."""
+    return swedish if path.stem.endswith("-sv") else english
+
+
 @pytest.mark.parametrize("coverage", ["partial", "unverified", "tracked"])
 async def test_dashboard_coverage_notes_render(hass, coverage) -> None:
     """Render both dashboards against real HA templates and representative states."""
@@ -58,18 +63,39 @@ async def test_dashboard_coverage_notes_render(hass, coverage) -> None:
             str(Template(card["content"], hass).async_render(parse_result=False))
             for card in cards
         )
-        assert "Partial supplier estimate" in rendered
+        assert (
+            _language(
+                path, "Partial supplier estimate", "Delvis beräknad elhandelskostnad"
+            )
+            in rendered
+        )
         assert "0.2" in rendered
-        assert "Cost & coverage details" in rendered
-        assert "since month start" in rendered
-        assert ("Partial monthly energy" in rendered) == (coverage == "partial")
-        assert ("Unverified monthly energy" in rendered) == (coverage == "unverified")
+        assert (
+            _language(
+                path, "Cost & coverage details", "Om kostnader och mätningens täckning"
+            )
+            in rendered
+        )
+        assert _language(path, "since month start", "sedan månadens början") in rendered
+        assert (
+            _language(path, "Partial monthly energy", "Delvis uppmätt månadsenergi")
+            in rendered
+        ) == (coverage == "partial")
+        assert (
+            _language(path, "Unverified monthly energy", "Ej verifierad månadsenergi")
+            in rendered
+        ) == (coverage == "unverified")
         names = {
             item.get("name") for item in _walk(dashboard) if isinstance(item, dict)
         }
-        assert "Supplier cost today" in names
-        assert "Supplier cost this month" in names
-        assert "Cost today" not in names
+        assert _language(path, "Supplier cost today", "Elhandelskostnad i dag") in names
+        assert (
+            _language(
+                path, "Supplier cost this month", "Elhandelskostnad den här månaden"
+            )
+            in names
+        )
+        assert _language(path, "Cost today", "Kostnad i dag") not in names
         entity_cards = [
             item["entity"]
             for item in _walk(dashboard)
@@ -97,8 +123,22 @@ async def test_household_dashboard_notes_explain_missing_fixed_fees(hass) -> Non
             for item in _walk(dashboard)
             if isinstance(item, dict) and item.get("type") == "markdown"
         )
-        assert "fixed supplier fee, fixed grid fee" in rendered
-        assert "Demand/other unconfigured charges excluded" in rendered
+        assert (
+            _language(
+                path,
+                "fixed supplier fee, fixed grid fee",
+                "fast elhandelsavgift, fast elnätsavgift",
+            )
+            in rendered
+        )
+        assert (
+            _language(
+                path,
+                "Demand/other unconfigured charges excluded",
+                "Effektavgifter och andra ej konfigurerade avgifter ingår inte",
+            )
+            in rendered
+        )
 
 
 async def test_cost_notes_remain_compact_and_prioritize_household_coverage(
@@ -137,12 +177,12 @@ async def test_cost_notes_remain_compact_and_prioritize_household_coverage(
             for item in _walk(dashboard)
             if isinstance(item, dict)
             and item.get("type") == "markdown"
-            and "Cost & coverage details" in item.get("content", "")
+            and "docs/guides/costs-and-pricing.md" in item.get("content", "")
         ]
         assert len(notes) >= 2
         for note in notes:
             text = Template(note["content"], hass).async_render(parse_result=False)
-            assert "2.09 kWh priced" in text
+            assert _language(path, "2.09 kWh priced", "2.09 kWh prissatta") in text
             assert "1.23" not in text
             assert len(text.split()) <= 55
             assert "docs/guides/costs-and-pricing.md" in text
@@ -158,9 +198,24 @@ async def test_dashboard_notes_do_not_call_external_costs_local_estimates(hass) 
                 rendered = Template(card["content"], hass).async_render(
                     parse_result=False
                 )
-                assert "Partial estimate" not in rendered
-                assert "Partial supplier estimate" not in rendered
-                assert "Unverified monthly energy" not in rendered
+                assert (
+                    _language(path, "Partial estimate", "Delvis beräknad kostnad")
+                    not in rendered
+                )
+                assert (
+                    _language(
+                        path,
+                        "Partial supplier estimate",
+                        "Delvis beräknad elhandelskostnad",
+                    )
+                    not in rendered
+                )
+                assert (
+                    _language(
+                        path, "Unverified monthly energy", "Ej verifierad månadsenergi"
+                    )
+                    not in rendered
+                )
 
 
 def _walk(value: Any) -> Iterator[Any]:

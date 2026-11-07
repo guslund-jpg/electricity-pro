@@ -4,6 +4,11 @@
 
 ### Added
 
+- Add Swedish Standard and Enhanced dashboard examples with translated tabs,
+  labels, advice, coverage notes and missing-cost components. Preserve the
+  English examples' sources, conditions and chart behavior. Give the existing
+  price-direction sensor enum metadata and translated display states while
+  retaining its raw values and identity.
 - Add a read-only Overview (Översikt in Swedish) after new Custom/Tibber setup
   and in Configure. Review sources, inherited Nord Pool context, tariffs and
   usage insights, with separate live/forecast variable-price coverage and unknown
