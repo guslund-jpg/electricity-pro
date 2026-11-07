@@ -1,17 +1,19 @@
 # Electricity Pro engelska och svenska texter för granskning
 
-Granskningsbas: `main` vid `1d03b4cc5204ba69cb296398d4b51c3aa0cd6889` den 7 november 2026.
+Granskningsversion: `13c0e4a7762f2ac58c9844007fff90629c31b77c` den 7 november 2026.
+
+Rad-ID:n följer det första underlaget från `main` vid `1d03b4c` och är oförändrade.
 
 Underlaget återger de befintliga texterna. Ange gärna rad-ID och önskad svensk
 text när du föreslår en ändring. Samma text på samma plats i nyinstallation
 och Konfigurera delas på en rad; källnycklarna anges för varje rad.
 
 Täckning: **655 konfigurationstextnycklar**, alla fasta kodetiketter
-som identifierats i flödena, **49 sensorer** och **1 binär sensor.
+som identifierats i flödena, **49 sensorer** och **1 binär sensor**.
 
-**160 textnycklar saknar svensk resurstext.** Av dessa ligger 110 i
+**156 textnycklar saknar svensk resurstext.** Av dessa ligger 110 i
 äldre kombinerade formulär/områdesval som redovisas separat. Övriga luckor finns
-bland annat i installationsval, Tibber-val, momsassistans, prisjämförelse och feltexter.
+bland annat i Tibber-val, momsassistans, prisjämförelse och feltexter.
 
 **Reservtext** betyder att svensk text saknas och den engelska texten används.
 **Kodtext** betyder att texten är inskriven i Python-koden utanför språkfilerna.
@@ -28,7 +30,7 @@ I Markdown-tabellerna anger ⏎ en radbrytning i originaltexten.
 | Område | Befintlig skillnad |
 | --- | --- |
 | Spotpris | Svenska paneler och dashboards använder Spotpris, medan vissa engelska paneler och sensorer fortfarande heter Market price/Market energy. |
-| Konsumptionspoäng | Standard-dashboardens kort heter Konsumptionspoäng. Sensorns svenska namn är fortfarande Tidsanpassningspoäng för gårdagens förbrukning. |
+| Konsumptionspoäng | Standard-dashboardens kort heter Konsumptionspoäng. Sensorns svenska namn är Konsumptionspoäng för gårdagen. |
 | Kostnader och snittpris | Dashboardernas kompakta namn Total kostnad (ca) och Effektivt snittpris skiljer sig avsiktligt från sensorernas längre namn. |
 
 ## Innehåll
@@ -38,7 +40,7 @@ I Markdown-tabellerna anger ⏎ en radbrytning i originaltexten.
 - [Elhandel och Tibber](#elhandel-och-tibber)
 - [Elnät](#elnät)
 - [Produktion och export](#produktion-och-export)
-- [Elanvändningsråd](#elanvändningsråd)
+- [Användarpreferenser för el](#användarpreferenser-för-el)
 - [Översikt](#översikt)
 - [Installationsval och konfigurationsmeny](#installationsval-och-konfigurationsmeny)
 - [Momsassistans](#momsassistans)
@@ -56,10 +58,10 @@ I Markdown-tabellerna anger ⏎ en radbrytning i originaltexten.
 | Rad | Plats och texttyp | Engelska | Svenska eller visad reservtext |
 | --- | --- | --- | --- |
 | M001 | Nyinstallation · measurements; Konfigurera · measurements; `title` | Measurements | Mätvärden |
-| M002 | Nyinstallation · measurements; Konfigurera · measurements; `description` | Choose readings from your electricity meter. Suggested sources can be changed. For a signed source, positive power means import and negative power means export. ⏎  ⏎ {sources} | Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa. ⏎  ⏎ {sources} |
-| M003 | Nyinstallation · measurements; Konfigurera · measurements; `data.power_entity` | Current grid power | Aktuell effekt vid elnätet |
+| M002 | Nyinstallation · measurements; Konfigurera · measurements; `description` | Choose readings from your electricity meter. Suggested sources can be changed. For a signed source, positive power means import and negative power means export. ⏎  ⏎ {sources} | Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt ⏎  ⏎ {sources} |
+| M003 | Nyinstallation · measurements; Konfigurera · measurements; `data.power_entity` | Current grid power | Aktuell elnätseffekt |
 | M004 | Nyinstallation · measurements; Konfigurera · measurements; `data.energy_entity` | Imported energy (optional) | Importerad energi (valfritt) |
-| M005 | Nyinstallation · measurements; Konfigurera · measurements; `data_description.energy_entity` | Choose a daily or lifetime import-energy counter. Power readings remain usable without an energy source. | Välj en importmätare som visar dagens energi eller ett livstidsvärde. Utan energikälla kan effektvärden fortfarande användas. |
+| M005 | Nyinstallation · measurements; Konfigurera · measurements; `data_description.energy_entity` | Choose a daily or lifetime import-energy counter. Power readings remain usable without an energy source. | Välj en mätare som visar dagens eller livstidsvärde för energi. Utan källa kan effektvärden fortfarande användas. |
 | M006 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.name` | Advanced measurements | Ytterligare mätvärden |
 | M007 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.data.current_l1_entity` | Current L1 | Ström L1 |
 | M008 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.data.voltage_l1_entity` | Voltage L1 | Spänning L1 |
@@ -67,8 +69,8 @@ I Markdown-tabellerna anger ⏎ en radbrytning i originaltexten.
 | M010 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.data.voltage_l2_entity` | Voltage L2 | Spänning L2 |
 | M011 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.data.current_l3_entity` | Current L3 | Ström L3 |
 | M012 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.data.voltage_l3_entity` | Voltage L3 | Spänning L3 |
-| M013 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.data.monthly_peak_hour_consumption_entity` | External monthly peak-hour consumption | Extern energiförbrukning under månadens topptimme |
-| M014 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.data.monthly_peak_hour_time_entity` | External monthly peak-hour timestamp | Extern tid för månadens topptimme |
+| M013 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.data.monthly_peak_hour_consumption_entity` | External monthly peak-hour consumption | Energiförbrukning månadens topptimme |
+| M014 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.data.monthly_peak_hour_time_entity` | External monthly peak-hour timestamp | Tidpunkt månadens topptimme. |
 | M015 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.data.energy_source_type` | Energy counter period | Energimätarens period |
 | M016 | Nyinstallation · measurements; Konfigurera · measurements; `sections.advanced_measurements.data_description.energy_source_type` | Review the known accumulation period for the selected counter and change it when necessary. | Visar den kända inställningen för den valda mätaren. Ändra om mätarens period är en annan. |
 | M017 | Nyinstallation · measurement_energy; Konfigurera · measurement_energy; `title` | How does this energy counter accumulate? | Hur räknar energimätaren? |
@@ -185,17 +187,17 @@ Källnycklar:
 | G004 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_per_kwh` | Variable grid fee per kWh (including VAT) | Rörlig elnätsavgift per kWh (inklusive moms) |
 | G005 | Nyinstallation · grid; Konfigurera · grid; `data.energy_tax_per_kwh` | Energy tax per kWh (including VAT) | Energiskatt per kWh (inklusive moms) |
 | G006 | Nyinstallation · grid; Konfigurera · grid; `data.fixed_grid_fee_monthly` | Fixed monthly grid fee (including VAT) | Fast elnätsavgift per månad (inklusive moms) |
-| G007 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_high_per_kwh` | High-period grid fee per kWh (including VAT) | Högperiodens elnätsavgift per kWh (inklusive moms) |
-| G008 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_high_start` | High period starts (HH:MM) | Högperioden börjar (TT:MM) |
-| G009 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_high_end` | High period ends (HH:MM) | Högperioden slutar (TT:MM) |
-| G010 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_high_season_start` | High season starts (MM-DD) | Högsäsongen börjar (MM-DD) |
-| G011 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_high_season_end` | High season ends (MM-DD) | Högsäsongen slutar (MM-DD) |
+| G007 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_high_per_kwh` | High-period grid fee per kWh (including VAT) | Elnätsavgift högtariff |
+| G008 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_high_start` | High period starts (HH:MM) | Tid högtariff startar (tt:mm) |
+| G009 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_high_end` | High period ends (HH:MM) | Tid högtariff slutar (tt:mm) |
+| G010 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_high_season_start` | High season starts (MM-DD) | Högtariff-säsong startar (MM-DD) |
+| G011 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_high_season_end` | High season ends (MM-DD) | Högtariff-säsong slutar (MM-DD) |
 | G012 | Nyinstallation · grid; Konfigurera · grid; `data.grid_fee_workday_entity` | Workday sensor (optional) | Workday-sensor (valfritt) |
 | G013 | Nyinstallation · grid; Konfigurera · grid; `data_description.grid_mode` | Unconfigured clears the grid amounts and schedule; it does not assume grid charges are zero. Single rate allows a variable fee, energy tax and/or monthly fixed fee. High/low requires both rates and a schedule. | Inte konfigurerat rensar elnätsbeloppen och schemat utan att anta att avgifterna är noll. Enhetlig taxa kan ha rörlig avgift, energiskatt och/eller fast månadsavgift. Hög-/lågtariff kräver båda avgifterna och ett schema. |
 | G014 | Nyinstallation · grid; Konfigurera · grid; `data_description.grid_fee_per_kwh` | Optional for a single rate; required as the low-period fee for a high/low tariff. | Valfritt vid enhetlig taxa. Vid hög-/lågtariff är detta lågperiodens avgift och måste anges. |
 | G015 | Nyinstallation · grid; Konfigurera · grid; `data_description.energy_tax_per_kwh` | Optional. Use the applicable rate from your bill, including regional reductions. No national rate is assumed. | Valfritt. Använd skatten på din faktura, med eventuell regional nedsättning. Ingen nationell skattesats antas. (I Sverige normalt 0,45kr/kWh) |
 | G016 | Nyinstallation · grid; Konfigurera · grid; `data_description.fixed_grid_fee_monthly` | Optional fixed fee from the grid provider. Keep capacity charges and electricity-supplier fees separate. | Valfritt. Fast avgift från elnätsföretaget. Ange inte effektavgifter eller elhandelsavgifter här. |
-| G017 | Nyinstallation · grid; Konfigurera · grid; `data_description.grid_fee_high_per_kwh` | The full high-period rate, not an addition to the low rate. Zero is a valid rate. | Högperiodens hela avgift, inte ett tillägg till lågperiodens avgift. Noll är ett giltigt belopp. |
+| G017 | Nyinstallation · grid; Konfigurera · grid; `data_description.grid_fee_high_per_kwh` | The full high-period rate, not an addition to the low rate. Zero is a valid rate. | Högtariffens hela avgift, inte ett tillägg till lågtariffens avgift. Noll är ett giltigt belopp. |
 | G018 | Nyinstallation · grid; Konfigurera · grid; `data_description.grid_fee_high_start` | Local start time on Monday–Friday, for example 06:00. Overnight periods are supported. | Lokal starttid måndag–fredag, exempelvis 06:00. Perioder över midnatt stöds. |
 | G019 | Nyinstallation · grid; Konfigurera · grid; `data_description.grid_fee_high_end` | Local end time on Monday–Friday, for example 22:00. Must differ from the start. | Lokal sluttid måndag–fredag, exempelvis 22:00. Måste skilja sig från starttiden. |
 | G020 | Nyinstallation · grid; Konfigurera · grid; `data_description.grid_fee_high_season_start` | First date of the recurring season, for example 11-01. | Första dagen i den återkommande säsongen, exempelvis 11-01. |
@@ -249,7 +251,7 @@ Källnycklar:
 | P016 | Nyinstallation · energy_flows; Konfigurera · energy_flows; `data_description.household_power_entity` | Whole-site AC load, including ordinary EV charging and distribution losses, excluding battery charging. A grid-import sensor measures only power drawn from the grid. It excludes the share of household demand supplied by local generation or battery discharge and can also include battery charging. Select a separate household-load source. | Hela hushållets AC-last, inklusive vanlig elbilsladdning och distributionsförluster men exklusive batteriladdning. En importgivare mäter bara effekten som tas från elnätet. Den visar inte den del av hushållets behov som täcks av egen produktion eller batteri och kan även inkludera batteriladdning. Välj därför en separat källa för hushållets last. |
 | P017 | Nyinstallation · energy_flows; Konfigurera · energy_flows; `data_description.household_energy_entity` | Lifetime register for the same household load, excluding battery charging, in Wh/kWh. It must cover household consumption whether supplied by the grid, local generation or battery discharge. An import register measures only energy drawn from the grid and can also include battery charging. | Livstidsregister för samma hushållslast exklusive batteriladdning, i Wh/kWh. Registret ska omfatta hushållets elanvändning oavsett om elen kommer från nätet, egen produktion eller batteri. Ett importregister mäter bara energin från nätet och kan även inkludera batteriladdning. |
 | P018 | Nyinstallation · energy_flows; Konfigurera · energy_flows; `data_description.confirm_flow_semantics` | The selected sources have these whole-site AC meanings and lifetime energy periods. No site balance, battery attribution or export revenue is calculated. | De valda källorna har dessa betydelser för hela anläggningen på AC-sidan och visar livstidsenergi. Ingen anläggningsbalans, batterifördelning eller exportintäkt beräknas. |
-| P019 | Nyinstallation · flow_compatibility; Konfigurera · flow_compatibility; `title` | Installation and compatibility | Anläggning och kompatibilitet |
+| P019 | Nyinstallation · flow_compatibility; Konfigurera · flow_compatibility; `title` | Installation and compatibility | Installation och kompatibilitet |
 | P020 | Nyinstallation · flow_compatibility; Konfigurera · flow_compatibility; `description` | Review installation facts whenever optional sources are configured. Choose Unknown / not confirmed when unsure; missing sensors do not mean equipment is absent. Phase conventions apply separately to the selected power sources; leave unverified conventions unknown. Whole-site AC boundaries are declared in the source step. You can save these facts without enabling the optional diagnostic. The diagnostic checks configured power observations only: it does not calculate household demand, energy ratios or balance readiness. Battery charge/discharge and explicit grid-import power inputs are not yet supported. | Granska anläggningsuppgifterna när valfria källor används. Välj Okänt / inte bekräftat om du är osäker. Saknade givare betyder inte att utrustning saknas. Fasfrågor visas bara för valda effektkällor. Lämna obekräftade fasuppgifter som okända. Du kan spara uppgifterna utan att aktivera den valfria diagnostiken. Diagnostiken behöver minst två valfria effektkällor och granskar bara deras mätvärden. Den beräknar inte hushållslast, energikvoter eller en komplett anläggningsbalans. Separata mätvärden för batteriets laddning/urladdning och riktad importeffekt stöds inte här. |
 | P021 | Nyinstallation · flow_compatibility; Konfigurera · flow_compatibility; `data.flow_compatibility_enabled` | Enable Flow power compatibility diagnostic | Aktivera diagnostik för effektvärdenas kompatibilitet |
 | P022 | Nyinstallation · flow_compatibility; Konfigurera · flow_compatibility; `data.flow_generation_presence` | Local generation installed | Lokal elproduktion installerad |
@@ -287,17 +289,17 @@ Källnycklar:
 - **P025**: `config.step.flow_compatibility.data.grid_export_power_phase_convention`, `options.step.flow_compatibility.data.grid_export_power_phase_convention`
 - **P026**: `config.step.flow_compatibility.data.household_power_phase_convention`, `options.step.flow_compatibility.data.household_power_phase_convention`
 
-## Elanvändningsråd
+## Användarpreferenser för el
 
 | Rad | Plats och texttyp | Engelska | Svenska eller visad reservtext |
 | --- | --- | --- | --- |
-| R001 | Nyinstallation · insights; Nyinstallation · insights_adaptive; Konfigurera · insights; Konfigurera · insights_adaptive; `title` | Usage insights | Elanvändningsråd |
-| R002 | Nyinstallation · insights; Konfigurera · insights; `description` | Choose how Electricity Pro assesses whether the current Effective Price is favourable. Fixed uses your price limit. Without a fixed limit there is no fixed Good Time assessment. | Välj hur Electricity Pro bedömer om aktuellt Effektivt elpris är fördelaktigt. Med fast metod gäller din prisgräns. Utan fast gräns ges inget fast elanvändningsråd. |
-| R003 | Nyinstallation · insights; Nyinstallation · insights_adaptive; Konfigurera · insights; Konfigurera · insights_adaptive; `data.good_price_mode` | Good Time method | Metod för elanvändningsråd |
+| R001 | Nyinstallation · insights; Nyinstallation · insights_adaptive; Konfigurera · insights; Konfigurera · insights_adaptive; `title` | Usage insights | Användarpreferenser för el |
+| R002 | Nyinstallation · insights; Konfigurera · insights; `description` | Choose how Electricity Pro assesses whether the current Effective Price is favourable. Fixed uses your price limit. Without a fixed limit there is no fixed Good Time assessment. | Välj hur Electricity Pro bedömer om aktuellt Effektivt elpris är “bra”. Med fast metod gäller din prisgräns. Utan fast gräns ges inget fast värde för “bra pris” |
+| R003 | Nyinstallation · insights; Nyinstallation · insights_adaptive; Konfigurera · insights; Konfigurera · insights_adaptive; `data.good_price_mode` | Good Time method | Metod för ”bra pris” |
 | R004 | Nyinstallation · insights; Konfigurera · insights; `data.good_price_threshold` | Fixed price limit per kWh (optional) | Fast prisgräns per kWh (valfritt) |
 | R005 | Nyinstallation · insights; Nyinstallation · insights_adaptive; Konfigurera · insights; Konfigurera · insights_adaptive; `data_description.good_price_mode` | Fixed compares the current Effective Price with your price limit. Adaptive uses comparable historical local hours. Changing the method displays its settings before saving; the other method's values are retained. | Fast metod jämför aktuellt Effektivt elpris med din prisgräns. Adaptiv metod använder jämförbara historiska lokala timmar. När du byter metod visas dess inställningar innan du sparar. Den andra metodens värden behålls. |
 | R006 | Nyinstallation · insights; Nyinstallation · insights_adaptive; Konfigurera · insights; Konfigurera · insights_adaptive; `data_description.good_price_threshold` | Use the same currency per kWh as Effective Price. At or below this limit, the fixed rule considers the price good. In Adaptive mode it is the fallback when comparable history is insufficient. Leave blank to have no fixed rule or fallback; zero is an actual zero limit. | Ange samma valuta per kWh som Effektivt elpris. Vid eller under gränsen bedöms priset som fördelaktigt med fast metod. I adaptivt läge används gränsen som reserv när jämförbar historik inte räcker. Tomt betyder ingen fast gräns eller reservgräns; noll är en faktisk nollgräns. |
-| R007 | Nyinstallation · insights_adaptive; Konfigurera · insights_adaptive; `description` | Assess when the current Effective Price is favourable. Adaptive requires complete, comparable pricing. It compares historical local hours and uses a fixed fallback if history is insufficient. A compatible Nord Pool forecast can refine the advice when a better price is expected. | Bedöm när aktuellt Effektivt elpris är fördelaktigt. Adaptiv metod kräver ett komplett, jämförbart prisunderlag. Den jämför med historiska lokala timmar och använder en fast reservgräns om historiken inte räcker. En kompatibel Nord Pool-prognos kan påverka rådet om ett bättre pris väntas. |
+| R007 | Nyinstallation · insights_adaptive; Konfigurera · insights_adaptive; `description` | Assess when the current Effective Price is favourable. Adaptive requires complete, comparable pricing. It compares historical local hours and uses a fixed fallback if history is insufficient. A compatible Nord Pool forecast can refine the advice when a better price is expected. | Bedöm när aktuellt Effektivt elpris är “bra”. Adaptiv metod kräver ett komplett, jämförbart prisunderlag. Den jämför med historiska lokala timmar och använder en fast reservgräns om historiken inte räcker. En kompatibel Nord Pool-prognos kan påverka rådet om ett bättre pris väntas. |
 | R008 | Nyinstallation · insights_adaptive; Konfigurera · insights_adaptive; `data.good_price_threshold` | Fixed fallback limit per kWh (optional) | Fast reservgräns per kWh (valfritt) |
 | R009 | Nyinstallation · insights_adaptive; Konfigurera · insights_adaptive; `data.adaptive_target_percentile` | Target percentile (%) | Målpercentil (%) |
 | R010 | Nyinstallation · insights_adaptive; Konfigurera · insights_adaptive; `data.adaptive_price_ceiling` | Adaptive price ceiling per kWh (optional) | Adaptivt pristak per kWh (valfritt) |
@@ -337,7 +339,7 @@ Källnycklar:
 | O012 | Nyinstallation · overview; Konfigurera · overview; `sections.price_coverage.data_description.forecast_price_coverage` | Starts with VAT-exclusive Nord Pool market energy and configured additions, independently of the live source contents. | Utgår från Nord Pools spotpris utan moms och de konfigurerade tilläggen, oberoende av vad den aktuella priskällan innehåller. |
 | O013 | Nyinstallation · overview; Konfigurera · overview; `sections.price_coverage.data_description.fixed_fees_missing` | Unknown fixed fees are separate from variable price components. Zero counts as a configured amount. | Okända fasta avgifter visas separat från de rörliga prisdelarna. Noll räknas som ett angivet belopp. |
 | O014 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.name` | Measurements | Mätvärden |
-| O015 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.power_entity` | Current grid power | Aktuell effekt vid elnätet |
+| O015 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.power_entity` | Current grid power | Aktuell elnätseffekt |
 | O016 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.energy_entity` | Imported energy (optional) | Importerad energi (valfritt) |
 | O017 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.current_l1_entity` | Current L1 | Ström L1 |
 | O018 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.voltage_l1_entity` | Voltage L1 | Spänning L1 |
@@ -345,8 +347,8 @@ Källnycklar:
 | O020 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.voltage_l2_entity` | Voltage L2 | Spänning L2 |
 | O021 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.current_l3_entity` | Current L3 | Ström L3 |
 | O022 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.voltage_l3_entity` | Voltage L3 | Spänning L3 |
-| O023 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.monthly_peak_hour_consumption_entity` | External monthly peak-hour consumption | Extern energiförbrukning under månadens topptimme |
-| O024 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.monthly_peak_hour_time_entity` | External monthly peak-hour timestamp | Extern tid för månadens topptimme |
+| O023 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.monthly_peak_hour_consumption_entity` | External monthly peak-hour consumption | Energiförbrukning månadens topptimme |
+| O024 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.monthly_peak_hour_time_entity` | External monthly peak-hour timestamp | Tidpunkt månadens topptimme. |
 | O025 | Nyinstallation · overview; Konfigurera · overview; `sections.measurements.data.energy_source_type` | Energy counter period | Energimätarens period |
 | O026 | Nyinstallation · overview; Konfigurera · overview; `sections.market_prices.name` | Market prices (Nord Pool) | Spotpriser (Nord Pool) |
 | O027 | Nyinstallation · overview; Konfigurera · overview; `sections.market_prices.data.forecast_configured` | Nord Pool forecasting configured | Nord Pool-prognoser konfigurerade |
@@ -374,11 +376,11 @@ Källnycklar:
 | O049 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_per_kwh` | Variable grid fee per kWh (including VAT) | Rörlig elnätsavgift per kWh (inklusive moms) |
 | O050 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.energy_tax_per_kwh` | Energy tax per kWh (including VAT) | Energiskatt per kWh (inklusive moms) |
 | O051 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.fixed_grid_fee_monthly` | Fixed monthly grid fee (including VAT) | Fast elnätsavgift per månad (inklusive moms) |
-| O052 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_high_per_kwh` | High-period grid fee per kWh (including VAT) | Högperiodens elnätsavgift per kWh (inklusive moms) |
-| O053 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_high_start` | High period starts (HH:MM) | Högperioden börjar (TT:MM) |
-| O054 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_high_end` | High period ends (HH:MM) | Högperioden slutar (TT:MM) |
-| O055 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_high_season_start` | High season starts (MM-DD) | Högsäsongen börjar (MM-DD) |
-| O056 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_high_season_end` | High season ends (MM-DD) | Högsäsongen slutar (MM-DD) |
+| O052 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_high_per_kwh` | High-period grid fee per kWh (including VAT) | Elnätsavgift högtariff |
+| O053 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_high_start` | High period starts (HH:MM) | Tid högtariff startar (tt:mm) |
+| O054 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_high_end` | High period ends (HH:MM) | Tid högtariff slutar (tt:mm) |
+| O055 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_high_season_start` | High season starts (MM-DD) | Högtariff-säsong startar (MM-DD) |
+| O056 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_high_season_end` | High season ends (MM-DD) | Högtariff-säsong slutar (MM-DD) |
 | O057 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.grid_fee_workday_entity` | Workday sensor (optional) | Workday-sensor (valfritt) |
 | O058 | Nyinstallation · overview; Konfigurera · overview; `sections.grid.data.schedule_origin` | Schedule origin | Tidsplanens ursprung |
 | O059 | Nyinstallation · overview; Konfigurera · overview; `sections.energy_flows.name` | Production and export | Produktion och export |
@@ -395,8 +397,8 @@ Källnycklar:
 | O070 | Nyinstallation · overview; Konfigurera · overview; `sections.energy_flows.data.grid_export_power_phase_convention` | Grid-export power phase convention | Fashantering för exporteffekt |
 | O071 | Nyinstallation · overview; Konfigurera · overview; `sections.energy_flows.data.household_power_phase_convention` | Household demand power phase convention | Fashantering för hushållets effekt |
 | O072 | Nyinstallation · overview; Konfigurera · overview; `sections.energy_flows.data.optional_sources_configured` | Optional measurement sources configured | Valfria mätkällor konfigurerade |
-| O073 | Nyinstallation · overview; Konfigurera · overview; `sections.insights.name` | Usage insights | Elanvändningsråd |
-| O074 | Nyinstallation · overview; Konfigurera · overview; `sections.insights.data.good_price_mode` | Good Time method | Metod för elanvändningsråd |
+| O073 | Nyinstallation · overview; Konfigurera · overview; `sections.insights.name` | Usage insights | Användarpreferenser för el |
+| O074 | Nyinstallation · overview; Konfigurera · overview; `sections.insights.data.good_price_mode` | Good Time method | Metod för ”bra pris” |
 | O075 | Nyinstallation · overview; Konfigurera · overview; `sections.insights.data.good_price_threshold` | Fixed limit / fallback per kWh | Fast gräns / reservgräns per kWh |
 | O076 | Nyinstallation · overview; Konfigurera · overview; `sections.insights.data.adaptive_target_percentile` | Target percentile (%) | Målpercentil (%) |
 | O077 | Nyinstallation · overview; Konfigurera · overview; `sections.insights.data.adaptive_price_ceiling` | Adaptive price ceiling per kWh (optional) | Adaptivt pristak per kWh (valfritt) |
@@ -487,10 +489,10 @@ Källnycklar:
 
 | Rad | Plats och texttyp | Engelska | Svenska eller visad reservtext |
 | --- | --- | --- | --- |
-| I001 | Nyinstallation · user; `title` | Choose setup method | **Reservtext:** Choose setup method |
-| I002 | Nyinstallation · user; `description` | Use the Tibber fast track when Tibber supplies both your Pulse measurements and electricity contract. Choose custom or mixed sources for every other combination. | **Reservtext:** Use the Tibber fast track when Tibber supplies both your Pulse measurements and electricity contract. Choose custom or mixed sources for every other combination. |
-| I003 | Nyinstallation · user; `data.setup_method` | Setup method | **Reservtext:** Setup method |
-| I004 | Nyinstallation · user; `data_description.setup_method` | The fast track discovers known Tibber entities automatically. The custom path keeps measurement and price sources independent. | **Reservtext:** The fast track discovers known Tibber entities automatically. The custom path keeps measurement and price sources independent. |
+| I001 | Nyinstallation · user; `title` | Choose setup method | Välj installationsmetod |
+| I002 | Nyinstallation · user; `description` | Use the Tibber fast track when Tibber supplies both your Pulse measurements and electricity contract. Choose custom or mixed sources for every other combination. | Använd Tibber “fasttrack” när du har både en Tibber dongle vid elmätaren OCH Tibber som elhandelsleverantör. Välj anpassade eller blandade källor för alla andra kombinationer. |
+| I003 | Nyinstallation · user; `data.setup_method` | Setup method | installationsmetod |
+| I004 | Nyinstallation · user; `data_description.setup_method` | The fast track discovers known Tibber entities automatically. The custom path keeps measurement and price sources independent. | Tibber “fasttrack” känner av Tibber entiteter automatiskt. |
 | I005 | Nyinstallation · tibber; `title` | Select Tibber home | **Reservtext:** Select Tibber home |
 | I006 | Nyinstallation · tibber; `description` | Select the Tibber home whose Pulse measurements and electricity contract Electricity Pro should use. | **Reservtext:** Select the Tibber home whose Pulse measurements and electricity contract Electricity Pro should use. |
 | I007 | Nyinstallation · tibber; `data.tibber_device` | Tibber home | **Reservtext:** Tibber home |
@@ -501,7 +503,7 @@ Källnycklar:
 | I012 | Konfigurera · menu; `menu_options.supplier` | Electricity supplier | Elhandel |
 | I013 | Konfigurera · menu; `menu_options.grid` | Grid charges | Elnät |
 | I014 | Konfigurera · menu; `menu_options.energy_flows` | Production and export | Produktion och export |
-| I015 | Konfigurera · menu; `menu_options.insights` | Usage insights | Elanvändningsråd |
+| I015 | Konfigurera · menu; `menu_options.insights` | Usage insights | Användarpreferenser för el |
 | I016 | Konfigurera · menu; `menu_options.overview` | Configuration overview | Översikt |
 
 Källnycklar:
@@ -1029,15 +1031,15 @@ namn, exempelvis Electricity Pro, i den fullständiga visningen.
 | A026 | `sensor.electricity_pro_voltage_l3` | Voltage L3 | Spänning L3 |
 | A027 | `sensor.electricity_pro_current_market_price` | Current market price | Aktuellt spotpris |
 | A028 | `sensor.electricity_pro_average_market_price_today` | Average market price today | Genomsnittligt spotpris i dag |
-| A029 | `sensor.electricity_pro_cheapest_1h_window_start` | Cheapest 1h window start | Start för billigaste 1-timmarsperioden |
-| A030 | `sensor.electricity_pro_cheapest_2h_window_start` | Cheapest 2h window start | Start för billigaste 2-timmarsperioden |
-| A031 | `sensor.electricity_pro_cheapest_3h_window_start` | Cheapest 3h window start | Start för billigaste 3-timmarsperioden |
-| A032 | `sensor.electricity_pro_cheapest_1h_window_average_effective_price` | Cheapest 1h window average scheduling price | Genomsnittligt planeringspris för billigaste 1-timmarsperioden |
-| A033 | `sensor.electricity_pro_cheapest_2h_window_average_effective_price` | Cheapest 2h window average scheduling price | Genomsnittligt planeringspris för billigaste 2-timmarsperioden |
-| A034 | `sensor.electricity_pro_cheapest_3h_window_average_effective_price` | Cheapest 3h window average scheduling price | Genomsnittligt planeringspris för billigaste 3-timmarsperioden |
+| A029 | `sensor.electricity_pro_cheapest_1h_window_start` | Cheapest 1h window start | Start billigaste 1h |
+| A030 | `sensor.electricity_pro_cheapest_2h_window_start` | Cheapest 2h window start | Start billigaste 2h |
+| A031 | `sensor.electricity_pro_cheapest_3h_window_start` | Cheapest 3h window start | Start billigaste 3h |
+| A032 | `sensor.electricity_pro_cheapest_1h_window_average_effective_price` | Cheapest 1h window average scheduling price | Snittpris billigaste 1h |
+| A033 | `sensor.electricity_pro_cheapest_2h_window_average_effective_price` | Cheapest 2h window average scheduling price | Snittpris billigaste 2h |
+| A034 | `sensor.electricity_pro_cheapest_3h_window_average_effective_price` | Cheapest 3h window average scheduling price | Snittpris billigaste 3h |
 | A035 | `sensor.electricity_pro_price_direction` | Price direction | Pristrend |
 | A036 | `sensor.electricity_pro_next_inexpensive_1h_window_start` | Next inexpensive 1h window start | Start för nästa billiga timme |
-| A037 | `sensor.electricity_pro_consumption_timing_score_yesterday` | Consumption timing score yesterday | Tidsanpassningspoäng för gårdagens förbrukning |
+| A037 | `sensor.electricity_pro_consumption_timing_score_yesterday` | Consumption timing score yesterday | Konsumptionspoäng för gårdagen |
 | A038 | `sensor.electricity_pro_estimated_base_load` | Estimated base load | Uppskattad baslast |
 | A039 | `sensor.electricity_pro_average_power_today` | Average power today | Genomsnittlig effekt i dag |
 | A040 | `sensor.electricity_pro_production_power` | Production power | Produktionseffekt |
@@ -1064,10 +1066,10 @@ Råvärden används i automationer och lagring. Översättningen gäller visning
 
 ## Källor
 
-- [Engelska språkfilen](https://github.com/guslund-jpg/electricity-pro/blob/1d03b4cc5204ba69cb296398d4b51c3aa0cd6889/custom_components/electricity_pro/translations/en.json)
-- [Svenska språkfilen](https://github.com/guslund-jpg/electricity-pro/blob/1d03b4cc5204ba69cb296398d4b51c3aa0cd6889/custom_components/electricity_pro/translations/sv.json)
-- [Flödeskoden](https://github.com/guslund-jpg/electricity-pro/blob/1d03b4cc5204ba69cb296398d4b51c3aa0cd6889/custom_components/electricity_pro/config_flow.py)
-- [Momsassistansen](https://github.com/guslund-jpg/electricity-pro/blob/1d03b4cc5204ba69cb296398d4b51c3aa0cd6889/custom_components/electricity_pro/vat_suggestions.py)
+- [Engelska språkfilen](https://github.com/guslund-jpg/electricity-pro/blob/13c0e4a7762f2ac58c9844007fff90629c31b77c/custom_components/electricity_pro/translations/en.json)
+- [Svenska språkfilen](https://github.com/guslund-jpg/electricity-pro/blob/13c0e4a7762f2ac58c9844007fff90629c31b77c/custom_components/electricity_pro/translations/sv.json)
+- [Flödeskoden](https://github.com/guslund-jpg/electricity-pro/blob/13c0e4a7762f2ac58c9844007fff90629c31b77c/custom_components/electricity_pro/config_flow.py)
+- [Momsassistansen](https://github.com/guslund-jpg/electricity-pro/blob/13c0e4a7762f2ac58c9844007fff90629c31b77c/custom_components/electricity_pro/vat_suggestions.py)
 - Standard-ID:n har hämtats från det befintliga fullständiga installationstestets
   entitetsregister på Core 2026.10.4:
   `test_fresh_install_translates_names_but_keeps_default_ids[en]`.
