@@ -55,7 +55,7 @@ Manual checks are in the
 
 ## Home Assistant support and release review
 
-Electricity Pro v1.7.0 and `main` require **Home Assistant 2026.9.0** and Python 3.14.
+Electricity Pro v1.7.x and `main` require **Home Assistant 2026.9.0** and Python 3.14.
 Released v1.6.0 keeps its original 2025.9.0 minimum. Historical release notes
 and validation records describe those releases, not the current development floor.
 
@@ -110,6 +110,26 @@ load an Electricity Pro entry. The maintainer-reported 2026.11 compatibility che
 is recorded in the [v1.7.0 notes](../releases/1.7.0.md#candidate-smoke-review--5-november-2026)
 and does not establish a full suite on that version. Recheck the harness and
 current stable Core during release preparation.
+
+### v1.7.2 review — 7 November 2026
+
+Retain **Core 2026.9.0** and Python 3.14. The maintenance scope reorganizes
+existing configuration and display resources; it introduces no API that requires
+a higher floor. Native Probatio is already used. The former setup submission
+paths and saved-area/settings fallbacks protect existing callers and saved data,
+so the supported-Core floor does not make them obsolete. No additional
+HA-version adapter removal is justified by this patch.
+
+The latest stable Core was rechecked as
+[2026.11.0](https://github.com/home-assistant/core/releases/tag/2026.11.0).
+[PyPI](https://pypi.org/project/pytest-homeassistant-custom-component/) still lists
+harness **0.13.375** as the latest release, targeting Core **2026.10.4** in its
+[package metadata](https://pypi.org/pypi/pytest-homeassistant-custom-component/json).
+Keep that development pin and the isolated 0.13.363 / Core 2026.9.0 minimum pin.
+The full suites pass 1,801 tests on each baseline with Python 3.14.6.
+Full automated integration coverage on 2026.11 remains a separate gap; the
+maintainer's 2026.11 UI/runtime checks and the minimal stable-HA YAML workflow
+are different evidence. See the [v1.7.2 record](../releases/1.7.2.md).
 
 ## Check scope and documentation
 
