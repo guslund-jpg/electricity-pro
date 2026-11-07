@@ -814,7 +814,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_cheapest_1h_window_start
-              name: "Billigaste 1-timmarsperioden"
+              name: "Billigaste 1h period"
               icon: mdi:clock-fast
               color: green
 
@@ -829,7 +829,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
-              name: "Genomsnittspris för billigaste 1-timmarsperioden"
+              name: "Snittpris 1h period"
               icon: mdi:cash-clock
               color: green
 
@@ -844,7 +844,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_cheapest_2h_window_start
-              name: "Billigaste 2-timmarsperioden"
+              name: "Billigaste 2h period"
               icon: mdi:clock-fast
               color: blue
 
@@ -859,7 +859,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
-              name: "Genomsnittspris för billigaste 2-timmarsperioden"
+              name: "Snittpris 2h period"
               icon: mdi:cash-clock
               color: blue
 
@@ -874,7 +874,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_cheapest_3h_window_start
-              name: "Billigaste 3-timmarsperioden"
+              name: "Billigaste 3h period"
               icon: mdi:clock-fast
               color: purple
 
@@ -889,7 +889,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
-              name: "Genomsnittspris för billigaste 3-timmarsperioden"
+              name: "Snittpris 3h period"
               icon: mdi:cash-clock
               color: purple
 
@@ -919,6 +919,6 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_price_direction
-              name: "Pristrend – kommande 2 timmar"
+              name: "Pristrend 2h"
               icon: mdi:trending-up
               color: amber

@@ -6,7 +6,8 @@
 
 - Add Swedish Standard and Enhanced dashboard examples with translated tabs,
   labels, advice, coverage notes and missing-cost components. Use compact
-  cost/average-price tile names, with day/month supplied by the section heading.
+  cost/average-price and forecast tile names, with day/month supplied by the
+  section heading where applicable.
   Preserve the
   English examples' sources, conditions and chart behavior. Give the existing
   price-direction sensor enum metadata and translated display states while

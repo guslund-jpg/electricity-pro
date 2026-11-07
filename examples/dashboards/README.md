@@ -51,6 +51,9 @@ Swedish cost tiles use **Total kostnad (ca)** under the day/month heading, and
 **Effektivt snittpris** for the consumption-weighted average Effective Price.
 These compact dashboard labels retain the existing estimate/price definitions;
 full entity names and coverage attributes remain available through More info.
+Forecast pairs use **Billigaste 1h period** and **Snittpris 1h period** (also
+2h/3h): the average price belongs to the paired cheapest period.
+**Pristrend 2h** retains the same two-hour trend.
 
 The sensor's price-direction states have English/Swedish frontend translations;
 raw states remain `rising`, `falling` and `stable` for existing automations.
