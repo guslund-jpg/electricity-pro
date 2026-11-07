@@ -20,8 +20,10 @@ The native Home Assistant Nord Pool integration supplies market prices without
 VAT. See the [Nord Pool documentation](https://www.home-assistant.io/integrations/nordpool/).
 Its raw market chart and forecast action continue to expose those market prices.
 Calculated cheapest-window prices use the configured VAT rate and gross fees.
-In Tibber fast track, selecting Nord Pool forecasting opens a separate
-**Nord Pool forecast pricing** step for VAT and supplier markup. These fields
+In released v1.7.1, Tibber fast track uses a separate **Nord Pool forecast
+pricing** step for VAT and supplier markup. On the development branch these
+inputs are grouped on **Electricity supplier** (**Elhandel** in Swedish),
+alongside the fixed supplier fee and the known Tibber contract. These fields
 are hidden when forecasting is not selected, and saved values are retained
 when forecasting is disabled. Tibber live prices are not taxed or marked up
 again. Custom or mixed-source settings retain their live-price inputs.
@@ -33,13 +35,13 @@ country/region**. When a Swedish, Danish or Finnish Nord Pool area is already
 configured and VAT is unset, the pricing form prefills the editable rate. Saving
 that form confirms the rate; simply opening it does not change configuration.
 On the development branch, the shared **Market prices (Nord Pool)** screen
-resolves the source and bidding area before the pricing form in both setup
+resolves the source and bidding area before the supplier form in both setup
 paths. This also resolves a country hint when the native entry spans several
 countries. The next pricing form shows the editable standard suggestion,
 without another country or VAT-review step for the common case. Released
 v1.7.1 selects the source later and may show a separate VAT review after
 submitting that form. A market-only save in Configure never writes a VAT rate;
-review the pricing form to confirm a rate if none is configured. Existing
+review the supplier form to confirm a rate if none is configured. Existing
 rates, including explicit zero, are not replaced on upgrades or source changes.
 To replace one, explicitly request a suggestion and confirm the replacement.
 The Tibber assistant appears only inside optional Nord Pool forecast pricing,
@@ -94,13 +96,13 @@ separate; these import-price suggestions do not define export-compensation VAT.
 
 ## Optional Tibber forecast-addition estimate
 
-In the Tibber fast track's **Nord Pool forecast pricing** step, review the
+On the development branch, review the Tibber **Electricity supplier** screen's
 prefilled VAT rate (or enter one if none is suggested) and optionally select
 **Estimate from Tibber (review before applying)**.
 This is available during setup and subsequent settings changes, only with a
 Nord Pool forecast source. Manual configuration remains the default.
 
-Select and explicitly confirm the Nord Pool area matches your Tibber home.
+Review the selected Nord Pool area and explicitly confirm it matches your Tibber home.
 Home Assistant's public `tibber.get_prices` action returns prices by home
 nickname, without a price-area identifier. Electricity Pro matches the selected
 Tibber price sensor's `app_nickname` and verifies currency and SEK/kWh-style

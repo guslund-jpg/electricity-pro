@@ -11,7 +11,13 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from tests.flow_helpers import start_settings, configure_settings
+from tests.flow_helpers import (
+    start_supplier,
+    configure_settings,
+    TIBBER_CONTRACT,
+    confirm_measurements,
+    confirm_market,
+)
 
 from custom_components.electricity_pro.forecast import ForecastInterval
 from custom_components.electricity_pro.markup_estimate import (
@@ -32,9 +38,9 @@ async def test_estimate_without_pending_settings_returns_to_pricing(options, ste
     )
 
     flow = ElectricityProOptionsFlow() if options else ElectricityProConfigFlow()
-    result = {"type": "form", "step_id": "tibber_forecast_pricing"}
+    result = {"type": "form", "step_id": "supplier_tibber"}
     with patch.object(
-        flow, "async_step_tibber_forecast_pricing", AsyncMock(return_value=result)
+        flow, "async_step_supplier", AsyncMock(return_value=result)
     ) as pricing:
         assert await getattr(flow, f"async_step_{step}")() == result
     pricing.assert_awaited_once_with()
@@ -255,6 +261,7 @@ async def test_options_estimate_requires_review_and_allows_edit(hass, accept):
         domain="electricity_pro",
         data={
             "source_profile": "tibber",
+            **TIBBER_CONTRACT,
             "power_entity": "sensor.power",
             "forecast_nordpool_config_entry": nordpool.entry_id,
             "forecast_price_area": "SE3",
@@ -263,12 +270,7 @@ async def test_options_estimate_requires_review_and_allows_edit(hass, accept):
         },
     )
     entry.add_to_hass(hass)
-    flow = await start_settings(hass.config_entries.options, entry.entry_id)
-    flow = await configure_settings(
-        hass.config_entries.options,
-        flow,
-        {},
-    )
+    flow = await start_supplier(hass.config_entries.options, entry.entry_id)
     flow = await configure_settings(
         hass.config_entries.options,
         flow,
@@ -308,10 +310,15 @@ async def test_options_estimate_requires_review_and_allows_edit(hass, accept):
     if accept:
         assert flow["type"] == "create_entry"
         assert flow["data"]["supplier_markup_per_kwh"] == 0.19
-        assert flow["data"]["forecast_price_area"] == "SE3"
+        assert (
+            entry.options.get(
+                "forecast_price_area", entry.data.get("forecast_price_area")
+            )
+            == "SE3"
+        )
         assert "estimate_supplier_markup" not in flow["data"]
     else:
-        assert flow["step_id"] == "tibber_forecast_pricing"
+        assert flow["step_id"] == "supplier_tibber"
         flow = await configure_settings(
             hass.config_entries.options,
             flow,
@@ -348,7 +355,8 @@ async def test_initial_setup_accepts_estimate_for_confirmed_area(hass, areas):
     flow = await configure_settings(
         hass.config_entries.flow, flow, {"setup_method": "tibber"}
     )
-    flow = await configure_settings(
+    flow = await confirm_measurements(hass.config_entries.flow, flow)
+    flow = await confirm_market(
         hass.config_entries.flow,
         flow,
         {
@@ -394,6 +402,7 @@ async def test_failed_estimate_can_return_to_manual_without_saving(hass, error):
         domain="electricity_pro",
         data={
             "source_profile": "tibber",
+            **TIBBER_CONTRACT,
             "power_entity": "sensor.power",
             "forecast_nordpool_config_entry": nordpool.entry_id,
             "forecast_price_area": "SE3",
@@ -401,12 +410,7 @@ async def test_failed_estimate_can_return_to_manual_without_saving(hass, error):
         },
     )
     entry.add_to_hass(hass)
-    flow = await start_settings(hass.config_entries.options, entry.entry_id)
-    flow = await configure_settings(
-        hass.config_entries.options,
-        flow,
-        {},
-    )
+    flow = await start_supplier(hass.config_entries.options, entry.entry_id)
     flow = await configure_settings(
         hass.config_entries.options,
         flow,
@@ -430,7 +434,7 @@ async def test_failed_estimate_can_return_to_manual_without_saving(hass, error):
     flow = await configure_settings(
         hass.config_entries.options, flow, {"confirm_matching_area": False}
     )
-    assert flow["step_id"] == "tibber_forecast_pricing"
+    assert flow["step_id"] == "supplier_tibber"
     flow = await configure_settings(
         hass.config_entries.options,
         flow,

@@ -10,6 +10,10 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from tests.flow_helpers import (
     start_market,
     start_settings,
+    start_supplier,
+    confirm_supplier,
+    form_values,
+    TIBBER_CONTRACT,
     configure_settings,
     confirm_measurements,
     confirm_market,
@@ -163,7 +167,7 @@ async def test_options_rejects_own_source_without_changing_entry(hass) -> None:
         domain=DOMAIN, data={CONF_POWER_ENTITY: "sensor.external_power"}
     )
     entry.add_to_hass(hass)
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
+    result = await start_supplier(hass.config_entries.options, entry.entry_id)
     own = er.async_get(hass).async_get_or_create(
         "sensor", DOMAIN, "price", suggested_object_id="renamed_price"
     )
@@ -226,20 +230,14 @@ async def test_tibber_initial_setup_stores_nordpool_forecast(hass) -> None:
     result = await confirm_measurements(hass.config_entries.flow, result)
     assert result["step_id"] == "market_prices"
     result = await confirm_market(hass.config_entries.flow, result)
-    assert result["step_id"] == "tibber_settings"
-
-    result = await configure_settings(
-        hass.config_entries.flow,
-        result,
-        {},
-    )
-    assert result["step_id"] == "tibber_forecast_pricing"
+    assert result["step_id"] == "supplier_tibber"
     keys = [key.schema for key in result["data_schema"].schema]
     assert set(keys) == {
         CONF_PRICE_VAT_RATE,
         CONF_SUPPLIER_MARKUP_PER_KWH,
         "estimate_supplier_markup",
         "suggest_vat_rate",
+        CONF_FIXED_SUPPLIER_FEE_MONTHLY,
     }
     result = await configure_settings(
         hass.config_entries.flow,
@@ -348,20 +346,6 @@ async def test_tibber_options_preserve_existing_nordpool_area(hass) -> None:
         result,
         {CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id"},
     )
-    assert result["step_id"] == "tibber_forecast_pricing"
-    keys = [key.schema for key in result["data_schema"].schema]
-    assert set(keys) == {
-        CONF_PRICE_VAT_RATE,
-        CONF_SUPPLIER_MARKUP_PER_KWH,
-        "estimate_supplier_markup",
-        "suggest_vat_rate",
-    }
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {CONF_PRICE_VAT_RATE: 25, CONF_SUPPLIER_MARKUP_PER_KWH: 0.18},
-    )
-
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_FORECAST_PRICE_AREA] == "SE3"
 
@@ -406,12 +390,12 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
     keys = [key.schema for key in result["data_schema"].schema]
     assert keys == [CONF_FORECAST_NORDPOOL_CONFIG_ENTRY]
     result = await confirm_market(hass.config_entries.flow, result)
+    assert result["step_id"] == "supplier"
+    result = await confirm_supplier(hass.config_entries.flow, result)
     keys = [key.schema for key in result["data_schema"].schema]
     assert CONF_FORECAST_NORDPOOL_CONFIG_ENTRY not in keys
     assert keys[
-        keys.index(CONF_GRID_FEE_PER_KWH) + 1 : keys.index(
-            CONF_FIXED_SUPPLIER_FEE_MONTHLY
-        )
+        keys.index(CONF_GRID_FEE_PER_KWH) + 1 : keys.index(CONF_GOOD_PRICE_MODE)
     ] == [
         CONF_GRID_FEE_HIGH_PER_KWH,
         CONF_GRID_FEE_HIGH_START,
@@ -536,7 +520,7 @@ async def test_user_step_asks_for_area_for_multi_area_nordpool_entry(hass) -> No
         {CONF_FORECAST_PRICE_AREA: "SE4"},
     )
 
-    assert result["step_id"] == "manual"
+    assert result["step_id"] == "supplier"
     result = await configure_settings(hass.config_entries.flow, result, {})
 
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
@@ -748,7 +732,7 @@ async def test_incomplete_entry_options_require_price_confirmation(hass) -> None
     )
     entry.add_to_hass(hass)
 
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
+    result = await start_supplier(hass.config_entries.options, entry.entry_id)
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
 
@@ -791,11 +775,8 @@ async def test_options_present_saved_zero_vat_rate(hass) -> None:
         data={CONF_POWER_ENTITY: "sensor.test_power", CONF_PRICE_VAT_RATE: 0},
     )
     entry.add_to_hass(hass)
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
-    rate_key = next(
-        key for key in result["data_schema"].schema if key.schema == CONF_PRICE_VAT_RATE
-    )
-    assert rate_key.default() == 0
+    result = await start_supplier(hass.config_entries.options, entry.entry_id)
+    assert form_values(result)[CONF_PRICE_VAT_RATE] == 0
 
 
 async def test_tibber_hidden_forecast_values_survive_disabling(hass) -> None:
@@ -833,7 +814,11 @@ async def test_tibber_forecast_form_restores_saved_zero_values(hass) -> None:
     nordpool.add_to_hass(hass)
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={CONF_SOURCE_PROFILE: "tibber", CONF_POWER_ENTITY: "sensor.power"},
+        data={
+            CONF_SOURCE_PROFILE: "tibber",
+            CONF_POWER_ENTITY: "sensor.power",
+            **TIBBER_CONTRACT,
+        },
         options={CONF_PRICE_VAT_RATE: 0, CONF_SUPPLIER_MARKUP_PER_KWH: 0},
     )
     entry.add_to_hass(hass)
@@ -844,10 +829,9 @@ async def test_tibber_forecast_form_restores_saved_zero_values(hass) -> None:
         {CONF_FORECAST_NORDPOOL_CONFIG_ENTRY: "nordpool-entry-id"},
     )
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
-    result = await configure_settings(hass.config_entries.options, result, {})
-    assert result["step_id"] == "tibber_forecast_pricing"
-    defaults = result["data_schema"]({})
+    result = await start_supplier(hass.config_entries.options, entry.entry_id)
+    assert result["step_id"] == "supplier_tibber"
+    defaults = form_values(result)
     assert defaults[CONF_PRICE_VAT_RATE] == 0
     assert defaults[CONF_SUPPLIER_MARKUP_PER_KWH] == 0
     result = await configure_settings(hass.config_entries.options, result, {})

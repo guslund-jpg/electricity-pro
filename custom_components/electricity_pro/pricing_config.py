@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from decimal import Decimal, InvalidOperation
+from typing import Any
 
 from .const import (
     CONF_PRICE_VAT_RATE,
+    CONF_PRICE_ENTITY,
     CONF_PRICE_COMPLETENESS,
     CONF_PRICE_INCLUDED_COMPONENTS,
     CONF_PRICE_VAT_TREATMENT,
@@ -92,3 +94,52 @@ def vat_rate_from_mapping(settings: Mapping[str, object]) -> Decimal | None:
     except InvalidOperation, ValueError:
         return None
     return rate if rate.is_finite() and Decimal(0) <= rate <= Decimal(100) else None
+
+
+def prepare_pricing_metadata(user_input: dict[str, Any]) -> bool:
+    """Validate and normalize explicit price semantics in submitted data."""
+    metadata_keys = (
+        CONF_PRICING_STRATEGY,
+        CONF_PRICE_INCLUDED_COMPONENTS,
+        CONF_PRICE_VAT_TREATMENT,
+        CONF_PRICE_COMPLETENESS,
+    )
+    if not user_input.get(CONF_PRICE_ENTITY):
+        for key in metadata_keys:
+            user_input.pop(key, None)
+        return True
+
+    raw_strategy = user_input.get(CONF_PRICING_STRATEGY)
+    raw_components = user_input.get(CONF_PRICE_INCLUDED_COMPONENTS)
+    raw_vat = user_input.get(CONF_PRICE_VAT_TREATMENT)
+    if (
+        not isinstance(raw_components, list)
+        or not isinstance(raw_strategy, str)
+        or not isinstance(raw_vat, str)
+    ):
+        return False
+
+    try:
+        strategy = PricingStrategy(raw_strategy)
+        components = frozenset(PriceComponent(value) for value in raw_components)
+        vat = VatTreatment(raw_vat)
+    except TypeError, ValueError:
+        return False
+
+    if PriceComponent.MARKET_ENERGY not in components:
+        return False
+
+    all_components = frozenset(PriceComponent)
+    completeness = (
+        PriceCompleteness.COMPLETE
+        if strategy is PricingStrategy.EXTERNAL_COMPLETE_PRICE
+        or components == all_components
+        else PriceCompleteness.PARTIAL
+    )
+    user_input[CONF_PRICING_STRATEGY] = strategy.value
+    user_input[CONF_PRICE_INCLUDED_COMPONENTS] = sorted(
+        component.value for component in components
+    )
+    user_input[CONF_PRICE_VAT_TREATMENT] = vat.value
+    user_input[CONF_PRICE_COMPLETENESS] = completeness.value
+    return True

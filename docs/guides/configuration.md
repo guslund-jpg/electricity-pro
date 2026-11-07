@@ -15,10 +15,10 @@ are retained. The collapsed Advanced measurements section contains the phase
 current/voltage inputs, an energy-period override and optional external monthly
 peak-hour readings.
 
-The Configure menu offers Measurements, Market prices (Nord Pool), and Prices
-and other settings. Saving Measurements applies the source edits independently
-of the prices and fees. Selecting Prices and other settings retains the existing
-measurement and market bindings.
+The Configure menu offers Measurements, Market prices (Nord Pool), Electricity
+supplier, and Grid and other settings. Saving a section applies its own edits.
+The remaining settings retain the existing measurement, market and supplier
+bindings.
 The new screens have English and Swedish text. Publication remains tracked by
 the [changelog](../../CHANGELOG.md).
 
@@ -40,7 +40,7 @@ resolved before continuing; a previous entry's area is not silently reused.
 Country and currency are displayed rather than requested again. Currency does
 not determine the country. The subsequent pricing form prefills an unset VAT
 rate when the selected area has a current verified standard suggestion. Saving
-that pricing form confirms the editable rate. Existing rates, including zero,
+the supplier form confirms the editable rate. Existing rates, including zero,
 are retained; regional exceptions and unsupported countries still need review.
 See [VAT guidance](vat-pricing.md#country-and-regional-vat-suggestions).
 
@@ -48,11 +48,47 @@ In Configure, a market save changes only the forecast source and its area. It
 does not change supplier prices, VAT or grid fees. Clear the source field to
 disable Nord Pool market prices and forecasting. Canceling either screen leaves
 the saved settings intact. If an older configuration has several areas but no
-valid saved choice, opening the pricing settings resolves the area first. That
-correction remains a draft until the pricing flow is saved. If adding forecasting
+valid saved choice, opening the supplier settings resolves the area first. That
+correction remains a draft until the supplier flow is saved. If adding forecasting
 to an existing installation
-without a VAT rate, review **Prices and other settings** afterward to confirm
+without a VAT rate, review **Electricity supplier** afterward to confirm
 the rate used for calculated forecast prices. Raw market prices do not include VAT.
+
+## Supplier screen on the development branch
+
+Both setup paths review **Electricity supplier** (**Elhandel** in Swedish) after
+Market prices and before Grid and other settings. The same supplier section is
+available from Configure. It groups the optional live price and its declared
+contents, VAT treatment/rate, supplier markup, fixed monthly supplier fee and
+optional daily supplier-cost source.
+
+For standard or mixed sources, declare the strategy, included components and
+VAT treatment when selecting a live price. Include market energy in the
+components. Mark every component already contained in the source to avoid
+adding it twice. Live price is optional; leave it empty for measurement-only
+operation or independent Nord Pool forecasts. The price-choice labels have
+English and Swedish translations.
+
+The known Tibber contract shows its detected price and daily-cost sources
+without asking for its components or VAT treatment again. Its live price
+already includes supplier markup and VAT. Forecast VAT, markup and the optional
+reviewed estimate appear only when Nord Pool forecasting is selected. When
+forecasting is disabled, saved forecast pricing values are retained. Tibber
+meters without a contract-price source use the standard supplier form and do
+not silently select a supplier cost source.
+
+Supplier fees are separate from grid fees. Enter a monthly supplier fee
+including VAT, or leave it empty if it is unknown or already accounted for by
+an authoritative total. The optional daily-cost source must represent supplier
+cost since midnight; a fixed monthly fee is not a daily-cost sensor. Without a
+daily-cost source, local supplier estimates can use compatible prices and
+energy. See [cost sources and estimates](costs-and-pricing.md).
+
+Saved values are editable suggestions. Clearing a visible source or amount
+overrides its original setup value, while explicit zero remains a configured
+value. Canceling saves nothing. A supplier save retains meter sources, Nord Pool
+selection, grid charges, optional flow sources and insights. Saving Grid and
+other settings likewise retains the supplier configuration.
 
 ## Guided Tibber setup
 

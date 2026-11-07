@@ -47,7 +47,6 @@ from .const import (
     CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     CONF_POWER_ENTITY,
-    CONF_PRICE_COMPLETENESS,
     CONF_PRICE_ENTITY,
     CONF_PRICE_INCLUDED_COMPONENTS,
     CONF_PRICE_VAT_TREATMENT,
@@ -69,7 +68,6 @@ from .const import (
 )
 from .pricing import (
     PriceComponent,
-    PriceCompleteness,
     PricingStrategy,
     VatTreatment,
 )
@@ -88,9 +86,11 @@ from .market_config import (
     market_suggestions,
     without_market_fields,
 )
+from .supplier_config import SUPPLIER_KEYS, SupplierFlow, without_supplier_fields
+from .pricing_config import prepare_pricing_metadata as _prepare_pricing_metadata
 from .flow_sources import FLOW_KEYS, CONF_CONFIGURE_FLOWS
 from .markup_estimate import CONF_ESTIMATE_MARKUP, MarkupEstimate, async_estimate_markup
-from .vat_suggestions import CONF_SUGGEST_VAT, VatSuggestionFlow, assistance_field
+from .vat_suggestions import CONF_SUGGEST_VAT, assistance_field
 from .flow_compatibility import (
     COMPATIBILITY_KEYS,
     CONF_ENABLED,
@@ -104,7 +104,7 @@ from .flow_compatibility import (
 
 def _with_flow_settings(schema: vol.Schema) -> vol.Schema:
     """Offer an optional follow-up without expanding the initial setup path."""
-    return without_market_fields(schema).extend(
+    return without_supplier_fields(without_market_fields(schema)).extend(
         {
             vol.Optional(
                 CONF_CONFIGURE_FLOWS, default=False
@@ -276,29 +276,6 @@ def _setup_method_schema() -> vol.Schema:
                     mode=selector.SelectSelectorMode.LIST,
                 )
             )
-        }
-    )
-
-
-def _tibber_forecast_pricing_schema(values: dict[str, Any]) -> vol.Schema:
-    """Show forecast-only price inputs separately from Tibber live settings."""
-    schema = _tibber_settings_schema(
-        include_forecast_pricing=True,
-        vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
-        supplier_markup_default=values.get(CONF_SUPPLIER_MARKUP_PER_KWH),
-    )
-    return vol.Schema(
-        {
-            key: value
-            for key, value in schema.schema.items()
-            if key.schema
-            in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH, CONF_SUGGEST_VAT)
-        }
-    ).extend(
-        {
-            vol.Optional(
-                CONF_ESTIMATE_MARKUP, default=False
-            ): selector.BooleanSelector(),
         }
     )
 
@@ -895,6 +872,71 @@ def _entity_schema(
     )
 
 
+def _supplier_schema(
+    hass: HomeAssistant | None, values: dict[str, Any], known_tibber: bool
+) -> vol.Schema:
+    """Compose supplier controls from the existing selector contracts."""
+    if known_tibber:
+        schema = _tibber_settings_schema(
+            include_forecast_pricing=bool(
+                values.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+            ),
+            vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
+            supplier_markup_default=values.get(CONF_SUPPLIER_MARKUP_PER_KWH),
+            fixed_supplier_fee_default=values.get(CONF_FIXED_SUPPLIER_FEE_MONTHLY),
+        )
+    else:
+        schema = _entity_schema(
+            hass=hass,
+            price_default=values.get(CONF_PRICE_ENTITY),
+            pricing_strategy_default=values.get(CONF_PRICING_STRATEGY),
+            price_included_components_default=values.get(
+                CONF_PRICE_INCLUDED_COMPONENTS
+            ),
+            price_vat_treatment_default=values.get(CONF_PRICE_VAT_TREATMENT),
+            vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
+            supplier_markup_per_kwh_default=values.get(CONF_SUPPLIER_MARKUP_PER_KWH),
+            fixed_supplier_fee_monthly_default=values.get(
+                CONF_FIXED_SUPPLIER_FEE_MONTHLY
+            ),
+            accumulated_cost_today_default=values.get(
+                CONF_ACCUMULATED_COST_TODAY_ENTITY
+            ),
+        )
+    fields: dict[vol.Marker, Any] = {}
+    for key, value in schema.schema.items():
+        if key.schema not in (*SUPPLIER_KEYS, CONF_SUGGEST_VAT):
+            continue
+        if key.schema in SUPPLIER_KEYS:
+            # Suggestions remain editable/clearable. Schema defaults would
+            # restore an old value when the frontend omits a cleared field.
+            key = vol.Optional(
+                key.schema,
+                description={"suggested_value": values.get(key.schema)},
+            )
+        fields[key] = value
+    for key in fields:
+        choices = {
+            CONF_PRICING_STRATEGY: [item.value for item in PricingStrategy],
+            CONF_PRICE_INCLUDED_COMPONENTS: [item.value for item in PriceComponent],
+            CONF_PRICE_VAT_TREATMENT: [item.value for item in VatTreatment],
+        }.get(key.schema)
+        if choices is not None:
+            fields[key] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=choices,
+                    multiple=key.schema == CONF_PRICE_INCLUDED_COMPONENTS,
+                    translation_key=key.schema,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            )
+    if known_tibber and values.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY):
+        fields[vol.Optional(CONF_ESTIMATE_MARKUP, default=False)] = (
+            selector.BooleanSelector()
+        )
+    return vol.Schema(fields)
+
+
 class _MarkupEstimateFlow(ConfigEntryBaseFlow):
     """Shared opt-in estimate and review steps for setup and options."""
 
@@ -902,8 +944,9 @@ class _MarkupEstimateFlow(ConfigEntryBaseFlow):
     _selected_tibber_source: DiscoveredSource | None = None
     _markup_estimate: MarkupEstimate
     _markup_estimate_area: str
+    _supplier_values: dict[str, Any] | None
 
-    async def async_step_tibber_forecast_pricing(
+    async def async_step_supplier(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Continue through the concrete setup or options flow."""
@@ -914,7 +957,7 @@ class _MarkupEstimateFlow(ConfigEntryBaseFlow):
     ) -> ConfigFlowResult:
         pending = self._pending_forecast_settings
         if pending is None:
-            return await self.async_step_tibber_forecast_pricing()
+            return await self.async_step_supplier()
         entry = self.hass.config_entries.async_get_entry(
             pending.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY, "")
         )
@@ -929,7 +972,7 @@ class _MarkupEstimateFlow(ConfigEntryBaseFlow):
         errors = {}
         if user_input is not None:
             if not user_input.get("confirm_matching_area"):
-                return await self.async_step_tibber_forecast_pricing()
+                return await self.async_step_supplier()
             area = user_input.get(CONF_FORECAST_PRICE_AREA)
             try:
                 if (
@@ -991,20 +1034,20 @@ class _MarkupEstimateFlow(ConfigEntryBaseFlow):
     ) -> ConfigFlowResult:
         pending = self._pending_forecast_settings
         if pending is None:
-            return await self.async_step_tibber_forecast_pricing()
+            return await self.async_step_supplier()
         estimate = self._markup_estimate
         if user_input is not None:
             if user_input.get("use_estimate"):
-                pending[CONF_FORECAST_PRICE_AREA] = self._markup_estimate_area
-                return await self.async_step_tibber_forecast_pricing(
+                return await self.async_step_supplier(
                     {
+                        **(self._supplier_values or {}),
                         CONF_PRICE_VAT_RATE: pending[CONF_PRICE_VAT_RATE],
                         CONF_SUPPLIER_MARKUP_PER_KWH: user_input[
                             CONF_SUPPLIER_MARKUP_PER_KWH
                         ],
                     }
                 )
-            return await self.async_step_tibber_forecast_pricing()
+            return await self.async_step_supplier()
         return self.async_show_form(
             step_id="tibber_markup_review",
             description_placeholders={
@@ -1035,7 +1078,7 @@ class _MarkupEstimateFlow(ConfigEntryBaseFlow):
 class ElectricityProConfigFlow(
     MeasurementFlow,
     MarketPriceFlow,
-    VatSuggestionFlow,
+    SupplierFlow,
     _MarkupEstimateFlow,
     config_entries.ConfigFlow,
     domain=DOMAIN,
@@ -1048,7 +1091,6 @@ class ElectricityProConfigFlow(
         """Initialize the config flow."""
         self._pending_user_input: dict[str, Any] | None = None
         self._pending_forecast_settings: dict[str, Any] | None = None
-        self._forecast_pricing_confirmed = False
         self._forecast_areas: list[str] = []
         self._tibber_sources: dict[str, DiscoveredSource] = {}
         self._selected_tibber_source: DiscoveredSource | None = None
@@ -1100,7 +1142,35 @@ class ElectricityProConfigFlow(
     ) -> ConfigFlowResult:
         if self._selected_tibber_source is not None:
             self._selected_tibber_source.data.update(values)
-            if self._selected_tibber_source.is_complete_tibber_fast_track:
+        return await self.async_step_supplier()
+
+    def _supplier_defaults(self) -> dict[str, Any]:
+        return {
+            **(
+                self._selected_tibber_source.data
+                if self._selected_tibber_source
+                and self._selected_tibber_source.is_complete_tibber_fast_track
+                else {}
+            ),
+            **(self._measurement_values or {}),
+            **(self._market_values or {}),
+        }
+
+    def _supplier_form_schema(
+        self, values: dict[str, Any], known_tibber: bool
+    ) -> vol.Schema:
+        return _supplier_schema(self.hass, values, known_tibber)
+
+    async def _async_supplier_estimate(self) -> ConfigFlowResult:
+        return await self.async_step_tibber_markup_estimate()
+
+    async def _async_supplier_complete(
+        self, values: dict[str, Any]
+    ) -> ConfigFlowResult:
+        if self._selected_tibber_source is not None:
+            known_contract = self._selected_tibber_source.is_complete_tibber_fast_track
+            self._selected_tibber_source.data.update(values)
+            if known_contract:
                 return await self.async_step_tibber_settings()
         return await self.async_step_manual()
 
@@ -1113,6 +1183,8 @@ class ElectricityProConfigFlow(
         )
         if self._market_values is not None:
             schema = without_market_fields(schema)
+        if self._supplier_values is not None:
+            schema = without_supplier_fields(schema)
         return (
             remaining_settings_schema(schema)
             if self._measurement_values is not None
@@ -1128,7 +1200,9 @@ class ElectricityProConfigFlow(
             user_input = {**self._measurement_values, **user_input}
         if user_input is not None and self._market_values is not None:
             user_input = {**user_input, **self._market_values}
-        if user_input is not None:
+        if user_input is not None and self._supplier_values is not None:
+            user_input = {**user_input, **self._supplier_values}
+        if user_input is not None and self._supplier_values is None:
             result = await self._async_maybe_suggest_vat(user_input, "manual")
             if result is not None:
                 return result
@@ -1250,6 +1324,8 @@ class ElectricityProConfigFlow(
         if user_input is not None:
             if self._market_values is not None:
                 user_input = {**user_input, **self._market_values}
+            if self._supplier_values is not None:
+                user_input = {**user_input, **self._supplier_values}
             errors = {}
             if not _grid_tariff_input_valid(user_input):
                 errors = {"base": "invalid_grid_tariff"}
@@ -1257,12 +1333,6 @@ class ElectricityProConfigFlow(
                 errors = {"base": "invalid_good_price_settings"}
             if errors:
                 return self._show_tibber_settings(user_input, errors)
-            if (
-                user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
-                and not self._forecast_pricing_confirmed
-            ):
-                self._pending_forecast_settings = dict(user_input)
-                return await self.async_step_tibber_forecast_pricing()
             areas = _nordpool_areas(
                 self.hass, user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
             )
@@ -1293,7 +1363,10 @@ class ElectricityProConfigFlow(
         return self.async_show_form(
             step_id="tibber_settings",
             data_schema=self.add_suggested_values_to_schema(
-                without_market_fields(_tibber_settings_schema()), user_input
+                without_supplier_fields(
+                    without_market_fields(_tibber_settings_schema())
+                ),
+                user_input,
             ),
             errors=errors,
             description_placeholders={
@@ -1305,30 +1378,6 @@ class ElectricityProConfigFlow(
                     )
                 ),
             },
-        )
-
-    async def async_step_tibber_forecast_pricing(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Confirm pricing only when Nord Pool forecasting is selected."""
-        pending = self._pending_forecast_settings
-        if pending is None:
-            return await self.async_step_tibber_settings()
-        if user_input is not None:
-            result = await self._async_maybe_suggest_vat(
-                user_input, "tibber_forecast_pricing", pending
-            )
-            if result is not None:
-                return result
-            for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
-                pending[key] = user_input.get(key)
-            if user_input.get(CONF_ESTIMATE_MARKUP):
-                return await self.async_step_tibber_markup_estimate()
-            self._forecast_pricing_confirmed = True
-            return await self.async_step_tibber_settings(pending)
-        return self.async_show_form(
-            step_id="tibber_forecast_pricing",
-            data_schema=_tibber_forecast_pricing_schema(self._vat_form_values(pending)),
         )
 
     async def async_step_forecast_area(
@@ -1349,7 +1398,7 @@ class ElectricityProConfigFlow(
 class ElectricityProOptionsFlow(
     MeasurementFlow,
     MarketPriceFlow,
-    VatSuggestionFlow,
+    SupplierFlow,
     _MarkupEstimateFlow,
     OptionsFlow,
 ):
@@ -1358,11 +1407,11 @@ class ElectricityProOptionsFlow(
     def __init__(self) -> None:
         """Initialize the options flow."""
         self._pending_forecast_settings: dict[str, Any] | None = None
-        self._forecast_pricing_confirmed = False
         self._pending_flow_settings: dict[str, Any] | None = None
         self._pending_compatibility_settings: dict[str, Any] | None = None
         self._source_settings_draft: dict[str, Any] = {}
         self._settings_open = False
+        self._supplier_open = False
 
     def _measurement_defaults(self) -> dict[str, Any]:
         return resolve_settings(self.config_entry.data, self.config_entry.options)
@@ -1378,20 +1427,54 @@ class ElectricityProOptionsFlow(
         return resolve_settings(self.config_entry.data, self.config_entry.options)
 
     def _settings_defaults(self) -> dict[str, Any]:
-        """Include an unresolved legacy area's confirmed but unsaved correction."""
+        """Resolve saved settings with a draft legacy-area correction."""
         values = resolve_settings(self.config_entry.data, self.config_entry.options)
-        if self._settings_open and self._market_values is not None:
+        if self._supplier_open and self._market_values is not None:
             values.update(self._market_values)
         return values
 
     async def _async_market_prices_complete(
         self, values: dict[str, Any]
     ) -> ConfigFlowResult:
-        if self._settings_open:
+        if self._supplier_open:
             self._market_values = values
-            return await self.async_step_init()
+            return await self.async_step_supplier()
         return self.async_create_entry(
             title="", data={**self.config_entry.options, **values}
+        )
+
+    def _supplier_defaults(self) -> dict[str, Any]:
+        return self._settings_defaults()
+
+    def _supplier_form_schema(
+        self, values: dict[str, Any], known_tibber: bool
+    ) -> vol.Schema:
+        return _supplier_schema(self.hass, values, known_tibber)
+
+    async def _async_supplier_market(
+        self, values: dict[str, Any]
+    ) -> ConfigFlowResult | None:
+        self._supplier_open = True
+        market_entry = self._market_entry(values)
+        areas = self._market_areas(market_entry)
+        if (
+            self._market_source_valid(market_entry)
+            and len(areas) > 1
+            and values.get(CONF_FORECAST_PRICE_AREA) not in areas
+        ):
+            self._market_values = {key: values.get(key) for key in MARKET_KEYS}
+            return await self.async_step_market_area()
+        return None
+
+    async def _async_supplier_estimate(self) -> ConfigFlowResult:
+        return await self.async_step_tibber_markup_estimate()
+
+    async def _async_supplier_complete(
+        self, values: dict[str, Any]
+    ) -> ConfigFlowResult:
+        return self.async_create_entry(
+            title="",
+            data={**self.config_entry.options, **(self._market_values or {}), **values},
         )
 
     async def async_step_settings(
@@ -1406,7 +1489,8 @@ class ElectricityProOptionsFlow(
     ) -> ConfigFlowResult:
         """Choose the configuration section to edit."""
         return self.async_show_menu(
-            step_id="menu", menu_options=["measurements", "market_prices", "settings"]
+            step_id="menu",
+            menu_options=["measurements", "market_prices", "supplier", "settings"],
         )
 
     def _show_init_error(
@@ -1437,17 +1521,6 @@ class ElectricityProOptionsFlow(
         """Manage source entity options."""
         if user_input is None and not self._settings_open:
             return await self.async_step_menu()
-        if user_input is None and self._market_values is None:
-            saved = self._settings_defaults()
-            market_entry = self._market_entry(saved)
-            areas = self._market_areas(market_entry)
-            if (
-                self._market_source_valid(market_entry)
-                and len(areas) > 1
-                and saved.get(CONF_FORECAST_PRICE_AREA) not in areas
-            ):
-                self._market_values = {key: saved.get(key) for key in MARKET_KEYS}
-                return await self.async_step_market_area()
         if user_input is not None:
             user_input = dict(user_input)
             saved = {
@@ -1459,7 +1532,7 @@ class ElectricityProOptionsFlow(
                 if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
                 else remaining_settings_schema(_entity_schema(hass=self.hass))
             )
-            schema = without_market_fields(schema)
+            schema = without_supplier_fields(without_market_fields(schema))
             for marker in schema.schema:
                 if (
                     isinstance(marker, vol.Optional)
@@ -1473,15 +1546,11 @@ class ElectricityProOptionsFlow(
             user_input = {
                 **{
                     key: saved[key]
-                    for key in (*MEASUREMENT_KEYS, *MARKET_KEYS)
+                    for key in (*MEASUREMENT_KEYS, *MARKET_KEYS, *SUPPLIER_KEYS)
                     if key in saved
                 },
                 **user_input,
             }
-            if self.config_entry.data.get(CONF_SOURCE_PROFILE) != _SETUP_TIBBER:
-                result = await self._async_maybe_suggest_vat(user_input, "init", saved)
-                if result is not None:
-                    return result
             for key in (*FLOW_KEYS, *COMPATIBILITY_KEYS):
                 if key not in user_input and key in saved:
                     user_input[key] = saved[key]
@@ -1511,12 +1580,6 @@ class ElectricityProOptionsFlow(
                 for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
                     if key not in user_input and key in saved:
                         user_input[key] = saved[key]
-                if (
-                    user_input.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
-                    and not self._forecast_pricing_confirmed
-                ):
-                    self._pending_forecast_settings = dict(user_input)
-                    return await self.async_step_tibber_forecast_pricing()
                 return self.async_create_entry(title="", data=user_input)
             current_grid_fee = self.config_entry.options.get(
                 CONF_GRID_FEE_PER_KWH,
@@ -1580,10 +1643,6 @@ class ElectricityProOptionsFlow(
             )
 
         if user_input is not None:
-            if not _prepare_pricing_metadata(user_input):
-                return self._show_init_error(
-                    user_input, {"base": "pricing_metadata_required"}
-                )
             return self.async_create_entry(
                 title="",
                 data=user_input,
@@ -1889,30 +1948,6 @@ class ElectricityProOptionsFlow(
             step_id="flow_compatibility", data_schema=vol.Schema(fields), errors=errors
         )
 
-    async def async_step_tibber_forecast_pricing(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Confirm pricing only when Nord Pool forecasting is selected."""
-        pending = self._pending_forecast_settings
-        if pending is None:
-            return await self.async_step_init()
-        if user_input is not None:
-            result = await self._async_maybe_suggest_vat(
-                user_input, "tibber_forecast_pricing", pending
-            )
-            if result is not None:
-                return result
-            for key in (CONF_PRICE_VAT_RATE, CONF_SUPPLIER_MARKUP_PER_KWH):
-                pending[key] = user_input.get(key)
-            if user_input.get(CONF_ESTIMATE_MARKUP):
-                return await self.async_step_tibber_markup_estimate()
-            self._forecast_pricing_confirmed = True
-            return await self.async_step_init(pending)
-        return self.async_show_form(
-            step_id="tibber_forecast_pricing",
-            data_schema=_tibber_forecast_pricing_schema(self._vat_form_values(pending)),
-        )
-
 
 def _nordpool_areas(hass: HomeAssistant, entry_id: object) -> list[object]:
     """Read area metadata without changing its values or inferring missing areas."""
@@ -2000,55 +2035,6 @@ def _parse_month_day_input(value: Any) -> tuple[int, int]:
     """Parse a recurring MM-DD form value."""
     month, day = str(value).split("-", maxsplit=1)
     return int(month), int(day)
-
-
-def _prepare_pricing_metadata(user_input: dict[str, Any]) -> bool:
-    """Validate and normalize explicit price semantics in submitted data."""
-    metadata_keys = (
-        CONF_PRICING_STRATEGY,
-        CONF_PRICE_INCLUDED_COMPONENTS,
-        CONF_PRICE_VAT_TREATMENT,
-        CONF_PRICE_COMPLETENESS,
-    )
-    if not user_input.get(CONF_PRICE_ENTITY):
-        for key in metadata_keys:
-            user_input.pop(key, None)
-        return True
-
-    raw_strategy = user_input.get(CONF_PRICING_STRATEGY)
-    raw_components = user_input.get(CONF_PRICE_INCLUDED_COMPONENTS)
-    raw_vat = user_input.get(CONF_PRICE_VAT_TREATMENT)
-    if (
-        not isinstance(raw_components, list)
-        or not isinstance(raw_strategy, str)
-        or not isinstance(raw_vat, str)
-    ):
-        return False
-
-    try:
-        strategy = PricingStrategy(raw_strategy)
-        components = frozenset(PriceComponent(value) for value in raw_components)
-        vat = VatTreatment(raw_vat)
-    except TypeError, ValueError:
-        return False
-
-    if PriceComponent.MARKET_ENERGY not in components:
-        return False
-
-    all_components = frozenset(PriceComponent)
-    completeness = (
-        PriceCompleteness.COMPLETE
-        if strategy is PricingStrategy.EXTERNAL_COMPLETE_PRICE
-        or components == all_components
-        else PriceCompleteness.PARTIAL
-    )
-    user_input[CONF_PRICING_STRATEGY] = strategy.value
-    user_input[CONF_PRICE_INCLUDED_COMPONENTS] = sorted(
-        component.value for component in components
-    )
-    user_input[CONF_PRICE_VAT_TREATMENT] = vat.value
-    user_input[CONF_PRICE_COMPLETENESS] = completeness.value
-    return True
 
 
 def _vat_rate_field(default: float | None) -> dict[Any, Any]:

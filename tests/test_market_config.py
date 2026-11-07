@@ -7,7 +7,14 @@ from homeassistant import config_entries
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from tests.flow_helpers import confirm_measurements, start_settings
+from tests.flow_helpers import (
+    confirm_measurements,
+    confirm_supplier,
+    start_settings,
+    start_supplier,
+    form_values,
+    TIBBER_CONTRACT,
+)
 
 DOMAIN = "electricity_pro"
 SOURCE = "forecast_nordpool_config_entry"
@@ -87,15 +94,16 @@ async def test_setup_resolves_market_before_vat_and_inherits_currency(
     }
     assert AREA not in shown_values(result)
     result = await manager.async_configure(result["flow_id"], {SOURCE: market.entry_id})
-    assert result["step_id"] == ("manual" if profile == "custom" else "tibber_settings")
+    assert result["step_id"] == (
+        "supplier" if profile == "custom" else "supplier_tibber"
+    )
     assert SOURCE not in shown_values(result)
-    if profile == "tibber":
-        result = await manager.async_configure(result["flow_id"], {})
-        assert result["step_id"] == "tibber_forecast_pricing"
-    values = result["data_schema"]({})
+    values = form_values(result)
     assert values["price_vat_rate"] == 25
     # Accepting the displayed default saves it without a separate country/review step.
     result = await manager.async_configure(result["flow_id"], values)
+    assert result["step_id"] in ("manual", "tibber_settings")
+    result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"
     assert result["data"][SOURCE] == market.entry_id
     assert not result["data"].get(AREA)
@@ -115,11 +123,11 @@ async def test_multi_country_area_determines_subsequent_editable_vat(
     result = await manager.async_configure(result["flow_id"], {SOURCE: market.entry_id})
     assert result["step_id"] == "market_area"
     result = await manager.async_configure(result["flow_id"], {AREA: "FI"})
-    if profile == "tibber":
-        result = await manager.async_configure(result["flow_id"], {})
-    assert result["data_schema"]({})["price_vat_rate"] == 25.5
-    values = {**result["data_schema"]({}), "price_vat_rate": 12.3}
+    assert form_values(result)["price_vat_rate"] == 25.5
+    values = {**form_values(result), "price_vat_rate": 12.3}
     result = await manager.async_configure(result["flow_id"], values)
+    assert result["step_id"] in ("manual", "tibber_settings")
+    result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"
     assert result["data"][AREA] == "FI"
     assert result["data"]["price_vat_rate"] == 12.3
@@ -131,16 +139,14 @@ async def test_norwegian_setup_still_requires_household_context(hass, freezer, p
     market = add_market(hass, ["NO4"], currency="NOK")
     manager, result = await start_setup(hass, profile)
     result = await manager.async_configure(result["flow_id"], {SOURCE: market.entry_id})
-    if profile == "tibber":
-        result = await manager.async_configure(result["flow_id"], {})
-    assert "price_vat_rate" not in result["data_schema"]({})
+    assert "price_vat_rate" not in form_values(result)
     result = await manager.async_configure(result["flow_id"], {})
     assert result["step_id"] == "vat_context"
     result = await manager.async_configure(
         result["flow_id"], {"vat_context": "north_household"}
     )
     assert result["step_id"] == "vat_review"
-    assert result["data_schema"]({})["price_vat_rate"] == 0
+    assert form_values(result)["price_vat_rate"] == 0
 
 
 @pytest.mark.parametrize("profile", ["custom", "tibber"])
@@ -152,28 +158,26 @@ async def test_pricing_resolves_missing_saved_area_before_vat_without_early_save
     entry, manager, result = await open_market(
         hass,
         profile,
-        data={SOURCE: market.entry_id},
+        data={
+            SOURCE: market.entry_id,
+            **(TIBBER_CONTRACT if profile == "tibber" else {}),
+        },
         options={"fixed_grid_fee_monthly": 0},
     )
     original = dict(entry.options)
     manager.async_abort(result["flow_id"])
-    result = await start_settings(manager, entry.entry_id)
+    result = await start_supplier(manager, entry.entry_id)
     assert result["step_id"] == "market_area"
     result = await manager.async_configure(result["flow_id"], {AREA: "FI"})
-    assert result["step_id"] == "init"
+    assert result["step_id"] in ("supplier", "supplier_tibber")
     assert dict(entry.options) == original
-    if profile == "tibber":
-        result = await manager.async_configure(result["flow_id"], {})
-        assert result["step_id"] == "tibber_forecast_pricing"
-    assert result["data_schema"]({})["price_vat_rate"] == 25.5
+    assert form_values(result)["price_vat_rate"] == 25.5
     manager.async_abort(result["flow_id"])
     assert dict(entry.options) == original
-    result = await start_settings(manager, entry.entry_id)
+    result = await start_supplier(manager, entry.entry_id)
     assert result["step_id"] == "market_area"
     result = await manager.async_configure(result["flow_id"], {AREA: "FI"})
-    result = await manager.async_configure(result["flow_id"], {})
-    if profile == "tibber":
-        result = await manager.async_configure(result["flow_id"], {})
+    result = await confirm_supplier(manager, result)
     assert result["type"] == "create_entry"
     assert entry.options[AREA] == "FI"
     assert entry.options["price_vat_rate"] == 25.5

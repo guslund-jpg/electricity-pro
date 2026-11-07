@@ -1,14 +1,87 @@
 {
   "selector": {
+    "pricing_strategy": {
+      "options": {
+        "supplier_contracted_price": "Elhandelspris från leverantören",
+        "market_price_plus_tariff": "Marknadspris med angivna tillägg",
+        "external_complete_price": "Externt beräknat komplett pris"
+      }
+    },
+    "price_included_components": {
+      "options": {
+        "market_energy": "Elbörspris",
+        "supplier_markup": "Elhandelspåslag",
+        "energy_tax": "Energiskatt",
+        "variable_grid_fee": "Rörlig elnätsavgift"
+      }
+    },
+    "price_vat_treatment": {
+      "options": {
+        "included": "Moms ingår",
+        "excluded": "Moms ingår inte",
+        "unknown": "Okänd"
+      }
+    },
     "energy_source_type": {
       "options": { "daily": "Återställs dagligen", "lifetime": "Ackumulerad import under mätarens livstid" }
     }
   },
   "config": {
     "step": {
+      "manual": {
+        "title": "Elnät och övriga inställningar",
+        "description": "Ange valfria elnätsavgifter och inställningar för elanvändningsråd. Mätvärden, marknadspriser och elhandel har egna inställningar."
+      },
+      "tibber_settings": {
+        "title": "Elnät och övriga inställningar",
+        "description": "Ange valfria elnätsavgifter och inställningar för elanvändningsråd. Mätvärden, marknadspriser och elhandel har egna inställningar."
+      },
+      "supplier": {
+        "title": "Elhandel",
+        "description": "Välj en valfri källa för aktuellt elpris och ange vad priset redan innehåller. Granska moms, påslag och fasta elhandelsavgifter. Nord Pool och elnätsavgifter har egna inställningar.",
+        "data": {
+          "price_entity": "Aktuellt elpris (valfritt)",
+          "pricing_strategy": "Typ av priskälla",
+          "price_included_components": "Delar som redan ingår i priset",
+          "price_vat_treatment": "Moms i priskällan",
+          "price_vat_rate": "Moms att lägga till på priser utan moms (%)",
+          "suggest_vat_rate": "Föreslå moms utifrån land/region",
+          "supplier_markup_per_kwh": "Elhandelspåslag per kWh (inklusive moms)",
+          "fixed_supplier_fee_monthly": "Fast elhandelsavgift per månad (inklusive moms)",
+          "accumulated_cost_today_entity": "Ackumulerad elhandelskostnad i dag (valfritt)"
+        },
+        "data_description": {
+          "price_entity": "Välj en källa för aktuellt elpris. Lämna tomt om du bara vill använda mätvärden eller Nord Pool-prognoser.",
+          "pricing_strategy": "Ange om källan är ett elhandelspris, ett marknadspris som behöver tillägg eller ett externt beräknat komplett pris.",
+          "price_included_components": "Markera alla rörliga delar som redan ingår i källan. Elbörspris måste ingå. Angivna tillägg läggs inte till en gång till om de redan ingår.",
+          "price_vat_treatment": "Ange om källans pris redan inkluderar moms. Priser med moms beskattas inte igen.",
+          "price_vat_rate": "Föreslås utifrån valt Nord Pool-elområde när en aktuell standardregel finns. Kontrollera och ändra vid behov. Sparade värden, även noll, behålls.",
+          "supplier_markup_per_kwh": "Ange påslaget inklusive moms i samma valuta per kWh som priskällan. Det används för marknadspriser och prognoser, utan att läggas till dubbelt i ett elhandelspris.",
+          "fixed_supplier_fee_monthly": "Ange endast elhandlarens fasta månadsavgift, inklusive moms. Elnätsavgifter anges under elnät.",
+          "accumulated_cost_today_entity": "Valfri källa som visar elhandelskostnaden sedan midnatt. Lämna tomt för lokal uppskattning när pris och energi är tillgängliga. Använd inte en fast månadsavgift som källa.",
+          "suggest_vat_rate": "Använd hjälpen om du vill granska land, regionala undantag eller ersätta en tidigare momsinställning."
+        }
+      },
+      "supplier_tibber": {
+        "title": "Elhandel",
+        "description": "Det kända Tibber-priset inkluderar elbörspris, elhandelspåslag och moms. Nord Pools börspriser anges utan moms. Dessa läggs inte till igen på det aktuella priset. När Nord Pool-prognoser är valda används moms och påslag nedan för prognoserna. Elnätsavgifter anges separat.\n\nPriskälla: {price_source}\n\nKälla för elhandelskostnad i dag: {cost_source}",
+        "data": {
+          "price_vat_rate": "Moms att lägga till på Nord Pool-prognoser (%)",
+          "suggest_vat_rate": "Föreslå moms utifrån land/region",
+          "supplier_markup_per_kwh": "Elhandelspåslag per kWh (inklusive moms)",
+          "fixed_supplier_fee_monthly": "Fast elhandelsavgift per månad (inklusive moms)",
+          "estimate_supplier_markup": "Uppskatta från Tibber (granska före användning)"
+        },
+        "data_description": {
+          "price_vat_rate": "Föreslås utifrån valt Nord Pool-elområde när en aktuell standardregel finns. Kontrollera och ändra vid behov. Sparade värden, även noll, behålls.",
+          "suggest_vat_rate": "Använd hjälpen om du vill granska land, regionala undantag eller ersätta en tidigare momsinställning.",
+          "supplier_markup_per_kwh": "Ange påslaget inklusive moms i samma valuta per kWh som priskällan. Det används för marknadspriser och prognoser, utan att läggas till dubbelt i ett elhandelspris.",
+          "fixed_supplier_fee_monthly": "Ange endast elhandlarens fasta månadsavgift, inklusive moms. Elnätsavgifter anges under elnät."
+        }
+      },
       "market_prices": {
         "title": "Marknadspriser (Nord Pool)",
-        "description": "Välj den inbyggda Nord Pool-integrationen för marknadspriser och prognoser. Lämna fältet tomt om du inte vill använda Nord Pool. Elområde och valuta hämtas från den valda integrationen; välj elområde om flera finns. Moms granskas under priser och övriga inställningar.\n\nKälla: {source}\n\nElområde: {area}\n\nValuta: {currency}\n\nLand från elområdet: {country}",
+        "description": "Välj den inbyggda Nord Pool-integrationen för marknadspriser och prognoser. Lämna fältet tomt om du inte vill använda Nord Pool. Elområde och valuta hämtas från den valda integrationen; välj elområde om flera finns. Moms granskas under Elhandel.\n\nKälla: {source}\n\nElområde: {area}\n\nValuta: {currency}\n\nLand från elområdet: {country}",
         "data": {
           "forecast_nordpool_config_entry": "Nord Pool-integration (valfritt)",
           "forecast_price_area": "Elområde"
@@ -63,13 +136,60 @@
         }
       }
     },
-    "error": { "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet.", "invalid_market_source": "Välj en Nord Pool-integration med giltiga elområden och valuta, eller lämna källan tom.", "invalid_market_area": "Välj ett elområde som finns i den valda Nord Pool-integrationen." }
+    "error": { "pricing_metadata_required": "Ange priskällans typ, ingående delar och moms. Elbörspris måste ingå.", "electricity_pro_source": "Välj en extern källa. Electricity Pros egna givare kan inte användas som indata.", "invalid_supplier_amount": "Ange ett giltigt belopp som är noll eller större. Moms måste vara mellan 0 och 100 procent.", "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet.", "invalid_market_source": "Välj en Nord Pool-integration med giltiga elområden och valuta, eller lämna källan tom.", "invalid_market_area": "Välj ett elområde som finns i den valda Nord Pool-integrationen." }
   },
   "options": {
     "step": {
+      "init": {
+        "title": "Elnät och övriga inställningar",
+        "description": "Ange valfria elnätsavgifter och inställningar för elanvändningsråd. Mätvärden, marknadspriser och elhandel har egna inställningar."
+      },
+      "supplier": {
+        "title": "Elhandel",
+        "description": "Välj en valfri källa för aktuellt elpris och ange vad priset redan innehåller. Granska moms, påslag och fasta elhandelsavgifter. Nord Pool och elnätsavgifter har egna inställningar.",
+        "data": {
+          "price_entity": "Aktuellt elpris (valfritt)",
+          "pricing_strategy": "Typ av priskälla",
+          "price_included_components": "Delar som redan ingår i priset",
+          "price_vat_treatment": "Moms i priskällan",
+          "price_vat_rate": "Moms att lägga till på priser utan moms (%)",
+          "suggest_vat_rate": "Föreslå moms utifrån land/region",
+          "supplier_markup_per_kwh": "Elhandelspåslag per kWh (inklusive moms)",
+          "fixed_supplier_fee_monthly": "Fast elhandelsavgift per månad (inklusive moms)",
+          "accumulated_cost_today_entity": "Ackumulerad elhandelskostnad i dag (valfritt)"
+        },
+        "data_description": {
+          "price_entity": "Välj en källa för aktuellt elpris. Lämna tomt om du bara vill använda mätvärden eller Nord Pool-prognoser.",
+          "pricing_strategy": "Ange om källan är ett elhandelspris, ett marknadspris som behöver tillägg eller ett externt beräknat komplett pris.",
+          "price_included_components": "Markera alla rörliga delar som redan ingår i källan. Elbörspris måste ingå. Angivna tillägg läggs inte till en gång till om de redan ingår.",
+          "price_vat_treatment": "Ange om källans pris redan inkluderar moms. Priser med moms beskattas inte igen.",
+          "price_vat_rate": "Föreslås utifrån valt Nord Pool-elområde när en aktuell standardregel finns. Kontrollera och ändra vid behov. Sparade värden, även noll, behålls.",
+          "supplier_markup_per_kwh": "Ange påslaget inklusive moms i samma valuta per kWh som priskällan. Det används för marknadspriser och prognoser, utan att läggas till dubbelt i ett elhandelspris.",
+          "fixed_supplier_fee_monthly": "Ange endast elhandlarens fasta månadsavgift, inklusive moms. Elnätsavgifter anges under elnät.",
+          "accumulated_cost_today_entity": "Valfri källa som visar elhandelskostnaden sedan midnatt. Lämna tomt för lokal uppskattning när pris och energi är tillgängliga. Använd inte en fast månadsavgift som källa.",
+          "suggest_vat_rate": "Använd hjälpen om du vill granska land, regionala undantag eller ersätta en tidigare momsinställning."
+        }
+      },
+      "supplier_tibber": {
+        "title": "Elhandel",
+        "description": "Det kända Tibber-priset inkluderar elbörspris, elhandelspåslag och moms. Nord Pools börspriser anges utan moms. Dessa läggs inte till igen på det aktuella priset. När Nord Pool-prognoser är valda används moms och påslag nedan för prognoserna. Elnätsavgifter anges separat.\n\nPriskälla: {price_source}\n\nKälla för elhandelskostnad i dag: {cost_source}",
+        "data": {
+          "price_vat_rate": "Moms att lägga till på Nord Pool-prognoser (%)",
+          "suggest_vat_rate": "Föreslå moms utifrån land/region",
+          "supplier_markup_per_kwh": "Elhandelspåslag per kWh (inklusive moms)",
+          "fixed_supplier_fee_monthly": "Fast elhandelsavgift per månad (inklusive moms)",
+          "estimate_supplier_markup": "Uppskatta från Tibber (granska före användning)"
+        },
+        "data_description": {
+          "price_vat_rate": "Föreslås utifrån valt Nord Pool-elområde när en aktuell standardregel finns. Kontrollera och ändra vid behov. Sparade värden, även noll, behålls.",
+          "suggest_vat_rate": "Använd hjälpen om du vill granska land, regionala undantag eller ersätta en tidigare momsinställning.",
+          "supplier_markup_per_kwh": "Ange påslaget inklusive moms i samma valuta per kWh som priskällan. Det används för marknadspriser och prognoser, utan att läggas till dubbelt i ett elhandelspris.",
+          "fixed_supplier_fee_monthly": "Ange endast elhandlarens fasta månadsavgift, inklusive moms. Elnätsavgifter anges under elnät."
+        }
+      },
       "market_prices": {
         "title": "Marknadspriser (Nord Pool)",
-        "description": "Välj den inbyggda Nord Pool-integrationen för marknadspriser och prognoser. Lämna fältet tomt om du inte vill använda Nord Pool. Elområde och valuta hämtas från den valda integrationen; välj elområde om flera finns. Moms granskas under priser och övriga inställningar.\n\nKälla: {source}\n\nElområde: {area}\n\nValuta: {currency}\n\nLand från elområdet: {country}",
+        "description": "Välj den inbyggda Nord Pool-integrationen för marknadspriser och prognoser. Lämna fältet tomt om du inte vill använda Nord Pool. Elområde och valuta hämtas från den valda integrationen; välj elområde om flera finns. Moms granskas under Elhandel.\n\nKälla: {source}\n\nElområde: {area}\n\nValuta: {currency}\n\nLand från elområdet: {country}",
         "data": {
           "forecast_nordpool_config_entry": "Nord Pool-integration (valfritt)",
           "forecast_price_area": "Elområde"
@@ -126,10 +246,10 @@
       "menu": {
         "title": "Konfigurera Electricity Pro",
         "description": "Välj den del av konfigurationen som du vill ändra.",
-        "menu_options": { "measurements": "Mätvärden", "market_prices": "Marknadspriser (Nord Pool)", "settings": "Priser och övriga inställningar" }
+        "menu_options": { "measurements": "Mätvärden", "market_prices": "Marknadspriser (Nord Pool)", "supplier": "Elhandel", "settings": "Elnät och övriga inställningar" }
       }
     },
-    "error": { "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet.", "invalid_market_source": "Välj en Nord Pool-integration med giltiga elområden och valuta, eller lämna källan tom.", "invalid_market_area": "Välj ett elområde som finns i den valda Nord Pool-integrationen." }
+    "error": { "pricing_metadata_required": "Ange priskällans typ, ingående delar och moms. Elbörspris måste ingå.", "electricity_pro_source": "Välj en extern källa. Electricity Pros egna givare kan inte användas som indata.", "invalid_supplier_amount": "Ange ett giltigt belopp som är noll eller större. Moms måste vara mellan 0 och 100 procent.", "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet.", "invalid_market_source": "Välj en Nord Pool-integration med giltiga elområden och valuta, eller lämna källan tom.", "invalid_market_area": "Välj ett elområde som finns i den valda Nord Pool-integrationen." }
   },
   "entity": {
     "sensor": {

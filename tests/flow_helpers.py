@@ -1,4 +1,4 @@
-"""Follow the shared Measurements and options menu in settings-focused tests."""
+"""Follow shared configuration sections in settings-focused tests."""
 
 import probatio as vol
 
@@ -7,10 +7,30 @@ from custom_components.electricity_pro.measurement_config import (
     MEASUREMENT_KEYS,
 )
 from custom_components.electricity_pro.market_config import MARKET_KEYS
+from custom_components.electricity_pro.supplier_config import SUPPLIER_KEYS
+
+TIBBER_CONTRACT = {
+    "price_entity": "sensor.price",
+    "pricing_strategy": "supplier_contracted_price",
+    "price_included_components": ["market_energy", "supplier_markup"],
+    "price_vat_treatment": "included",
+    "price_completeness": "partial",
+}
+
+
+def form_values(result):
+    """Model accepting the visible suggestions and defaults."""
+    values = {}
+    for marker in result["data_schema"].schema:
+        default = marker.default() if callable(marker.default) else vol.UNDEFINED
+        value = (marker.description or {}).get("suggested_value", default)
+        if value is not vol.UNDEFINED and value is not None:
+            values[marker.schema] = value
+    return values
 
 
 async def start_settings(manager, entry_id):
-    """Open the existing prices/settings form through the Configure menu."""
+    """Open the remaining grid/insight form through the Configure menu."""
     result = await manager.async_init(entry_id)
     return await manager.async_configure(
         result["flow_id"], {"next_step_id": "settings"}
@@ -23,6 +43,28 @@ async def start_market(manager, entry_id):
     return await manager.async_configure(
         result["flow_id"], {"next_step_id": "market_prices"}
     )
+
+
+async def start_supplier(manager, entry_id):
+    """Open the supplier section without editing a different section."""
+    result = await manager.async_init(entry_id)
+    return await manager.async_configure(
+        result["flow_id"], {"next_step_id": "supplier"}
+    )
+
+
+async def confirm_supplier(manager, result, values=None):
+    """Accept displayed supplier values, optionally changing or clearing some."""
+    submitted = form_values(result)
+    fields = {marker.schema for marker in result["data_schema"].schema}
+    for key, value in (values or {}).items():
+        if key not in fields:
+            continue
+        if value is None:
+            submitted.pop(key, None)
+        else:
+            submitted[key] = value
+    return await manager.async_configure(result["flow_id"], submitted)
 
 
 async def confirm_market(manager, result, values=None):
@@ -88,10 +130,26 @@ async def configure_settings(manager, result, values):
             return result
         if result["type"] == "create_entry":
             return result
+    if result.get("step_id") in ("supplier", "supplier_tibber"):
+        result = await confirm_supplier(manager, result, values)
+        if result.get("step_id") not in ("init", "manual", "tibber_settings"):
+            return result
     if result.get("step_id") in ("init", "manual", "tibber_settings"):
         values = {
             key: value
             for key, value in values.items()
-            if key not in (*MEASUREMENT_KEYS, *MARKET_KEYS)
+            if key
+            not in (
+                *MEASUREMENT_KEYS,
+                *MARKET_KEYS,
+                *SUPPLIER_KEYS,
+                "suggest_vat_rate",
+                "estimate_supplier_markup",
+            )
         }
-    return await manager.async_configure(result["flow_id"], values)
+    result = await manager.async_configure(result["flow_id"], values)
+    if result.get("step_id") in ("manual", "tibber_settings") and not result.get(
+        "errors"
+    ):
+        return await manager.async_configure(result["flow_id"], {})
+    return result
