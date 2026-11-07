@@ -168,13 +168,13 @@
       },
       "measurements": {
         "title": "Mätvärden",
-        "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\n\n{sources}",
+        "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt\n\n{sources}",
         "data": {
-          "power_entity": "Aktuell effekt vid elnätet",
+          "power_entity": "Aktuell elnätseffekt",
           "energy_entity": "Importerad energi (valfritt)"
         },
         "data_description": {
-          "energy_entity": "Välj en importmätare som visar dagens energi eller ett livstidsvärde. Utan energikälla kan effektvärden fortfarande användas."
+          "energy_entity": "Välj en mätare som visar dagens eller livstidsvärde för energi. Utan källa kan effektvärden fortfarande användas."
         },
         "sections": {
           "advanced_measurements": {
@@ -186,8 +186,8 @@
               "voltage_l2_entity": "Spänning L2",
               "current_l3_entity": "Ström L3",
               "voltage_l3_entity": "Spänning L3",
-              "monthly_peak_hour_consumption_entity": "Extern energiförbrukning under månadens topptimme",
-              "monthly_peak_hour_time_entity": "Extern tid för månadens topptimme",
+              "monthly_peak_hour_consumption_entity": "Energiförbrukning månadens topptimme",
+              "monthly_peak_hour_time_entity": "Tidpunkt månadens topptimme.",
               "energy_source_type": "Energimätarens period"
             },
             "data_description": {
@@ -211,11 +211,11 @@
           "grid_fee_per_kwh": "Rörlig elnätsavgift per kWh (inklusive moms)",
           "energy_tax_per_kwh": "Energiskatt per kWh (inklusive moms)",
           "fixed_grid_fee_monthly": "Fast elnätsavgift per månad (inklusive moms)",
-          "grid_fee_high_per_kwh": "Högperiodens elnätsavgift per kWh (inklusive moms)",
-          "grid_fee_high_start": "Högperioden börjar (TT:MM)",
-          "grid_fee_high_end": "Högperioden slutar (TT:MM)",
-          "grid_fee_high_season_start": "Högsäsongen börjar (MM-DD)",
-          "grid_fee_high_season_end": "Högsäsongen slutar (MM-DD)",
+          "grid_fee_high_per_kwh": "Elnätsavgift högtariff",
+          "grid_fee_high_start": "Tid högtariff startar (tt:mm)",
+          "grid_fee_high_end": "Tid högtariff slutar (tt:mm)",
+          "grid_fee_high_season_start": "Högtariff-säsong startar (MM-DD)",
+          "grid_fee_high_season_end": "Högtariff-säsong slutar (MM-DD)",
           "grid_fee_workday_entity": "Workday-sensor (valfritt)"
         },
         "data_description": {
@@ -223,7 +223,7 @@
           "grid_fee_per_kwh": "Valfritt vid enhetlig taxa. Vid hög-/lågtariff är detta lågperiodens avgift och måste anges.",
           "energy_tax_per_kwh": "Valfritt. Använd skatten på din faktura, med eventuell regional nedsättning. Ingen nationell skattesats antas. (I Sverige normalt 0,45kr/kWh)",
           "fixed_grid_fee_monthly": "Valfritt. Fast avgift från elnätsföretaget. Ange inte effektavgifter eller elhandelsavgifter här.",
-          "grid_fee_high_per_kwh": "Högperiodens hela avgift, inte ett tillägg till lågperiodens avgift. Noll är ett giltigt belopp.",
+          "grid_fee_high_per_kwh": "Högtariffens hela avgift, inte ett tillägg till lågtariffens avgift. Noll är ett giltigt belopp.",
           "grid_fee_high_start": "Lokal starttid måndag–fredag, exempelvis 06:00. Perioder över midnatt stöds.",
           "grid_fee_high_end": "Lokal sluttid måndag–fredag, exempelvis 22:00. Måste skilja sig från starttiden.",
           "grid_fee_high_season_start": "Första dagen i den återkommande säsongen, exempelvis 11-01.",
@@ -256,7 +256,7 @@
         }
       },
       "flow_compatibility": {
-        "title": "Anläggning och kompatibilitet",
+        "title": "Installation och kompatibilitet",
         "description": "Granska anläggningsuppgifterna när valfria källor används. Välj Okänt / inte bekräftat om du är osäker. Saknade givare betyder inte att utrustning saknas. Fasfrågor visas bara för valda effektkällor. Lämna obekräftade fasuppgifter som okända. Du kan spara uppgifterna utan att aktivera den valfria diagnostiken. Diagnostiken behöver minst två valfria effektkällor och granskar bara deras mätvärden. Den beräknar inte hushållslast, energikvoter eller en komplett anläggningsbalans. Separata mätvärden för batteriets laddning/urladdning och riktad importeffekt stöds inte här.",
         "data": {
           "flow_compatibility_enabled": "Aktivera diagnostik för effektvärdenas kompatibilitet",
@@ -268,10 +268,10 @@
         }
       },
       "insights": {
-        "title": "Elanvändningsråd",
-        "description": "Välj hur Electricity Pro bedömer om aktuellt Effektivt elpris är fördelaktigt. Med fast metod gäller din prisgräns. Utan fast gräns ges inget fast elanvändningsråd.",
+        "title": "Användarpreferenser för el",
+        "description": "Välj hur Electricity Pro bedömer om aktuellt Effektivt elpris är “bra”. Med fast metod gäller din prisgräns. Utan fast gräns ges inget fast värde för “bra pris”",
         "data": {
-          "good_price_mode": "Metod för elanvändningsråd",
+          "good_price_mode": "Metod för ”bra pris”",
           "good_price_threshold": "Fast prisgräns per kWh (valfritt)"
         },
         "data_description": {
@@ -280,10 +280,10 @@
         }
       },
       "insights_adaptive": {
-        "title": "Elanvändningsråd",
-        "description": "Bedöm när aktuellt Effektivt elpris är fördelaktigt. Adaptiv metod kräver ett komplett, jämförbart prisunderlag. Den jämför med historiska lokala timmar och använder en fast reservgräns om historiken inte räcker. En kompatibel Nord Pool-prognos kan påverka rådet om ett bättre pris väntas.",
+        "title": "Användarpreferenser för el",
+        "description": "Bedöm när aktuellt Effektivt elpris är “bra”. Adaptiv metod kräver ett komplett, jämförbart prisunderlag. Den jämför med historiska lokala timmar och använder en fast reservgräns om historiken inte räcker. En kompatibel Nord Pool-prognos kan påverka rådet om ett bättre pris väntas.",
         "data": {
-          "good_price_mode": "Metod för elanvändningsråd",
+          "good_price_mode": "Metod för ”bra pris”",
           "good_price_threshold": "Fast reservgräns per kWh (valfritt)",
           "adaptive_target_percentile": "Målpercentil (%)",
           "adaptive_price_ceiling": "Adaptivt pristak per kWh (valfritt)"
@@ -319,7 +319,7 @@
           "measurements": {
             "name": "Mätvärden",
             "data": {
-              "power_entity": "Aktuell effekt vid elnätet",
+              "power_entity": "Aktuell elnätseffekt",
               "energy_entity": "Importerad energi (valfritt)",
               "current_l1_entity": "Ström L1",
               "voltage_l1_entity": "Spänning L1",
@@ -327,8 +327,8 @@
               "voltage_l2_entity": "Spänning L2",
               "current_l3_entity": "Ström L3",
               "voltage_l3_entity": "Spänning L3",
-              "monthly_peak_hour_consumption_entity": "Extern energiförbrukning under månadens topptimme",
-              "monthly_peak_hour_time_entity": "Extern tid för månadens topptimme",
+              "monthly_peak_hour_consumption_entity": "Energiförbrukning månadens topptimme",
+              "monthly_peak_hour_time_entity": "Tidpunkt månadens topptimme.",
               "energy_source_type": "Energimätarens period"
             }
           },
@@ -372,11 +372,11 @@
               "grid_fee_per_kwh": "Rörlig elnätsavgift per kWh (inklusive moms)",
               "energy_tax_per_kwh": "Energiskatt per kWh (inklusive moms)",
               "fixed_grid_fee_monthly": "Fast elnätsavgift per månad (inklusive moms)",
-              "grid_fee_high_per_kwh": "Högperiodens elnätsavgift per kWh (inklusive moms)",
-              "grid_fee_high_start": "Högperioden börjar (TT:MM)",
-              "grid_fee_high_end": "Högperioden slutar (TT:MM)",
-              "grid_fee_high_season_start": "Högsäsongen börjar (MM-DD)",
-              "grid_fee_high_season_end": "Högsäsongen slutar (MM-DD)",
+              "grid_fee_high_per_kwh": "Elnätsavgift högtariff",
+              "grid_fee_high_start": "Tid högtariff startar (tt:mm)",
+              "grid_fee_high_end": "Tid högtariff slutar (tt:mm)",
+              "grid_fee_high_season_start": "Högtariff-säsong startar (MM-DD)",
+              "grid_fee_high_season_end": "Högtariff-säsong slutar (MM-DD)",
               "grid_fee_workday_entity": "Workday-sensor (valfritt)",
               "schedule_origin": "Tidsplanens ursprung"
             }
@@ -400,14 +400,24 @@
             }
           },
           "insights": {
-            "name": "Elanvändningsråd",
+            "name": "Användarpreferenser för el",
             "data": {
-              "good_price_mode": "Metod för elanvändningsråd",
+              "good_price_mode": "Metod för ”bra pris”",
               "good_price_threshold": "Fast gräns / reservgräns per kWh",
               "adaptive_target_percentile": "Målpercentil (%)",
               "adaptive_price_ceiling": "Adaptivt pristak per kWh (valfritt)"
             }
           }
+        }
+      },
+      "user": {
+        "title": "Välj installationsmetod",
+        "description": "Använd Tibber “fasttrack” när du har både en Tibber dongle vid elmätaren OCH Tibber som elhandelsleverantör. Välj anpassade eller blandade källor för alla andra kombinationer.",
+        "data": {
+          "setup_method": "installationsmetod"
+        },
+        "data_description": {
+          "setup_method": "Tibber “fasttrack” känner av Tibber entiteter automatiskt."
         }
       }
     },
@@ -499,13 +509,13 @@
       },
       "measurements": {
         "title": "Mätvärden",
-        "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\n\n{sources}",
+        "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt\n\n{sources}",
         "data": {
-          "power_entity": "Aktuell effekt vid elnätet",
+          "power_entity": "Aktuell elnätseffekt",
           "energy_entity": "Importerad energi (valfritt)"
         },
         "data_description": {
-          "energy_entity": "Välj en importmätare som visar dagens energi eller ett livstidsvärde. Utan energikälla kan effektvärden fortfarande användas."
+          "energy_entity": "Välj en mätare som visar dagens eller livstidsvärde för energi. Utan källa kan effektvärden fortfarande användas."
         },
         "sections": {
           "advanced_measurements": {
@@ -517,8 +527,8 @@
               "voltage_l2_entity": "Spänning L2",
               "current_l3_entity": "Ström L3",
               "voltage_l3_entity": "Spänning L3",
-              "monthly_peak_hour_consumption_entity": "Extern energiförbrukning under månadens topptimme",
-              "monthly_peak_hour_time_entity": "Extern tid för månadens topptimme",
+              "monthly_peak_hour_consumption_entity": "Energiförbrukning månadens topptimme",
+              "monthly_peak_hour_time_entity": "Tidpunkt månadens topptimme.",
               "energy_source_type": "Energimätarens period"
             },
             "data_description": {
@@ -543,7 +553,7 @@
           "supplier": "Elhandel",
           "grid": "Elnät",
           "energy_flows": "Produktion och export",
-          "insights": "Elanvändningsråd",
+          "insights": "Användarpreferenser för el",
           "overview": "Översikt"
         }
       },
@@ -555,11 +565,11 @@
           "grid_fee_per_kwh": "Rörlig elnätsavgift per kWh (inklusive moms)",
           "energy_tax_per_kwh": "Energiskatt per kWh (inklusive moms)",
           "fixed_grid_fee_monthly": "Fast elnätsavgift per månad (inklusive moms)",
-          "grid_fee_high_per_kwh": "Högperiodens elnätsavgift per kWh (inklusive moms)",
-          "grid_fee_high_start": "Högperioden börjar (TT:MM)",
-          "grid_fee_high_end": "Högperioden slutar (TT:MM)",
-          "grid_fee_high_season_start": "Högsäsongen börjar (MM-DD)",
-          "grid_fee_high_season_end": "Högsäsongen slutar (MM-DD)",
+          "grid_fee_high_per_kwh": "Elnätsavgift högtariff",
+          "grid_fee_high_start": "Tid högtariff startar (tt:mm)",
+          "grid_fee_high_end": "Tid högtariff slutar (tt:mm)",
+          "grid_fee_high_season_start": "Högtariff-säsong startar (MM-DD)",
+          "grid_fee_high_season_end": "Högtariff-säsong slutar (MM-DD)",
           "grid_fee_workday_entity": "Workday-sensor (valfritt)"
         },
         "data_description": {
@@ -567,7 +577,7 @@
           "grid_fee_per_kwh": "Valfritt vid enhetlig taxa. Vid hög-/lågtariff är detta lågperiodens avgift och måste anges.",
           "energy_tax_per_kwh": "Valfritt. Använd skatten på din faktura, med eventuell regional nedsättning. Ingen nationell skattesats antas. (I Sverige normalt 0,45kr/kWh)",
           "fixed_grid_fee_monthly": "Valfritt. Fast avgift från elnätsföretaget. Ange inte effektavgifter eller elhandelsavgifter här.",
-          "grid_fee_high_per_kwh": "Högperiodens hela avgift, inte ett tillägg till lågperiodens avgift. Noll är ett giltigt belopp.",
+          "grid_fee_high_per_kwh": "Högtariffens hela avgift, inte ett tillägg till lågtariffens avgift. Noll är ett giltigt belopp.",
           "grid_fee_high_start": "Lokal starttid måndag–fredag, exempelvis 06:00. Perioder över midnatt stöds.",
           "grid_fee_high_end": "Lokal sluttid måndag–fredag, exempelvis 22:00. Måste skilja sig från starttiden.",
           "grid_fee_high_season_start": "Första dagen i den återkommande säsongen, exempelvis 11-01.",
@@ -600,7 +610,7 @@
         }
       },
       "flow_compatibility": {
-        "title": "Anläggning och kompatibilitet",
+        "title": "Installation och kompatibilitet",
         "description": "Granska anläggningsuppgifterna när valfria källor används. Välj Okänt / inte bekräftat om du är osäker. Saknade givare betyder inte att utrustning saknas. Fasfrågor visas bara för valda effektkällor. Lämna obekräftade fasuppgifter som okända. Du kan spara uppgifterna utan att aktivera den valfria diagnostiken. Diagnostiken behöver minst två valfria effektkällor och granskar bara deras mätvärden. Den beräknar inte hushållslast, energikvoter eller en komplett anläggningsbalans. Separata mätvärden för batteriets laddning/urladdning och riktad importeffekt stöds inte här.",
         "data": {
           "flow_compatibility_enabled": "Aktivera diagnostik för effektvärdenas kompatibilitet",
@@ -612,10 +622,10 @@
         }
       },
       "insights": {
-        "title": "Elanvändningsråd",
-        "description": "Välj hur Electricity Pro bedömer om aktuellt Effektivt elpris är fördelaktigt. Med fast metod gäller din prisgräns. Utan fast gräns ges inget fast elanvändningsråd.",
+        "title": "Användarpreferenser för el",
+        "description": "Välj hur Electricity Pro bedömer om aktuellt Effektivt elpris är “bra”. Med fast metod gäller din prisgräns. Utan fast gräns ges inget fast värde för “bra pris”",
         "data": {
-          "good_price_mode": "Metod för elanvändningsråd",
+          "good_price_mode": "Metod för ”bra pris”",
           "good_price_threshold": "Fast prisgräns per kWh (valfritt)"
         },
         "data_description": {
@@ -624,10 +634,10 @@
         }
       },
       "insights_adaptive": {
-        "title": "Elanvändningsråd",
-        "description": "Bedöm när aktuellt Effektivt elpris är fördelaktigt. Adaptiv metod kräver ett komplett, jämförbart prisunderlag. Den jämför med historiska lokala timmar och använder en fast reservgräns om historiken inte räcker. En kompatibel Nord Pool-prognos kan påverka rådet om ett bättre pris väntas.",
+        "title": "Användarpreferenser för el",
+        "description": "Bedöm när aktuellt Effektivt elpris är “bra”. Adaptiv metod kräver ett komplett, jämförbart prisunderlag. Den jämför med historiska lokala timmar och använder en fast reservgräns om historiken inte räcker. En kompatibel Nord Pool-prognos kan påverka rådet om ett bättre pris väntas.",
         "data": {
-          "good_price_mode": "Metod för elanvändningsråd",
+          "good_price_mode": "Metod för ”bra pris”",
           "good_price_threshold": "Fast reservgräns per kWh (valfritt)",
           "adaptive_target_percentile": "Målpercentil (%)",
           "adaptive_price_ceiling": "Adaptivt pristak per kWh (valfritt)"
@@ -663,7 +673,7 @@
           "measurements": {
             "name": "Mätvärden",
             "data": {
-              "power_entity": "Aktuell effekt vid elnätet",
+              "power_entity": "Aktuell elnätseffekt",
               "energy_entity": "Importerad energi (valfritt)",
               "current_l1_entity": "Ström L1",
               "voltage_l1_entity": "Spänning L1",
@@ -671,8 +681,8 @@
               "voltage_l2_entity": "Spänning L2",
               "current_l3_entity": "Ström L3",
               "voltage_l3_entity": "Spänning L3",
-              "monthly_peak_hour_consumption_entity": "Extern energiförbrukning under månadens topptimme",
-              "monthly_peak_hour_time_entity": "Extern tid för månadens topptimme",
+              "monthly_peak_hour_consumption_entity": "Energiförbrukning månadens topptimme",
+              "monthly_peak_hour_time_entity": "Tidpunkt månadens topptimme.",
               "energy_source_type": "Energimätarens period"
             }
           },
@@ -716,11 +726,11 @@
               "grid_fee_per_kwh": "Rörlig elnätsavgift per kWh (inklusive moms)",
               "energy_tax_per_kwh": "Energiskatt per kWh (inklusive moms)",
               "fixed_grid_fee_monthly": "Fast elnätsavgift per månad (inklusive moms)",
-              "grid_fee_high_per_kwh": "Högperiodens elnätsavgift per kWh (inklusive moms)",
-              "grid_fee_high_start": "Högperioden börjar (TT:MM)",
-              "grid_fee_high_end": "Högperioden slutar (TT:MM)",
-              "grid_fee_high_season_start": "Högsäsongen börjar (MM-DD)",
-              "grid_fee_high_season_end": "Högsäsongen slutar (MM-DD)",
+              "grid_fee_high_per_kwh": "Elnätsavgift högtariff",
+              "grid_fee_high_start": "Tid högtariff startar (tt:mm)",
+              "grid_fee_high_end": "Tid högtariff slutar (tt:mm)",
+              "grid_fee_high_season_start": "Högtariff-säsong startar (MM-DD)",
+              "grid_fee_high_season_end": "Högtariff-säsong slutar (MM-DD)",
               "grid_fee_workday_entity": "Workday-sensor (valfritt)",
               "schedule_origin": "Tidsplanens ursprung"
             }
@@ -744,9 +754,9 @@
             }
           },
           "insights": {
-            "name": "Elanvändningsråd",
+            "name": "Användarpreferenser för el",
             "data": {
-              "good_price_mode": "Metod för elanvändningsråd",
+              "good_price_mode": "Metod för ”bra pris”",
               "good_price_threshold": "Fast gräns / reservgräns per kWh",
               "adaptive_target_percentile": "Målpercentil (%)",
               "adaptive_price_ceiling": "Adaptivt pristak per kWh (valfritt)"
@@ -798,7 +808,7 @@
       "peak_power_time_today": { "name": "Tid för dagens högsta effekt" },
       "current_market_price": { "name": "Aktuellt spotpris" },
       "average_market_price_today": { "name": "Genomsnittligt spotpris i dag" },
-      "consumption_timing_score_yesterday": { "name": "Tidsanpassningspoäng för gårdagens förbrukning" },
+      "consumption_timing_score_yesterday": { "name": "Konsumptionspoäng för gårdagen" },
       "estimated_base_load": { "name": "Uppskattad baslast" },
       "average_power_today": { "name": "Genomsnittlig effekt i dag" },
       "next_inexpensive_1h_window_start": { "name": "Start för nästa billiga timme" },
@@ -822,16 +832,16 @@
       "flow_power_compatibility": { "name": "Kompatibilitet för effektflöden" },
       "current_l1": { "name": "Ström L1" },
       "voltage_l1": { "name": "Spänning L1" },
-      "cheapest_1h_window_start": { "name": "Start för billigaste 1-timmarsperioden" },
-      "cheapest_1h_window_average_effective_price": { "name": "Genomsnittligt planeringspris för billigaste 1-timmarsperioden" },
+      "cheapest_1h_window_start": { "name": "Start billigaste 1h" },
+      "cheapest_1h_window_average_effective_price": { "name": "Snittpris billigaste 1h" },
       "current_l2": { "name": "Ström L2" },
       "voltage_l2": { "name": "Spänning L2" },
-      "cheapest_2h_window_start": { "name": "Start för billigaste 2-timmarsperioden" },
-      "cheapest_2h_window_average_effective_price": { "name": "Genomsnittligt planeringspris för billigaste 2-timmarsperioden" },
+      "cheapest_2h_window_start": { "name": "Start billigaste 2h" },
+      "cheapest_2h_window_average_effective_price": { "name": "Snittpris billigaste 2h" },
       "current_l3": { "name": "Ström L3" },
       "voltage_l3": { "name": "Spänning L3" },
-      "cheapest_3h_window_start": { "name": "Start för billigaste 3-timmarsperioden" },
-      "cheapest_3h_window_average_effective_price": { "name": "Genomsnittligt planeringspris för billigaste 3-timmarsperioden" }
+      "cheapest_3h_window_start": { "name": "Start billigaste 3h" },
+      "cheapest_3h_window_average_effective_price": { "name": "Snittpris billigaste 3h" }
     },
     "binary_sensor": {
       "good_time_to_use_electricity": { "name": "Bra tid att använda el" }
