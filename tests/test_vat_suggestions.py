@@ -8,6 +8,8 @@ import pytest
 from homeassistant import config_entries
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from tests.flow_helpers import start_settings, configure_settings
+
 from custom_components.electricity_pro.config_flow import (
     _entity_schema,
     _tibber_settings_schema,
@@ -111,7 +113,7 @@ async def start(hass, profile, **data):
         },
     )
     entry.add_to_hass(hass)
-    flow = await hass.config_entries.options.async_init(entry.entry_id)
+    flow = await start_settings(hass.config_entries.options, entry.entry_id)
     return entry, flow
 
 
@@ -123,11 +125,11 @@ async def test_automatic_hint_requires_confirmation(hass, freezer, profile):
     )
     nordpool.add_to_hass(hass)
     entry, flow = await start(hass, profile)
-    submit = hass.config_entries.options.async_configure
+    manager = hass.config_entries.options
     values = {"forecast_nordpool_config_entry": nordpool.entry_id}
     if profile == "custom":
         values["power_entity"] = "sensor.power"
-    flow = await submit(flow["flow_id"], values)
+    flow = await configure_settings(manager, flow, values)
     if profile == "tibber":
         assert flow["step_id"] == "tibber_forecast_pricing"
     else:
@@ -138,7 +140,7 @@ async def test_automatic_hint_requires_confirmation(hass, freezer, profile):
     confirm = {"price_vat_rate": 25.5}
     if profile == "custom":
         confirm["use_vat_suggestion"] = True
-    flow = await submit(flow["flow_id"], confirm)
+    flow = await configure_settings(manager, flow, confirm)
     assert flow["type"] == "create_entry"
     assert flow["data"]["price_vat_rate"] == 25.5
     assert "suggest_vat_rate" not in flow["data"]
@@ -153,14 +155,14 @@ async def test_saved_rates_unchanged_on_source_change(hass, profile, saved):
     )
     nordpool.add_to_hass(hass)
     _, flow = await start(hass, profile, price_vat_rate=saved)
-    submit = hass.config_entries.options.async_configure
+    manager = hass.config_entries.options
     values = {"forecast_nordpool_config_entry": nordpool.entry_id}
     if profile == "custom":
         values.update(power_entity="sensor.power", price_vat_rate=saved)
-    flow = await submit(flow["flow_id"], values)
+    flow = await configure_settings(manager, flow, values)
     if profile == "tibber":
         assert flow["step_id"] == "tibber_forecast_pricing"
-        flow = await submit(flow["flow_id"], {"price_vat_rate": saved})
+        flow = await configure_settings(manager, flow, {"price_vat_rate": saved})
     assert flow["type"] == "create_entry"
     assert flow["data"]["price_vat_rate"] == saved
 
@@ -169,16 +171,17 @@ async def test_saved_rates_unchanged_on_source_change(hass, profile, saved):
 async def test_non_nordpool_override_or_decline(hass, freezer, accept):
     freezer.move_to("2026-10-02T12:00:00Z")
     _, flow = await start(hass, "custom", price_vat_rate=0)
-    submit = hass.config_entries.options.async_configure
-    flow = await submit(
-        flow["flow_id"],
+    manager = hass.config_entries.options
+    flow = await configure_settings(
+        manager,
+        flow,
         {"power_entity": "sensor.power", "price_vat_rate": 0, "suggest_vat_rate": True},
     )
     assert flow["description_placeholders"]["hint"] == "No unambiguous Nord Pool area"
-    flow = await submit(flow["flow_id"], {"vat_country": "SE"})
+    flow = await configure_settings(manager, flow, {"vat_country": "SE"})
     assert float(flow["description_placeholders"]["previous"]) == 0
-    flow = await submit(
-        flow["flow_id"], {"price_vat_rate": 12.3, "use_vat_suggestion": accept}
+    flow = await configure_settings(
+        manager, flow, {"price_vat_rate": 12.3, "use_vat_suggestion": accept}
     )
     assert flow["type"] == "create_entry"
     assert flow["data"]["price_vat_rate"] == (12.3 if accept else 0)
@@ -198,18 +201,18 @@ async def test_exception_context_required(hass, freezer, country, context, rate)
     flow = await hass.config_entries.flow.async_init(
         "electricity_pro", context={"source": config_entries.SOURCE_USER}
     )
-    submit = hass.config_entries.flow.async_configure
-    flow = await submit(flow["flow_id"], {"setup_method": "custom"})
-    flow = await submit(
-        flow["flow_id"], {"power_entity": "sensor.power", "suggest_vat_rate": True}
+    manager = hass.config_entries.flow
+    flow = await configure_settings(manager, flow, {"setup_method": "custom"})
+    flow = await configure_settings(
+        manager, flow, {"power_entity": "sensor.power", "suggest_vat_rate": True}
     )
-    flow = await submit(flow["flow_id"], {"vat_country": country})
+    flow = await configure_settings(manager, flow, {"vat_country": country})
     assert flow["step_id"] == "vat_context"
     assert flow["data_schema"]({})["vat_context"] == "manual"
-    flow = await submit(flow["flow_id"], {"vat_context": context})
+    flow = await configure_settings(manager, flow, {"vat_context": context})
     assert flow["data_schema"]({})["price_vat_rate"] == rate
-    flow = await submit(
-        flow["flow_id"], {"price_vat_rate": rate, "use_vat_suggestion": True}
+    flow = await configure_settings(
+        manager, flow, {"price_vat_rate": rate, "use_vat_suggestion": True}
     )
     assert flow["data"]["price_vat_rate"] == rate
 
@@ -217,13 +220,13 @@ async def test_exception_context_required(hass, freezer, country, context, rate)
 async def test_expired_rule_allows_manual_escape(hass, freezer):
     freezer.move_to("2028-10-02T12:00:00Z")
     _, flow = await start(hass, "custom", price_vat_rate=17)
-    submit = hass.config_entries.options.async_configure
-    flow = await submit(
-        flow["flow_id"], {"power_entity": "sensor.power", "suggest_vat_rate": True}
+    manager = hass.config_entries.options
+    flow = await configure_settings(
+        manager, flow, {"power_entity": "sensor.power", "suggest_vat_rate": True}
     )
-    flow = await submit(flow["flow_id"], {"vat_country": "SE"})
+    flow = await configure_settings(manager, flow, {"vat_country": "SE"})
     assert "price_vat_rate" not in flow["data_schema"]({})
-    flow = await submit(flow["flow_id"], {"use_vat_suggestion": False})
+    flow = await configure_settings(manager, flow, {"use_vat_suggestion": False})
     assert flow["data"]["price_vat_rate"] == 17
 
 
@@ -238,10 +241,10 @@ async def test_configured_area_prefills_editable_rate_without_country_question(
     entry, flow = await start(
         hass, profile, forecast_nordpool_config_entry=nordpool.entry_id
     )
-    submit = hass.config_entries.options.async_configure
+    manager = hass.config_entries.options
     if profile == "tibber":
-        flow = await submit(
-            flow["flow_id"], {"forecast_nordpool_config_entry": nordpool.entry_id}
+        flow = await configure_settings(
+            manager, flow, {"forecast_nordpool_config_entry": nordpool.entry_id}
         )
         assert flow["step_id"] == "tibber_forecast_pricing"
     assert flow["data_schema"]({})["price_vat_rate"] == expected
@@ -253,7 +256,7 @@ async def test_configured_area_prefills_editable_rate_without_country_question(
             power_entity="sensor.power",
             forecast_nordpool_config_entry=nordpool.entry_id,
         )
-    flow = await submit(flow["flow_id"], values)
+    flow = await configure_settings(manager, flow, values)
     assert flow["type"] == "create_entry"
     assert flow["data"]["price_vat_rate"] == 12.3
 
@@ -271,8 +274,10 @@ async def test_prefill_never_replaces_saved_rate(hass, freezer, profile, saved):
         price_vat_rate=saved,
     )
     if profile == "tibber":
-        flow = await hass.config_entries.options.async_configure(
-            flow["flow_id"], {"forecast_nordpool_config_entry": nordpool.entry_id}
+        flow = await configure_settings(
+            hass.config_entries.options,
+            flow,
+            {"forecast_nordpool_config_entry": nordpool.entry_id},
         )
     assert flow["data_schema"]({})["price_vat_rate"] == saved
 
@@ -287,17 +292,17 @@ async def test_norwegian_area_skips_country_but_requires_household_context(
     _, flow = await start(
         hass, profile, forecast_nordpool_config_entry=nordpool.entry_id
     )
-    submit = hass.config_entries.options.async_configure
+    manager = hass.config_entries.options
     values = {"forecast_nordpool_config_entry": nordpool.entry_id}
     if profile == "custom":
         values["power_entity"] = "sensor.power"
         assert "price_vat_rate" not in flow["data_schema"]({})
-    flow = await submit(flow["flow_id"], values)
+    flow = await configure_settings(manager, flow, values)
     if profile == "tibber":
         assert "price_vat_rate" not in flow["data_schema"]({})
-        flow = await submit(flow["flow_id"], {})
+        flow = await configure_settings(manager, flow, {})
     assert flow["step_id"] == "vat_context"
-    flow = await submit(flow["flow_id"], {"vat_context": "north_household"})
+    flow = await configure_settings(manager, flow, {"vat_context": "north_household"})
     assert flow["data_schema"]({})["price_vat_rate"] == 0
 
 

@@ -41,6 +41,7 @@ Paths are relative to `custom_components/electricity_pro/`.
 | --- | --- |
 | `__init__.py`, `const.py`, `services.yaml` | Config-entry lifecycle, platforms, constants and public actions |
 | `config_flow.py` | Standard/Tibber setup, options, validation, drafts and confirmations |
+| `measurement_config.py` | Shared measurement forms, source review and energy-counter confirmation |
 | `source_adapters.py` | Guided discovery and provider-specific configuration assistance |
 | `provider.py` | HA state reading, normalization, configured tariffs and snapshot construction |
 | `pricing_config.py`, `vat_suggestions.py` | Price declarations and editable regional VAT suggestions |
@@ -79,6 +80,19 @@ including unavailable entities for existing configured keys. Dynamic coordinator
 reads resolve settings again; this is not a settings cache. Stored cost scopes
 and adaptive tariff signatures use the same effective values as before.
 Configuration-form drafts and their retry/clearing rules remain separate.
+
+Custom and Tibber setup collect meter readings through `MeasurementFlow`.
+Its main form has power and optional import-energy selectors, with phase and
+external peak readings in a collapsed section. Known Tibber daily counters and
+existing saved accumulation periods carry through. A newly selected generic
+energy source requires a daily/lifetime confirmation. Measurement discovery
+accepts a known meter independently of whether a contract-price source exists.
+
+Options start with a section menu. A Measurements save overlays only its owned
+keys onto the latest options, including explicit clears. The remaining settings
+form retains the effective measurement values when saving prices, fees or
+optional flows. Draft forms do not update the entry before completion. The
+stored keys, source scoping and entity identities use their existing contracts.
 
 Setup and options share Nord Pool area metadata lookup in `config_flow.py`.
 Both options paths use the same saved-area resolver: options override setup data,

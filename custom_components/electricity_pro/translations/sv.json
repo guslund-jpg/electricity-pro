@@ -1,4 +1,98 @@
 {
+  "selector": {
+    "energy_source_type": {
+      "options": { "daily": "Återställs dagligen", "lifetime": "Ackumulerad import under mätarens livstid" }
+    }
+  },
+  "config": {
+    "step": {
+      "measurements": {
+        "title": "Mätvärden",
+        "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\n\n{sources}",
+        "data": {
+          "power_entity": "Aktuell effekt vid elnätet",
+          "energy_entity": "Importerad energi (valfritt)"
+        },
+        "data_description": {
+          "energy_entity": "Välj en importmätare som visar dagens energi eller ett livstidsvärde. Utan energikälla kan effektvärden fortfarande användas."
+        },
+        "sections": {
+          "advanced_measurements": {
+            "name": "Ytterligare mätvärden",
+            "data": {
+              "current_l1_entity": "Ström L1",
+              "voltage_l1_entity": "Spänning L1",
+              "current_l2_entity": "Ström L2",
+              "voltage_l2_entity": "Spänning L2",
+              "current_l3_entity": "Ström L3",
+              "voltage_l3_entity": "Spänning L3",
+              "monthly_peak_hour_consumption_entity": "Extern energiförbrukning under månadens topptimme",
+              "monthly_peak_hour_time_entity": "Extern tid för månadens topptimme",
+              "energy_source_type": "Energimätarens period"
+            },
+            "data_description": {
+              "energy_source_type": "Visar den kända inställningen för den valda mätaren. Ändra om mätarens period är en annan."
+            }
+          }
+        }
+      },
+      "measurement_energy": {
+        "title": "Hur räknar energimätaren?",
+        "description": "Bekräfta om den valda importmätaren återställs dagligen eller visar ett livstidsvärde.\n\n{sources}",
+        "data": {
+          "energy_source_type": "Energimätarens period"
+        }
+      }
+    },
+    "error": { "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet." }
+  },
+  "options": {
+    "step": {
+      "measurements": {
+        "title": "Mätvärden",
+        "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\n\n{sources}",
+        "data": {
+          "power_entity": "Aktuell effekt vid elnätet",
+          "energy_entity": "Importerad energi (valfritt)"
+        },
+        "data_description": {
+          "energy_entity": "Välj en importmätare som visar dagens energi eller ett livstidsvärde. Utan energikälla kan effektvärden fortfarande användas."
+        },
+        "sections": {
+          "advanced_measurements": {
+            "name": "Ytterligare mätvärden",
+            "data": {
+              "current_l1_entity": "Ström L1",
+              "voltage_l1_entity": "Spänning L1",
+              "current_l2_entity": "Ström L2",
+              "voltage_l2_entity": "Spänning L2",
+              "current_l3_entity": "Ström L3",
+              "voltage_l3_entity": "Spänning L3",
+              "monthly_peak_hour_consumption_entity": "Extern energiförbrukning under månadens topptimme",
+              "monthly_peak_hour_time_entity": "Extern tid för månadens topptimme",
+              "energy_source_type": "Energimätarens period"
+            },
+            "data_description": {
+              "energy_source_type": "Visar den kända inställningen för den valda mätaren. Ändra om mätarens period är en annan."
+            }
+          }
+        }
+      },
+      "measurement_energy": {
+        "title": "Hur räknar energimätaren?",
+        "description": "Bekräfta om den valda importmätaren återställs dagligen eller visar ett livstidsvärde.\n\n{sources}",
+        "data": {
+          "energy_source_type": "Energimätarens period"
+        }
+      },
+      "menu": {
+        "title": "Konfigurera Electricity Pro",
+        "description": "Välj den del av konfigurationen som du vill ändra.",
+        "menu_options": { "measurements": "Mätvärden", "settings": "Priser och övriga inställningar" }
+      }
+    },
+    "error": { "invalid_measurement_source": "Välj en givare med rätt mätvärde och enhet." }
+  },
   "entity": {
     "sensor": {
       "current_power": { "name": "Aktuell effekt" },

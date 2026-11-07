@@ -2,6 +2,25 @@
 
 Electricity Pro uses existing Home Assistant sensor entities as data sources.
 
+## Measurements screen on the development branch
+
+On `main`, both setup paths start with a shared Measurements screen. Review
+the current grid-power source and optionally select imported energy. A single
+supported Tibber meter is suggested automatically, including when it has no
+contract-price source. Several detected Tibber homes are offered for selection.
+
+For a generic energy source, confirm whether the value resets daily or is a
+lifetime import register. Known Tibber counters and existing configured periods
+are retained. The collapsed Advanced measurements section contains the phase
+current/voltage inputs, an energy-period override and optional external monthly
+peak-hour readings.
+
+The Configure menu offers Measurements and Prices and other settings. Saving
+Measurements applies the source edits independently of the prices and fees.
+Selecting Prices and other settings retains the existing measurement bindings.
+The new screens have English and Swedish text. Publication remains tracked by
+the [changelog](../../CHANGELOG.md).
+
 ## Guided Tibber setup
 
 Choose **Tibber fast track** when the official Home Assistant Tibber integration
