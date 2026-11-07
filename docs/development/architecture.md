@@ -268,6 +268,17 @@ flow sensors use dedicated classes. Good Time is a binary sensor supporting
 fixed and adaptive classification. Keys and unique IDs are compatibility
 contracts; dashboard labels need not equal those keys.
 
+Current supplier price and Effective price bind an optional, typed
+`attributes_fn` on their `ElectricityProSensorEntityDescription`. Each function
+reads only the current `ElectricityProData` snapshot and reuses the existing
+supplier/effective-price calculation to decide whether the value is known.
+The entity delegates attribute rendering without adding an availability guard:
+missing units or a failed coordinator update do not change otherwise known
+attribute payloads. Missing metadata, VAT hints, decimal-string formatting and
+fresh attribute containers retain their existing behavior. Other ordinary
+sensor attributes still use the key-based dispatch; this is a bounded #288
+increment, not a migration of every sensor or a new calculation/persistence layer.
+
 Good Time decision logic lives in `good_time.py`, with explicit normalized
 effective price, settings, history, scope, forecasts and evaluation time. It
 does not read the clock, Home Assistant state or persistence. The compatibility

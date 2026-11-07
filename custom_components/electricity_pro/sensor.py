@@ -85,6 +85,9 @@ class ElectricityProSensorEntityDescription(
     value_fn: Callable[[ElectricityProData], Decimal | datetime | None]
     available_fn: Callable[[ElectricityProData], bool]
     unit_fn: Callable[[ElectricityProData], str | None] | None = None
+    attributes_fn: Callable[[ElectricityProData], dict[str, object] | None] | None = (
+        None
+    )
     required_config_key: str | None = None
     required_config_keys: tuple[str, ...] = ()
 
@@ -158,6 +161,33 @@ def _forecast_price_attributes(metadata: PricingMetadata) -> dict[str, object]:
 def _decimal_string(value: Decimal | None) -> str | None:
     """Return a storage- and attribute-safe decimal representation."""
     return None if value is None else str(value)
+
+
+def _supplier_price_attributes(data: ElectricityProData) -> dict[str, object]:
+    """Describe the identifiable supplier-only price, including missing values."""
+    if supplier_price(data) is None:
+        return {"price_completeness": "unknown"}
+    return {
+        "price_components": ["market_energy", "supplier_markup"],
+        "vat_treatment": "included",
+        "price_completeness": "partial",
+    }
+
+
+def _effective_price_attributes(data: ElectricityProData) -> dict[str, object] | None:
+    """Describe source VAT and the existing Effective Price configuration hints."""
+    metadata = data.pricing_metadata
+    if metadata is None:
+        return None
+    vat = metadata.scope.vat.value
+    return {
+        "source_vat_treatment": vat,
+        "vat_rate_percent": _decimal_string(metadata.vat_rate),
+        "vat_treatment": "included" if effective_price(data) is not None else "unknown",
+        "vat_configuration_required": (
+            vat == "unknown" or (vat == "excluded" and metadata.vat_rate is None)
+        ),
+    }
 
 
 def consumption_weighted_average_price(
@@ -314,6 +344,7 @@ SENSOR_DESCRIPTIONS: tuple[
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
         value_fn=supplier_price,
+        attributes_fn=_supplier_price_attributes,
         unit_fn=lambda data: data.current_price_unit,
         available_fn=lambda data: (
             supplier_price(data) is not None and data.current_price_unit is not None
@@ -342,6 +373,7 @@ SENSOR_DESCRIPTIONS: tuple[
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
         value_fn=effective_price,
+        attributes_fn=_effective_price_attributes,
         unit_fn=lambda data: data.current_price_unit,
         available_fn=lambda data: (
             effective_price(data) is not None and data.current_price_unit is not None
@@ -890,6 +922,8 @@ class ElectricityProSensor(ElectricityProNamedSensor):
     @property
     def extra_state_attributes(self) -> dict[str, object] | None:
         """Expose source coverage and VAT requirements."""
+        if self.entity_description.attributes_fn is not None:
+            return self.entity_description.attributes_fn(self.coordinator.data)
         if self.entity_description.key in {"total_cost_today", "total_cost_this_month"}:
             data = self.coordinator.data
             monthly = self.entity_description.key == "total_cost_this_month"
@@ -917,30 +951,6 @@ class ElectricityProSensor(ElectricityProNamedSensor):
                 "fixed_fee_coverage": "calendar_month_to_now"
                 if monthly
                 else "local_midnight_to_now",
-            }
-        if self.entity_description.key == "current_supplier_price":
-            if self.native_value is None:
-                return {"price_completeness": "unknown"}
-            return {
-                "price_components": ["market_energy", "supplier_markup"],
-                "vat_treatment": "included",
-                "price_completeness": "partial",
-            }
-        if self.entity_description.key == "effective_price":
-            metadata = self.coordinator.data.pricing_metadata
-            if metadata is None:
-                return None
-            vat = metadata.scope.vat.value
-            return {
-                "source_vat_treatment": vat,
-                "vat_rate_percent": _decimal_string(metadata.vat_rate),
-                "vat_treatment": "included"
-                if self.native_value is not None
-                else "unknown",
-                "vat_configuration_required": (
-                    vat == "unknown"
-                    or (vat == "excluded" and metadata.vat_rate is None)
-                ),
             }
         if (
             self.entity_description.key
