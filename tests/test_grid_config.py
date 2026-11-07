@@ -73,7 +73,7 @@ async def test_setup_grid_after_supplier_before_insights(hass, profile):
     result = await confirm_grid(manager, result, TARIFF)
     if result.get("step_id") == "energy_flows":
         result = await confirm_production(manager, result)
-    assert result["step_id"] == ("manual" if profile == "custom" else "tibber_settings")
+    assert result["step_id"] == "insights"
     assert not set(GRID_KEYS) & {key.schema for key in result["data_schema"].schema}
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"

@@ -68,7 +68,7 @@ async def test_import_only_setup_skips_sources_and_installation_questions(
     result = await manager.async_configure(
         result["flow_id"], {"configure_energy_flows": False}
     )
-    assert result["step_id"] == ("manual" if profile == "custom" else "tibber_settings")
+    assert result["step_id"] == "insights"
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"
     assert all(result["data"][key] is None for key in FLOW_KEYS)
@@ -96,7 +96,7 @@ async def test_each_source_can_be_reviewed_during_both_setup_paths(hass, profile
     assert form_values(result)["flow_storage_presence"] == "unknown"
     assert form_values(result)["flow_compatibility_enabled"] is False
     result = await manager.async_configure(result["flow_id"], {})
-    assert result["step_id"] in ("manual", "tibber_settings")
+    assert result["step_id"] == "insights"
     assert not set(PRODUCTION_KEYS) & result["data_schema"].schema.keys()
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"

@@ -160,6 +160,46 @@ These navigation changes add no balance, battery attribution or export revenue.
 Real solar/battery validation remains outstanding in
 [#335](https://github.com/guslund-jpg/electricity-pro/issues/335).
 
+## Usage insights screen on the development branch
+
+Both setup paths finish their inputs with **Usage insights**
+(**Elanvändningsråd** in Swedish) after Production and export. Configure opens
+the same shared section directly. The four existing Good Time settings keep
+their keys and meaning; calculations and history collection are unchanged.
+
+- **Fixed threshold** compares the current Effective Price with the optional
+  fixed limit. At or below the limit is good. Zero is a real zero limit.
+  With no limit, there is no fixed assessment. Saving a new or previously
+  unconfigured fixed rule does not create a default Good Time entity merely
+  because the threshold was left unset.
+- **Adaptive** uses complete, comparable prices from historical local hours.
+  Its target percentile defaults to 25% of the cheapest comparable historical
+  observations, weighted by duration and recency. Choose a value from 1 to 100.
+  A compatible Nord Pool forecast can refine the result if a better price is
+  expected. The history and forecast algorithms retain their existing rules.
+
+The fixed limit stays visible as the optional fallback in Adaptive mode. When
+comparable history is insufficient, that fallback uses the fixed limit; without
+one, there is no assessment until sufficient comparable history exists. The
+optional **adaptive price ceiling** applies when a valid historical cohort is
+available. It does **not** constrain the fixed fallback during warm-up. Use a
+suitable fixed fallback limit as well if you configure one. This describes
+existing runtime behavior, not a new ceiling rule.
+
+All amounts use the Effective Price currency per kWh. A blank ceiling means
+no adaptive ceiling; zero and finite negative ceilings are supported. The
+percentile and ceiling appear only in Adaptive. Switching method displays its
+controls before saving and retains the other method's values. Invalid displayed
+inputs must be corrected before hiding them with a method change. Canceling
+saves nothing, and clearing a visible optional amount overrides setup data.
+
+A save changes only the four insight settings. Meter sources, Nord Pool,
+supplier/grid charges and optional source/declaration settings are preserved.
+An insight-only save does not validate or repair unrelated source settings.
+Existing entity identities, comparable price history and accumulated totals
+retain their contracts. A final cross-section setup review is still a later
+increment of [#373](https://github.com/guslund-jpg/electricity-pro/issues/373).
+
 ## Guided Tibber setup
 
 Choose **Tibber fast track** when the official Home Assistant Tibber integration

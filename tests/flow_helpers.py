@@ -33,11 +33,41 @@ def form_values(result):
 
 
 async def start_settings(manager, entry_id):
-    """Open the remaining insight form through the Configure menu."""
+    """Open the shared insight form through the Configure menu."""
     result = await manager.async_init(entry_id)
     return await manager.async_configure(
-        result["flow_id"], {"next_step_id": "settings"}
+        result["flow_id"], {"next_step_id": "insights"}
     )
+
+
+async def select_insight_method(manager, result, mode):
+    """Reveal the chosen method's controls without saving the entry."""
+    submitted = form_values(result)
+    if mode == submitted["good_price_mode"]:
+        return result
+    return await manager.async_configure(
+        result["flow_id"], {**submitted, "good_price_mode": mode}
+    )
+
+
+async def confirm_insights(manager, result, values=None):
+    """Review a method change, then accept only its visible values."""
+    values = values or {}
+    previous_mode = form_values(result)["good_price_mode"]
+    next_mode = values.get("good_price_mode", previous_mode)
+    if next_mode != previous_mode:
+        result = await select_insight_method(manager, result, next_mode)
+        if result.get("errors"):
+            return result
+    submitted = form_values(result)
+    fields = {marker.schema for marker in result["data_schema"].schema}
+    for key, value in values.items():
+        if key in fields:
+            if value is None:
+                submitted.pop(key, None)
+            else:
+                submitted[key] = value
+    return await manager.async_configure(result["flow_id"], submitted)
 
 
 async def start_market(manager, entry_id):
@@ -197,6 +227,8 @@ async def confirm_measurements(manager, result, values=None):
 
 async def configure_settings(manager, result, values):
     """Submit moved measurement fields on their screen and settings on theirs."""
+    if result.get("step_id") in ("insights", "insights_adaptive"):
+        return await confirm_insights(manager, result, values)
     if result.get("step_id") == "flow_compatibility":
         fields = {marker.schema for marker in result["data_schema"].schema}
         values = {key: value for key, value in values.items() if key in fields}
@@ -231,6 +263,8 @@ async def configure_settings(manager, result, values):
         result = await confirm_production(manager, result, values)
         if result.get("step_id") in ("energy_flows", "flow_compatibility"):
             return result
+    if result.get("step_id") in ("insights", "insights_adaptive"):
+        return await confirm_insights(manager, result, values)
     if result.get("step_id") in ("init", "manual", "tibber_settings"):
         values = {
             key: value
@@ -254,6 +288,10 @@ async def configure_settings(manager, result, values):
         result = await confirm_grid(manager, result)
     if result.get("step_id") == "energy_flows" and not result.get("errors"):
         result = await confirm_production(manager, result)
+    if result.get("step_id") in ("insights", "insights_adaptive") and not result.get(
+        "errors"
+    ):
+        return await confirm_insights(manager, result)
     if result.get("step_id") in ("manual", "tibber_settings") and not result.get(
         "errors"
     ):

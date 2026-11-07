@@ -67,7 +67,7 @@ async def start_options(hass, profile="custom", **data):
         "supplier",
         "grid",
         "energy_flows",
-        "settings",
+        "insights",
     ]
     result = await manager.async_configure(
         menu["flow_id"], {"next_step_id": "measurements"}
@@ -93,7 +93,7 @@ async def test_custom_setup_moves_measurements_out_of_remaining_settings(hass):
     result = await confirm_grid(manager, result)
     if result.get("step_id") == "energy_flows":
         result = await confirm_production(manager, result)
-    assert result["step_id"] == "manual"
+    assert result["step_id"] == "insights"
     assert "power_entity" not in {key.schema for key in result["data_schema"].schema}
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == FlowResultType.CREATE_ENTRY
@@ -119,9 +119,7 @@ async def test_supported_meter_suggestions_do_not_require_supplier_price(
     result = await confirm_grid(manager, result)
     if result.get("step_id") == "energy_flows":
         result = await confirm_production(manager, result)
-    assert result["step_id"] == (
-        "tibber_settings" if profile == "tibber" and price else "manual"
-    )
+    assert result["step_id"] == "insights"
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["energy_source_type"] == "daily"

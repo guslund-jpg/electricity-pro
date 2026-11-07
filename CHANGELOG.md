@@ -4,6 +4,12 @@
 
 ### Added
 
+- Add a shared Usage insights screen (Elanvändningsråd in Swedish) for Custom,
+  Tibber and Configure. Show adaptive controls only in Adaptive mode, retain
+  inactive values on method changes, and preserve zero and explicit clears.
+  Translate method choices and explain the fixed fallback and adaptive-only
+  ceiling without changing Good Time calculations or price history. (#373)
+
 - Add a shared Production and export section to both setup paths and Configure.
   Keep optional AC production/export/household sources and installation review
   together, translate the controls into Swedish, and show phase questions only

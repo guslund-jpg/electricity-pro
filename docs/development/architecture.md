@@ -133,11 +133,23 @@ the diagnostic while retaining remembered installation-presence answers; it
 never infers absence of physical equipment. All edits stay in one draft until
 completion. No counter or runtime flow model changes.
 
-Options start with a section menu. Measurement, market, supplier, grid and
-production saves overlay only their owned keys onto the latest options, including
-explicit clears.
-The remaining insight form retains these effective bindings and does not
-revalidate or repair unrelated optional sources.
+`InsightFlow` in `insight_config.py` follows Production in both setup paths
+and owns only method, fixed threshold/fallback, adaptive percentile and ceiling.
+Fixed shows the threshold; Adaptive adds percentile and ceiling. A method
+change validates the displayed draft before showing the other controls without
+saving. Inactive values remain in the draft. Optional amounts are suggestions,
+so clears override setup values; zero and finite negative adaptive ceilings
+retain their meaning. Source validation and runtime Good Time evaluation stay
+outside this form. Fresh setup omits unset amounts to preserve default entity
+creation behavior and assembles the preceding section drafts once at completion.
+The former first-form setup submission retains its separate compatibility path.
+
+Options start with a section menu. Measurement, market, supplier, grid,
+production and insight saves overlay only their owned keys onto the latest
+options, including explicit clears. The duplicated track-specific remaining
+options forms are removed. Insight-only saves preserve unrelated source
+settings without validating or repairing them. Runtime algorithms, history
+partitioning and saved setting names do not change.
 VAT remains a supplier declaration: displaying a suggestion or saving only the
 market screen does not persist a tax rate.
 An older multi-area configuration without a valid area resolves it before

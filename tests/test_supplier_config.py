@@ -116,7 +116,7 @@ async def test_setup_reviews_supplier_before_grid_without_redeclaring_tibber(
     result = await confirm_grid(manager, result)
     if result.get("step_id") == "energy_flows":
         result = await confirm_production(manager, result)
-    assert result["step_id"] == ("tibber_settings" if profile == "tibber" else "manual")
+    assert result["step_id"] == "insights"
     fields = {key.schema for key in result["data_schema"].schema}
     assert (
         not {
@@ -386,7 +386,7 @@ async def test_meter_only_tibber_uses_explicit_custom_supplier_inputs(hass):
     result = await confirm_grid(manager, result)
     if result.get("step_id") == "energy_flows":
         result = await confirm_production(manager, result)
-    assert result["step_id"] == "manual"
+    assert result["step_id"] == "insights"
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"
     assert result["data"].get("source_profile") != "tibber"

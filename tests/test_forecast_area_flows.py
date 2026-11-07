@@ -78,7 +78,7 @@ async def finish_setup(manager, result):
         result = await confirm_grid(manager, result, {"fixed_grid_fee_monthly": 0})
         if result.get("step_id") == "energy_flows":
             result = await confirm_production(manager, result)
-    if result.get("step_id") in ("manual", "tibber_settings"):
+    if result.get("step_id") in ("insights", "insights_adaptive"):
         result = await manager.async_configure(result["flow_id"], {})
     return result
 
