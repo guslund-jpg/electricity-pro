@@ -66,6 +66,8 @@ only require copying the selected YAML.
 använder enbart inbyggda kort; Enhanced kräver Mushroom och ApexCharts Card.
 Använd svenska som profilspråk för svenska sensortillstånd. Kopiera YAML-filen
 på nytt för att uppdatera en befintlig dashboard.
+**Konsumptionspoäng** i Standard beskriver gårdagens förbrukningsmönster i
+förhållande till elpriserna.
 
 Keep the English and Swedish examples together when changing operational
 settings. Automated parity checks protect entity references, conditions,

@@ -671,7 +671,7 @@ views:
             card:
               type: tile
               entity: sensor.electricity_pro_consumption_timing_score_yesterday
-              name: "Tidsanpassningspoäng för gårdagens förbrukning"
+              name: "Konsumptionspoäng"
               icon: mdi:meter-electric-outline
               color: green
 
