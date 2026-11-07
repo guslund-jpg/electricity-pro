@@ -6,7 +6,12 @@ import pytest
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from tests.flow_helpers import start_settings, configure_settings
+from tests.flow_helpers import (
+    start_settings,
+    start_production,
+    open_production_sources,
+    configure_settings,
+)
 
 from custom_components.electricity_pro.const import DOMAIN
 from custom_components.electricity_pro.flow_compatibility import (
@@ -120,18 +125,11 @@ async def to_compatibility_step(hass, profile="custom", options=None):
         options=options or {},
     )
     entry.add_to_hass(hass)
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
+    result = await start_production(hass.config_entries.options, entry.entry_id)
     initial_keys = {key.schema for key in result["data_schema"].schema}
     assert not set(COMPATIBILITY_KEYS) & initial_keys
     submission = {"power_entity": "sensor.net"} if profile == "custom" else {}
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {
-            **submission,
-            "configure_energy_flows": True,
-        },
-    )
+    result = await open_production_sources(hass.config_entries.options, result)
     result = await configure_settings(
         hass.config_entries.options,
         result,
@@ -171,15 +169,8 @@ async def test_defaults_confirmation_contradictions_preservation_and_disable(
     result = await configure_settings(hass.config_entries.options, result, submission)
     assert result["data"][CONF_GENERATION] == "present"
     assert result["data"]["production_power_phase_convention"] == "net_across_phases"
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {
-            **submission,
-            "configure_energy_flows": True,
-        },
-    )
+    result = await start_production(hass.config_entries.options, entry.entry_id)
+    result = await open_production_sources(hass.config_entries.options, result)
     result = await configure_settings(
         hass.config_entries.options,
         result,
@@ -218,15 +209,8 @@ async def test_adding_production_requires_correcting_saved_absence(hass):
         },
     )
     entry.add_to_hass(hass)
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {
-            "power_entity": "sensor.net",
-            "configure_energy_flows": True,
-        },
-    )
+    result = await start_production(hass.config_entries.options, entry.entry_id)
+    result = await open_production_sources(hass.config_entries.options, result)
     result = await configure_settings(
         hass.config_entries.options,
         result,
@@ -256,15 +240,8 @@ async def test_replacing_source_invalidates_only_its_phase_declaration(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=entry_data(), options=declarations())
     entry.add_to_hass(hass)
     source(hass, "sensor.export", 0)
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {
-            "power_entity": "sensor.net",
-            "configure_energy_flows": True,
-        },
-    )
+    result = await start_production(hass.config_entries.options, entry.entry_id)
+    result = await open_production_sources(hass.config_entries.options, result)
     result = await configure_settings(
         hass.config_entries.options,
         result,

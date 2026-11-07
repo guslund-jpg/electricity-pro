@@ -6,6 +6,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.flow_helpers import (
+    confirm_production,
     confirm_grid,
     start_grid,
     TIBBER_CONTRACT,
@@ -113,6 +114,8 @@ async def test_setup_reviews_supplier_before_grid_without_redeclaring_tibber(
     result = await confirm_supplier(manager, result, {"fixed_supplier_fee_monthly": 0})
     assert result["step_id"] == "grid"
     result = await confirm_grid(manager, result)
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(manager, result)
     assert result["step_id"] == ("tibber_settings" if profile == "tibber" else "manual")
     fields = {key.schema for key in result["data_schema"].schema}
     assert (
@@ -169,6 +172,8 @@ async def test_supplier_save_preserves_other_sections_and_explicit_zero(hass, pr
     # Saving the remaining section must not overwrite supplier-owned bindings.
     result = await start_grid(manager, entry.entry_id)
     result = await confirm_grid(manager, result, {"grid_fee_per_kwh": 0.6})
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(manager, result)
     assert result["type"] == "create_entry"
     assert entry.options["fixed_supplier_fee_monthly"] == 0
     assert entry.options["price_vat_rate"] == 0
@@ -379,6 +384,8 @@ async def test_meter_only_tibber_uses_explicit_custom_supplier_inputs(hass):
     )
     assert result["step_id"] == "grid"
     result = await confirm_grid(manager, result)
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(manager, result)
     assert result["step_id"] == "manual"
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"

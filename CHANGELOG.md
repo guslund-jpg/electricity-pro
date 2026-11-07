@@ -4,6 +4,12 @@
 
 ### Added
 
+- Add a shared Production and export section to both setup paths and Configure.
+  Keep optional AC production/export/household sources and installation review
+  together, translate the controls into Swedish, and show phase questions only
+  for selected power channels. Source clears and diagnostic opt-in preserve
+  unrelated settings and remembered installation-presence answers. (#373)
+
 - Add a shared Grid charges screen (Elnät in Swedish) to Custom/Tibber setup
   and Configure. Choose unconfigured charges, a single rate or a high/low
   tariff; review only the applicable fees and schedule. Preserve explicit

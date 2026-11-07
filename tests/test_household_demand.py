@@ -8,7 +8,12 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from tests.flow_helpers import start_settings, configure_settings
+from tests.flow_helpers import (
+    start_settings,
+    start_production,
+    open_production_sources,
+    configure_settings,
+)
 
 from custom_components.electricity_pro.const import DOMAIN
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
@@ -141,15 +146,8 @@ async def test_options_confirm_preserve_and_clear_household_bindings(hass, profi
     entry.add_to_hass(hass)
     set_source(hass, "sensor.load_power", 100, "W", "power")
     submission = {"power_entity": "sensor.net"} if profile == "custom" else {}
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {
-            **submission,
-            "configure_energy_flows": True,
-        },
-    )
+    result = await start_production(hass.config_entries.options, entry.entry_id)
+    result = await open_production_sources(hass.config_entries.options, result)
     keys = {key.schema for key in result["data_schema"].schema}
     assert {"household_power_entity", "household_energy_entity"} <= keys
     result = await configure_settings(
@@ -174,15 +172,8 @@ async def test_options_confirm_preserve_and_clear_household_bindings(hass, profi
     result = await start_settings(hass.config_entries.options, entry.entry_id)
     result = await configure_settings(hass.config_entries.options, result, submission)
     assert result["data"]["household_power_entity"] == "sensor.load_power"
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {
-            **submission,
-            "configure_energy_flows": True,
-        },
-    )
+    result = await start_production(hass.config_entries.options, entry.entry_id)
+    result = await open_production_sources(hass.config_entries.options, result)
     result = await configure_settings(hass.config_entries.options, result, {})
     assert result["data"]["household_power_entity"] is None
 

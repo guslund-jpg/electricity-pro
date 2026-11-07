@@ -218,8 +218,8 @@
         }
       },
       "manual": {
-        "title": "Insights and other settings",
-        "description": "Configure usage insights. Measurements, market prices, supplier and grid charges have their own settings. Optional energy flows can be configured after setup.",
+        "title": "Usage insights",
+        "description": "Choose when Electricity Pro recommends electricity use. Measurements, market prices, supplier, grid charges, and production/export have their own settings.",
         "data": {
           "power_entity": "Power sensor",
           "price_entity": "Electricity price sensor",
@@ -301,8 +301,8 @@
         }
       },
       "tibber_settings": {
-        "title": "Insights and other settings",
-        "description": "Configure usage insights. Measurements, market prices, supplier and grid charges have their own settings. Optional energy flows can be configured after setup.",
+        "title": "Usage insights",
+        "description": "Choose when Electricity Pro recommends electricity use. Measurements, market prices, supplier, grid charges, and production/export have their own settings.",
         "data": {
           "forecast_nordpool_config_entry": "Nord Pool forecast config entry",
           "grid_fee_per_kwh": "Variable grid fee per kWh (including VAT)",
@@ -416,6 +416,42 @@
           "grid_fee_high_season_end": "Last date of the recurring season, for example 03-31. A season can span New Year.",
           "grid_fee_workday_entity": "Optional sensor from the Workday integration to exclude holidays. Without it, the high period applies Monday–Friday during the season."
         }
+      },
+      "energy_flows": {
+        "title": "Production and export",
+        "description": "Optional independent production, export and household-demand sources. Leave the switch off for ordinary import monitoring. Enabling it displays the source fields before saving. Turning it off clears these bindings and disables the optional diagnostic, while keeping remembered installation-presence answers. It does not mean that solar or battery equipment is absent. Sources are not detected or inferred automatically.",
+        "data": {
+          "configure_energy_flows": "Use optional production, export or household sources",
+          "production_power_entity": "AC production power",
+          "production_energy_entity": "Lifetime AC production energy",
+          "grid_export_power_entity": "Directional grid-export power",
+          "grid_export_energy_entity": "Lifetime grid-export energy",
+          "household_power_entity": "Measured household demand power (excluding battery charging)",
+          "household_energy_entity": "Lifetime household energy (excluding battery charging)",
+          "confirm_flow_semantics": "I confirm the selected sources have these meanings"
+        },
+        "data_description": {
+          "configure_energy_flows": "Select only separate, non-negative whole-site AC sources. Confirm their meanings before saving. Empty channels stay unconfigured; they are not assumed zero.",
+          "production_power_entity": "AC generation excluding battery discharge. Do not use hybrid inverter output that mixes generation and storage.",
+          "production_energy_entity": "Lifetime AC generation register excluding battery discharge, in Wh/kWh. Daily-reset and DC registers are unsupported.",
+          "grid_export_power_entity": "Separate, non-negative directional grid export in W/kW. Signed net-grid power is not an export source.",
+          "grid_export_energy_entity": "Lifetime energy delivered to the grid, in Wh/kWh. Keep it separate from imported energy.",
+          "household_power_entity": "Whole-site non-storage AC load, including ordinary EV charging and distribution losses, excluding battery charging. Grid import is not household demand.",
+          "household_energy_entity": "Lifetime register for the same non-storage household boundary, in Wh/kWh. Do not use an import counter.",
+          "confirm_flow_semantics": "The selected sources have these whole-site AC meanings and lifetime energy periods. No site balance, battery attribution or export revenue is calculated."
+        }
+      },
+      "flow_compatibility": {
+        "title": "Installation and compatibility",
+        "description": "Review installation facts whenever optional sources are configured. Choose Unknown / not confirmed when unsure; missing sensors do not mean equipment is absent. Phase conventions apply separately to the selected power sources; leave unverified conventions unknown. Whole-site AC boundaries are declared in the source step. You can save these facts without enabling the optional diagnostic. The diagnostic checks configured power observations only: it does not calculate household demand, energy ratios or balance readiness. Battery charge/discharge and explicit grid-import power inputs are not yet supported.",
+        "data": {
+          "flow_compatibility_enabled": "Enable Flow power compatibility diagnostic",
+          "flow_generation_presence": "Local generation installed",
+          "flow_storage_presence": "Battery storage installed",
+          "production_power_phase_convention": "Production power phase convention",
+          "grid_export_power_phase_convention": "Grid-export power phase convention",
+          "household_power_phase_convention": "Household demand power phase convention"
+        }
       }
     },
     "error": {
@@ -432,7 +468,10 @@
       "invalid_market_area": "Choose an area configured in the selected Nord Pool integration.",
       "invalid_grid_amount": "Enter a finite amount of zero or more.",
       "grid_amount_required": "Enter at least one amount or choose Unconfigured.",
-      "grid_rate_required": "Enter both the low-period and high-period rates. Zero is allowed."
+      "grid_rate_required": "Enter both the low-period and high-period rates. Zero is allowed.",
+      "invalid_flow_source": "Choose distinct external power (W/kW) or lifetime energy (Wh/kWh) sources. Do not reuse an import source.",
+      "confirm_flow_semantics": "Confirm the selected whole-site AC source meanings, including household load excluding battery charging, and lifetime energy registers.",
+      "contradictory_topology": "Production sources are selected. Declare generation present or unknown, or return and remove those sources before declaring it absent."
     }
   },
   "options": {
@@ -537,9 +576,10 @@
         }
       },
       "energy_flows": {
-        "title": "Optional production, export and household demand",
-        "description": "Select only separate, non-negative whole-site AC measurements. Production must exclude battery discharge; export must be a directional grid measurement, not signed net power. Household demand must measure non-storage loads, including ordinary EV charging and distribution losses but excluding battery charging. Do not use grid import as household demand. Energy sources must be lifetime registers, not daily-reset counters or DC battery/inverter totals. Leave unsupported channels unconfigured. No household balance, battery attribution or export revenue is calculated.",
+        "title": "Production and export",
+        "description": "Optional independent production, export and household-demand sources. Leave the switch off for ordinary import monitoring. Enabling it displays the source fields before saving. Turning it off clears these bindings and disables the optional diagnostic, while keeping remembered installation-presence answers. It does not mean that solar or battery equipment is absent. Sources are not detected or inferred automatically.",
         "data": {
+          "configure_energy_flows": "Use optional production, export or household sources",
           "production_power_entity": "AC production power",
           "production_energy_entity": "Lifetime AC production energy",
           "grid_export_power_entity": "Directional grid-export power",
@@ -547,6 +587,16 @@
           "household_power_entity": "Measured household demand power (excluding battery charging)",
           "household_energy_entity": "Lifetime household energy (excluding battery charging)",
           "confirm_flow_semantics": "I confirm the selected sources have these meanings"
+        },
+        "data_description": {
+          "configure_energy_flows": "Select only separate, non-negative whole-site AC sources. Confirm their meanings before saving. Empty channels stay unconfigured; they are not assumed zero.",
+          "production_power_entity": "AC generation excluding battery discharge. Do not use hybrid inverter output that mixes generation and storage.",
+          "production_energy_entity": "Lifetime AC generation register excluding battery discharge, in Wh/kWh. Daily-reset and DC registers are unsupported.",
+          "grid_export_power_entity": "Separate, non-negative directional grid export in W/kW. Signed net-grid power is not an export source.",
+          "grid_export_energy_entity": "Lifetime energy delivered to the grid, in Wh/kWh. Keep it separate from imported energy.",
+          "household_power_entity": "Whole-site non-storage AC load, including ordinary EV charging and distribution losses, excluding battery charging. Grid import is not household demand.",
+          "household_energy_entity": "Lifetime register for the same non-storage household boundary, in Wh/kWh. Do not use an import counter.",
+          "confirm_flow_semantics": "The selected sources have these whole-site AC meanings and lifetime energy periods. No site balance, battery attribution or export revenue is calculated."
         }
       },
       "flow_compatibility": {
@@ -568,15 +618,15 @@
           "measurements": "Measurements",
           "market_prices": "Market prices (Nord Pool)",
           "supplier": "Electricity supplier",
-          "settings": "Insights and other settings",
-          "grid": "Grid charges"
+          "settings": "Usage insights",
+          "grid": "Grid charges",
+          "energy_flows": "Production and export"
         }
       },
       "init": {
-        "title": "Insights and other settings",
-        "description": "Configure usage insights and optional energy flows. Measurements, market prices, supplier and grid charges have their own settings.",
+        "title": "Usage insights",
+        "description": "Choose when Electricity Pro recommends electricity use. Measurements, market prices, supplier, grid charges, and production/export have their own settings.",
         "data": {
-          "configure_energy_flows": "Configure optional production, export and household sources",
           "power_entity": "Power sensor",
           "price_entity": "Electricity price sensor",
           "pricing_strategy": "Price source type",
@@ -646,7 +696,6 @@
           "adaptive_target_percentile": "Adaptive mode considers prices within this cheapest share of comparable historical observations favourable. The default is 25%.",
           "adaptive_price_ceiling": "Optional: Even when relatively favourable, a price above this absolute Effective Price is never classified as good.",
           "forecast_nordpool_config_entry": "Optional native Nord Pool integration used for forecast retrieval. Its configured area and currency are inherited automatically.",
-          "configure_energy_flows": "Optional: Enable this if you have solar panels or separate sensors for electricity exported to the grid or total household consumption. Leave it off for ordinary electricity-import monitoring.",
           "suggest_vat_rate": "Optional: review a VAT suggestion or choose a country if no Nord Pool area is known. A known country is used directly. Existing rates, including 0%, stay unchanged unless you replace them."
         }
       },

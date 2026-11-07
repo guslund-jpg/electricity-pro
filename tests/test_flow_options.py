@@ -8,7 +8,12 @@ from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from tests.flow_helpers import start_settings, configure_settings
+from tests.flow_helpers import (
+    start_settings,
+    start_production,
+    open_production_sources,
+    configure_settings,
+)
 
 from custom_components.electricity_pro.const import (
     DOMAIN,
@@ -22,21 +27,19 @@ from custom_components.electricity_pro.flow_sources import (
 
 
 def test_optional_sources_switch_has_matching_help_text():
-    """The shared options step explains the switch in both translation files."""
+    """The shared setup/options step explains the switch in both English sources."""
     component = Path(__file__).resolve().parents[1] / "custom_components" / DOMAIN
-    descriptions = []
-    for filename in ("strings.json", "translations/en.json"):
-        data = json.loads((component / filename).read_text())
-        descriptions.append(
-            data["options"]["step"]["init"]["data_description"][CONF_CONFIGURE_FLOWS]
-        )
-    assert descriptions[0] == descriptions[1]
-    assert "solar panels" in descriptions[0]
-    assert "Leave it off for ordinary electricity-import monitoring." in descriptions[0]
-    assert "battery" not in descriptions[0].lower()
+    steps = [
+        json.loads((component / filename).read_text())[flow]["step"]["energy_flows"]
+        for filename in ("strings.json", "translations/en.json")
+        for flow in ("config", "options")
+    ]
+    assert all(step == steps[0] for step in steps)
+    assert CONF_CONFIGURE_FLOWS in steps[0]["data"]
+    assert CONF_CONFIGURE_FLOWS in steps[0]["data_description"]
 
 
-async def start_options(hass, profile="custom", **settings):
+async def start_options(hass, profile="custom", section="energy_flows", **settings):
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={
@@ -46,18 +49,20 @@ async def start_options(hass, profile="custom", **settings):
         },
     )
     entry.add_to_hass(hass)
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
+    result = await (start_settings if section == "settings" else start_production)(
+        hass.config_entries.options, entry.entry_id
+    )
     return entry, result
 
 
 @pytest.mark.parametrize("profile", ["custom", "tibber"])
 async def test_opt_in_and_preserve_bindings_on_normal_save(hass, profile):
     entry, result = await start_options(
-        hass, profile, production_energy_entity="sensor.production"
+        hass, profile, section="settings", production_energy_entity="sensor.production"
     )
     keys = {key.schema for key in result["data_schema"].schema}
     assert not keys.intersection(FLOW_KEYS)
-    assert CONF_CONFIGURE_FLOWS in keys
+    assert CONF_CONFIGURE_FLOWS not in keys
     result = await configure_settings(
         hass.config_entries.options,
         result,
@@ -85,11 +90,7 @@ async def test_optional_sources_confirm_save_and_clear(hass, profile):
         },
     )
     entry, result = await start_options(hass, profile)
-    submission = {
-        CONF_CONFIGURE_FLOWS: True,
-        **({CONF_POWER_ENTITY: "sensor.import_power"} if profile == "custom" else {}),
-    }
-    result = await configure_settings(hass.config_entries.options, result, submission)
+    result = await open_production_sources(hass.config_entries.options, result)
     assert result["step_id"] == "energy_flows"
     assert "production_energy_entity" not in entry.options
     result = await configure_settings(
@@ -114,8 +115,8 @@ async def test_optional_sources_confirm_save_and_clear(hass, profile):
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"]["production_energy_entity"] == "sensor.production"
     assert "confirm_flow_semantics" not in result["data"]
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
-    result = await configure_settings(hass.config_entries.options, result, submission)
+    result = await start_production(hass.config_entries.options, entry.entry_id)
+    result = await open_production_sources(hass.config_entries.options, result)
     result = await configure_settings(hass.config_entries.options, result, {})
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert all(result["data"][key] is None for key in FLOW_KEYS)
@@ -146,14 +147,7 @@ async def test_invalid_sources_rejected(hass, kind):
                 "unit_of_measurement": "MW" if kind == "unit" else "W",
             },
         )
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {
-            CONF_POWER_ENTITY: "sensor.import_power",
-            CONF_CONFIGURE_FLOWS: True,
-        },
-    )
+    result = await open_production_sources(hass.config_entries.options, result)
     submission = {
         "production_power_entity": source,
         "confirm_flow_semantics": True,
@@ -197,14 +191,7 @@ async def test_import_change_cannot_reuse_saved_flow(hass):
 
 async def test_cancel_does_not_write_partial_settings(hass):
     entry, result = await start_options(hass)
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {
-            CONF_POWER_ENTITY: "sensor.import_power",
-            CONF_CONFIGURE_FLOWS: True,
-        },
-    )
+    result = await open_production_sources(hass.config_entries.options, result)
     hass.config_entries.options.async_abort(result["flow_id"])
     assert not entry.options
 
@@ -225,18 +212,7 @@ async def test_each_optional_source_requires_review_without_diagnostic_opt_in(
         },
     )
     entry, result = await start_options(hass, profile)
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {
-            CONF_CONFIGURE_FLOWS: True,
-            **(
-                {CONF_POWER_ENTITY: "sensor.import_power"}
-                if profile == "custom"
-                else {}
-            ),
-        },
-    )
+    result = await open_production_sources(hass.config_entries.options, result)
     assert "configure_flow_compatibility" not in result["data_schema"].schema
     result = await configure_settings(
         hass.config_entries.options,
@@ -292,18 +268,9 @@ async def test_automatic_review_preserves_saved_answers_and_cancel(
         "grid_export_power_phase_convention": "net_across_phases",
     }
     hass.config_entries.async_update_entry(entry, options=saved)
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {
-            CONF_CONFIGURE_FLOWS: True,
-            **(
-                {CONF_POWER_ENTITY: "sensor.import_power"}
-                if profile == "custom"
-                else {}
-            ),
-        },
-    )
+    hass.config_entries.options.async_abort(result["flow_id"])
+    result = await start_production(hass.config_entries.options, entry.entry_id)
+    result = await open_production_sources(hass.config_entries.options, result)
     result = await configure_settings(
         hass.config_entries.options,
         result,
@@ -324,18 +291,7 @@ async def test_automatic_review_preserves_saved_answers_and_cancel(
 async def test_empty_optional_selection_skips_installation_review(hass, profile):
     """Import-only users who open the optional step need no installation review."""
     _, result = await start_options(hass, profile)
-    result = await configure_settings(
-        hass.config_entries.options,
-        result,
-        {
-            CONF_CONFIGURE_FLOWS: True,
-            **(
-                {CONF_POWER_ENTITY: "sensor.import_power"}
-                if profile == "custom"
-                else {}
-            ),
-        },
-    )
+    result = await open_production_sources(hass.config_entries.options, result)
     result = await configure_settings(hass.config_entries.options, result, {})
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert all(result["data"][key] is None for key in FLOW_KEYS)

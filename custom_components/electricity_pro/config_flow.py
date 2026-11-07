@@ -89,31 +89,15 @@ from .market_config import (
 )
 from .supplier_config import SUPPLIER_KEYS, SupplierFlow, without_supplier_fields
 from .pricing_config import prepare_pricing_metadata as _prepare_pricing_metadata
-from .flow_sources import FLOW_KEYS, CONF_CONFIGURE_FLOWS
+from .flow_sources import FLOW_KEYS
+from .production_config import PRODUCTION_KEYS, ProductionFlow
 from .markup_estimate import CONF_ESTIMATE_MARKUP, MarkupEstimate, async_estimate_markup
 from .vat_suggestions import CONF_SUGGEST_VAT, assistance_field
-from .flow_compatibility import (
-    COMPATIBILITY_KEYS,
-    CONF_ENABLED,
-    CONF_GENERATION,
-    CONF_STORAGE,
-    PHASE_KEYS,
-    PHASE_OPTIONS,
-    PRESENCE_OPTIONS,
-)
 
 
-def _with_flow_settings(schema: vol.Schema) -> vol.Schema:
-    """Offer an optional follow-up without expanding the initial setup path."""
-    return without_grid_fields(
-        without_supplier_fields(without_market_fields(schema))
-    ).extend(
-        {
-            vol.Optional(
-                CONF_CONFIGURE_FLOWS, default=False
-            ): selector.BooleanSelector(),
-        }
-    )
+def _insight_schema(schema: vol.Schema) -> vol.Schema:
+    """Keep other sections off the remaining insight controls."""
+    return without_grid_fields(without_supplier_fields(without_market_fields(schema)))
 
 
 _SETUP_TIBBER = "tibber"
@@ -1083,6 +1067,7 @@ class ElectricityProConfigFlow(
     MarketPriceFlow,
     SupplierFlow,
     GridFlow,
+    ProductionFlow,
     _MarkupEstimateFlow,
     config_entries.ConfigFlow,
     domain=DOMAIN,
@@ -1171,7 +1156,7 @@ class ElectricityProConfigFlow(
     async def _async_supplier_complete(
         self, values: dict[str, Any]
     ) -> ConfigFlowResult:
-        self._grid_tibber = (
+        self._setup_tibber = (
             self._selected_tibber_source is not None
             and self._selected_tibber_source.is_complete_tibber_fast_track
         )
@@ -1188,7 +1173,30 @@ class ElectricityProConfigFlow(
 
     async def _async_grid_complete(self, values: dict[str, Any]) -> ConfigFlowResult:
         self._grid_values = values
-        if self._grid_tibber:
+        return await self.async_step_energy_flows()
+
+    def _production_defaults(self) -> dict[str, Any]:
+        return {
+            **self._supplier_defaults(),
+            **(self._supplier_values or {}),
+            **(self._grid_values or {}),
+        }
+
+    def _production_binding_errors(self, values: dict[str, Any]) -> dict[str, str]:
+        errors = _source_input_errors(
+            self.hass, {**self._production_reference, **values}
+        )
+        return {
+            key: error
+            for key, error in errors.items()
+            if key == "base" or key in FLOW_KEYS
+        }
+
+    async def _async_production_complete(
+        self, values: dict[str, Any]
+    ) -> ConfigFlowResult:
+        self._production_values = values
+        if self._setup_tibber:
             return await self.async_step_tibber_settings()
         return await self.async_step_manual()
 
@@ -1224,6 +1232,8 @@ class ElectricityProConfigFlow(
             user_input = {**user_input, **self._supplier_values}
         if user_input is not None and self._grid_values is not None:
             user_input = {**user_input, **self._grid_values}
+        if user_input is not None and self._production_values is not None:
+            user_input = {**user_input, **self._production_values}
         if user_input is not None and self._supplier_values is None:
             result = await self._async_maybe_suggest_vat(user_input, "manual")
             if result is not None:
@@ -1350,6 +1360,8 @@ class ElectricityProConfigFlow(
                 user_input = {**user_input, **self._supplier_values}
             if self._grid_values is not None:
                 user_input = {**user_input, **self._grid_values}
+            if self._production_values is not None:
+                user_input = {**user_input, **self._production_values}
             errors = {}
             if self._grid_values is None and not _grid_tariff_input_valid(user_input):
                 errors = {"base": "invalid_grid_tariff"}
@@ -1426,6 +1438,7 @@ class ElectricityProOptionsFlow(
     MarketPriceFlow,
     SupplierFlow,
     GridFlow,
+    ProductionFlow,
     _MarkupEstimateFlow,
     OptionsFlow,
 ):
@@ -1434,9 +1447,6 @@ class ElectricityProOptionsFlow(
     def __init__(self) -> None:
         """Initialize the options flow."""
         self._pending_forecast_settings: dict[str, Any] | None = None
-        self._pending_flow_settings: dict[str, Any] | None = None
-        self._pending_compatibility_settings: dict[str, Any] | None = None
-        self._source_settings_draft: dict[str, Any] = {}
         self._settings_open = False
         self._supplier_open = False
 
@@ -1512,6 +1522,26 @@ class ElectricityProOptionsFlow(
             title="", data={**self.config_entry.options, **values}
         )
 
+    def _production_defaults(self) -> dict[str, Any]:
+        return self._settings_defaults()
+
+    def _production_binding_errors(self, values: dict[str, Any]) -> dict[str, str]:
+        errors = _source_input_errors(
+            self.hass, {**self._production_reference, **values}
+        )
+        return {
+            key: error
+            for key, error in errors.items()
+            if key == "base" or key in FLOW_KEYS
+        }
+
+    async def _async_production_complete(
+        self, values: dict[str, Any]
+    ) -> ConfigFlowResult:
+        return self.async_create_entry(
+            title="", data={**self.config_entry.options, **values}
+        )
+
     async def async_step_settings(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -1530,6 +1560,7 @@ class ElectricityProOptionsFlow(
                 "market_prices",
                 "supplier",
                 "grid",
+                "energy_flows",
                 "settings",
             ],
         )
@@ -1542,7 +1573,7 @@ class ElectricityProOptionsFlow(
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(
-                _with_flow_settings(
+                _insight_schema(
                     _tibber_settings_schema()
                     if tibber
                     else remaining_settings_schema(_entity_schema(hass=self.hass))
@@ -1564,12 +1595,11 @@ class ElectricityProOptionsFlow(
             return await self.async_step_menu()
         if user_input is not None:
             user_input = {
-                key: value for key, value in user_input.items() if key not in GRID_KEYS
+                key: value
+                for key, value in user_input.items()
+                if key not in (*GRID_KEYS, *PRODUCTION_KEYS)
             }
-            saved = {
-                **self._settings_defaults(),
-                **self._source_settings_draft,
-            }
+            saved = self._settings_defaults()
             schema = (
                 _tibber_settings_schema()
                 if self.config_entry.data.get(CONF_SOURCE_PROFILE) == _SETUP_TIBBER
@@ -1596,28 +1626,12 @@ class ElectricityProOptionsFlow(
                         *MARKET_KEYS,
                         *SUPPLIER_KEYS,
                         *GRID_KEYS,
+                        *PRODUCTION_KEYS,
                     )
                     if key in saved
                 },
                 **user_input,
             }
-            for key in (*FLOW_KEYS, *COMPATIBILITY_KEYS):
-                if key not in user_input and key in saved:
-                    user_input[key] = saved[key]
-            # These fields live on follow-up forms. Keep confirmed changes (and
-            # explicit clears) through main-form errors, without saving the entry.
-            self._source_settings_draft = {
-                key: user_input[key]
-                for key in (*FLOW_KEYS, *COMPATIBILITY_KEYS)
-                if key in user_input
-            }
-            if user_input.pop(CONF_CONFIGURE_FLOWS, False):
-                self._pending_flow_settings = user_input
-                return await self.async_step_energy_flows()
-        if user_input is not None and (
-            errors := _source_input_errors(self.hass, user_input)
-        ):
-            return self._show_init_error(user_input, errors)
         if user_input is not None and not _good_price_input_valid(user_input):
             return self._show_init_error(
                 user_input, {"base": "invalid_good_price_settings"}
@@ -1648,7 +1662,7 @@ class ElectricityProOptionsFlow(
             values = self._settings_defaults()
             return self.async_show_form(
                 step_id="init",
-                data_schema=_with_flow_settings(
+                data_schema=_insight_schema(
                     _tibber_settings_schema(
                         vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
                         grid_fee_default=current_grid_fee,
@@ -1822,7 +1836,7 @@ class ElectricityProOptionsFlow(
 
         return self.async_show_form(
             step_id="init",
-            data_schema=_with_flow_settings(
+            data_schema=_insight_schema(
                 remaining_settings_schema(
                     _entity_schema(
                         hass=self.hass,
@@ -1878,122 +1892,6 @@ class ElectricityProOptionsFlow(
                     )
                 )
             ),
-        )
-
-    async def async_step_energy_flows(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Bind independent directional sources only after explicit confirmation."""
-        if self._pending_flow_settings is None:
-            return await self.async_step_init()
-        pending = self._pending_flow_settings
-        errors = {}
-        if user_input is not None:
-            selected = {key: user_input.get(key) or None for key in FLOW_KEYS}
-            errors = _source_input_errors(self.hass, selected)
-            sources = [value for value in selected.values() if value]
-            saved = {**self.config_entry.data, **self.config_entry.options, **pending}
-            existing = {saved.get(CONF_POWER_ENTITY), saved.get(CONF_ENERGY_ENTITY)}
-            if len(sources) != len(set(sources)) or any(
-                source in existing for source in sources
-            ):
-                errors["base"] = "invalid_flow_source"
-            for key, entity_id in selected.items():
-                state = self.hass.states.get(entity_id) if entity_id else None
-                is_power = "_power_" in key
-                expected_class = "power" if is_power else "energy"
-                units = ("W", "kW") if is_power else ("Wh", "kWh")
-                if entity_id and (
-                    state is None
-                    or state.attributes.get("device_class") != expected_class
-                    or state.attributes.get("unit_of_measurement") not in units
-                ):
-                    errors[key] = "invalid_flow_source"
-            if sources and user_input.get("confirm_flow_semantics") is not True:
-                errors["base"] = "confirm_flow_semantics"
-            if not errors:
-                self._pending_flow_settings = None
-                combined = {**pending, **selected}
-                # A replacement power source has no inherited phase declaration.
-                for key in PHASE_KEYS:
-                    source_key = key.replace("_phase_convention", "_entity")
-                    if selected[source_key] != saved.get(source_key):
-                        combined[key] = "unknown"
-                if sources:
-                    # Review facts for every optional-source configuration;
-                    # enabling the diagnostic remains a separate opt-in.
-                    self._pending_compatibility_settings = combined
-                    return await self.async_step_flow_compatibility()
-                return await self.async_step_init(combined)
-        values = user_input if user_input is not None else pending
-        fields: dict[
-            vol.Marker, selector.EntitySelector | selector.BooleanSelector
-        ] = {}
-        for key in FLOW_KEYS:
-            marker = vol.Optional(key, description={"suggested_value": values.get(key)})
-            fields[marker] = selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    filter={
-                        "domain": "sensor",
-                        "device_class": "power" if "_power_" in key else "energy",
-                    },
-                    exclude_entities=_own_source_entities(self.hass),
-                )
-            )
-        fields[vol.Optional("confirm_flow_semantics", default=False)] = (
-            selector.BooleanSelector()
-        )
-        return self.async_show_form(
-            step_id="energy_flows",
-            data_schema=self.add_suggested_values_to_schema(
-                vol.Schema(fields), user_input
-            ),
-            errors=errors,
-        )
-
-    async def async_step_flow_compatibility(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Declare installation facts separately from measured source bindings."""
-        pending = self._pending_compatibility_settings
-        if pending is None:
-            return await self.async_step_init()
-        errors = {}
-        if user_input is not None:
-            combined = {**pending, **user_input}
-            if combined.get(CONF_GENERATION) == "absent" and any(
-                combined.get(f"production_{q}_entity") for q in ("power", "energy")
-            ):
-                errors[CONF_GENERATION] = "contradictory_topology"
-            else:
-                self._pending_compatibility_settings = None
-                return await self.async_step_init(combined)
-        values = {**pending, **(user_input or {})}
-        fields: dict[vol.Marker, selector.BooleanSelector | selector.SelectSelector] = {
-            vol.Required(
-                CONF_ENABLED, default=values.get(CONF_ENABLED, False)
-            ): selector.BooleanSelector(),
-        }
-        for key in (CONF_GENERATION, CONF_STORAGE, *PHASE_KEYS):
-            options = (
-                PRESENCE_OPTIONS
-                if key in (CONF_GENERATION, CONF_STORAGE)
-                else PHASE_OPTIONS
-            )
-            fields[vol.Required(key, default=values.get(key) or "unknown")] = (
-                selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=list(options),
-                        translation_key=(
-                            "flow_presence"
-                            if key in (CONF_GENERATION, CONF_STORAGE)
-                            else "flow_phase"
-                        ),
-                    )
-                )
-            )
-        return self.async_show_form(
-            step_id="flow_compatibility", data_schema=vol.Schema(fields), errors=errors
         )
 
 

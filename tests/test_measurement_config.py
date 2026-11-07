@@ -7,7 +7,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import DOMAIN
-from tests.flow_helpers import confirm_supplier, confirm_grid
+from tests.flow_helpers import confirm_supplier, confirm_grid, confirm_production
 
 
 def form_values(result):
@@ -66,6 +66,7 @@ async def start_options(hass, profile="custom", **data):
         "market_prices",
         "supplier",
         "grid",
+        "energy_flows",
         "settings",
     ]
     result = await manager.async_configure(
@@ -90,6 +91,8 @@ async def test_custom_setup_moves_measurements_out_of_remaining_settings(hass):
     assert result["step_id"] == "supplier"
     result = await confirm_supplier(manager, result)
     result = await confirm_grid(manager, result)
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(manager, result)
     assert result["step_id"] == "manual"
     assert "power_entity" not in {key.schema for key in result["data_schema"].schema}
     result = await manager.async_configure(result["flow_id"], {})
@@ -114,6 +117,8 @@ async def test_supported_meter_suggestions_do_not_require_supplier_price(
     result = await manager.async_configure(result["flow_id"], {})
     result = await confirm_supplier(manager, result)
     result = await confirm_grid(manager, result)
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(manager, result)
     assert result["step_id"] == (
         "tibber_settings" if profile == "tibber" and price else "manual"
     )
@@ -136,6 +141,8 @@ async def test_unknown_energy_period_is_confirmed_after_source_selection(hass):
     result = await manager.async_configure(result["flow_id"], {})
     result = await confirm_supplier(manager, result)
     result = await confirm_grid(manager, result)
+    if result.get("step_id") == "energy_flows":
+        result = await confirm_production(manager, result)
     result = await manager.async_configure(result["flow_id"], {})
     assert result["data"]["energy_entity"] == "sensor.energy"
     assert result["data"]["energy_source_type"] == "lifetime"

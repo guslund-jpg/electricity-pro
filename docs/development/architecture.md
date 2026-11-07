@@ -121,9 +121,23 @@ uses the existing pure tariff model. Switching to constant clears inactive
 schedule keys; unconfigured explicitly clears all owned keys without inventing
 zero fees. The runtime tariff model and stored formats remain unchanged.
 
-Options start with a section menu. Measurement, market, supplier and grid saves
-overlay only their owned keys onto the latest options, including explicit clears.
-The remaining insights/optional-flow form retains these effective bindings.
+`ProductionFlow` in `production_config.py` follows Grid in both setup paths
+and owns the six optional source bindings and installation/compatibility keys.
+Options expose the same section directly. A UI-only switch inferred from saved
+bindings reveals the selectors; no runtime mode is stored. Sources retain their
+explicit whole-site AC/lifetime meaning confirmation and class/unit, duplicate,
+import-reuse and own-output validation. Selected sources lead to installation
+review, with phase questions only for configured power channels. Source changes
+reset only the affected convention. Clearing/disabling sources also disables
+the diagnostic while retaining remembered installation-presence answers; it
+never infers absence of physical equipment. All edits stay in one draft until
+completion. No counter or runtime flow model changes.
+
+Options start with a section menu. Measurement, market, supplier, grid and
+production saves overlay only their owned keys onto the latest options, including
+explicit clears.
+The remaining insight form retains these effective bindings and does not
+revalidate or repair unrelated optional sources.
 VAT remains a supplier declaration: displaying a suggestion or saving only the
 market screen does not persist a tax rate.
 An older multi-area configuration without a valid area resolves it before

@@ -31,17 +31,31 @@
         "constant": "Enhetlig taxa",
         "time_of_use": "Hög-/lågtariff"
       }
+    },
+    "flow_presence": {
+      "options": {
+        "unknown": "Okänt / inte bekräftat",
+        "absent": "Finns inte",
+        "present": "Finns"
+      }
+    },
+    "flow_phase": {
+      "options": {
+        "unknown": "Okänt / inte bekräftat",
+        "net_across_phases": "Netto över faserna",
+        "gross_directional": "Summerat per riktning över faserna"
+      }
     }
   },
   "config": {
     "step": {
       "manual": {
-        "title": "Elanvändningsråd och övriga inställningar",
-        "description": "Ange inställningar för elanvändningsråd. Mätvärden, spotpriser, elhandel och elnät har egna inställningar. Valfria energiflöden kan konfigureras efter installationen."
+        "title": "Elanvändningsråd",
+        "description": "Ange när Electricity Pro ska rekommendera elanvändning. Mätvärden, spotpriser, elhandel, elnät samt produktion och export har egna inställningar."
       },
       "tibber_settings": {
-        "title": "Elanvändningsråd och övriga inställningar",
-        "description": "Ange inställningar för elanvändningsråd. Mätvärden, spotpriser, elhandel och elnät har egna inställningar. Valfria energiflöden kan konfigureras efter installationen."
+        "title": "Elanvändningsråd",
+        "description": "Ange när Electricity Pro ska rekommendera elanvändning. Mätvärden, spotpriser, elhandel, elnät samt produktion och export har egna inställningar."
       },
       "supplier": {
         "title": "Elhandel",
@@ -169,6 +183,42 @@
           "grid_fee_high_season_end": "Sista dagen i den återkommande säsongen, exempelvis 03-31. Säsongen kan gå över årsskiftet.",
           "grid_fee_workday_entity": "Valfri sensor från Workday-integrationen för att undanta helgdagar. Utan den gäller högperioden måndag–fredag under säsongen."
         }
+      },
+      "energy_flows": {
+        "title": "Produktion och export",
+        "description": "Valfria, oberoende källor för produktion, export och hushållets elanvändning. Lämna valet avstängt om du bara mäter el från nätet. När du aktiverar det visas källfälten innan du sparar. Om du stänger av det rensas dessa källor och den valfria diagnostiken stängs av. Tidigare svar om installerad utrustning behålls. Avstängt betyder inte att solceller eller batteri saknas. Inga källor väljs eller beräknas automatiskt.",
+        "data": {
+          "configure_energy_flows": "Använd valfria källor för produktion, export eller hushåll",
+          "production_power_entity": "Produktionseffekt på AC-sidan",
+          "production_energy_entity": "Producerad AC-energi under mätarens livstid",
+          "grid_export_power_entity": "Riktad exporteffekt till elnätet",
+          "grid_export_energy_entity": "Exporterad energi under mätarens livstid",
+          "household_power_entity": "Hushållets uppmätta effekt (exklusive batteriladdning)",
+          "household_energy_entity": "Hushållets energi under mätarens livstid (exklusive batteriladdning)",
+          "confirm_flow_semantics": "Jag bekräftar att de valda källorna har dessa betydelser"
+        },
+        "data_description": {
+          "configure_energy_flows": "Välj bara separata, icke-negativa AC-mätvärden för hela anläggningen. Bekräfta källornas betydelse innan du sparar. Tomma kanaler förblir okonfigurerade och antas inte vara noll.",
+          "production_power_entity": "AC-produktion exklusive batteriurladdning. Använd inte ett hybridväxelriktarvärde som blandar produktion och batteri.",
+          "production_energy_entity": "Livstidsregister för AC-produktion exklusive batteriurladdning, i Wh/kWh. Register som återställs dagligen och DC-register stöds inte.",
+          "grid_export_power_entity": "Separat, icke-negativ riktad export till elnätet i W/kW. Signerad nettoeffekt vid elnätet är inte en exportkälla.",
+          "grid_export_energy_entity": "Livstidsregister för energi som levererats till elnätet, i Wh/kWh. Ska vara separat från importerad energi.",
+          "household_power_entity": "Hela hushållets AC-last, inklusive vanlig elbilsladdning och distributionsförluster men exklusive batteriladdning. Import från elnätet är inte hushållets elanvändning.",
+          "household_energy_entity": "Livstidsregister för samma hushållslast exklusive batteriladdning, i Wh/kWh. Använd inte ett importregister.",
+          "confirm_flow_semantics": "De valda källorna har dessa betydelser för hela anläggningen på AC-sidan och visar livstidsenergi. Ingen anläggningsbalans, batterifördelning eller exportintäkt beräknas."
+        }
+      },
+      "flow_compatibility": {
+        "title": "Anläggning och kompatibilitet",
+        "description": "Granska anläggningsuppgifterna när valfria källor används. Välj Okänt / inte bekräftat om du är osäker. Saknade givare betyder inte att utrustning saknas. Fasfrågor visas bara för valda effektkällor. Lämna obekräftade fasuppgifter som okända. Du kan spara uppgifterna utan att aktivera den valfria diagnostiken. Diagnostiken behöver minst två valfria effektkällor och granskar bara deras mätvärden. Den beräknar inte hushållslast, energikvoter eller en komplett anläggningsbalans. Separata mätvärden för batteriets laddning/urladdning och riktad importeffekt stöds inte här.",
+        "data": {
+          "flow_compatibility_enabled": "Aktivera diagnostik för effektvärdenas kompatibilitet",
+          "flow_generation_presence": "Lokal elproduktion installerad",
+          "flow_storage_presence": "Batterilagring installerad",
+          "production_power_phase_convention": "Fashantering för produktionseffekt",
+          "grid_export_power_phase_convention": "Fashantering för exporteffekt",
+          "household_power_phase_convention": "Fashantering för hushållets effekt"
+        }
       }
     },
     "error": {
@@ -181,14 +231,17 @@
       "invalid_grid_tariff": "Ange både låg- och högperiodens avgift samt giltiga tider (TT:MM) och säsongsdatum (MM-DD). Start- och sluttiden måste skilja sig åt.",
       "invalid_grid_amount": "Ange ett giltigt belopp som är noll eller större.",
       "grid_amount_required": "Ange minst ett belopp eller välj Inte konfigurerat.",
-      "grid_rate_required": "Ange både lågperiodens och högperiodens avgift. Noll är tillåtet."
+      "grid_rate_required": "Ange både lågperiodens och högperiodens avgift. Noll är tillåtet.",
+      "invalid_flow_source": "Välj separata externa effektkällor (W/kW) eller livstidsregister för energi (Wh/kWh). Återanvänd inte en importkälla.",
+      "confirm_flow_semantics": "Bekräfta källornas betydelse som AC-mätvärden för hela anläggningen, inklusive hushållslast utan batteriladdning och livstidsregister för energi.",
+      "contradictory_topology": "Produktionskällor är valda. Ange att produktion finns eller är okänd, eller ta bort källorna innan du anger att produktion saknas."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Elanvändningsråd och övriga inställningar",
-        "description": "Ange inställningar för elanvändningsråd och valfria energiflöden. Mätvärden, spotpriser, elhandel och elnät har egna inställningar."
+        "title": "Elanvändningsråd",
+        "description": "Ange när Electricity Pro ska rekommendera elanvändning. Mätvärden, spotpriser, elhandel, elnät samt produktion och export har egna inställningar."
       },
       "supplier": {
         "title": "Elhandel",
@@ -296,8 +349,9 @@
           "measurements": "Mätvärden",
           "market_prices": "Spotpriser (Nord Pool)",
           "supplier": "Elhandel",
-          "settings": "Elanvändningsråd och övriga inställningar",
-          "grid": "Elnät"
+          "settings": "Elanvändningsråd",
+          "grid": "Elnät",
+          "energy_flows": "Produktion och export"
         }
       },
       "grid": {
@@ -327,6 +381,42 @@
           "grid_fee_high_season_end": "Sista dagen i den återkommande säsongen, exempelvis 03-31. Säsongen kan gå över årsskiftet.",
           "grid_fee_workday_entity": "Valfri sensor från Workday-integrationen för att undanta helgdagar. Utan den gäller högperioden måndag–fredag under säsongen."
         }
+      },
+      "energy_flows": {
+        "title": "Produktion och export",
+        "description": "Valfria, oberoende källor för produktion, export och hushållets elanvändning. Lämna valet avstängt om du bara mäter el från nätet. När du aktiverar det visas källfälten innan du sparar. Om du stänger av det rensas dessa källor och den valfria diagnostiken stängs av. Tidigare svar om installerad utrustning behålls. Avstängt betyder inte att solceller eller batteri saknas. Inga källor väljs eller beräknas automatiskt.",
+        "data": {
+          "configure_energy_flows": "Använd valfria källor för produktion, export eller hushåll",
+          "production_power_entity": "Produktionseffekt på AC-sidan",
+          "production_energy_entity": "Producerad AC-energi under mätarens livstid",
+          "grid_export_power_entity": "Riktad exporteffekt till elnätet",
+          "grid_export_energy_entity": "Exporterad energi under mätarens livstid",
+          "household_power_entity": "Hushållets uppmätta effekt (exklusive batteriladdning)",
+          "household_energy_entity": "Hushållets energi under mätarens livstid (exklusive batteriladdning)",
+          "confirm_flow_semantics": "Jag bekräftar att de valda källorna har dessa betydelser"
+        },
+        "data_description": {
+          "configure_energy_flows": "Välj bara separata, icke-negativa AC-mätvärden för hela anläggningen. Bekräfta källornas betydelse innan du sparar. Tomma kanaler förblir okonfigurerade och antas inte vara noll.",
+          "production_power_entity": "AC-produktion exklusive batteriurladdning. Använd inte ett hybridväxelriktarvärde som blandar produktion och batteri.",
+          "production_energy_entity": "Livstidsregister för AC-produktion exklusive batteriurladdning, i Wh/kWh. Register som återställs dagligen och DC-register stöds inte.",
+          "grid_export_power_entity": "Separat, icke-negativ riktad export till elnätet i W/kW. Signerad nettoeffekt vid elnätet är inte en exportkälla.",
+          "grid_export_energy_entity": "Livstidsregister för energi som levererats till elnätet, i Wh/kWh. Ska vara separat från importerad energi.",
+          "household_power_entity": "Hela hushållets AC-last, inklusive vanlig elbilsladdning och distributionsförluster men exklusive batteriladdning. Import från elnätet är inte hushållets elanvändning.",
+          "household_energy_entity": "Livstidsregister för samma hushållslast exklusive batteriladdning, i Wh/kWh. Använd inte ett importregister.",
+          "confirm_flow_semantics": "De valda källorna har dessa betydelser för hela anläggningen på AC-sidan och visar livstidsenergi. Ingen anläggningsbalans, batterifördelning eller exportintäkt beräknas."
+        }
+      },
+      "flow_compatibility": {
+        "title": "Anläggning och kompatibilitet",
+        "description": "Granska anläggningsuppgifterna när valfria källor används. Välj Okänt / inte bekräftat om du är osäker. Saknade givare betyder inte att utrustning saknas. Fasfrågor visas bara för valda effektkällor. Lämna obekräftade fasuppgifter som okända. Du kan spara uppgifterna utan att aktivera den valfria diagnostiken. Diagnostiken behöver minst två valfria effektkällor och granskar bara deras mätvärden. Den beräknar inte hushållslast, energikvoter eller en komplett anläggningsbalans. Separata mätvärden för batteriets laddning/urladdning och riktad importeffekt stöds inte här.",
+        "data": {
+          "flow_compatibility_enabled": "Aktivera diagnostik för effektvärdenas kompatibilitet",
+          "flow_generation_presence": "Lokal elproduktion installerad",
+          "flow_storage_presence": "Batterilagring installerad",
+          "production_power_phase_convention": "Fashantering för produktionseffekt",
+          "grid_export_power_phase_convention": "Fashantering för exporteffekt",
+          "household_power_phase_convention": "Fashantering för hushållets effekt"
+        }
       }
     },
     "error": {
@@ -339,7 +429,10 @@
       "invalid_grid_tariff": "Ange både låg- och högperiodens avgift samt giltiga tider (TT:MM) och säsongsdatum (MM-DD). Start- och sluttiden måste skilja sig åt.",
       "invalid_grid_amount": "Ange ett giltigt belopp som är noll eller större.",
       "grid_amount_required": "Ange minst ett belopp eller välj Inte konfigurerat.",
-      "grid_rate_required": "Ange både lågperiodens och högperiodens avgift. Noll är tillåtet."
+      "grid_rate_required": "Ange både lågperiodens och högperiodens avgift. Noll är tillåtet.",
+      "invalid_flow_source": "Välj separata externa effektkällor (W/kW) eller livstidsregister för energi (Wh/kWh). Återanvänd inte en importkälla.",
+      "confirm_flow_semantics": "Bekräfta källornas betydelse som AC-mätvärden för hela anläggningen, inklusive hushållslast utan batteriladdning och livstidsregister för energi.",
+      "contradictory_topology": "Produktionskällor är valda. Ange att produktion finns eller är okänd, eller ta bort källorna innan du anger att produktion saknas."
     }
   },
   "entity": {

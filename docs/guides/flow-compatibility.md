@@ -6,6 +6,18 @@ There has been no solar/battery hardware beta validation.
 This opt-in diagnostic is experimental / not hardware-verified; see the
 [v1.6 validation evidence](../validation/v1.6.md).
 
+## Development navigation on main
+
+On the unreleased development branch, open **Production and export** directly
+from Configure, or continue through it after Grid charges in either setup path.
+Installation review follows confirmed optional sources. Only configured power
+channels show phase questions; energy-only channels need no phase declaration.
+The diagnostic remains optional, and unknown installation answers remain valid.
+Turning optional sources off clears their bindings and disables the diagnostic
+without declaring generation or storage absent. Other settings and unaffected
+energy baselines retain their existing meanings. The instructions below describe
+the released v1.7.1 navigation.
+
 ## Enable the optional diagnostic
 
 1. Open Electricity Pro **Configure** and select
