@@ -50,10 +50,19 @@ def visible_tiles(card, states):
     ]
 
 
+@pytest.fixture(params=["", "-sv"])
+def language_suffix(request):
+    return request.param
+
+
 @pytest.fixture(params=["electricity-pro.yaml", "electricity-pro-enhanced.yaml"])
-def groups(request):
-    dashboard = yaml.safe_load((DASHBOARDS / request.param).read_text())
-    overview = next(view for view in dashboard["views"] if view["title"] == "Overview")
+def groups(request, language_suffix):
+    dashboard = yaml.safe_load(
+        (
+            DASHBOARDS / request.param.replace(".yaml", f"{language_suffix}.yaml")
+        ).read_text()
+    )
+    overview = next(view for view in dashboard["views"] if view["path"] == "overview")
     result = {}
     for channel in CHANNELS:
         groups = [
@@ -85,7 +94,10 @@ def test_groups_handle_absence_zero_outages_and_independent_sources(
         assert not matches(groups[other]["conditions"], states)
 
 
-async def test_notes_are_partial_only_for_energy_and_do_not_infer_origin(hass, groups):
+async def test_notes_are_partial_only_for_energy_and_do_not_infer_origin(
+    hass, groups, language_suffix
+):
+    sv = bool(language_suffix)
     for channel, group in groups.items():
         note = group["card"]["cards"][0]
         assert note["type"] == "markdown"
@@ -93,20 +105,34 @@ async def test_notes_are_partial_only_for_energy_and_do_not_infer_origin(hass, g
             if energy_configured:
                 hass.states.async_set(entity_id(channel, "today"), "unavailable")
             text = Template(note["content"], hass).async_render(parse_result=False)
-            assert ("Partial energy totals" in text) == energy_configured
-            assert "Flow details" in text
+            assert (
+                ("Delvis uppmätt energi" if sv else "Partial energy totals") in text
+            ) == energy_configured
+            assert ("Om mätning av energiflöden" if sv else "Flow details") in text
             assert len(text.split()) < 55
             if channel == "production":
-                assert "excluding battery discharge" in text
+                assert (
+                    "exklusive batteriurladdning"
+                    if sv
+                    else "excluding battery discharge"
+                ) in text
             elif channel == "grid_export":
-                assert "may include a battery" in text
+                assert (
+                    "energi från ett batteri kan ingå"
+                    if sv
+                    else "may include a battery"
+                ) in text
                 assert "solar export" not in text.lower()
             else:
-                assert "excluding battery charging" in text
-                assert "Not grid import" in text
+                assert (
+                    "exklusive batteriladdning" if sv else "excluding battery charging"
+                ) in text
+                assert ("inte elnätsimport" if sv else "Not grid import") in text
 
 
-def test_both_channels_visible_without_new_dependencies_or_calculations(groups):
+def test_both_channels_visible_without_new_dependencies_or_calculations(
+    groups, language_suffix
+):
     states = {
         entity_id(channel, period): "0" for channel in CHANNELS for period in PERIODS
     }
@@ -115,7 +141,9 @@ def test_both_channels_visible_without_new_dependencies_or_calculations(groups):
     for tile in tiles:
         assert tile["type"] == "tile"
         assert tile["tap_action"] == {"action": "more-info"}
-        assert "(partial)" in tile["name"] or tile["entity"].endswith("_power")
+        assert ("(delvis uppmätt)" if language_suffix else "(partial)") in tile[
+            "name"
+        ] or tile["entity"].endswith("_power")
     for group in groups.values():
         assert "custom:" not in str(group)
         assert "float" not in str(group)

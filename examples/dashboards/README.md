@@ -32,14 +32,56 @@ Begin with Standard unless the enhanced presentation is important to you and
 its two frontend dependencies are already installed. Both examples use the same
 Electricity Pro entities and can coexist as separate dashboards.
 
+## Language versions
+
+Both examples are available in English and Swedish:
+
+| Example | English | Svenska |
+| ------- | ------- | ------- |
+| Standard | [English YAML](electricity-pro.yaml) | [Svensk YAML](electricity-pro-sv.yaml) |
+| Enhanced | [English YAML](electricity-pro-enhanced.yaml) | [Svensk YAML](electricity-pro-enhanced-sv.yaml) |
+
+Choose the YAML language explicitly. Hard-coded dashboard labels do not switch
+when you change your Home Assistant profile language. Both versions use the same
+entity IDs, card dependencies, conditions, chart data and example thresholds.
+The Swedish versions also translate the advice, partial-coverage notes and known
+missing-cost components. Their dates use `YYYY-MM-DD HH:MM`.
+
+Swedish cost tiles use **Total kostnad (ca)** under the day/month heading, and
+**Effektivt snittpris** for the consumption-weighted average Effective Price.
+These compact dashboard labels retain the existing estimate/price definitions;
+full entity names and coverage attributes remain available through More info.
+Forecast pairs use **Billigaste 1h period** and **Snittpris 1h period** (also
+2h/3h): the average price belongs to the paired cheapest period.
+**Pristrend 2h** retains the same two-hour trend.
+
+The sensor's price-direction states have English/Swedish frontend translations;
+raw states remain `rising`, `falling` and `stable` for existing automations.
+Entity state presentation follows the Home Assistant profile language, separately
+from the chosen dashboard YAML. Install the matching development integration
+build and restart to obtain these state translations. Other dashboard labels
+only require copying the selected YAML.
+
+**Svenska:** Välj svensk YAML ovan och följ installationsstegen nedan. Standard
+använder enbart inbyggda kort; Enhanced kräver Mushroom och ApexCharts Card.
+Använd svenska som profilspråk för svenska sensortillstånd. Kopiera YAML-filen
+på nytt för att uppdatera en befintlig dashboard.
+**Konsumptionspoäng** i Standard beskriver gårdagens förbrukningsmönster i
+förhållande till elpriserna.
+
+Keep the English and Swedish examples together when changing operational
+settings. Automated parity checks protect entity references, conditions,
+numeric/chart settings, JavaScript and template state reads/branches. Template
+rendering tests cover both languages; visual layout still needs a frontend check.
+
 ## Quick installation
 
 HACS installs the Electricity Pro integration but does not create or modify
 Home Assistant dashboards. Installing either example takes about a minute:
 
 1. Open the chosen source file and use GitHub's **Copy raw file** button:
-   - [Standard dashboard YAML](electricity-pro.yaml)
-   - [Enhanced dashboard YAML](electricity-pro-enhanced.yaml)
+   - Standard: [English](electricity-pro.yaml) / [Svenska](electricity-pro-sv.yaml)
+   - Enhanced: [English](electricity-pro-enhanced.yaml) / [Svenska](electricity-pro-enhanced-sv.yaml)
 2. In Home Assistant, open **Settings → Dashboards → Add dashboard**.
 3. Choose **New dashboard from scratch**, give it a title such as
    **Electricity Pro**, enable **Show in sidebar**, and create it.

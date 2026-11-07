@@ -27,7 +27,14 @@
       "estimated_base_load": { "name": "Estimated base load" },
       "average_power_today": { "name": "Average power today" },
       "next_inexpensive_1h_window_start": { "name": "Next inexpensive 1h window start" },
-      "price_direction": { "name": "Price direction" },
+      "price_direction": {
+        "name": "Price direction",
+        "state": {
+          "rising": "Rising",
+          "falling": "Falling",
+          "stable": "Stable"
+        }
+      },
       "production_power": { "name": "Production power" },
       "production_today": { "name": "Production today" },
       "production_this_month": { "name": "Production this month" },

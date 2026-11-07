@@ -1565,6 +1565,9 @@ def _update_next_inexpensive_window_registry(
 class ElectricityProPriceDirectionSensor(ElectricityProForecastInsightSensor):
     """Expose the two-hour trend under the existing price_direction identity."""
 
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["rising", "falling", "stable"]
+
     def __init__(
         self,
         coordinator: ElectricityProCoordinator,

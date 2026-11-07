@@ -253,8 +253,10 @@ Two optional, ready-to-copy dashboard examples are maintained in
 
 - **Recommended:** [`electricity-pro.yaml`](examples/dashboards/electricity-pro.yaml)
   uses only cards built into Home Assistant.
+  [Svensk version](examples/dashboards/electricity-pro-sv.yaml).
 - [`electricity-pro-enhanced.yaml`](examples/dashboards/electricity-pro-enhanced.yaml)
   adds Mushroom and ApexCharts Card presentation.
+  [Svensk version](examples/dashboards/electricity-pro-enhanced-sv.yaml).
 
 Dashboard YAML is not installed or imported by Marketplace / HACS. Follow the
 [dashboard installation guide](examples/dashboards/README.md#quick-installation) to

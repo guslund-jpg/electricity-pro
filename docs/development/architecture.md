@@ -192,6 +192,12 @@ Recorder stores published entity history and eligible long-term statistics.
 Excluding source entities does not stop live calculations, but removes their
 recorded history.
 
+The price-direction sensor declares its existing three raw text states as an
+`enum`, with English/Swedish display translations. Its `rising`, `falling` and
+`stable` values, attributes and entry-scoped identity retain their contracts.
+This presentation metadata does not change forecast calculations or automation
+state comparisons.
+
 ## Measurement and price semantics
 
 - Current Power is **signed whole-home net grid exchange**: import positive,

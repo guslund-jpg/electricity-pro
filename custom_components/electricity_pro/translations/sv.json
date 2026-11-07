@@ -802,7 +802,14 @@
       "estimated_base_load": { "name": "Uppskattad baslast" },
       "average_power_today": { "name": "Genomsnittlig effekt i dag" },
       "next_inexpensive_1h_window_start": { "name": "Start för nästa billiga timme" },
-      "price_direction": { "name": "Pristrend" },
+      "price_direction": {
+        "name": "Pristrend",
+        "state": {
+          "rising": "Stigande",
+          "falling": "Fallande",
+          "stable": "Stabil"
+        }
+      },
       "production_power": { "name": "Produktionseffekt" },
       "production_today": { "name": "Producerad energi i dag" },
       "production_this_month": { "name": "Producerad energi den här månaden" },
