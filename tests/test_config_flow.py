@@ -9,6 +9,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.flow_helpers import (
     start_market,
+    start_grid,
+    confirm_grid,
     start_settings,
     start_supplier,
     confirm_supplier,
@@ -30,12 +32,10 @@ from custom_components.electricity_pro.const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
-    CONF_ENERGY_TAX_PER_KWH,
     CONF_ENERGY_SOURCE_TYPE,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
     CONF_FIXED_SUPPLIER_FEE_MONTHLY,
-    CONF_FIXED_GRID_FEE_MONTHLY,
     CONF_GOOD_PRICE_THRESHOLD,
     CONF_GOOD_PRICE_MODE,
     CONF_GRID_FEE_PER_KWH,
@@ -392,20 +392,13 @@ async def test_manual_form_orders_sources_before_phase_diagnostics(hass) -> None
     result = await confirm_market(hass.config_entries.flow, result)
     assert result["step_id"] == "supplier"
     result = await confirm_supplier(hass.config_entries.flow, result)
+    assert result["step_id"] == "grid"
+    assert [key.schema for key in result["data_schema"].schema] == ["grid_mode"]
+    result = await confirm_grid(hass.config_entries.flow, result)
     keys = [key.schema for key in result["data_schema"].schema]
+    assert CONF_GOOD_PRICE_MODE in keys
+    assert CONF_GRID_FEE_PER_KWH not in keys
     assert CONF_FORECAST_NORDPOOL_CONFIG_ENTRY not in keys
-    assert keys[
-        keys.index(CONF_GRID_FEE_PER_KWH) + 1 : keys.index(CONF_GOOD_PRICE_MODE)
-    ] == [
-        CONF_GRID_FEE_HIGH_PER_KWH,
-        CONF_GRID_FEE_HIGH_START,
-        CONF_GRID_FEE_HIGH_END,
-        CONF_GRID_FEE_HIGH_SEASON_START,
-        CONF_GRID_FEE_HIGH_SEASON_END,
-        CONF_GRID_FEE_WORKDAY_ENTITY,
-        CONF_ENERGY_TAX_PER_KWH,
-        CONF_FIXED_GRID_FEE_MONTHLY,
-    ]
 
 
 async def test_manual_flow_stores_lifetime_energy_source_type(hass) -> None:
@@ -487,7 +480,7 @@ async def test_manual_flow_rejects_invalid_grid_tariff_schedule(hass) -> None:
     )
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
-    assert result["errors"] == {"base": "invalid_grid_tariff"}
+    assert result["errors"] == {CONF_GRID_FEE_PER_KWH: "grid_rate_required"}
 
 
 async def test_user_step_asks_for_area_for_multi_area_nordpool_entry(hass) -> None:
@@ -624,9 +617,9 @@ async def test_tibber_options_reject_invalid_grid_tariff_time(hass) -> None:
         },
     )
     entry.add_to_hass(hass)
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
+    result = await start_grid(hass.config_entries.options, entry.entry_id)
 
-    result = await configure_settings(
+    result = await confirm_grid(
         hass.config_entries.options,
         result,
         {
@@ -644,8 +637,8 @@ async def test_tibber_options_reject_invalid_grid_tariff_time(hass) -> None:
     assert result["errors"] == {"base": "invalid_grid_tariff"}
 
 
-async def test_tibber_options_reject_invalid_time_without_high_fee(hass) -> None:
-    """Visible schedule fields must be valid even before a high fee is enabled."""
+async def test_tibber_grid_requires_both_high_low_rates(hass) -> None:
+    """A newly selected high/low tariff requires both variable rates."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Electricity Pro",
@@ -655,12 +648,13 @@ async def test_tibber_options_reject_invalid_time_without_high_fee(hass) -> None
         },
     )
     entry.add_to_hass(hass)
-    result = await start_settings(hass.config_entries.options, entry.entry_id)
+    result = await start_grid(hass.config_entries.options, entry.entry_id)
 
-    result = await configure_settings(
+    result = await confirm_grid(
         hass.config_entries.options,
         result,
         {
+            "grid_mode": "time_of_use",
             CONF_GRID_FEE_HIGH_START: "abc",
             CONF_GRID_FEE_HIGH_END: "22:00",
             CONF_GRID_FEE_HIGH_SEASON_START: "11-01",
@@ -669,7 +663,10 @@ async def test_tibber_options_reject_invalid_time_without_high_fee(hass) -> None
     )
 
     assert result["type"] == data_entry_flow.FlowResultType.FORM
-    assert result["errors"] == {"base": "invalid_grid_tariff"}
+    assert result["errors"] == {
+        CONF_GRID_FEE_PER_KWH: "grid_rate_required",
+        CONF_GRID_FEE_HIGH_PER_KWH: "grid_rate_required",
+    }
 
 
 async def test_user_step_requires_explicit_price_metadata(hass) -> None:

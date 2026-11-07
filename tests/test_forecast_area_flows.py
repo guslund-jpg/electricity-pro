@@ -10,6 +10,7 @@ from tests.flow_helpers import (
     start_market,
     start_supplier,
     confirm_supplier,
+    confirm_grid,
     configure_settings,
     confirm_measurements,
 )
@@ -72,10 +73,10 @@ async def finish_setup(manager, result):
         result = await confirm_supplier(
             manager, result, {"price_vat_rate": 25, "supplier_markup_per_kwh": 0}
         )
+    if result.get("step_id") == "grid":
+        result = await confirm_grid(manager, result, {"fixed_grid_fee_monthly": 0})
     if result.get("step_id") in ("manual", "tibber_settings"):
-        result = await manager.async_configure(
-            result["flow_id"], {"fixed_grid_fee_monthly": 0}
-        )
+        result = await manager.async_configure(result["flow_id"], {})
     return result
 
 

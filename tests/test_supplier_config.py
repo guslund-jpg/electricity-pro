@@ -6,12 +6,13 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.flow_helpers import (
+    confirm_grid,
+    start_grid,
     TIBBER_CONTRACT,
     confirm_market,
     confirm_measurements,
     confirm_supplier,
     form_values,
-    start_settings,
     start_supplier,
 )
 
@@ -110,6 +111,8 @@ async def test_setup_reviews_supplier_before_grid_without_redeclaring_tibber(
     elif profile == "tibber":
         assert fields == {"fixed_supplier_fee_monthly"}
     result = await confirm_supplier(manager, result, {"fixed_supplier_fee_monthly": 0})
+    assert result["step_id"] == "grid"
+    result = await confirm_grid(manager, result)
     assert result["step_id"] == ("tibber_settings" if profile == "tibber" else "manual")
     fields = {key.schema for key in result["data_schema"].schema}
     assert (
@@ -164,8 +167,8 @@ async def test_supplier_save_preserves_other_sections_and_explicit_zero(hass, pr
     assert entry.data["energy_entity"] == "sensor.energy"
     assert entry.data["production_power_entity"] == "sensor.production"
     # Saving the remaining section must not overwrite supplier-owned bindings.
-    result = await start_settings(manager, entry.entry_id)
-    result = await manager.async_configure(result["flow_id"], {"grid_fee_per_kwh": 0.6})
+    result = await start_grid(manager, entry.entry_id)
+    result = await confirm_grid(manager, result, {"grid_fee_per_kwh": 0.6})
     assert result["type"] == "create_entry"
     assert entry.options["fixed_supplier_fee_monthly"] == 0
     assert entry.options["price_vat_rate"] == 0
@@ -374,6 +377,8 @@ async def test_meter_only_tibber_uses_explicit_custom_supplier_inputs(hass):
             "price_vat_treatment": "included",
         },
     )
+    assert result["step_id"] == "grid"
+    result = await confirm_grid(manager, result)
     assert result["step_id"] == "manual"
     result = await manager.async_configure(result["flow_id"], {})
     assert result["type"] == "create_entry"
