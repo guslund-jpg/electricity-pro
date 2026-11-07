@@ -9,6 +9,7 @@
   Tibber's known contract is displayed without repeating its declarations;
   forecast VAT/markup and reviewed estimates stay in the supplier section.
   Supplier saves preserve the other sections, explicit clears and zero values.
+  Use spotpris consistently in Swedish configuration labels and guidance.
   (#373)
 - Add a shared Market prices (Nord Pool) screen to Custom/Tibber setup and
   Configure. Resolve the bidding area before VAT suggestions, display inherited

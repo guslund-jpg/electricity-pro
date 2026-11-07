@@ -25,7 +25,7 @@ the [changelog](../../CHANGELOG.md).
 ## Market prices screen on the development branch
 
 Both setup paths continue from Measurements to **Market prices (Nord Pool)**
-(**Marknadspriser (Nord Pool)** in Swedish), before the supplier price inputs.
+(**Spotpriser (Nord Pool)** in Swedish), before the supplier price inputs.
 Select a native Nord Pool entry or leave it empty to continue without market
 prices and forecasts. If no entry is available, first set up Home Assistant's
 Nord Pool integration. During new setup, a single enabled entry is suggested;
