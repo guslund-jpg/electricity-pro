@@ -47,6 +47,11 @@ entity IDs, card dependencies, conditions, chart data and example thresholds.
 The Swedish versions also translate the advice, partial-coverage notes and known
 missing-cost components. Their dates use `YYYY-MM-DD HH:MM`.
 
+Swedish cost tiles use **Total kostnad (ca)** under the day/month heading, and
+**Effektivt snittpris** for the consumption-weighted average Effective Price.
+These compact dashboard labels retain the existing estimate/price definitions;
+full entity names and coverage attributes remain available through More info.
+
 The sensor's price-direction states have English/Swedish frontend translations;
 raw states remain `rising`, `falling` and `stable` for existing automations.
 Entity state presentation follows the Home Assistant profile language, separately

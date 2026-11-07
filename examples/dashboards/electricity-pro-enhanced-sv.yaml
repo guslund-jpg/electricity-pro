@@ -158,7 +158,7 @@ views:
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_total_cost_estimate_today
-              name: "Uppskattad total kostnad i dag"
+              name: "Total kostnad (ca)"
               icon: mdi:cash-multiple
               icon_color: green
               layout: vertical
@@ -190,7 +190,7 @@ views:
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_consumption_weighted_average_price_today
-              name: "Genomsnittligt effektivt elpris i dag"
+              name: "Effektivt snittpris"
               icon: mdi:chart-line
               icon_color: green
               layout: vertical
@@ -278,7 +278,7 @@ views:
             card:
               type: custom:mushroom-entity-card
               entity: sensor.electricity_pro_total_cost_estimate_this_month
-              name: "Uppskattad total kostnad den här månaden"
+              name: "Total kostnad (ca)"
               icon: mdi:calendar-month-outline
               icon_color: green
               layout: vertical
@@ -642,7 +642,7 @@ views:
         card:
           type: custom:mushroom-entity-card
           entity: sensor.electricity_pro_consumption_weighted_average_price_today
-          name: "Genomsnittligt effektivt elpris i dag"
+          name: "Effektivt snittpris"
           icon: mdi:chart-line
           icon_color: green
 
