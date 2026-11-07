@@ -8,7 +8,7 @@ import pytest
 from homeassistant import config_entries
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from tests.flow_helpers import start_settings, configure_settings
+from tests.flow_helpers import start_market, start_settings, configure_settings
 
 from custom_components.electricity_pro.config_flow import (
     _entity_schema,
@@ -118,7 +118,7 @@ async def start(hass, profile, **data):
 
 
 @pytest.mark.parametrize("profile", ["custom", "tibber"])
-async def test_automatic_hint_requires_confirmation(hass, freezer, profile):
+async def test_automatic_hint_requires_pricing_save(hass, freezer, profile):
     freezer.move_to("2026-10-02T12:00:00Z")
     nordpool = MockConfigEntry(
         domain="nordpool", data={"areas": ["FI"], "currency": "SEK"}
@@ -126,21 +126,20 @@ async def test_automatic_hint_requires_confirmation(hass, freezer, profile):
     nordpool.add_to_hass(hass)
     entry, flow = await start(hass, profile)
     manager = hass.config_entries.options
-    values = {"forecast_nordpool_config_entry": nordpool.entry_id}
-    if profile == "custom":
-        values["power_entity"] = "sensor.power"
-    flow = await configure_settings(manager, flow, values)
+    manager.async_abort(flow["flow_id"])
+    flow = await start_market(manager, entry.entry_id)
+    flow = await manager.async_configure(
+        flow["flow_id"], {"forecast_nordpool_config_entry": nordpool.entry_id}
+    )
+    assert "price_vat_rate" not in entry.options
+    flow = await start_settings(manager, entry.entry_id)
     if profile == "tibber":
+        flow = await configure_settings(manager, flow, {})
         assert flow["step_id"] == "tibber_forecast_pricing"
-    else:
-        assert flow["step_id"] == "vat_review"
-    schema_values = flow["data_schema"]({})
-    assert schema_values["price_vat_rate"] == 25.5
-    assert not entry.options
-    confirm = {"price_vat_rate": 25.5}
-    if profile == "custom":
-        confirm["use_vat_suggestion"] = True
-    flow = await configure_settings(manager, flow, confirm)
+    assert flow["data_schema"]({})["price_vat_rate"] == 25.5
+    assert "price_vat_rate" not in entry.options
+    # Saving the screen confirms its visible default, without another VAT review.
+    flow = await configure_settings(manager, flow, {})
     assert flow["type"] == "create_entry"
     assert flow["data"]["price_vat_rate"] == 25.5
     assert "suggest_vat_rate" not in flow["data"]
@@ -156,10 +155,15 @@ async def test_saved_rates_unchanged_on_source_change(hass, profile, saved):
     nordpool.add_to_hass(hass)
     _, flow = await start(hass, profile, price_vat_rate=saved)
     manager = hass.config_entries.options
-    values = {"forecast_nordpool_config_entry": nordpool.entry_id}
-    if profile == "custom":
-        values.update(power_entity="sensor.power", price_vat_rate=saved)
-    flow = await configure_settings(manager, flow, values)
+    manager.async_abort(flow["flow_id"])
+    entry = hass.config_entries.async_entries("electricity_pro")[0]
+    flow = await start_market(manager, entry.entry_id)
+    flow = await manager.async_configure(
+        flow["flow_id"], {"forecast_nordpool_config_entry": nordpool.entry_id}
+    )
+    assert entry.options.get("price_vat_rate", entry.data["price_vat_rate"]) == saved
+    flow = await start_settings(manager, entry.entry_id)
+    flow = await configure_settings(manager, flow, {})
     if profile == "tibber":
         assert flow["step_id"] == "tibber_forecast_pricing"
         flow = await configure_settings(manager, flow, {"price_vat_rate": saved})

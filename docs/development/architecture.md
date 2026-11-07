@@ -88,19 +88,24 @@ existing saved accumulation periods carry through. A newly selected generic
 energy source requires a daily/lifetime confirmation. Measurement discovery
 accepts a known meter independently of whether a contract-price source exists.
 
-Options start with a section menu. A Measurements save overlays only its owned
-keys onto the latest options, including explicit clears. The remaining settings
-form retains the effective measurement values when saving prices, fees or
-optional flows. Draft forms do not update the entry before completion. The
-stored keys, source scoping and entity identities use their existing contracts.
+`MarketPriceFlow` in `market_config.py` follows Measurements in both setup paths
+and owns the native Nord Pool entry and bidding-area selection. It validates
+native entry ownership and area/currency metadata, displays inherited currency
+and inferred country, and resolves the area before downstream VAT assistance.
+Only new setup suggests a sole enabled native entry. A saved multi-area choice
+is editable on the market screen; a different entry requires its own area choice.
+Single-area sources inherit the area without persisting a redundant override.
+The Tibber markup estimate is constrained to the resolved forecast area.
 
-Setup and options share Nord Pool area metadata lookup in `config_flow.py`.
-Both options paths use the same saved-area resolver: options override setup data,
-and a valid saved area can be reused only for the same effective forecast entry.
-The existing area selector schema remains shared. Track-specific navigation,
-form defaults, confirmation and final saved-payload rules remain at their callers.
-Custom and Tibber options both retain a valid saved multi-area choice on an
-unrelated save; single-area sources do not need a separate saved area.
+Options start with a section menu. Measurement and market saves overlay only
+their owned keys onto the latest options, including explicit clears. The
+remaining settings form retains both sets of effective bindings when saving
+prices, fees or optional flows. VAT remains a pricing declaration: displaying a
+suggestion or saving only the market screen does not persist a tax rate.
+An older multi-area configuration without a valid area resolves it before
+opening pricing; its correction stays in the flow draft until the final save.
+Draft forms do not update the entry before completion. Stored keys, source
+scoping and entity identities use their existing contracts.
 
 Live readings are event-driven: source changes prompt normalized reads and
 dependent calculations. Local timers handle elapsed-time coverage, staleness and

@@ -15,11 +15,44 @@ are retained. The collapsed Advanced measurements section contains the phase
 current/voltage inputs, an energy-period override and optional external monthly
 peak-hour readings.
 
-The Configure menu offers Measurements and Prices and other settings. Saving
-Measurements applies the source edits independently of the prices and fees.
-Selecting Prices and other settings retains the existing measurement bindings.
+The Configure menu offers Measurements, Market prices (Nord Pool), and Prices
+and other settings. Saving Measurements applies the source edits independently
+of the prices and fees. Selecting Prices and other settings retains the existing
+measurement and market bindings.
 The new screens have English and Swedish text. Publication remains tracked by
 the [changelog](../../CHANGELOG.md).
+
+## Market prices screen on the development branch
+
+Both setup paths continue from Measurements to **Market prices (Nord Pool)**
+(**Marknadspriser (Nord Pool)** in Swedish), before the supplier price inputs.
+Select a native Nord Pool entry or leave it empty to continue without market
+prices and forecasts. If no entry is available, first set up Home Assistant's
+Nord Pool integration. During new setup, a single enabled entry is suggested;
+opening Configure never enables a source you previously cleared.
+
+The screen shows the source's bidding area, configured currency and country
+inferred from the area. A single area is inherited without another question.
+For several areas, select one on the screen. A valid saved choice remains
+editable there. When switching to another Nord Pool entry, its areas are
+resolved before continuing; a previous entry's area is not silently reused.
+
+Country and currency are displayed rather than requested again. Currency does
+not determine the country. The subsequent pricing form prefills an unset VAT
+rate when the selected area has a current verified standard suggestion. Saving
+that pricing form confirms the editable rate. Existing rates, including zero,
+are retained; regional exceptions and unsupported countries still need review.
+See [VAT guidance](vat-pricing.md#country-and-regional-vat-suggestions).
+
+In Configure, a market save changes only the forecast source and its area. It
+does not change supplier prices, VAT or grid fees. Clear the source field to
+disable Nord Pool market prices and forecasting. Canceling either screen leaves
+the saved settings intact. If an older configuration has several areas but no
+valid saved choice, opening the pricing settings resolves the area first. That
+correction remains a draft until the pricing flow is saved. If adding forecasting
+to an existing installation
+without a VAT rate, review **Prices and other settings** afterward to confirm
+the rate used for calculated forecast prices. Raw market prices do not include VAT.
 
 ## Guided Tibber setup
 

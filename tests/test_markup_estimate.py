@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant import config_entries
+from homeassistant.data_entry_flow import InvalidData
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -255,6 +256,8 @@ async def test_options_estimate_requires_review_and_allows_edit(hass, accept):
         data={
             "source_profile": "tibber",
             "power_entity": "sensor.power",
+            "forecast_nordpool_config_entry": nordpool.entry_id,
+            "forecast_price_area": "SE3",
             "price_entity": "sensor.price",
             "supplier_markup_per_kwh": 0.12,
         },
@@ -264,7 +267,7 @@ async def test_options_estimate_requires_review_and_allows_edit(hass, accept):
     flow = await configure_settings(
         hass.config_entries.options,
         flow,
-        {"forecast_nordpool_config_entry": nordpool.entry_id},
+        {},
     )
     flow = await configure_settings(
         hass.config_entries.options,
@@ -281,12 +284,20 @@ async def test_options_estimate_requires_review_and_allows_edit(hass, accept):
         AsyncMock(
             return_value=MarkupEstimate(Decimal("0.18"), Decimal("0.001"), 12, "SEK")
         ),
-    ):
+    ) as estimator:
+        with pytest.raises(InvalidData):
+            await configure_settings(
+                hass.config_entries.options,
+                flow,
+                {"forecast_price_area": "SE4", "confirm_matching_area": True},
+            )
+        estimator.assert_not_awaited()
         flow = await configure_settings(
             hass.config_entries.options,
             flow,
             {"forecast_price_area": "SE3", "confirm_matching_area": True},
         )
+        assert estimator.call_args.kwargs["area"] == "SE3"
     assert flow["step_id"] == "tibber_markup_review"
     assert entry.options == {}
     flow = await configure_settings(
@@ -306,10 +317,7 @@ async def test_options_estimate_requires_review_and_allows_edit(hass, accept):
             flow,
             {"supplier_markup_per_kwh": 0.12, "price_vat_rate": 25},
         )
-        assert flow["step_id"] == "forecast_area"
-        flow = await configure_settings(
-            hass.config_entries.options, flow, {"forecast_price_area": "SE3"}
-        )
+        assert flow["type"] == "create_entry"
         assert flow["data"]["supplier_markup_per_kwh"] == 0.12
 
 
@@ -343,7 +351,10 @@ async def test_initial_setup_accepts_estimate_for_confirmed_area(hass, areas):
     flow = await configure_settings(
         hass.config_entries.flow,
         flow,
-        {"forecast_nordpool_config_entry": nordpool.entry_id},
+        {
+            "forecast_nordpool_config_entry": nordpool.entry_id,
+            "forecast_price_area": "SE3",
+        },
     )
     flow = await configure_settings(
         hass.config_entries.flow,
@@ -368,7 +379,9 @@ async def test_initial_setup_accepts_estimate_for_confirmed_area(hass, areas):
     )
     assert flow["type"] == "create_entry"
     assert flow["data"]["supplier_markup_per_kwh"] == 0.18
-    assert flow["data"]["forecast_price_area"] == "SE3"
+    assert flow["data"].get("forecast_price_area") == (
+        "SE3" if len(areas) > 1 else None
+    )
 
 
 @pytest.mark.parametrize("error", [ValueError(), HomeAssistantError(), TimeoutError()])
@@ -382,6 +395,8 @@ async def test_failed_estimate_can_return_to_manual_without_saving(hass, error):
         data={
             "source_profile": "tibber",
             "power_entity": "sensor.power",
+            "forecast_nordpool_config_entry": nordpool.entry_id,
+            "forecast_price_area": "SE3",
             "supplier_markup_per_kwh": 0.12,
         },
     )
@@ -390,7 +405,7 @@ async def test_failed_estimate_can_return_to_manual_without_saving(hass, error):
     flow = await configure_settings(
         hass.config_entries.options,
         flow,
-        {"forecast_nordpool_config_entry": nordpool.entry_id},
+        {},
     )
     flow = await configure_settings(
         hass.config_entries.options,

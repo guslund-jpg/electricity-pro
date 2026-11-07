@@ -32,9 +32,14 @@ Both standard/custom setup and Tibber forecast pricing offer **Suggest VAT from
 country/region**. When a Swedish, Danish or Finnish Nord Pool area is already
 configured and VAT is unset, the pricing form prefills the editable rate. Saving
 that form confirms the rate; simply opening it does not change configuration.
-When selecting a Nord Pool source for the first time in the standard form,
-the country is not known until submission: the next screen then shows the
-prefilled VAT review directly, without asking for the country again. Existing
+On the development branch, the shared **Market prices (Nord Pool)** screen
+resolves the source and bidding area before the pricing form in both setup
+paths. This also resolves a country hint when the native entry spans several
+countries. The next pricing form shows the editable standard suggestion,
+without another country or VAT-review step for the common case. Released
+v1.7.1 selects the source later and may show a separate VAT review after
+submitting that form. A market-only save in Configure never writes a VAT rate;
+review the pricing form to confirm a rate if none is configured. Existing
 rates, including explicit zero, are not replaced on upgrades or source changes.
 To replace one, explicitly request a suggestion and confirm the replacement.
 The Tibber assistant appears only inside optional Nord Pool forecast pricing,

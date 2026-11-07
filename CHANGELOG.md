@@ -4,6 +4,11 @@
 
 ### Added
 
+- Add a shared Market prices (Nord Pool) screen to Custom/Tibber setup and
+  Configure. Resolve the bidding area before VAT suggestions, display inherited
+  currency and inferred country, and keep source/area edits separate from
+  supplier prices and grid fees. Existing VAT overrides, including zero, remain
+  unchanged; the Tibber markup estimate uses the selected forecast area. (#373)
 - Add a shared Measurements screen for Custom and Tibber setup, with optional
   advanced readings and energy-counter confirmation. Configure now offers a
   menu for measurement sources and the remaining settings. Tibber meter
