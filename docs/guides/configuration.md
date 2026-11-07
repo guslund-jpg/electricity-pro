@@ -121,6 +121,13 @@ can still be needed for raw Nord Pool forecasts. A grid save preserves supplier,
 market, meter, optional-flow and insight settings. Remaining insights and energy
 flows are available under **Insights and other settings**.
 
+The Swedish help text's 0.45 SEK/kWh example is the ordinary **2026** energy
+tax including VAT, not a default or a regional rate. See
+[Skatteverket's 2026 rate](https://www.skatteverket.se/elskatt)
+(0.36 SEK/kWh before VAT) and
+[Energimarknadsbyrån's VAT-inclusive amount](https://www.energimarknadsbyran.se/el/dina-elavtal-och-kostnader/fakturering-och-betalning/elrakningen/energiskatt/).
+The example does not set or change the configured amount.
+
 ## Guided Tibber setup
 
 Choose **Tibber fast track** when the official Home Assistant Tibber integration

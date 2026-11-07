@@ -160,8 +160,8 @@
         "data_description": {
           "grid_mode": "Inte konfigurerat rensar elnätsbeloppen och schemat utan att anta att avgifterna är noll. Enhetlig taxa kan ha rörlig avgift, energiskatt och/eller fast månadsavgift. Hög-/lågtariff kräver båda avgifterna och ett schema.",
           "grid_fee_per_kwh": "Valfritt vid enhetlig taxa. Vid hög-/lågtariff är detta lågperiodens avgift och måste anges.",
-          "energy_tax_per_kwh": "Valfritt. Använd skatten på din faktura, med eventuell regional nedsättning. Ingen nationell skattesats antas.",
-          "fixed_grid_fee_monthly": "Valfri fast avgift från elnätsföretaget. Ange inte effektavgifter eller elhandelsavgifter här.",
+          "energy_tax_per_kwh": "Valfritt. Använd skatten på din faktura, med eventuell regional nedsättning. Ingen nationell skattesats antas. (I Sverige normalt 0,45kr/kWh)",
+          "fixed_grid_fee_monthly": "Valfritt. Fast avgift från elnätsföretaget. Ange inte effektavgifter eller elhandelsavgifter här.",
           "grid_fee_high_per_kwh": "Högperiodens hela avgift, inte ett tillägg till lågperiodens avgift. Noll är ett giltigt belopp.",
           "grid_fee_high_start": "Lokal starttid måndag–fredag, exempelvis 06:00. Perioder över midnatt stöds.",
           "grid_fee_high_end": "Lokal sluttid måndag–fredag, exempelvis 22:00. Måste skilja sig från starttiden.",
@@ -318,8 +318,8 @@
         "data_description": {
           "grid_mode": "Inte konfigurerat rensar elnätsbeloppen och schemat utan att anta att avgifterna är noll. Enhetlig taxa kan ha rörlig avgift, energiskatt och/eller fast månadsavgift. Hög-/lågtariff kräver båda avgifterna och ett schema.",
           "grid_fee_per_kwh": "Valfritt vid enhetlig taxa. Vid hög-/lågtariff är detta lågperiodens avgift och måste anges.",
-          "energy_tax_per_kwh": "Valfritt. Använd skatten på din faktura, med eventuell regional nedsättning. Ingen nationell skattesats antas.",
-          "fixed_grid_fee_monthly": "Valfri fast avgift från elnätsföretaget. Ange inte effektavgifter eller elhandelsavgifter här.",
+          "energy_tax_per_kwh": "Valfritt. Använd skatten på din faktura, med eventuell regional nedsättning. Ingen nationell skattesats antas. (I Sverige normalt 0,45kr/kWh)",
+          "fixed_grid_fee_monthly": "Valfritt. Fast avgift från elnätsföretaget. Ange inte effektavgifter eller elhandelsavgifter här.",
           "grid_fee_high_per_kwh": "Högperiodens hela avgift, inte ett tillägg till lågperiodens avgift. Noll är ett giltigt belopp.",
           "grid_fee_high_start": "Lokal starttid måndag–fredag, exempelvis 06:00. Perioder över midnatt stöds.",
           "grid_fee_high_end": "Lokal sluttid måndag–fredag, exempelvis 22:00. Måste skilja sig från starttiden.",
