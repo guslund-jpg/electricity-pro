@@ -8,7 +8,7 @@
     "step": {
       "measurements": {
         "title": "Mätningar",
-        "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\\n\\n{sources}",
+        "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\n\n{sources}",
         "data": {
           "power_entity": "Aktuell effekt vid elnätet",
           "energy_entity": "Importerad energi (valfritt)"
@@ -38,7 +38,7 @@
       },
       "measurement_energy": {
         "title": "Hur räknar energimätaren?",
-        "description": "Bekräfta om den valda importmätaren återställs dagligen eller visar ett livstidsvärde.\\n\\n{sources}",
+        "description": "Bekräfta om den valda importmätaren återställs dagligen eller visar ett livstidsvärde.\n\n{sources}",
         "data": {
           "energy_source_type": "Energimätarens period"
         }
@@ -50,7 +50,7 @@
     "step": {
       "measurements": {
         "title": "Mätningar",
-        "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\\n\\n{sources}",
+        "description": "Välj mätvärden från din elmätare. Föreslagna källor kan ändras. Import är positiv effekt och export är negativ effekt för en signerad källa.\n\n{sources}",
         "data": {
           "power_entity": "Aktuell effekt vid elnätet",
           "energy_entity": "Importerad energi (valfritt)"
@@ -80,7 +80,7 @@
       },
       "measurement_energy": {
         "title": "Hur räknar energimätaren?",
-        "description": "Bekräfta om den valda importmätaren återställs dagligen eller visar ett livstidsvärde.\\n\\n{sources}",
+        "description": "Bekräfta om den valda importmätaren återställs dagligen eller visar ett livstidsvärde.\n\n{sources}",
         "data": {
           "energy_source_type": "Energimätarens period"
         }

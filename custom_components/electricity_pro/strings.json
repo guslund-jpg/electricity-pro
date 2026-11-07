@@ -78,7 +78,7 @@
     "step": {
       "measurements": {
         "title": "Measurements",
-        "description": "Choose readings from your electricity meter. Suggested sources can be changed. For a signed source, positive power means import and negative power means export.\\n\\n{sources}",
+        "description": "Choose readings from your electricity meter. Suggested sources can be changed. For a signed source, positive power means import and negative power means export.\n\n{sources}",
         "data": {
           "power_entity": "Current grid power",
           "energy_entity": "Imported energy (optional)"
@@ -108,7 +108,7 @@
       },
       "measurement_energy": {
         "title": "How does this energy counter accumulate?",
-        "description": "Confirm whether the selected import-energy counter resets daily or reports a lifetime register.\\n\\n{sources}",
+        "description": "Confirm whether the selected import-energy counter resets daily or reports a lifetime register.\n\n{sources}",
         "data": {
           "energy_source_type": "Energy counter period"
         }
@@ -327,7 +327,7 @@
     "step": {
       "measurements": {
         "title": "Measurements",
-        "description": "Choose readings from your electricity meter. Suggested sources can be changed. For a signed source, positive power means import and negative power means export.\\n\\n{sources}",
+        "description": "Choose readings from your electricity meter. Suggested sources can be changed. For a signed source, positive power means import and negative power means export.\n\n{sources}",
         "data": {
           "power_entity": "Current grid power",
           "energy_entity": "Imported energy (optional)"
@@ -357,7 +357,7 @@
       },
       "measurement_energy": {
         "title": "How does this energy counter accumulate?",
-        "description": "Confirm whether the selected import-energy counter resets daily or reports a lifetime register.\\n\\n{sources}",
+        "description": "Confirm whether the selected import-energy counter resets daily or reports a lifetime register.\n\n{sources}",
         "data": {
           "energy_source_type": "Energy counter period"
         }
