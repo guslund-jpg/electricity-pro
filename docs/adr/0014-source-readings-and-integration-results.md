@@ -2,7 +2,8 @@
 
 ## Status
 
-**Accepted — all three implementation stages are in place; manual HA verification pending.**
+**Accepted — implementation, upgrade, reload and restart checks are in place;
+overnight/tariff verification remains pending.**
 
 Date: 8 November 2026. Reviewed source baseline: `4cb72d1`.
 The maintainer approved this design and its documentation PR #390 on
@@ -362,6 +363,13 @@ and after restart. Verify live/forecast recovery, clean logs and a subsequent
 local-midnight transition. Automated evidence, manual HA observations and real
 solar/battery validation remain separate records. Release publication requires
 its own review and approval.
+
+The [8 November manual verification record](../validation/adr-0014.md) identifies
+the tested build `31d7fa6`, Core 2026.11.0, the configured 40-entity scope and
+preserved evidence. Upgrade, integration reload and subsequent restart passed
+the recorded continuity checks. Overnight/local-midnight and tariff observations
+remain **NOT RUN**; the manual acceptance gate stays open. This evidence is
+separate from both pinned automated suites and #335's hardware validation.
 
 ## Alternatives considered
 
