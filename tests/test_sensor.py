@@ -277,8 +277,7 @@ async def test_consumption_timing_score_publishes_completed_result(
     """A quality-approved completed day should publish score and metadata."""
     entry = await setup_electricity_pro(price_value="1.5")
     coordinator = entry.runtime_data
-    coordinator._timing_result_date = date(2026, 8, 24)  # noqa: SLF001
-    coordinator._timing_result = TimingScoreResult(  # noqa: SLF001
+    result = TimingScoreResult(
         score=Decimal(88),
         unavailable_reason=None,
         coverage_percent=Decimal("98.5"),
@@ -288,15 +287,25 @@ async def test_consumption_timing_score_publishes_completed_result(
         price_variation_percent=Decimal(40),
         rating=TimingScoreRating.WELL_TIMED,
     )
-    coordinator.async_set_updated_data(coordinator.data)
-    await hass.async_block_till_done()
+    with patch.object(
+        type(coordinator),
+        "timing_score_yesterday",
+        new_callable=PropertyMock,
+        return_value=(date(2026, 8, 24), result),
+    ):
+        coordinator.async_set_updated_data(coordinator.data)
+        await hass.async_block_till_done()
+        state = hass.states.get(TIMING_SCORE_ENTITY_ID)
 
-    state = hass.states.get(TIMING_SCORE_ENTITY_ID)
     assert state is not None
     assert state.state == "88"
     assert state.attributes["unit_of_measurement"] == "%"
     assert state.attributes["period_start"] == "2026-08-24"
     assert state.attributes["coverage_percent"] == "98.5"
+    assert state.attributes["energy_kwh"] == "12.3"
+    assert state.attributes["consumption_weighted_price"] == "0.75"
+    assert state.attributes["time_weighted_price"] == "1.25"
+    assert state.attributes["price_variation_percent"] == "40"
     assert state.attributes["rating"] == "well_timed"
 
 
@@ -307,8 +316,7 @@ async def test_consumption_timing_score_explains_unavailable_result(
     """A rejected completed day should remain unavailable but explain why."""
     entry = await setup_electricity_pro(price_value="1.5")
     coordinator = entry.runtime_data
-    coordinator._timing_result_date = date(2026, 8, 24)  # noqa: SLF001
-    coordinator._timing_result = TimingScoreResult(  # noqa: SLF001
+    result = TimingScoreResult(
         score=None,
         unavailable_reason=TimingScoreUnavailableReason.INSUFFICIENT_COVERAGE,
         coverage_percent=Decimal(72),
@@ -318,10 +326,16 @@ async def test_consumption_timing_score_explains_unavailable_result(
         price_variation_percent=None,
         rating=None,
     )
-    coordinator.async_set_updated_data(coordinator.data)
-    await hass.async_block_till_done()
+    with patch.object(
+        type(coordinator),
+        "timing_score_yesterday",
+        new_callable=PropertyMock,
+        return_value=(date(2026, 8, 24), result),
+    ):
+        coordinator.async_set_updated_data(coordinator.data)
+        await hass.async_block_till_done()
+        state = hass.states.get(TIMING_SCORE_ENTITY_ID)
 
-    state = hass.states.get(TIMING_SCORE_ENTITY_ID)
     assert state is not None
     assert state.state == "unavailable"
     assert "period_start" not in state.attributes

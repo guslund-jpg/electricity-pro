@@ -302,6 +302,21 @@ timezone/DST arithmetic and public `estimated_base_load` result are unchanged.
 This extracts one feature's completed-day state, not a general tracker framework
 or all power-history ownership.
 
+`CompletedTimingScore` in `timing_score.py` owns the last completed local day's
+date and score, including unavailable results. It composes the existing score
+calculation with the same real-day duration and longest-gap calculation, parses
+saved date/result fields with the existing readers, and returns fresh storage
+containers. The public `timing_score_yesterday` date/result tuple and the saved
+`consumption_timing_score_yesterday` record (`period_start` and `result`) are
+unchanged; no migration is required.
+
+The coordinator still controls when to finalize, retain buckets and save to HA.
+It passes the base-load history's bidirectional-power observation explicitly
+before yesterday's markers are discarded. It also retains the outer stored-record
+guard, caught-error clearing and warning policy. Live timing observations,
+quiet-source hold, bucket accumulation and startup/rollover ordering remain in
+the coordinator. This extraction adds no accounting or scoring algorithm.
+
 Ordinary sensors use declarative descriptions. Forecast, historical and optional
 flow sensors use dedicated classes. Good Time is a binary sensor supporting
 fixed and adaptive classification. Keys and unique IDs are compatibility
