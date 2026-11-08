@@ -13,9 +13,11 @@ from custom_components.electricity_pro.const import DOMAIN
 from custom_components.electricity_pro.data import (
     CalculationContext,
     ElectricityProData,
+    IntegrationResults,
     ProviderSnapshot,
     SourceReadings,
     legacy_provider_view,
+    legacy_published_view,
 )
 from custom_components.electricity_pro.pricing import (
     PriceComponent,
@@ -445,6 +447,9 @@ def test_canonical_inputs_match_independent_flat_contract(provider_case):
                 assert value.as_tuple() == expected[old_name].as_tuple()
     projected = legacy_provider_view(inputs)
     assert_flat_contract(projected, expected)
+    assert_flat_contract(
+        legacy_published_view(inputs, IntegrationResults.from_inputs(inputs)), expected
+    )
     for name, old_name in _SOURCE_FIELDS.items():
         assert getattr(projected, old_name) is getattr(inputs.readings, name)
     for name in _CONTEXT_FIELDS:

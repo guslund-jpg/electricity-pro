@@ -1,19 +1,30 @@
 """Publication/order oracles recorded from 54e0c05 before ADR-0014 stage 2."""
 
 from contextlib import ExitStack
-from dataclasses import fields, is_dataclass
+from dataclasses import FrozenInstanceError, fields, is_dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 import json
 from pathlib import Path
+from typing import get_args, get_type_hints
 from unittest.mock import patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import DOMAIN
-from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
+from custom_components.electricity_pro.coordinator import (
+    ElectricityProCoordinator,
+    _DataUpdates,
+)
+from custom_components.electricity_pro.data import (
+    ElectricityProData,
+    IntegrationResults,
+    ProviderSnapshot,
+    legacy_provider_view,
+    legacy_published_view,
+)
 
 _START = datetime(2026, 11, 2, 22, 50, tzinfo=UTC)
 _FIXTURES = Path(__file__).parent / "fixtures" / "coordinator_results"
@@ -233,6 +244,9 @@ async def test_provider_read_sites_keep_their_existing_clock_cadence(hass, path)
 
     with (
         patch.object(coordinator._provider, "read_inputs", side_effect=inputs),
+        patch.object(
+            coordinator._provider, "read", side_effect=AssertionError("legacy read")
+        ),
         patch.object(coordinator._provider, "grid_fee_at", side_effect=tariff),
         patch(
             "custom_components.electricity_pro.coordinator.dt_util.now",
@@ -266,4 +280,96 @@ async def test_provider_read_sites_keep_their_existing_clock_cadence(hass, path)
                 "clock",
             ],
         }[path]
+    )
+
+
+def test_result_schema_retains_all_thirty_snapshot_types():
+    updates = get_type_hints(_DataUpdates)
+    snapshot = get_type_hints(ElectricityProData)
+    results = get_type_hints(IntegrationResults)
+    assert len(updates) == len(results) == 30
+    assert results == {name: snapshot[name] for name in updates}
+    # The update dictionary deliberately has ten narrower Decimal annotations.
+    assert sum(updates[name] != results[name] for name in updates) == 10
+
+
+def test_publication_projection_selects_every_result_and_keeps_input_identity(hass):
+    inputs = _coordinator(hass)._provider.read_inputs()
+    before = _encode(inputs)
+    values = {}
+    for index, (name, annotation) in enumerate(
+        get_type_hints(IntegrationResults).items()
+    ):
+        choices = get_args(annotation) or (annotation,)
+        if Decimal in choices:
+            value = Decimal(f"{index + 10}.0000")
+        elif annotation == tuple[str, ...]:
+            value = ("result:missing_fee",)
+        elif str in choices:
+            value = f"result:{name}"
+        elif datetime in choices:
+            value = _START
+        elif annotation is bool:
+            value = True
+        else:
+            value = ("result:missing_fee",)
+        values[name] = value
+    results = IntegrationResults(**values)
+    raw = legacy_provider_view(inputs)
+    with patch(
+        "custom_components.electricity_pro.coordinator.dt_util.now",
+        side_effect=AssertionError("clock"),
+    ):
+        published = legacy_published_view(inputs, results)
+    for field in fields(published):
+        owner = results if field.name in values else raw
+        assert getattr(published, field.name) is getattr(owner, field.name)
+    assert _encode(inputs) == before
+    assert not hasattr(results, "__dict__")
+    with pytest.raises(FrozenInstanceError):
+        results.current_energy = None
+
+
+async def test_each_read_composes_fresh_results_without_mutating_raw_sources(hass):
+    await hass.config.async_set_time_zone("UTC")
+    coordinator = _coordinator(hass)
+    composed = []
+
+    def publish(inputs, results):
+        assert isinstance(inputs, ProviderSnapshot)
+        assert isinstance(results, IntegrationResults)
+        composed.append((inputs, results))
+        return legacy_published_view(inputs, results)
+
+    with (
+        patch(
+            "custom_components.electricity_pro.coordinator.legacy_published_view",
+            side_effect=publish,
+        ),
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=_START,
+        ),
+        patch.object(coordinator._store, "async_delay_save"),
+    ):
+        first = coordinator._read()
+        _set(hass, "energy", "101250.0000", "Wh")
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=_START + timedelta(minutes=5),
+        ):
+            second = coordinator._read()
+    old_inputs, old_results = composed[0]
+    new_inputs, new_results = composed[1]
+    assert old_inputs is not new_inputs
+    assert old_results is not new_results
+    assert old_inputs.readings.import_energy_value == Decimal("100000.0000")
+    assert new_inputs.readings.import_energy_value == Decimal("101250.0000")
+    assert old_inputs.readings.external_cost_today is None
+    assert new_inputs.readings.external_cost_today is None
+    assert first.current_energy == old_results.current_energy == Decimal(0)
+    assert second.current_energy == new_results.current_energy == Decimal("1.2500000")
+    assert second.accumulated_cost_today == Decimal("-0.092812500000000")
+    assert not any(
+        isinstance(value, IntegrationResults) for value in vars(coordinator).values()
     )

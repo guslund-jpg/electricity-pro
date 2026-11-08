@@ -2,14 +2,14 @@
 
 ## Status
 
-**Accepted — implementation stage 1 of 3 is in place.**
+**Accepted — implementation stages 1–2 of 3 are in place.**
 
 Date: 8 November 2026. Reviewed source baseline: `4cb72d1`.
 The maintainer approved this design and its documentation PR #390 on
 8 November 2026. This document records the next bounded architecture change in
 [#288](https://github.com/guslund-jpg/electricity-pro/issues/288).
-The provider boundary is implemented as described below. The remaining stages
-are a delivery plan, not a release commitment.
+The provider boundary and result composition are implemented as described below.
+The remaining consumer migration is a delivery plan, not a release commitment.
 
 ## Summary
 
@@ -85,8 +85,9 @@ Place the shared data contracts in a pure `data.py` module. The agreed names
 below describe the target; none of these new types exists at the reviewed base.
 Stage 1 introduces `SourceReadings`, `CalculationContext` and `ProviderSnapshot`.
 It moves the unchanged flat `ElectricityProData` into the same module with a
-temporary explicit re-export from `provider.py`; the grouped aggregate and
-`IntegrationResults` remain for stages 2–3.
+temporary explicit re-export from `provider.py`. Stage 2 adds `IntegrationResults`
+and moves coordinator reads/history helpers to the canonical inputs. The grouped
+aggregate and consumer migration remain for stage 3.
 
 | Type | Responsibility |
 | --- | --- |
@@ -239,6 +240,23 @@ for valid, missing, invalid and signed source values and saved setting variants.
 
 ### PR 2: explicit integration-result composition
 
+Implemented: the coordinator uses `read_inputs()` at all four sites, composes
+fresh immutable `IntegrationResults` locally in `_read` and publishes through
+the pure `legacy_published_view()`. All 30 result fields retain their old
+snapshot types, including the ten optional Decimal fields with narrower update
+annotations. History helpers use explicit input/context fields; rollover and
+monthly-reset overlays retain their flat publication boundary and field scope.
+
+Publication fixtures recorded from `54e0c05` compare all 51 fields, exact Decimal
+strings and timestamp offsets through daily/lifetime sources, local/external
+cost authority, outages, recovery, local midnight and resets. Feature-order and
+clock/callback-count tests ran before extraction on both pinned Core baselines.
+Model/projection tests also cover immutable raw inputs, fresh results, all result
+selections and unchanged provider-view defaults. Both full suites pass **1,991
+tests** (Core 2026.9.0 and 2026.10.4); repository validation, Ruff and strict mypy
+(40 modules) also pass. Manual HA deployment,
+reload/restart and overnight observations have not been performed for this stage.
+
 Move coordinator computation onto `ProviderSnapshot` and `IntegrationResults`,
 while retaining one temporary flat publication view for current entity readers.
 Keep results local to the current read and return a single published snapshot;
@@ -341,6 +359,7 @@ own contracts and validation. No such delivery is implied by this proposal.
 - [x] Inspect the current fields and coordinator replacement sites at `4cb72d1`.
 - [x] Review and record acceptance of this design before implementation.
 - [x] Establish the stage-1 input contracts, provider boundary and temporary view.
+- [x] Establish stage-2 result composition and the temporary publication view.
 - [ ] Complete the three implementation PRs with their stated exit gates.
 - [ ] Provider output contains only readings/context; result composition cannot
   mutate those inputs.
