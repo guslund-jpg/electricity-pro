@@ -147,7 +147,7 @@ async def test_late_publication_retries_quietly_then_stops_on_success(
             tomorrow,
             tomorrow,
         ]
-        assert tomorrow not in subject._forecast_intervals_by_date
+        assert subject.forecast_intervals == market_day(day)
         assert not [
             r
             for r in caplog.records
@@ -163,9 +163,8 @@ async def test_late_publication_retries_quietly_then_stops_on_success(
         fetch.assert_not_awaited()
         # Market midnight in UTC still needs the previous date for the local day.
         await subject._async_forecast_tick(datetime(2026, 7, 15, 22, 15, tzinfo=UTC))
-        assert day in subject._forecast_intervals_by_date
+        assert subject.forecast_intervals == market_day(day) + market_day(tomorrow)
         await subject._async_forecast_tick(datetime(2026, 7, 16, 0, 15, tzinfo=UTC))
-        assert day not in subject._forecast_intervals_by_date
         assert subject.forecast_intervals == market_day(tomorrow)
 
 
@@ -211,6 +210,7 @@ async def test_real_failures_warn_without_erasing_valid_cache(hass, caplog, erro
         assert await subject._async_refresh_forecast_intervals(
             tomorrow, market_today=day
         )
+    published = subject.forecast_intervals
     caplog.clear()
     with patch(RETRIEVE, AsyncMock(side_effect=error)):
         for _ in range(2):
@@ -223,7 +223,7 @@ async def test_real_failures_warn_without_erasing_valid_cache(hass, caplog, erro
     assert len(warnings) == 1
     assert "Unable to refresh" in warnings[0].message
     assert subject.forecast_intervals == prices
-    assert subject._forecast_intervals_by_date[tomorrow] == prices
+    assert subject.forecast_intervals is published
     with patch(RETRIEVE, AsyncMock(return_value=prices)):
         assert await subject._async_refresh_forecast_intervals(
             tomorrow, market_today=day
