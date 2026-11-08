@@ -541,6 +541,56 @@ class TimingBucketAccumulator:
         return accumulator
 
 
+class TimingObservation:
+    """Hold live power and Effective Price for consumption-timing history."""
+
+    def __init__(self) -> None:
+        """Start without live samples; only bucket history is restored."""
+        self._last_time: datetime | None = None
+        self._power_w: Decimal | None = None
+        self._power_observed_at: datetime | None = None
+        self._effective_price: Decimal | None = None
+
+    def advance(
+        self,
+        now: datetime,
+        buckets: TimingBucketAccumulator,
+        *,
+        power_w: Decimal | None,
+        power_observed: bool,
+        maximum_hold: timedelta,
+    ) -> bool:
+        """Close the previous priced interval, then accept explicit power."""
+        bucket_closed = False
+        if (
+            self._last_time is not None
+            and self._power_w is not None
+            and self._power_observed_at is not None
+            and self._effective_price is not None
+        ):
+            valid_end = min(now, self._power_observed_at + maximum_hold)
+            if valid_end > self._last_time:
+                bucket_closed = int(self._last_time.timestamp()) // (15 * 60) != int(
+                    valid_end.timestamp()
+                ) // (15 * 60)
+                buckets.add_segment(
+                    start=self._last_time,
+                    end=valid_end,
+                    power_w=self._power_w,
+                    effective_price=self._effective_price,
+                )
+
+        self._last_time = now
+        if power_observed:
+            self._power_w = power_w if power_w is not None and power_w >= 0 else None
+            self._power_observed_at = now if self._power_w is not None else None
+        return bucket_closed
+
+    def set_effective_price(self, effective_price: Decimal | None) -> None:
+        """Accept the caller's calculated price after advancing the old interval."""
+        self._effective_price = effective_price
+
+
 class _CompletedTimingScoreData(TypedDict):
     """Existing storage shape for the last completed local-day result."""
 
