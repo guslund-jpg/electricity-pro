@@ -661,3 +661,72 @@ class BaseLoadBucketAccumulator:
         except (InvalidOperation, KeyError, TypeError, ValueError) as err:
             raise ValueError("invalid base-load bucket history") from err
         return accumulator
+
+
+class BaseLoadSummaryHistory:
+    """Own completed daily summaries and their derived seven-day estimate."""
+
+    def __init__(self, local_timezone: tzinfo) -> None:
+        """Start without completed days or a calculated rolling result."""
+        self._local_timezone = local_timezone
+        self._daily_summaries: dict[date, DailyBaseLoadSummary] = {}
+        self._result: BaseLoadEstimateResult | None = None
+
+    @property
+    def result(self) -> BaseLoadEstimateResult | None:
+        """Return the most recently calculated rolling estimate."""
+        return self._result
+
+    def restore(self, rows: list[Mapping[str, object]]) -> None:
+        """Restore saved summaries atomically without recalculating the result."""
+        summaries = tuple(DailyBaseLoadSummary.from_dict(item) for item in rows)
+        if len({item.period_start for item in summaries}) != len(summaries):
+            raise ValueError("duplicate base-load summary date")
+        self._daily_summaries = {item.period_start: item for item in summaries}
+
+    def as_list(self) -> list[dict[str, str | None]]:
+        """Return fresh storage rows in the existing chronological format."""
+        return [
+            summary.as_dict() for _, summary in sorted(self._daily_summaries.items())
+        ]
+
+    def finalize_day(
+        self, period_start: date, buckets: BaseLoadBucketAccumulator
+    ) -> None:
+        """Calculate one completed local day using the existing power history."""
+        day_start = datetime.combine(
+            period_start,
+            datetime.min.time(),
+            tzinfo=self._local_timezone,
+        )
+        day_end = datetime.combine(
+            period_start + timedelta(days=1),
+            datetime.min.time(),
+            tzinfo=self._local_timezone,
+        )
+        summary = calculate_daily_base_load(
+            period_start,
+            buckets.intervals_for_date(period_start),
+            period_duration=day_end.astimezone(UTC) - day_start.astimezone(UTC),
+            longest_uncovered_gap=buckets.longest_uncovered_gap(
+                period_start,
+                day_start=day_start,
+                day_end=day_end,
+            ),
+            bidirectional_power_observed=buckets.bidirectional_observed(period_start),
+        )
+        self._daily_summaries[period_start] = summary
+        self.recalculate(period_start)
+
+    def recalculate(self, window_end: date) -> None:
+        """Keep the existing seven-day window and refresh its rolling estimate."""
+        window_start = window_end - timedelta(days=6)
+        self._daily_summaries = {
+            stored_date: summary
+            for stored_date, summary in self._daily_summaries.items()
+            if window_start <= stored_date <= window_end
+        }
+        self._result = calculate_base_load_estimate(
+            tuple(self._daily_summaries.values()),
+            window_end=window_end,
+        )

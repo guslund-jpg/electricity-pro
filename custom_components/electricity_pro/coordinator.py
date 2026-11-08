@@ -37,10 +37,8 @@ from .base_load import (
     AveragePowerResult,
     BaseLoadBucketAccumulator,
     BaseLoadEstimateResult,
-    DailyBaseLoadSummary,
+    BaseLoadSummaryHistory,
     calculate_average_power,
-    calculate_base_load_estimate,
-    calculate_daily_base_load,
 )
 from .calculations import (
     calculate_supplier_price,
@@ -267,8 +265,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._timing_power_observed_at: datetime | None = None
         self._timing_effective_price: Decimal | None = None
         self._base_load_buckets = BaseLoadBucketAccumulator(self._local_timezone)
-        self._base_load_daily_summaries: dict[date, DailyBaseLoadSummary] = {}
-        self._base_load_result: BaseLoadEstimateResult | None = None
+        self._base_load_summaries = BaseLoadSummaryHistory(self._local_timezone)
         self._base_load_last_time: datetime | None = None
         self._base_load_power: Decimal | None = None
         self._base_load_power_observed_at: datetime | None = None
@@ -364,7 +361,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @property
     def estimated_base_load(self) -> BaseLoadEstimateResult | None:
         """Return the latest rolling base-load calculation."""
-        return self._base_load_result
+        return self._base_load_summaries.result
 
     @property
     def average_power_today(self) -> tuple[date, AveragePowerResult] | None:
@@ -955,19 +952,9 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         summaries = stored.get(_BASE_LOAD_DAILY_SUMMARIES)
         if isinstance(summaries, list):
             try:
-                restored_summaries = tuple(
-                    DailyBaseLoadSummary.from_dict(item) for item in summaries
-                )
-                if len({item.period_start for item in restored_summaries}) != len(
-                    restored_summaries
-                ):
-                    raise ValueError
+                self._base_load_summaries.restore(summaries)
             except TypeError, ValueError:
                 _LOGGER.warning("Ignoring invalid persisted base-load summaries")
-            else:
-                self._base_load_daily_summaries = {
-                    item.period_start: item for item in restored_summaries
-                }
 
         if _ADAPTIVE_PRICE_HISTORY in stored:
             try:
@@ -1411,44 +1398,11 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
 
     def _finalize_base_load_day(self, period_start: date) -> None:
         """Calculate and retain one completed local-day base-load summary."""
-        day_start = datetime.combine(
-            period_start,
-            datetime.min.time(),
-            tzinfo=self._local_timezone,
-        )
-        day_end = datetime.combine(
-            period_start + timedelta(days=1),
-            datetime.min.time(),
-            tzinfo=self._local_timezone,
-        )
-        summary = calculate_daily_base_load(
-            period_start,
-            self._base_load_buckets.intervals_for_date(period_start),
-            period_duration=day_end.astimezone(UTC) - day_start.astimezone(UTC),
-            longest_uncovered_gap=self._base_load_buckets.longest_uncovered_gap(
-                period_start,
-                day_start=day_start,
-                day_end=day_end,
-            ),
-            bidirectional_power_observed=(
-                self._base_load_buckets.bidirectional_observed(period_start)
-            ),
-        )
-        self._base_load_daily_summaries[period_start] = summary
-        self._recalculate_base_load(period_start)
+        self._base_load_summaries.finalize_day(period_start, self._base_load_buckets)
 
     def _recalculate_base_load(self, window_end: date) -> None:
         """Refresh the rolling estimate and enforce seven-day retention."""
-        window_start = window_end - timedelta(days=6)
-        self._base_load_daily_summaries = {
-            stored_date: summary
-            for stored_date, summary in self._base_load_daily_summaries.items()
-            if window_start <= stored_date <= window_end
-        }
-        self._base_load_result = calculate_base_load_estimate(
-            tuple(self._base_load_daily_summaries.values()),
-            window_end=window_end,
-        )
+        self._base_load_summaries.recalculate(window_end)
 
     def _recalculate_forecast_insights(self) -> None:
         """Recalculate cached forecast insight results from current intervals."""
@@ -1613,10 +1567,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 "result": self._timing_result.as_dict(),
             }
         data[_BASE_LOAD_BUCKETS] = self._base_load_buckets.as_dict()
-        data[_BASE_LOAD_DAILY_SUMMARIES] = [
-            summary.as_dict()
-            for _, summary in sorted(self._base_load_daily_summaries.items())
-        ]
+        data[_BASE_LOAD_DAILY_SUMMARIES] = self._base_load_summaries.as_list()
         data[_ADAPTIVE_PRICE_HISTORY] = self._adaptive_price_history.as_dict()
         return data
 
