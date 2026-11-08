@@ -122,12 +122,12 @@ async def test_household_total_does_not_double_count_supplier(
         await hass.async_block_till_done()
         data = entry.runtime_data.data
     fixed_day, fixed_month, _ = accrued_fixed_fees(later, D(30), D(60))
-    assert data.household_variable_today == D("4.96")
-    assert data.household_variable_month == D("4.96")
-    assert data.household_cost_today == D("4.96") + fixed_day
-    assert data.household_cost_this_month == D("4.96") + fixed_month
-    assert data.accumulated_cost_today == (D(99) if external else D("4.36"))
-    assert data.household_missing_fees == ()
+    assert data.results.household_variable_today == D("4.96")
+    assert data.results.household_variable_month == D("4.96")
+    assert data.results.household_cost_today == D("4.96") + fixed_day
+    assert data.results.household_cost_this_month == D("4.96") + fixed_month
+    assert data.results.accumulated_cost_today == (D(99) if external else D("4.36"))
+    assert data.results.household_missing_fees == ()
     assert (
         hass.states.get("sensor.electricity_pro_total_cost_estimate_today") is not None
     )
@@ -141,9 +141,12 @@ async def test_incomplete_variable_price_does_not_produce_household_total(
         price_value="2",
         supplier_markup_per_kwh=0,
     )
-    assert entry.runtime_data.data.household_cost_today is None
-    assert "complete_variable_price" in entry.runtime_data.data.household_missing_fees
-    assert "fixed_grid_fee" in entry.runtime_data.data.household_missing_fees
+    assert entry.runtime_data.data.results.household_cost_today is None
+    assert (
+        "complete_variable_price"
+        in entry.runtime_data.data.results.household_missing_fees
+    )
+    assert "fixed_grid_fee" in entry.runtime_data.data.results.household_missing_fees
 
 
 async def test_household_missing_fixed_fees_are_listed(hass, setup_electricity_pro):
@@ -155,5 +158,5 @@ async def test_household_missing_fixed_fees_are_listed(hass, setup_electricity_p
         energy_tax_per_kwh=0,
         fixed_supplier_fee_monthly=0,
     )
-    assert entry.runtime_data.data.household_missing_fees == ("fixed_grid_fee",)
-    assert entry.runtime_data.data.household_cost_today == 0
+    assert entry.runtime_data.data.results.household_missing_fees == ("fixed_grid_fee",)
+    assert entry.runtime_data.data.results.household_cost_today == 0

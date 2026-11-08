@@ -33,7 +33,7 @@ from .const import (
 from .coordinator import ElectricityProCoordinator
 from .device import device_info_for_entry
 from .good_time import GoodTimeEvaluation, evaluate_good_time as _evaluate_good_time
-from .provider import ElectricityProData
+from .data import ElectricityProData
 from .settings import resolve_settings
 
 
@@ -56,13 +56,13 @@ def evaluate_good_time(
     now = evaluation_time or dt_util.now()
     return _evaluate_good_time(
         effective_price=calculate_declared_effective_price(
-            data.current_price,
-            data.pricing_metadata,
-            data.grid_fee_per_kwh,
-            data.energy_tax_per_kwh,
-            data.supplier_markup_per_kwh,
+            data.readings.current_price,
+            data.context.pricing_metadata,
+            data.context.grid_fee_per_kwh,
+            data.context.energy_tax_per_kwh,
+            data.context.supplier_markup_per_kwh,
         ),
-        fixed_threshold=data.good_price_threshold,
+        fixed_threshold=data.context.good_price_threshold,
         evaluation_time=now,
         mode=mode,
         observations=observations,

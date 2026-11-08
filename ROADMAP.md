@@ -49,6 +49,15 @@ Versioned-package verification and publication approval are tracked in the
 release-preparation PR; the published-release link above distinguishes source
 changes from an actual release.
 
+Post-v1.7.2 source maintenance implements the three-stage
+[ADR-0014 source/result separation](docs/adr/0014-source-readings-and-integration-results.md)
+under #288. Providers return normalized inputs; the coordinator publishes one
+grouped input/context/result snapshot consumed by entities. The old flat model
+and transitional views are removed. Automated parity coverage is recorded in
+the ADR; combined manual HA verification remains pending. Further coordinator
+ownership work remains separately prioritized, and #335 still awaits real
+solar/battery validation.
+
 ## Energy-flow follow-up after v1.6 🔭
 
 The [v1.6.0 release notes](docs/releases/1.6.0.md) describe the delivered

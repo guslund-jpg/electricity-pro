@@ -15,6 +15,10 @@ from pytest_homeassistant_custom_component.common import (
 from custom_components.electricity_pro.const import DOMAIN
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
 from custom_components.electricity_pro.pricing import PriceCompleteness
+from custom_components.electricity_pro.data import (
+    ElectricityProData,
+    IntegrationResults,
+)
 from custom_components.electricity_pro.provider import ElectricityProEntityProvider
 from custom_components.electricity_pro.sensor import (
     SENSOR_DESCRIPTIONS,
@@ -27,19 +31,28 @@ def household_sensor(hass, request):
     """Use distinct day/month amounts so a period mix-up cannot pass unnoticed."""
     entry = MockConfigEntry(domain=DOMAIN, data={"power_entity": "sensor.power"})
     coordinator = ElectricityProCoordinator(hass, entry)
+    inputs = ElectricityProEntityProvider(hass, entry).read()
+    data = ElectricityProData(
+        readings=inputs.readings,
+        context=inputs.context,
+        results=IntegrationResults.from_inputs(inputs),
+    )
     coordinator.async_set_updated_data(
         replace(
-            ElectricityProEntityProvider(hass, entry).read(),
-            household_cost_today=Decimal("12.3400"),
-            household_cost_this_month=Decimal("123.456700"),
-            household_cost_unit="SEK",
-            household_variable_today=Decimal("10.1200"),
-            household_variable_month=Decimal("100.001"),
-            household_fixed_today=Decimal("2.2200"),
-            household_fixed_month=Decimal("23.455700"),
-            household_priced_energy_today=Decimal("8.0100"),
-            household_priced_energy_month=Decimal("80.001"),
-            household_missing_fees=("fixed_grid_fee",),
+            data,
+            results=replace(
+                data.results,
+                household_cost_today=Decimal("12.3400"),
+                household_cost_this_month=Decimal("123.456700"),
+                household_cost_unit="SEK",
+                household_variable_today=Decimal("10.1200"),
+                household_variable_month=Decimal("100.001"),
+                household_fixed_today=Decimal("2.2200"),
+                household_fixed_month=Decimal("23.455700"),
+                household_priced_energy_today=Decimal("8.0100"),
+                household_priced_energy_month=Decimal("80.001"),
+                household_missing_fees=("fixed_grid_fee",),
+            ),
         )
     )
     description = next(
@@ -90,15 +103,18 @@ def test_household_attributes_preserve_missing_zero_and_signed_amounts(
     sensor = household_sensor
     sensor.coordinator.data = replace(
         sensor.coordinator.data,
-        household_cost_today=amount,
-        household_cost_this_month=amount,
-        household_variable_today=amount,
-        household_variable_month=amount,
-        household_fixed_today=amount,
-        household_fixed_month=amount,
-        household_priced_energy_today=amount,
-        household_priced_energy_month=amount,
-        household_missing_fees=(),
+        results=replace(
+            sensor.coordinator.data.results,
+            household_cost_today=amount,
+            household_cost_this_month=amount,
+            household_variable_today=amount,
+            household_variable_month=amount,
+            household_fixed_today=amount,
+            household_fixed_month=amount,
+            household_priced_energy_today=amount,
+            household_priced_energy_month=amount,
+            household_missing_fees=(),
+        ),
     )
     assert sensor.native_value == amount
     assert sensor.available is (amount is not None)
@@ -119,7 +135,8 @@ def test_household_attributes_remain_visible_when_unavailable(
     expected = sensor.extra_state_attributes
     if unavailable == "missing-unit":
         sensor.coordinator.data = replace(
-            sensor.coordinator.data, household_cost_unit=None
+            sensor.coordinator.data,
+            results=replace(sensor.coordinator.data.results, household_cost_unit=None),
         )
     else:
         sensor.coordinator.last_update_success = False
@@ -135,7 +152,7 @@ def test_household_attribute_containers_are_fresh(household_sensor):
     changed["missing_components"].append("unexpected")
     changed["excluded_charges"].clear()
     assert sensor.extra_state_attributes == expected
-    assert sensor.coordinator.data.household_missing_fees == ("fixed_grid_fee",)
+    assert sensor.coordinator.data.results.household_missing_fees == ("fixed_grid_fee",)
 
 
 async def test_household_publication_schedule_and_reload_preserve_identity_and_totals(
@@ -168,7 +185,7 @@ async def test_household_publication_schedule_and_reload_preserve_identity_and_t
     freezer.move_to(now + timedelta(seconds=10))
     hass.states.async_set("sensor.test_energy", "101", {"unit_of_measurement": "kWh"})
     await hass.async_block_till_done()
-    assert entry.runtime_data.data.household_variable_today == Decimal(2)
+    assert entry.runtime_data.data.results.household_variable_today == Decimal(2)
     for key, entity_id in entities.items():
         assert hass.states.get(entity_id) is initial_states[key]
 

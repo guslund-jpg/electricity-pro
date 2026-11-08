@@ -199,7 +199,7 @@ The current strict scope is:
 | `device.py` | Fresh, entry-scoped Home Assistant device metadata |
 | `sensor.py` | Sensor registration, phase readers, availability and entity attributes |
 | `provider.py` | Optional source states, unit normalization and configured adjustments |
-| `data.py` | Immutable input/result contracts and separate temporary flat provider/publication projections |
+| `data.py` | Immutable source/context/result contracts and the grouped published snapshot |
 | `source_adapters.py` | Registry metadata, per-home Tibber discovery and capability mappings |
 | `const.py` | Shared integration constants and defaults |
 | `household_cost.py` | Calendar-based fixed-fee accrual and missing-fee metadata |
@@ -283,10 +283,13 @@ imports.
 See [mypy import handling](https://mypy.readthedocs.io/en/stable/running_mypy.html).
 
 Coordinator result replacements use a field-specific `TypedDict`. Tests check
-its exact 30-field match to `IntegrationResults` and the old flat
-`ElectricityProData` types, retaining the ten narrower Decimal update annotations
-without losing optional snapshot values. The pure publication view selects all
-30 results and retains the other input/context values. Flow metadata
+its exact 30-field match to `IntegrationResults` and independently recorded
+pre-migration field types, retaining the ten narrower Decimal update annotations
+without losing optional snapshot values. `ElectricityProData` holds explicit
+readings/context/results groups; action overlays replace nested results only.
+The old 51-field publication fixtures remain unchanged as test-only comparison
+oracles, with explicit paths into the grouped model. Production has no flat view,
+dynamic field forwarding or compatibility re-export. Flow metadata
 and persisted scope are typed without changing saved formats. Compatibility
 declarations remain untrusted objects until runtime validation, including
 non-string and unhashable values. Public forecast action responses have explicit

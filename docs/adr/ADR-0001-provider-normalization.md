@@ -32,15 +32,17 @@ The provider is responsible for:
 - reading Home Assistant entity states
 - validating values
 - converting supported units
-- returning immutable `ElectricityProData`
+- returning immutable `ProviderSnapshot` readings and calculation context
 
 Invalid or unsupported measurements are represented as `None`.
 
 [ADR-0014](0014-source-readings-and-integration-results.md) refines the runtime
-contract in three stages. Its first stage adds the canonical `read_inputs()`
-returning immutable source readings and calculation context in `ProviderSnapshot`.
-The existing `read()` temporarily projects those inputs to `ElectricityProData`
-for coordinator callers; normalization and tariff evaluation remain here.
+contract in three stages. The completed runtime migration makes `read()` return
+only `ProviderSnapshot`; normalization and tariff evaluation remain here.
+The coordinator selects/derives `IntegrationResults` and publishes the grouped
+`ElectricityProData(readings, context, results)`. The transitional flat model and
+views have been removed. Automated evidence and pending manual HA observations
+are recorded separately in ADR-0014.
 
 ## Consequences
 

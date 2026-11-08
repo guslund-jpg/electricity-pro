@@ -77,7 +77,7 @@ async def test_continuous_readings_write_latest_checkpoint(
     restored = ElectricityProCoordinator(hass, entry)
     await restored._async_restore_statistics()
     with patch.object(restored, "_schedule_statistics_save"):
-        assert restored._read().energy_this_month == Decimal(steps)
+        assert restored._read().results.energy_this_month == Decimal(steps)
     assert restored._statistics_data()["local_costs"] == snapshot["local_costs"]
 
     await advance_clock(60 - gap)
@@ -98,7 +98,7 @@ async def test_lifecycle_writes_pending_statistics(
 
     if final_write == "reload":
         assert await hass.config_entries.async_reload(entry.entry_id)
-        assert entry.runtime_data.data.energy_this_month == Decimal(2)
+        assert entry.runtime_data.data.results.energy_this_month == Decimal(2)
     elif final_write == "shutdown":
         hass.bus.async_fire(EVENT_HOMEASSISTANT_FINAL_WRITE)
         await hass.async_block_till_done()
@@ -138,7 +138,7 @@ async def test_midnight_persists_lifetime_baseline_promptly(
     await advance_clock(2)
     set_energy(hass, 101)
     await hass.async_block_till_done()
-    assert entry.runtime_data.data.energy_this_month == Decimal(1)
+    assert entry.runtime_data.data.results.energy_this_month == Decimal(1)
     await advance_clock(60.01)
     monthly = hass_storage[key]["data"]["energy_this_month"]
     assert monthly["period_start"] == "2026-12-01"

@@ -22,6 +22,10 @@ from custom_components.electricity_pro.forecast_insights import (
 )
 from custom_components.electricity_pro.pricing import VatTreatment
 from custom_components.electricity_pro.pricing_config import resolve_pricing_metadata
+from custom_components.electricity_pro.data import (
+    ElectricityProData,
+    IntegrationResults,
+)
 from custom_components.electricity_pro.provider import ElectricityProEntityProvider
 from custom_components.electricity_pro.sensor import current_cost_rate, effective_price
 
@@ -148,8 +152,13 @@ def test_live_provider_rate_reaches_effective_price_and_cost_rate(hass):
             "supplier_markup_per_kwh": 0.18,
         },
     )
-    data = ElectricityProEntityProvider(hass, entry).read()
-    assert data.current_price == Decimal("2")
+    inputs = ElectricityProEntityProvider(hass, entry).read()
+    data = ElectricityProData(
+        readings=inputs.readings,
+        context=inputs.context,
+        results=IntegrationResults.from_inputs(inputs),
+    )
+    assert data.readings.current_price == Decimal("2")
     assert effective_price(data) == Decimal("2.68")
     assert current_cost_rate(data) == Decimal("2.68")
 

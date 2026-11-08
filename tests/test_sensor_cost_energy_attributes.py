@@ -14,6 +14,10 @@ from pytest_homeassistant_custom_component.common import (
 
 from custom_components.electricity_pro.const import DOMAIN
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
+from custom_components.electricity_pro.data import (
+    ElectricityProData,
+    IntegrationResults,
+)
 from custom_components.electricity_pro.provider import ElectricityProEntityProvider
 from custom_components.electricity_pro.sensor import (
     SENSOR_DESCRIPTIONS,
@@ -25,27 +29,43 @@ from custom_components.electricity_pro.sensor import (
 def make_sensor(hass):
     entry = MockConfigEntry(domain=DOMAIN, data={"power_entity": "sensor.power"})
     coordinator = ElectricityProCoordinator(hass, entry)
+    inputs = ElectricityProEntityProvider(hass, entry).read()
+    data = ElectricityProData(
+        readings=inputs.readings,
+        context=inputs.context,
+        results=IntegrationResults.from_inputs(inputs),
+    )
     data = replace(
-        ElectricityProEntityProvider(hass, entry).read(),
-        current_energy=Decimal("12.3400"),
-        current_energy_unit="kWh",
-        energy_source_type="daily",
-        energy_today_period_complete=True,
-        accumulated_cost_today=Decimal("10.1200"),
-        accumulated_cost_today_unit="SEK",
-        cost_this_month=Decimal("100.001"),
-        cost_this_month_unit="SEK",
-        total_supplier_cost_this_month=Decimal("110.001"),
-        total_supplier_cost_this_month_unit="SEK",
-        local_cost_estimate=True,
-        local_effective_cost_today=Decimal("8.6000"),
-        local_supplier_energy_today=Decimal("2.1000"),
-        local_supplier_energy_month=Decimal("3.2000"),
-        local_priced_energy_today=Decimal("4.3000"),
+        data,
+        results=replace(
+            data.results,
+            current_energy=Decimal("12.3400"),
+            current_energy_unit="kWh",
+            energy_today_period_complete=True,
+            accumulated_cost_today=Decimal("10.1200"),
+            accumulated_cost_today_unit="SEK",
+            cost_this_month=Decimal("100.001"),
+            cost_this_month_unit="SEK",
+            total_supplier_cost_this_month=Decimal("110.001"),
+            total_supplier_cost_this_month_unit="SEK",
+            local_cost_estimate=True,
+            local_effective_cost_today=Decimal("8.6000"),
+            local_supplier_energy_today=Decimal("2.1000"),
+            local_supplier_energy_month=Decimal("3.2000"),
+            local_priced_energy_today=Decimal("4.3000"),
+        ),
+        readings=replace(data.readings, energy_source_type="daily"),
     )
 
-    def create(key, **updates):
-        coordinator.async_set_updated_data(replace(data, **updates))
+    def create(key, *, readings=None, context=None, results=None):
+        coordinator.async_set_updated_data(
+            replace(
+                data,
+                readings=replace(data.readings, **(readings or {})),
+                context=replace(data.context, **(context or {})),
+                results=replace(data.results, **(results or {})),
+            )
+        )
         description = next(item for item in SENSOR_DESCRIPTIONS if item.key == key)
         return ElectricityProSensor(coordinator, entry, description)
 
@@ -85,7 +105,8 @@ def test_local_cost_payload_uses_the_correct_supplier_or_effective_energy(
 def test_external_cost_has_no_local_estimate_attributes(local_cost_sensor):
     sensor, _, _ = local_cost_sensor
     sensor.coordinator.data = replace(
-        sensor.coordinator.data, local_cost_estimate=False
+        sensor.coordinator.data,
+        results=replace(sensor.coordinator.data.results, local_cost_estimate=False),
     )
     assert sensor.extra_state_attributes is None
 
@@ -99,9 +120,12 @@ def test_local_coverage_preserves_missing_zero_and_decimal_precision(
     sensor, _, _ = local_cost_sensor
     sensor.coordinator.data = replace(
         sensor.coordinator.data,
-        local_supplier_energy_today=energy,
-        local_supplier_energy_month=energy,
-        local_priced_energy_today=energy,
+        results=replace(
+            sensor.coordinator.data.results,
+            local_supplier_energy_today=energy,
+            local_supplier_energy_month=energy,
+            local_priced_energy_today=energy,
+        ),
     )
     assert sensor.extra_state_attributes["priced_energy_kwh"] == (
         None if energy is None else str(energy)
@@ -117,17 +141,23 @@ def test_local_attributes_do_not_depend_on_availability(local_cost_sensor, reaso
     if reason == "missing-value":
         sensor.coordinator.data = replace(
             sensor.coordinator.data,
-            accumulated_cost_today=None,
-            cost_this_month=None,
-            total_supplier_cost_this_month=None,
-            local_effective_cost_today=None,
+            results=replace(
+                sensor.coordinator.data.results,
+                accumulated_cost_today=None,
+                cost_this_month=None,
+                total_supplier_cost_this_month=None,
+                local_effective_cost_today=None,
+            ),
         )
     elif reason == "missing-unit":
         sensor.coordinator.data = replace(
             sensor.coordinator.data,
-            accumulated_cost_today_unit=None,
-            cost_this_month_unit=None,
-            total_supplier_cost_this_month_unit=None,
+            results=replace(
+                sensor.coordinator.data.results,
+                accumulated_cost_today_unit=None,
+                cost_this_month_unit=None,
+                total_supplier_cost_this_month_unit=None,
+            ),
         )
     else:
         sensor.coordinator.last_update_success = False
@@ -153,10 +183,12 @@ def test_energy_today_preserves_source_and_completeness_when_unavailable(
 ):
     sensor = make_sensor(
         "current_energy",
-        energy_source_type=source_type,
-        energy_today_period_complete=complete,
-        current_energy=None if reason == "missing-value" else Decimal("12.3400"),
-        current_energy_unit=None if reason == "missing-unit" else "kWh",
+        readings={"energy_source_type": source_type},
+        results={
+            "energy_today_period_complete": complete,
+            "current_energy": None if reason == "missing-value" else Decimal("12.3400"),
+            "current_energy_unit": None if reason == "missing-unit" else "kWh",
+        },
     )
     sensor.coordinator.last_update_success = reason != "coordinator-failure"
     assert sensor.available is (reason == "available")
@@ -172,7 +204,8 @@ def test_energy_today_preserves_source_and_completeness_when_unavailable(
 @pytest.mark.parametrize("unit", ["Wh", "kWh"])
 def test_zero_energy_keeps_its_unit_and_fresh_attributes(make_sensor, unit):
     sensor = make_sensor(
-        "current_energy", current_energy=Decimal(0), current_energy_unit=unit
+        "current_energy",
+        results={"current_energy": Decimal(0), "current_energy_unit": unit},
     )
     expected = {"source_type": "daily", "period_complete": True}
     assert sensor.available is True

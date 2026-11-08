@@ -2,14 +2,15 @@
 
 ## Status
 
-**Accepted — implementation stages 1–2 of 3 are in place.**
+**Accepted — all three implementation stages are in place; manual HA verification pending.**
 
 Date: 8 November 2026. Reviewed source baseline: `4cb72d1`.
 The maintainer approved this design and its documentation PR #390 on
 8 November 2026. This document records the next bounded architecture change in
 [#288](https://github.com/guslund-jpg/electricity-pro/issues/288).
-The provider boundary and result composition are implemented as described below.
-The remaining consumer migration is a delivery plan, not a release commitment.
+The provider boundary, result composition and consumer migration are implemented
+as described below. This is source maintenance, not a release commitment or a
+claim of completed manual HA verification.
 
 ## Summary
 
@@ -86,8 +87,10 @@ below describe the target; none of these new types exists at the reviewed base.
 Stage 1 introduces `SourceReadings`, `CalculationContext` and `ProviderSnapshot`.
 It moves the unchanged flat `ElectricityProData` into the same module with a
 temporary explicit re-export from `provider.py`. Stage 2 adds `IntegrationResults`
-and moves coordinator reads/history helpers to the canonical inputs. The grouped
-aggregate and consumer migration remain for stage 3.
+and moves coordinator reads/history helpers to the canonical inputs. Stage 3
+publishes the grouped aggregate and migrates consumers. The final provider
+entry point is `read()`, returning only `ProviderSnapshot`; the transitional
+`read_inputs()` name, flat model, re-export and both legacy views are removed.
 
 | Type | Responsibility |
 | --- | --- |
@@ -277,6 +280,30 @@ source/derived distinction through reset, outage, reload and calendar boundaries
 
 ### PR 3: canonical publication and consumer migration
 
+Implemented: the coordinator publishes the final three-group aggregate. Sensor
+descriptions, phase/value/unit/availability/attribute helpers, the Good Time
+adapter and their test builders use explicit group access. Existing entity-side
+calculations retain their evaluation location/timing. `review_config.py` and
+integration actions were audited: they use configuration/public coordinator
+methods rather than flat runtime fields. Monthly reset and daily rollover replace
+only nested results, preserving the publication's readings/context identities.
+
+The frozen source/context/result schemas and their values are unchanged from
+stage 2. Test-only readers compare grouped publication with the unchanged
+51-field fixtures recorded before stage 2. Four new daily/lifetime action-overlay
+cases assert input identity and result-field scope. Twenty-four duplicate cases
+for the removed flat/canonical provider entry points are consolidated into the
+remaining canonical input/default contract cases. Before migration, 298 focused
+contract/entity cases passed on each pinned Core baseline. After migration, both
+full suites pass **1,971 tests** (Core 2026.9.0 and 2026.10.4), with repository
+validation, Ruff and strict mypy (40 modules) passing. An AST comparison confirms
+unchanged provider normalization, all established input/result schemas, entity
+calculations/registration and coordinator algorithms/call order after accounting
+only for explicit field paths, publication and nested result overlays.
+Manual HA deployment,
+reload/restart and overnight observations remain pending for the combined build;
+real solar/battery validation is still #335.
+
 Publish the final `ElectricityProData(readings, context, results)` aggregate from
 the coordinator. Update sensor descriptions, value/unit/availability/attribute
 helpers, the Good Time adapter and their fixtures to explicit group access.
@@ -360,12 +387,12 @@ own contracts and validation. No such delivery is implied by this proposal.
 - [x] Review and record acceptance of this design before implementation.
 - [x] Establish the stage-1 input contracts, provider boundary and temporary view.
 - [x] Establish stage-2 result composition and the temporary publication view.
-- [ ] Complete the three implementation PRs with their stated exit gates.
-- [ ] Provider output contains only readings/context; result composition cannot
+- [x] Establish all three implementation stages with automated exit-gate evidence.
+- [x] Provider output contains only readings/context; result composition cannot
   mutate those inputs.
-- [ ] Final runtime state has one canonical grouped snapshot and no legacy views.
-- [ ] Preserve every current entity, public payload, Decimal meaning, setting,
-  action response and persistence/source-scope contract.
+- [x] Final runtime state has one canonical grouped snapshot and no legacy views.
+- [x] Preserve current entities, public payloads, Decimal meanings, settings,
+  action responses and persistence/source-scope contracts in automated tests.
 - [ ] Record both full suites, required CI and separate manual HA evidence.
 - [ ] Update current architecture/type documentation and reconcile the completed
   source/result direction in #288 with the merged evidence.

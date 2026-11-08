@@ -47,10 +47,8 @@ from .const import (
 )
 from .data import (
     CalculationContext,
-    ElectricityProData as ElectricityProData,
     ProviderSnapshot,
     SourceReadings,
-    legacy_provider_view,
 )
 from .grid_tariff import HighLowGridTariff
 from .flow_sources import FlowSources
@@ -215,12 +213,7 @@ class ElectricityProEntityProvider:
         )
 
     @callback
-    def read(self) -> ElectricityProData:
-        """Return the temporary flat contract used by coordinator callers."""
-        return legacy_provider_view(self.read_inputs())
-
-    @callback
-    def read_inputs(self) -> ProviderSnapshot:
+    def read(self) -> ProviderSnapshot:
         """Read and normalize configured sources with their resolved context."""
         current_energy, current_energy_unit = self._normalize_energy(
             self._hass.states.get(self._energy_entity_id)

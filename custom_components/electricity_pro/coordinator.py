@@ -103,7 +103,6 @@ from .data import (
     ElectricityProData,
     IntegrationResults,
     ProviderSnapshot,
-    legacy_published_view,
 )
 from .provider import ElectricityProEntityProvider
 from .settings import resolve_settings
@@ -126,7 +125,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class _DataUpdates(TypedDict, total=False):
-    """Typed result updates, also used for temporary flat publication overlays."""
+    """Field-specific updates to selected and derived integration results."""
 
     current_energy: Decimal | None
     current_energy_unit: str | None
@@ -433,7 +432,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         """Finalize timing history and clear daily state at local midnight."""
         local_now = now.astimezone(self._local_timezone)
         self._read_flows(local_now)
-        inputs = self._provider.read_inputs()
+        inputs = self._provider.read()
         energy_kwh = _energy_in_kwh(
             inputs.readings.import_energy_value,
             inputs.readings.import_energy_unit,
@@ -472,7 +471,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             self.async_set_updated_data(
                 replace(
                     self.data,
-                    **rollover_updates,
+                    results=replace(self.data.results, **rollover_updates),
                 )
             )
 
@@ -786,7 +785,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             raise ValueError(
                 "This action requires a lifetime accumulated energy source"
             )
-        inputs = self._provider.read_inputs()
+        inputs = self._provider.read()
         energy = _energy_in_kwh(
             inputs.readings.import_energy_value,
             inputs.readings.import_energy_unit,
@@ -803,7 +802,9 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     async def async_reset_monthly_energy(self) -> None:
         """Discard only this entry's monthly energy total and establish a baseline."""
         data = self._read()
-        energy = _energy_in_kwh(data.current_energy, data.current_energy_unit)
+        energy = _energy_in_kwh(
+            data.results.current_energy, data.results.current_energy_unit
+        )
         if energy is None:
             raise ValueError("A valid energy reading is required before resetting")
         now = dt_util.now().astimezone(self._local_timezone)
@@ -814,8 +815,11 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self.async_set_updated_data(
             replace(
                 data,
-                energy_this_month=Decimal(0),
-                energy_this_month_unit=UnitOfEnergy.KILO_WATT_HOUR,
+                results=replace(
+                    data.results,
+                    energy_this_month=Decimal(0),
+                    energy_this_month_unit=UnitOfEnergy.KILO_WATT_HOUR,
+                ),
             )
         )
         await self._async_save_statistics()
@@ -974,7 +978,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @callback
     def _read(self, *, power_observed: bool = False) -> ElectricityProData:
         """Read provider data and update derived statistics."""
-        inputs = self._provider.read_inputs()
+        inputs = self._provider.read()
         source_energy_kwh = _energy_in_kwh(
             inputs.readings.import_energy_value,
             inputs.readings.import_energy_unit,
@@ -1208,7 +1212,11 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         if should_save:
             self._schedule_statistics_save()
 
-        return legacy_published_view(inputs, replace(results, **updates))
+        return ElectricityProData(
+            readings=inputs.readings,
+            context=inputs.context,
+            results=replace(results, **updates),
+        )
 
     def _update_timing_history(
         self,
@@ -1435,7 +1443,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             for interval in self._forecast_intervals
         ]
         now = dt_util.now()
-        inputs = self._provider.read_inputs()
+        inputs = self._provider.read()
         self._cheapest_1h_window = find_cheapest_continuous_window(
             intervals,
             now=now,
