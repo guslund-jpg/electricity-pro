@@ -182,7 +182,7 @@ The current strict scope is:
 | `good_time.py` | Fixed/adaptive decisions over normalized inputs and explicit time |
 | `settings.py` | Saved-data/options overlay with explicit clearing and no normalization |
 | `base_load.py` | Live base-load observations, duration-weighted power, base-load estimates and bounded power history |
-| `timing_score.py` | Consumption-timing scores, completed-day result ownership, matched intervals and bounded timing history |
+| `timing_score.py` | Live consumption-timing observations, completed-day result ownership, scores, matched intervals and bounded timing history |
 | `statistics_engine.py` | Cumulative counters, calendar periods and persisted snapshots |
 | `history_storage.py` | Runtime narrowing of stored history values |
 | `flow_compatibility.py` | Normalized power observations and the supported diagnostic result statuses |

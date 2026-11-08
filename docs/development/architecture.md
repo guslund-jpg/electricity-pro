@@ -321,9 +321,23 @@ unchanged; no migration is required.
 The coordinator still controls when to finalize, retain buckets and save to HA.
 It passes the base-load history's bidirectional-power observation explicitly
 before yesterday's markers are discarded. It also retains the outer stored-record
-guard, caught-error clearing and warning policy. Live timing observations,
-quiet-source hold, bucket accumulation and startup/rollover ordering remain in
-the coordinator. This extraction adds no accounting or scoring algorithm.
+guard, caught-error clearing and warning policy.
+
+`TimingObservation` owns the live timing cursor, held power, source-observation
+time and Effective Price. Its `advance` step closes the preceding valid interval
+and accepts an explicit power observation. The coordinator then calculates
+Effective Price at the existing point and calls `set_effective_price` for the
+following interval. The preceding coverage and new power/cursor are committed
+before price calculation; a calculation error leaves the previous price in
+place, as before. Price-only updates do not renew the ten-minute power hold;
+missing prices leave gaps without backfilling them.
+
+The coordinator supplies normalized power, the power-event flag, the hold limit and
+the current bucket accumulator. It retains price calculation, bucket restoration
+and retention, save scheduling and startup/rollover ordering. Live observations
+remain transient and are not restored with the saved bucket history. The
+`consumption_timing_buckets` format, Decimal arithmetic and public score/attribute
+contracts are unchanged.
 
 Ordinary sensors use declarative descriptions. Forecast, historical and optional
 flow sensors use dedicated classes. Good Time is a binary sensor supporting

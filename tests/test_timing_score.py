@@ -10,6 +10,7 @@ from custom_components.electricity_pro.timing_score import (
     CompletedTimingScore,
     TimingBucketAccumulator,
     TimingInterval,
+    TimingObservation,
     TimingScoreRating,
     TimingScoreUnavailableReason,
     calculate_timing_score,
@@ -312,3 +313,38 @@ def test_completed_score_storage_containers_do_not_alias_result() -> None:
     completed.clear()
     assert completed.result is None
     assert completed.as_dict() is None
+
+
+def test_live_timing_observation_uses_supplied_history_and_explicit_price() -> None:
+    """A restored accumulator receives future intervals; a price alone is not power."""
+    start = datetime(2026, 8, 24, tzinfo=UTC)
+    observation = TimingObservation()
+    original = TimingBucketAccumulator(UTC)
+
+    def advance(observer, buckets, minute, *, observed=False):
+        return observer.advance(
+            start + timedelta(minutes=minute),
+            buckets,
+            power_w=Decimal(600),
+            power_observed=observed,
+            maximum_hold=timedelta(minutes=10),
+        )
+
+    advance(observation, original, 0, observed=True)
+    observation.set_effective_price(Decimal(1))
+    advance(observation, original, 5)
+    restored = TimingBucketAccumulator.from_dict(UTC, original.as_dict())
+    observation.set_effective_price(Decimal(2))
+    advance(observation, restored, 8)
+
+    assert original.intervals_for_date(start.date()) == (
+        TimingInterval(Decimal("0.05"), Decimal(1), timedelta(minutes=5)),
+    )
+    assert restored.intervals_for_date(start.date()) == (
+        TimingInterval(Decimal("0.08"), Decimal("1.375"), timedelta(minutes=8)),
+    )
+    before = restored.as_dict()
+    fresh = TimingObservation()
+    fresh.set_effective_price(Decimal(3))
+    assert not advance(fresh, restored, 9)
+    assert restored.as_dict() == before

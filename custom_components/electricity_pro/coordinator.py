@@ -118,6 +118,7 @@ from .statistics_engine import (
 from .timing_score import (
     CompletedTimingScore,
     TimingBucketAccumulator,
+    TimingObservation,
     TimingScoreResult,
 )
 from .workday import async_get_non_working_dates
@@ -262,10 +263,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._peak_power_today = DailyPeakStatistic()
         self._timing_buckets = TimingBucketAccumulator(self._local_timezone)
         self._completed_timing_score = CompletedTimingScore(self._local_timezone)
-        self._timing_last_time: datetime | None = None
-        self._timing_power: Decimal | None = None
-        self._timing_power_observed_at: datetime | None = None
-        self._timing_effective_price: Decimal | None = None
+        self._timing_observation = TimingObservation()
         self._base_load_buckets = BaseLoadBucketAccumulator(self._local_timezone)
         self._base_load_summaries = BaseLoadSummaryHistory(self._local_timezone)
         self._base_load_observation = BaseLoadObservation()
@@ -1219,45 +1217,21 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         power_observed: bool,
     ) -> bool:
         """Integrate the previous valid observation up to the current time."""
-        bucket_closed = False
-        if (
-            self._timing_last_time is not None
-            and self._timing_power is not None
-            and self._timing_power_observed_at is not None
-            and self._timing_effective_price is not None
-        ):
-            valid_end = min(
-                now,
-                self._timing_power_observed_at + _TIMING_POWER_MAX_HOLD,
+        bucket_closed = self._timing_observation.advance(
+            now,
+            self._timing_buckets,
+            power_w=inputs.readings.current_power,
+            power_observed=power_observed,
+            maximum_hold=_TIMING_POWER_MAX_HOLD,
+        )
+        self._timing_observation.set_effective_price(
+            calculate_declared_effective_price(
+                inputs.readings.current_price,
+                inputs.context.pricing_metadata,
+                inputs.context.grid_fee_per_kwh,
+                inputs.context.energy_tax_per_kwh,
+                inputs.context.supplier_markup_per_kwh,
             )
-            if valid_end > self._timing_last_time:
-                bucket_closed = int(self._timing_last_time.timestamp()) // (
-                    15 * 60
-                ) != int(valid_end.timestamp()) // (15 * 60)
-                self._timing_buckets.add_segment(
-                    start=self._timing_last_time,
-                    end=valid_end,
-                    power_w=self._timing_power,
-                    effective_price=self._timing_effective_price,
-                )
-
-        self._timing_last_time = now
-        if power_observed:
-            self._timing_power = (
-                inputs.readings.current_power
-                if inputs.readings.current_power is not None
-                and inputs.readings.current_power >= 0
-                else None
-            )
-            self._timing_power_observed_at = (
-                now if self._timing_power is not None else None
-            )
-        self._timing_effective_price = calculate_declared_effective_price(
-            inputs.readings.current_price,
-            inputs.context.pricing_metadata,
-            inputs.context.grid_fee_per_kwh,
-            inputs.context.energy_tax_per_kwh,
-            inputs.context.supplier_markup_per_kwh,
         )
         return bucket_closed
 
