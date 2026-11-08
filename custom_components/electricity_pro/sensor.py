@@ -217,6 +217,28 @@ def _household_cost_attributes(
     }
 
 
+def _local_cost_attributes(
+    data: ElectricityProData, *, priced_energy: Decimal | None
+) -> dict[str, object] | None:
+    """Return the existing local-estimate coverage for locally calculated costs."""
+    if not data.local_cost_estimate:
+        return None
+    return {
+        "source": "local_estimate",
+        "coverage": "partial",
+        "method": "meter_delta_uniform_allocation_over_observed_prices",
+        "priced_energy_kwh": _decimal_string(priced_energy),
+    }
+
+
+def _energy_today_attributes(data: ElectricityProData) -> dict[str, object]:
+    """Describe the existing daily import source and period completeness."""
+    return {
+        "source_type": data.energy_source_type,
+        "period_complete": data.energy_today_period_complete,
+    }
+
+
 def consumption_weighted_average_price(
     data: ElectricityProData,
 ) -> Decimal | None:
@@ -415,6 +437,9 @@ SENSOR_DESCRIPTIONS: tuple[
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
         value_fn=consumption_weighted_average_price,
+        attributes_fn=lambda data: _local_cost_attributes(
+            data, priced_energy=data.local_priced_energy_today
+        ),
         unit_fn=consumption_weighted_average_price_unit,
         available_fn=lambda data: (
             consumption_weighted_average_price(data) is not None
@@ -508,6 +533,9 @@ SENSOR_DESCRIPTIONS: tuple[
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
         value_fn=lambda data: data.accumulated_cost_today,
+        attributes_fn=lambda data: _local_cost_attributes(
+            data, priced_energy=data.local_supplier_energy_today
+        ),
         unit_fn=lambda data: data.accumulated_cost_today_unit,
         available_fn=lambda data: (
             data.accumulated_cost_today is not None
@@ -524,6 +552,9 @@ SENSOR_DESCRIPTIONS: tuple[
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
         value_fn=lambda data: data.cost_this_month,
+        attributes_fn=lambda data: _local_cost_attributes(
+            data, priced_energy=data.local_supplier_energy_month
+        ),
         unit_fn=lambda data: data.cost_this_month_unit,
         available_fn=lambda data: (
             data.cost_this_month is not None and data.cost_this_month_unit is not None
@@ -571,6 +602,9 @@ SENSOR_DESCRIPTIONS: tuple[
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
         value_fn=lambda data: data.total_supplier_cost_this_month,
+        attributes_fn=lambda data: _local_cost_attributes(
+            data, priced_energy=data.local_supplier_energy_month
+        ),
         unit_fn=lambda data: data.total_supplier_cost_this_month_unit,
         available_fn=lambda data: (
             data.total_supplier_cost_this_month is not None
@@ -611,6 +645,7 @@ SENSOR_DESCRIPTIONS: tuple[
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=2,
         value_fn=lambda data: data.current_energy,
+        attributes_fn=_energy_today_attributes,
         unit_fn=lambda data: data.current_energy_unit,
         available_fn=lambda data: (
             data.current_energy is not None and data.current_energy_unit is not None
@@ -953,39 +988,9 @@ class ElectricityProSensor(ElectricityProNamedSensor):
         """Expose source coverage and VAT requirements."""
         if self.entity_description.attributes_fn is not None:
             return self.entity_description.attributes_fn(self.coordinator.data)
-        if (
-            self.entity_description.key
-            in {
-                "cost_today",
-                "cost_this_month",
-                "consumption_weighted_average_price_today",
-                "total_supplier_cost_this_month",
-            }
-            and self.coordinator.data.local_cost_estimate
-        ):
-            data = self.coordinator.data
-            return {
-                "source": "local_estimate",
-                "coverage": "partial",
-                "method": "meter_delta_uniform_allocation_over_observed_prices",
-                "priced_energy_kwh": _decimal_string(
-                    data.local_supplier_energy_month
-                    if self.entity_description.key
-                    in {"cost_this_month", "total_supplier_cost_this_month"}
-                    else data.local_priced_energy_today
-                    if self.entity_description.key
-                    == "consumption_weighted_average_price_today"
-                    else data.local_supplier_energy_today
-                ),
-            }
         if self.entity_description.key == "energy_this_month":
             return self.coordinator.monthly_energy_attributes
-        if self.entity_description.key != "current_energy":
-            return None
-        return {
-            "source_type": self.coordinator.data.energy_source_type,
-            "period_complete": self.coordinator.data.energy_today_period_complete,
-        }
+        return None
 
 
 class ElectricityProForecastInsightSensor(ElectricityProNamedSensor):

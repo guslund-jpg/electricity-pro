@@ -283,9 +283,24 @@ day/month choice. It renders the existing snapshot amounts, missing fees,
 exclusions and fixed-fee coverage as fresh attribute mappings, including when
 the sensor is unavailable. Decimal strings, partial-coverage labels, calculations,
 one-minute publication and persisted ledger state keep their existing contracts.
-Local supplier-cost and import-energy attributes retain the remaining key-based
-dispatch, including the coordinator-owned monthly-energy metadata. These are
-bounded #288 increments, not a new calculation or persistence layer.
+
+Local cost attributes also use `attributes_fn`. Cost today selects daily
+supplier-priced energy; Cost this month and Total supplier cost this month select
+monthly supplier-priced energy. Consumption-weighted average price today selects
+daily effective-priced energy instead. Their descriptions pass the existing
+snapshot field to `_local_cost_attributes`, which returns no attributes for an
+external cost source. Missing/zero coverage and Decimal strings retain their
+meaning, including when the sensor itself is unavailable. Event-driven cost
+updates and the average's five-minute publication are unchanged.
+
+Energy today's description binds `_energy_today_attributes` for its existing
+source type and period-completeness fields. This completes the description-based
+dispatch of the ordinary sensors' snapshot-backed attribute branches.
+Energy this month remains one explicit case calling the coordinator's public
+`monthly_energy_attributes` property, whose tracking and coverage state are not
+part of `ElectricityProData`. It retains that ownership and its source-scoped
+restoration contract. These are bounded #288 increments, not a new calculation
+or persistence layer.
 
 Good Time decision logic lives in `good_time.py`, with explicit normalized
 effective price, settings, history, scope, forecasts and evaluation time. It
