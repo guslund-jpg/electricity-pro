@@ -663,6 +663,52 @@ class BaseLoadBucketAccumulator:
         return accumulator
 
 
+class BaseLoadObservation:
+    """Hold the last live power observation for base-load history updates."""
+
+    def __init__(self) -> None:
+        """Start without an observation; live samples are never restored."""
+        self._last_time: datetime | None = None
+        self._power_w: Decimal | None = None
+        self._observed_at: datetime | None = None
+
+    def update(
+        self,
+        now: datetime,
+        buckets: BaseLoadBucketAccumulator,
+        *,
+        power_w: Decimal | None,
+        bidirectional_power: bool,
+        power_observed: bool,
+        maximum_hold: timedelta,
+    ) -> bool:
+        """Close the preceding held sample, then accept an explicit observation."""
+        bucket_closed = False
+        if (
+            self._last_time is not None
+            and self._power_w is not None
+            and self._observed_at is not None
+        ):
+            valid_end = min(now, self._observed_at + maximum_hold)
+            if valid_end > self._last_time:
+                bucket_closed = int(self._last_time.timestamp()) // (15 * 60) != int(
+                    valid_end.timestamp()
+                ) // (15 * 60)
+                buckets.add_segment(
+                    start=self._last_time,
+                    end=valid_end,
+                    power_w=self._power_w,
+                )
+
+        self._last_time = now
+        if power_observed:
+            self._power_w = Decimal(-1) if bidirectional_power else power_w
+            self._observed_at = (
+                now if power_w is not None or bidirectional_power else None
+            )
+        return bucket_closed
+
+
 class BaseLoadSummaryHistory:
     """Own completed daily summaries and their derived seven-day estimate."""
 

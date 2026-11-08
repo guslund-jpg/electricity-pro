@@ -10,6 +10,7 @@ from custom_components.electricity_pro.base_load import (
     AveragePowerUnavailableReason,
     BaseLoadUnavailableReason,
     BaseLoadBucketAccumulator,
+    BaseLoadObservation,
     DailyBaseLoadSummary,
     DailyBaseLoadUnavailableReason,
     PowerInterval,
@@ -303,3 +304,35 @@ def test_accumulator_marks_negative_power_without_fabricating_coverage() -> None
 
     assert accumulator.bidirectional_observed(local_date)
     assert accumulator.intervals_for_date(local_date) == ()
+
+
+def test_live_observation_updates_supplied_restored_accumulator() -> None:
+    """Replacing a restored bucket owner must not leave the observer writing elsewhere."""
+    start = datetime(2026, 8, 24, tzinfo=UTC)
+    observation = BaseLoadObservation()
+    original = BaseLoadBucketAccumulator(UTC)
+
+    def advance(observer, buckets, minute, *, observed=False):
+        return observer.update(
+            start + timedelta(minutes=minute),
+            buckets,
+            power_w=Decimal(600),
+            bidirectional_power=False,
+            power_observed=observed,
+            maximum_hold=timedelta(minutes=10),
+        )
+
+    advance(observation, original, 0, observed=True)
+    advance(observation, original, 5)
+    restored = BaseLoadBucketAccumulator.from_dict(UTC, original.as_dict())
+    advance(observation, restored, 8)
+
+    assert original.intervals_for_date(start.date()) == (
+        PowerInterval(Decimal(600), timedelta(minutes=5)),
+    )
+    assert restored.intervals_for_date(start.date()) == (
+        PowerInterval(Decimal(600), timedelta(minutes=8)),
+    )
+    before = restored.as_dict()
+    assert not advance(BaseLoadObservation(), restored, 9)
+    assert restored.as_dict() == before

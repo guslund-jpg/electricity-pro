@@ -181,7 +181,7 @@ The current strict scope is:
 | `adaptive_price.py` | Comparable history, adaptive thresholds and forecast refinement |
 | `good_time.py` | Fixed/adaptive decisions over normalized inputs and explicit time |
 | `settings.py` | Saved-data/options overlay with explicit clearing and no normalization |
-| `base_load.py` | Duration-weighted power, base-load estimates and bounded power history |
+| `base_load.py` | Live base-load observations, duration-weighted power, base-load estimates and bounded power history |
 | `timing_score.py` | Consumption-timing scores, completed-day result ownership, matched intervals and bounded timing history |
 | `statistics_engine.py` | Cumulative counters, calendar periods and persisted snapshots |
 | `history_storage.py` | Runtime narrowing of stored history values |
