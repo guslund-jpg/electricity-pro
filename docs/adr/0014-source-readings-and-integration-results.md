@@ -2,13 +2,13 @@
 
 ## Status
 
-**Proposed — implementation has not started.**
+**Accepted — implementation has not started.**
 
 Date: 8 November 2026. Reviewed source baseline: `4cb72d1`.
-This document proposes the next bounded architecture change in
+The maintainer approved this design and its documentation PR #390 on
+8 November 2026. This document records the next bounded architecture change in
 [#288](https://github.com/guslund-jpg/electricity-pro/issues/288).
 It is a design and delivery plan, not a release commitment or runtime change.
-Record acceptance here before beginning the implementation sequence.
 
 ## Summary
 
@@ -17,7 +17,7 @@ readings, resolved calculation context and integration results. The provider
 produces the first two. The coordinator composes the third through the existing
 calculations and feature models. Entities consume the assembled snapshot.
 
-Deliver this in **three implementation PRs after design review**: establish the
+Deliver this in **three implementation PRs**: establish the
 provider boundary, separate result composition, then migrate consumers and remove
 the transitional flat views. Additional small history extractions are optional
 follow-ups, rather than prerequisites for this sequence.
@@ -78,9 +78,9 @@ Current Cost Rate and Remaining Cost Today, retain their current evaluation
 location and timing. Relocating or caching them would be a separately reviewed
 behavioral decision.
 
-## Proposed design
+## Design
 
-Place the shared data contracts in a pure `data.py` module. The proposed names
+Place the shared data contracts in a pure `data.py` module. The agreed names
 below describe the target; none of these new types exists at the reviewed base.
 
 | Type | Responsibility |
@@ -324,7 +324,7 @@ own contracts and validation. No such delivery is implied by this proposal.
 ## Acceptance criteria and stopping point
 
 - [x] Inspect the current fields and coordinator replacement sites at `4cb72d1`.
-- [ ] Review and record acceptance of this design before implementation.
+- [x] Review and record acceptance of this design before implementation.
 - [ ] Complete the three implementation PRs with their stated exit gates.
 - [ ] Provider output contains only readings/context; result composition cannot
   mutate those inputs.
