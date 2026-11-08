@@ -11,6 +11,7 @@ from custom_components.electricity_pro.adaptive_price import (
     AdaptiveEvaluationMethod,
     AdaptiveForecastPrice,
     AdaptivePriceHistory,
+    AdaptivePriceObservation,
     AdaptivePriceReason,
     AdaptivePriceScope,
     ForecastComparisonStatus,
@@ -693,3 +694,38 @@ def test_history_rejects_corrupt_storage(mutation: dict[str, object]) -> None:
 
     with pytest.raises(ValueError):
         AdaptivePriceHistory.from_dict(UTC, data)
+
+
+def test_live_adaptive_observation_uses_supplied_restored_history() -> None:
+    """Live state writes to the supplied history while fresh state skips restart gaps."""
+    start = _EVALUATION_TIME.replace(minute=0)
+    observation = AdaptivePriceObservation()
+    original = AdaptivePriceHistory(UTC)
+    assert observation.scope is None
+    assert not observation.advance(start, original)
+    assert observation.set_price(
+        start, original, effective_price=Decimal(1), scope=_SCOPE
+    )
+    assert not observation.advance(start + timedelta(minutes=30), original)
+    before_original = original.as_dict()
+    restored = AdaptivePriceHistory.from_dict(UTC, before_original)
+
+    assert observation.advance(start + timedelta(hours=1), restored)
+    assert not observation.set_price(
+        start + timedelta(hours=1), restored, effective_price=Decimal(2), scope=_SCOPE
+    )
+    assert original.as_dict() == before_original
+    (result,) = restored.observations
+    assert result.effective_price == Decimal(1)
+    assert result.covered_duration == timedelta(hours=1)
+    assert observation.scope == restored.scope == _SCOPE
+
+    before_restored = restored.as_dict()
+    fresh = AdaptivePriceObservation()
+    assert fresh.scope is None
+    assert not fresh.advance(start + timedelta(hours=2), restored)
+    assert not fresh.set_price(
+        start + timedelta(hours=2), restored, effective_price=Decimal(3), scope=_SCOPE
+    )
+    assert fresh.scope == _SCOPE
+    assert restored.as_dict() == before_restored

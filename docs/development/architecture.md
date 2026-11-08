@@ -339,6 +339,23 @@ remain transient and are not restored with the saved bucket history. The
 `consumption_timing_buckets` format, Decimal arithmetic and public score/attribute
 contracts are unchanged.
 
+`AdaptivePriceObservation` in `adaptive_price.py` owns the live price cursor,
+Effective Price and its current comparison scope. `advance` closes the previous
+compatible interval using absolute UTC ordering before moving the cursor. The
+coordinator then calculates price and scope at the existing point, and calls
+`set_price`. A new comparable scope clears incompatible history through the
+existing history policy; invalid current inputs clear only the live price/scope
+and leave saved history intact. The returned hour-closure and scope-change flags
+retain their existing save behavior.
+
+The coordinator retains the price/scope calculations, tariff signature, history
+restoration/retention, HA storage and timers. The observation updates the supplied
+`AdaptivePriceHistory` rather than retaining a reference to it. Public
+`adaptive_price_scope` reports the live scope; it can be absent while saved
+history still has a valid scope. Live observations are not persisted or replayed
+after restart. The `adaptive_price_history` format, restart metadata, hourly/DST
+aggregation and Good Time behavior are unchanged.
+
 Ordinary sensors use declarative descriptions. Forecast, historical and optional
 flow sensors use dedicated classes. Good Time is a binary sensor supporting
 fixed and adaptive classification. Keys and unique IDs are compatibility

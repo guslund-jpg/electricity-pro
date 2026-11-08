@@ -31,6 +31,7 @@ from homeassistant.util import dt as dt_util
 from .adaptive_price import (
     AdaptiveForecastPrice,
     AdaptivePriceHistory,
+    AdaptivePriceObservation,
     AdaptivePriceScope,
 )
 from .base_load import (
@@ -268,9 +269,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._base_load_summaries = BaseLoadSummaryHistory(self._local_timezone)
         self._base_load_observation = BaseLoadObservation()
         self._adaptive_price_history = AdaptivePriceHistory(self._local_timezone)
-        self._adaptive_price_last_time: datetime | None = None
-        self._adaptive_price: Decimal | None = None
-        self._adaptive_price_scope: AdaptivePriceScope | None = None
+        self._adaptive_price_observation = AdaptivePriceObservation()
         self._adaptive_tariff_signature = _adaptive_tariff_signature(entry)
         self._cost_this_month_unit: str | None = None
         self._forecast_intervals_by_date: dict[date, list[ForecastInterval]] = {}
@@ -393,7 +392,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @property
     def adaptive_price_scope(self) -> AdaptivePriceScope | None:
         """Return the compatibility scope of the current Effective Price."""
-        return self._adaptive_price_scope
+        return self._adaptive_price_observation.scope
 
     @callback
     def _schedule_statistics_save(self, *, immediate: bool = False) -> None:
@@ -1258,24 +1257,9 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         now: datetime,
     ) -> bool:
         """Integrate compatible Effective Price into bounded hourly history."""
-        hour_closed = False
-        if (
-            self._adaptive_price_last_time is not None
-            and self._adaptive_price is not None
-            and self._adaptive_price_scope is not None
-            and now.astimezone(UTC) > self._adaptive_price_last_time.astimezone(UTC)
-        ):
-            self._adaptive_price_history.ensure_scope(
-                self._adaptive_price_scope,
-                changed_at=self._adaptive_price_last_time,
-            )
-            hour_closed = self._adaptive_price_history.add_segment(
-                start=self._adaptive_price_last_time,
-                end=now,
-                effective_price=self._adaptive_price,
-            )
-
-        self._adaptive_price_last_time = now
+        hour_closed = self._adaptive_price_observation.advance(
+            now, self._adaptive_price_history
+        )
         effective_price = calculate_declared_effective_price(
             inputs.readings.current_price,
             inputs.context.pricing_metadata,
@@ -1284,17 +1268,12 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             inputs.context.supplier_markup_per_kwh,
         )
         scope = self._adaptive_scope(inputs)
-        scope_changed = False
-        if effective_price is not None and scope is not None:
-            scope_changed = self._adaptive_price_history.ensure_scope(
-                scope,
-                changed_at=now,
-            )
-            self._adaptive_price = effective_price
-            self._adaptive_price_scope = scope
-        else:
-            self._adaptive_price = None
-            self._adaptive_price_scope = None
+        scope_changed = self._adaptive_price_observation.set_price(
+            now,
+            self._adaptive_price_history,
+            effective_price=effective_price,
+            scope=scope,
+        )
         return hour_closed or scope_changed
 
     def _adaptive_scope(

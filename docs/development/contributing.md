@@ -178,7 +178,7 @@ The current strict scope is:
 | `statistics.py` | Remaining-cost projection and optional Decimal values |
 | `pricing.py` | Price/component/VAT enums and immutable metadata |
 | `grid_tariff.py` | Grid tariff fields, date/time boundaries and fee selection |
-| `adaptive_price.py` | Comparable history, adaptive thresholds and forecast refinement |
+| `adaptive_price.py` | Live price/scope observations, comparable history, adaptive thresholds and forecast refinement |
 | `good_time.py` | Fixed/adaptive decisions over normalized inputs and explicit time |
 | `settings.py` | Saved-data/options overlay with explicit clearing and no normalization |
 | `base_load.py` | Live base-load observations, duration-weighted power, base-load estimates and bounded power history |
