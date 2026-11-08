@@ -5,7 +5,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from types import CoroutineType
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, PropertyMock, patch
 
 import pytest
 from freezegun.api import FrozenDateTimeFactory
@@ -240,7 +240,7 @@ async def test_estimated_base_load_publishes_value_and_metadata(
     """A five-day estimate should publish a whole-watt power sensor."""
     entry = await setup_electricity_pro()
     coordinator = entry.runtime_data
-    coordinator._base_load_result = BaseLoadEstimateResult(  # noqa: SLF001
+    result = BaseLoadEstimateResult(
         estimate_w=Decimal("205.4"),
         unavailable_reason=None,
         window_start=date(2026, 8, 19),
@@ -252,8 +252,14 @@ async def test_estimated_base_load_publishes_value_and_metadata(
             for day, value in zip(range(21, 26), ("190", "200", "205.4", "210", "220"))
         ),
     )
-    coordinator.async_set_updated_data(coordinator.data)
-    await hass.async_block_till_done()
+    with patch.object(
+        type(coordinator),
+        "estimated_base_load",
+        new_callable=PropertyMock,
+        return_value=result,
+    ):
+        coordinator.async_set_updated_data(coordinator.data)
+        await hass.async_block_till_done()
 
     state = hass.states.get(BASE_LOAD_ENTITY_ID)
     assert state is not None
