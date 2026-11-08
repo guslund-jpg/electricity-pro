@@ -153,6 +153,10 @@ selected cost/price belong to results, not to the configured fee amounts.
 
 These **30 fields** correspond exactly to the existing `_DataUpdates` keys.
 Keep their names within the result group to limit unrelated naming changes.
+Preserve the value types and unknown/default meanings from `ElectricityProData`.
+Some `_DataUpdates` annotations are narrower, such as `Decimal` for a field whose
+snapshot type is `Decimal | None`. Keep that update contract separate; copying
+its annotations into the result schema would discard valid missing states.
 
 | Existing fields | Meaning |
 | --- | --- |
