@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import TypedDict
 
@@ -139,6 +139,62 @@ def validate_forecast_series(
             raise ValueError("Forecast series contains overlapping intervals")
 
     return deduplicated
+
+
+class ForecastCache:
+    """Own delivery-date partitions and the separately rebuilt public series."""
+
+    def __init__(self) -> None:
+        """Start without cached delivery dates or published intervals."""
+        self._by_date: dict[date, list[ForecastInterval]] = {}
+        self._intervals: list[ForecastInterval] = []
+
+    @property
+    def intervals(self) -> list[ForecastInterval]:
+        """Return the existing live publication list without copying it."""
+        return self._intervals
+
+    def has_date(self, target_date: date) -> bool:
+        """Report cached membership independently of publication state."""
+        return target_date in self._by_date
+
+    def discard_before(self, earliest_date: date) -> None:
+        """Discard dated entries without rebuilding the public series."""
+        stale_dates = [day for day in self._by_date if day < earliest_date]
+        for stale_date in stale_dates:
+            del self._by_date[stale_date]
+
+    def validate_replacement(
+        self, target_date: date, intervals: list[ForecastInterval]
+    ) -> None:
+        """Validate against other dates before the caller commits a replacement."""
+        validate_forecast_series(
+            [
+                *(
+                    interval
+                    for day, cached in self._by_date.items()
+                    if day != target_date
+                    for interval in cached
+                ),
+                *intervals,
+            ]
+        )
+
+    def store_validated(
+        self, target_date: date, intervals: list[ForecastInterval]
+    ) -> None:
+        """Store caller-validated intervals without replacing the public series."""
+        self._by_date[target_date] = intervals
+
+    def rebuild(self) -> None:
+        """Publish a validated series; leave the old list intact if validation fails."""
+        self._intervals = validate_forecast_series(
+            interval for intervals in self._by_date.values() for interval in intervals
+        )
+
+    def clear_published(self) -> None:
+        """Replace only the public list when instructed by the error-policy caller."""
+        self._intervals = []
 
 
 def current_market_price_interval(

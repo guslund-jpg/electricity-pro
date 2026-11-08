@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from custom_components.electricity_pro.forecast import (
+    ForecastCache,
     ForecastInterval,
     current_market_price_interval,
     daily_average_market_price,
@@ -388,3 +389,45 @@ def test_serialize_market_price_forecast_rejects_empty_series() -> None:
     """The action contract should reject an unavailable forecast."""
     with pytest.raises(ValueError, match="unavailable"):
         serialize_market_price_forecast([])
+
+
+def test_forecast_cache_keeps_date_storage_separate_from_publication() -> None:
+    """Validation, storing and pruning leave publication unchanged until rebuilt."""
+    start = datetime(2026, 8, 24, tzinfo=UTC)
+    interval = ForecastInterval(
+        start=start,
+        end=start + timedelta(hours=1),
+        market_price=Decimal("-0.1250"),
+        currency="SEK",
+        area="SE3",
+    )
+    cache = ForecastCache()
+    initial = cache.intervals
+    cache.validate_replacement(start.date(), [interval])
+    assert not cache.has_date(start.date())
+    cache.store_validated(start.date(), [interval])
+    assert cache.has_date(start.date())
+    assert cache.intervals is initial
+    assert cache.intervals == []
+
+    cache.rebuild()
+    published = cache.intervals
+    assert published == [interval]
+    assert published[0] is interval
+    cache.clear_published()
+    assert cache.intervals == []
+    assert published == [interval]
+    assert cache.has_date(start.date())
+    cache.rebuild()
+    rebuilt = cache.intervals
+    assert rebuilt == published
+    assert rebuilt is not published
+
+    cache.discard_before(start.date())
+    assert cache.has_date(start.date())
+    cache.discard_before(start.date() + timedelta(days=1))
+    assert not cache.has_date(start.date())
+    assert cache.intervals is rebuilt
+    cache.rebuild()
+    assert cache.intervals == []
+    assert rebuilt == [interval]
