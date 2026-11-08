@@ -1,14 +1,22 @@
 """Characterize the provider's complete flat contract before input separation."""
 
-from dataclasses import fields, replace
+from dataclasses import FrozenInstanceError, fields, replace
 from datetime import UTC, datetime
 from decimal import Decimal as D
+from typing import get_type_hints
 from unittest.mock import patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.const import DOMAIN
+from custom_components.electricity_pro.data import (
+    CalculationContext,
+    ElectricityProData,
+    ProviderSnapshot,
+    SourceReadings,
+    legacy_provider_view,
+)
 from custom_components.electricity_pro.pricing import (
     PriceComponent,
     PriceComponentScope,
@@ -17,7 +25,10 @@ from custom_components.electricity_pro.pricing import (
     PricingStrategy,
     VatTreatment,
 )
-from custom_components.electricity_pro.provider import ElectricityProEntityProvider
+from custom_components.electricity_pro.provider import (
+    ElectricityProData as ProviderData,
+    ElectricityProEntityProvider,
+)
 
 _METADATA = PricingMetadata(
     strategy=PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
@@ -388,7 +399,93 @@ def test_complete_provider_contract(provider_case):
     assert_flat_contract(provider.read(), expected)
 
 
-def test_provider_read_order_and_single_tariff_clock(hass):
+_SOURCE_FIELDS = {
+    "current_power": "current_power",
+    "current_power_bidirectional": "current_power_bidirectional",
+    "current_price": "current_price",
+    "current_price_unit": "current_price_unit",
+    "import_energy_value": "current_energy",
+    "import_energy_unit": "current_energy_unit",
+    "energy_source_type": "energy_source_type",
+    "external_cost_today": "accumulated_cost_today",
+    "external_cost_today_unit": "accumulated_cost_today_unit",
+    "current_l1": "current_l1",
+    "current_l2": "current_l2",
+    "current_l3": "current_l3",
+    "voltage_l1": "voltage_l1",
+    "voltage_l2": "voltage_l2",
+    "voltage_l3": "voltage_l3",
+    "monthly_peak_hour_consumption": "monthly_peak_hour_consumption",
+    "monthly_peak_hour_consumption_unit": "monthly_peak_hour_consumption_unit",
+    "monthly_peak_hour_time": "monthly_peak_hour_time",
+}
+_CONTEXT_FIELDS = {
+    "pricing_metadata",
+    "fixed_supplier_fee_this_month",
+    "fixed_grid_fee_this_month",
+    "grid_fee_per_kwh",
+    "supplier_markup_per_kwh",
+    "energy_tax_per_kwh",
+    "good_price_threshold",
+}
+
+
+def test_canonical_inputs_match_independent_flat_contract(provider_case):
+    provider, expected = provider_case
+    inputs = provider.read_inputs()
+    for group, mapping in (
+        (inputs.readings, _SOURCE_FIELDS),
+        (inputs.context, {name: name for name in _CONTEXT_FIELDS}),
+    ):
+        assert {field.name for field in fields(group)} == mapping.keys()
+        for name, old_name in mapping.items():
+            value = getattr(group, name)
+            assert value == expected[old_name]
+            if isinstance(value, D):
+                assert value.as_tuple() == expected[old_name].as_tuple()
+    projected = legacy_provider_view(inputs)
+    assert_flat_contract(projected, expected)
+    for name, old_name in _SOURCE_FIELDS.items():
+        assert getattr(projected, old_name) is getattr(inputs.readings, name)
+    for name in _CONTEXT_FIELDS:
+        assert getattr(projected, name) is getattr(inputs.context, name)
+
+
+def test_input_contract_types_and_legacy_reexport():
+    assert ProviderData is ElectricityProData
+    old_types = get_type_hints(ElectricityProData)
+    assert get_type_hints(SourceReadings) == {
+        name: old_types[old_name] for name, old_name in _SOURCE_FIELDS.items()
+    }
+    assert get_type_hints(CalculationContext) == {
+        name: old_types[name] for name in _CONTEXT_FIELDS
+    }
+    assert get_type_hints(ProviderSnapshot) == {
+        "readings": SourceReadings,
+        "context": CalculationContext,
+    }
+
+
+def test_input_groups_are_immutable_and_raw_values_survive_projection(hass):
+    inputs = make_provider(hass).read_inputs()
+    for group in (inputs, inputs.readings, inputs.context):
+        assert not hasattr(group, "__dict__")
+        name = fields(group)[0].name
+        with pytest.raises(FrozenInstanceError):
+            setattr(group, name, None)
+    published = replace(
+        legacy_provider_view(inputs),
+        current_energy=D("0.7500"),
+        accumulated_cost_today=D("0.2500"),
+    )
+    assert published.current_energy == D("0.7500")
+    assert published.accumulated_cost_today == D("0.2500")
+    assert inputs.readings.import_energy_value.as_tuple() == D("123456.7890").as_tuple()
+    assert inputs.readings.external_cost_today.as_tuple() == D("12.3400").as_tuple()
+
+
+@pytest.mark.parametrize("read_method", ["read", "read_inputs"])
+def test_provider_read_order_and_single_tariff_clock(hass, read_method):
     trace = []
     now = datetime(2026, 11, 8, 12, tzinfo=UTC)
     original_get = type(hass.states).get
@@ -412,8 +509,9 @@ def test_provider_read_order_and_single_tariff_clock(hass):
             "custom_components.electricity_pro.provider.dt_util.now", side_effect=clock
         ),
     ):
-        result = provider.read()
-    assert result.grid_fee_per_kwh == D("0.3750")
+        result = getattr(provider, read_method)()
+    context = result.context if isinstance(result, ProviderSnapshot) else result
+    assert context.grid_fee_per_kwh == D("0.3750")
     assert trace == [
         *[
             f"sensor.contract_{name}"
@@ -449,7 +547,10 @@ def test_provider_read_order_and_single_tariff_clock(hass):
         (datetime(2026, 10, 26, 5, tzinfo=UTC), "0.2500"),
     ],
 )
-async def test_tariff_read_preserves_local_and_dst_boundaries(hass, now, expected):
+@pytest.mark.parametrize("read_method", ["read", "read_inputs"])
+async def test_tariff_read_preserves_local_and_dst_boundaries(
+    hass, now, expected, read_method
+):
     await hass.config.async_set_time_zone("Europe/Stockholm")
     provider = make_provider(
         hass,
@@ -462,7 +563,9 @@ async def test_tariff_read_preserves_local_and_dst_boundaries(hass, now, expecte
     with patch(
         "custom_components.electricity_pro.provider.dt_util.now", return_value=now
     ):
-        assert provider.read().grid_fee_per_kwh.as_tuple() == D(expected).as_tuple()
+        result = getattr(provider, read_method)()
+    context = result.context if isinstance(result, ProviderSnapshot) else result
+    assert context.grid_fee_per_kwh.as_tuple() == D(expected).as_tuple()
 
 
 def test_provider_reads_are_fresh_and_keep_raw_counter_values(hass):

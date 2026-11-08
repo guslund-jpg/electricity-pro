@@ -27,17 +27,30 @@ user-requested Tibber addition estimate also uses HA actions. Device and externa
 API connectivity remain the source integrations' responsibility.
 
 The diagram is an ownership guide, not a claim of completely separated layers.
-`ElectricityProData` is a frozen snapshot defined in `provider.py`. It contains
+`ElectricityProData` is a frozen flat snapshot defined in `data.py` and temporarily
+re-exported from `provider.py`. It contains
 both normalized inputs and derived results: power, energy, price scope, phase
 values, daily/monthly totals, fixed fees and local/household cost coverage.
-The provider constructs it; the coordinator enriches it using
+The provider's canonical `read_inputs()` returns a `ProviderSnapshot` with
+18 normalized `SourceReadings` fields and seven resolved `CalculationContext`
+fields. These pure, frozen, slotted contracts contain no analytics placeholders.
+Raw import energy and external daily cost have distinct source names so they
+cannot be confused with selected daily results. The temporary `read()` entry
+point projects those inputs through `legacy_provider_view()` into the existing
+51-field flat contract, retaining raw counters, external costs and the initial
+daily/lifetime completeness flag. The view reads no HA states or clock; source
+normalization, read order and tariff evaluation remain at the provider boundary.
+
+The coordinator still consumes this flat provider view and enriches it using
 `dataclasses.replace`. Forecasts, histories and optional flow results also live
 separately on the coordinator.
 
 [ADR-0014](../adr/0014-source-readings-and-integration-results.md) records the accepted plan for
 separate readings, calculation context and integration results, with a field
-inventory and three implementation PRs. Implementation has not started; the
-current runtime still uses the shared flat snapshot described above.
+inventory and three implementation PRs. The first stage establishes the provider
+boundary described above. Explicit integration-result composition and final
+grouped publication/consumer migration remain the next two stages; the flat
+model and provider view are transitional.
 
 ## Module map
 
@@ -50,7 +63,8 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `measurement_config.py` | Shared measurement forms, source review and energy-counter confirmation |
 | `review_config.py` | Read-only final setup draft and options overview with configured price-component coverage |
 | `source_adapters.py` | Guided discovery and provider-specific configuration assistance |
-| `provider.py` | HA state reading, normalization, configured tariffs and snapshot construction |
+| `provider.py` | HA state reading, normalization, configured tariffs and canonical input construction; temporary flat `read()` entry point |
+| `data.py` | Pure immutable source/context contracts and provider snapshot; temporary flat model and provider projection |
 | `pricing_config.py`, `vat_suggestions.py` | Price declarations and editable regional VAT suggestions |
 | `markup_estimate.py` | User-requested Tibber/Nord Pool comparison; acquisition and estimator in one module |
 | `coordinator.py` | Events, timers, retrieval, persistence, rollovers and result composition |

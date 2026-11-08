@@ -199,6 +199,7 @@ The current strict scope is:
 | `device.py` | Fresh, entry-scoped Home Assistant device metadata |
 | `sensor.py` | Sensor registration, phase readers, availability and entity attributes |
 | `provider.py` | Optional source states, unit normalization and configured adjustments |
+| `data.py` | Immutable source/context contracts, provider snapshot and temporary flat provider projection |
 | `source_adapters.py` | Registry metadata, per-home Tibber discovery and capability mappings |
 | `const.py` | Shared integration constants and defaults |
 | `household_cost.py` | Calendar-based fixed-fee accrual and missing-fee metadata |
@@ -337,7 +338,7 @@ The remaining explicit `Any` boundaries are deliberate limits of this scope:
 
 These exceptions do not establish that every persisted value is validated. A
 complete typed persistence schema would be separate work. Strict checking covers
-the 39 explicitly listed integration modules, not the tests or whole integration;
+the 40 explicitly listed integration modules, not the tests or whole integration;
 it is not a claim of complete typing or additional manual Home Assistant testing.
 
 ### Python formatting
