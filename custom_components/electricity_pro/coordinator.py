@@ -115,9 +115,9 @@ from .statistics_engine import (
     StatisticsSnapshot,
 )
 from .timing_score import (
+    CompletedTimingScore,
     TimingBucketAccumulator,
     TimingScoreResult,
-    calculate_timing_score,
 )
 from .workday import async_get_non_working_dates
 
@@ -260,8 +260,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._peak_power_today = DailyPeakStatistic()
         self._timing_buckets = TimingBucketAccumulator(self._local_timezone)
-        self._timing_result_date: date | None = None
-        self._timing_result: TimingScoreResult | None = None
+        self._completed_timing_score = CompletedTimingScore(self._local_timezone)
         self._timing_last_time: datetime | None = None
         self._timing_power: Decimal | None = None
         self._timing_power_observed_at: datetime | None = None
@@ -356,9 +355,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @property
     def timing_score_yesterday(self) -> tuple[date, TimingScoreResult] | None:
         """Return the most recently finalized timing score."""
-        if self._timing_result_date is None or self._timing_result is None:
-            return None
-        return self._timing_result_date, self._timing_result
+        return self._completed_timing_score.result
 
     @property
     def estimated_base_load(self) -> BaseLoadEstimateResult | None:
@@ -939,15 +936,12 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         timing_result = stored.get(_TIMING_RESULT)
         if isinstance(timing_result, dict):
             try:
-                self._timing_result_date = date.fromisoformat(
-                    timing_result["period_start"]
-                )
-                self._timing_result = TimingScoreResult.from_dict(
-                    timing_result["result"]
+                self._completed_timing_score.restore(
+                    period_start=timing_result["period_start"],
+                    result=timing_result["result"],
                 )
             except KeyError, TypeError, ValueError:
-                self._timing_result_date = None
-                self._timing_result = None
+                self._completed_timing_score.clear()
                 _LOGGER.warning("Ignoring invalid persisted timing score result")
 
         if _BASE_LOAD_BUCKETS in stored:
@@ -1387,30 +1381,13 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
 
     def _finalize_timing_day(self, period_start: date) -> None:
         """Calculate and retain one completed local-day timing result."""
-        day_start = datetime.combine(
+        self._completed_timing_score.finalize_day(
             period_start,
-            datetime.min.time(),
-            tzinfo=self._local_timezone,
-        )
-        day_end = datetime.combine(
-            period_start + timedelta(days=1),
-            datetime.min.time(),
-            tzinfo=self._local_timezone,
-        )
-        period_duration = day_end.astimezone(UTC) - day_start.astimezone(UTC)
-        self._timing_result = calculate_timing_score(
-            self._timing_buckets.intervals_for_date(period_start),
-            period_duration=period_duration,
-            longest_uncovered_gap=self._timing_buckets.longest_uncovered_gap(
-                period_start,
-                day_start=day_start,
-                day_end=day_end,
-            ),
+            self._timing_buckets,
             bidirectional_power_observed=(
                 self._base_load_buckets.bidirectional_observed(period_start)
             ),
         )
-        self._timing_result_date = period_start
 
     def _finalize_restored_base_load_days(self, local_today: date) -> None:
         """Finalize retained power history after a restart across midnight."""
@@ -1587,11 +1564,8 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         if (peak_snapshot := self._peak_power_today.snapshot) is not None:
             data[_PEAK_POWER_TODAY] = peak_snapshot.as_dict()
         data[_TIMING_BUCKETS] = self._timing_buckets.as_dict()
-        if self._timing_result_date is not None and self._timing_result is not None:
-            data[_TIMING_RESULT] = {
-                "period_start": self._timing_result_date.isoformat(),
-                "result": self._timing_result.as_dict(),
-            }
+        if (timing_result := self._completed_timing_score.as_dict()) is not None:
+            data[_TIMING_RESULT] = timing_result
         data[_BASE_LOAD_BUCKETS] = self._base_load_buckets.as_dict()
         data[_BASE_LOAD_DAILY_SUMMARIES] = self._base_load_summaries.as_list()
         data[_ADAPTIVE_PRICE_HISTORY] = self._adaptive_price_history.as_dict()

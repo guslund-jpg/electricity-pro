@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta, tzinfo
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from enum import StrEnum
+from typing import TypedDict
 
 from .history_storage import (
     add_covered_range,
@@ -538,3 +539,76 @@ class TimingBucketAccumulator:
         except (InvalidOperation, KeyError, TypeError, ValueError) as err:
             raise ValueError("invalid timing bucket history") from err
         return accumulator
+
+
+class _CompletedTimingScoreData(TypedDict):
+    """Existing storage shape for the last completed local-day result."""
+
+    period_start: str
+    result: dict[str, str | None]
+
+
+class CompletedTimingScore:
+    """Own the last completed timing result without scheduling day boundaries."""
+
+    def __init__(self, local_timezone: tzinfo) -> None:
+        """Start without a completed local day."""
+        self._local_timezone = local_timezone
+        self._period_start: date | None = None
+        self._score_result: TimingScoreResult | None = None
+
+    @property
+    def result(self) -> tuple[date, TimingScoreResult] | None:
+        """Return the existing public date/result pair, including rejected days."""
+        if self._period_start is None or self._score_result is None:
+            return None
+        return self._period_start, self._score_result
+
+    def clear(self) -> None:
+        """Discard an invalid saved result when instructed by the storage caller."""
+        self._period_start = None
+        self._score_result = None
+
+    def restore(self, *, period_start: str, result: Mapping[str, object]) -> None:
+        """Parse saved fields with the existing date and result readers."""
+        self._period_start = date.fromisoformat(period_start)
+        self._score_result = TimingScoreResult.from_dict(result)
+
+    def as_dict(self) -> _CompletedTimingScoreData | None:
+        """Return fresh storage containers, or omit a result that is not present."""
+        if self._period_start is None or self._score_result is None:
+            return None
+        return {
+            "period_start": self._period_start.isoformat(),
+            "result": self._score_result.as_dict(),
+        }
+
+    def finalize_day(
+        self,
+        period_start: date,
+        buckets: TimingBucketAccumulator,
+        *,
+        bidirectional_power_observed: bool,
+    ) -> None:
+        """Calculate one real local day before its caller discards old buckets."""
+        day_start = datetime.combine(
+            period_start,
+            datetime.min.time(),
+            tzinfo=self._local_timezone,
+        )
+        day_end = datetime.combine(
+            period_start + timedelta(days=1),
+            datetime.min.time(),
+            tzinfo=self._local_timezone,
+        )
+        self._score_result = calculate_timing_score(
+            buckets.intervals_for_date(period_start),
+            period_duration=day_end.astimezone(UTC) - day_start.astimezone(UTC),
+            longest_uncovered_gap=buckets.longest_uncovered_gap(
+                period_start,
+                day_start=day_start,
+                day_end=day_end,
+            ),
+            bidirectional_power_observed=bidirectional_power_observed,
+        )
+        self._period_start = period_start

@@ -47,6 +47,18 @@ async def _restore(coordinator, stored):
         await coordinator._async_restore_statistics()
 
 
+async def _start(coordinator, stored, now):
+    """Exercise real startup ordering with a saved checkpoint and explicit date."""
+    with (
+        patch.object(coordinator._store, "async_load", AsyncMock(return_value=stored)),
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=now,
+        ),
+    ):
+        await coordinator.async_start()
+
+
 def _fill_day(coordinator, day):
     """Consume only in the cheapest quarter of a real local day."""
     timezone = coordinator._local_timezone
@@ -195,13 +207,13 @@ async def test_completed_timing_keeps_existing_no_observation_policy(hass, path)
     coordinator = await _coordinator(hass)
     await _restore(coordinator, {_RESULT_KEY: _LEGACY_RESULT})
     today = _DAY + timedelta(days=2)
+    midnight = datetime.combine(
+        today, datetime.min.time(), tzinfo=coordinator._local_timezone
+    )
     if path == "restart":
-        coordinator._finalize_restored_timing_days(today)
+        await _start(coordinator, {_RESULT_KEY: _LEGACY_RESULT}, midnight)
         assert coordinator._statistics_data()[_RESULT_KEY] == _LEGACY_RESULT
     else:
-        midnight = datetime.combine(
-            today, datetime.min.time(), tzinfo=coordinator._local_timezone
-        )
         with patch.object(coordinator, "_schedule_statistics_save"):
             coordinator._async_daily_rollover(midnight)
         day, result = coordinator.timing_score_yesterday
@@ -230,9 +242,7 @@ async def test_completed_timing_finalizes_before_discarding_export_marker(hass, 
     if path == "restart":
         stored = json.loads(json.dumps(coordinator._statistics_data()))
         coordinator = await _coordinator(hass)
-        await _restore(coordinator, stored)
-        coordinator._finalize_restored_timing_days(_DAY + timedelta(days=1))
-        coordinator._finalize_restored_base_load_days(_DAY + timedelta(days=1))
+        await _start(coordinator, stored, end)
     else:
         with patch.object(coordinator, "_schedule_statistics_save") as save:
             coordinator._async_daily_rollover(end)
