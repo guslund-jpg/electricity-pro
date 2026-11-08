@@ -504,6 +504,59 @@ class AdaptivePriceHistory:
         return bool(closed_keys)
 
 
+class AdaptivePriceObservation:
+    """Hold the live Effective Price and its current comparison scope."""
+
+    def __init__(self) -> None:
+        """Start without live samples; only price history is restored."""
+        self._last_time: datetime | None = None
+        self._effective_price: Decimal | None = None
+        self._scope: AdaptivePriceScope | None = None
+
+    @property
+    def scope(self) -> AdaptivePriceScope | None:
+        """Return the current valid price scope, independently of saved history."""
+        return self._scope
+
+    def advance(self, now: datetime, history: AdaptivePriceHistory) -> bool:
+        """Close the previous comparable interval before calculating new inputs."""
+        hour_closed = False
+        if (
+            self._last_time is not None
+            and self._effective_price is not None
+            and self._scope is not None
+            and now.astimezone(UTC) > self._last_time.astimezone(UTC)
+        ):
+            history.ensure_scope(self._scope, changed_at=self._last_time)
+            hour_closed = history.add_segment(
+                start=self._last_time,
+                end=now,
+                effective_price=self._effective_price,
+            )
+
+        self._last_time = now
+        return hour_closed
+
+    def set_price(
+        self,
+        now: datetime,
+        history: AdaptivePriceHistory,
+        *,
+        effective_price: Decimal | None,
+        scope: AdaptivePriceScope | None,
+    ) -> bool:
+        """Accept calculated inputs, retaining the existing scope-change policy."""
+        scope_changed = False
+        if effective_price is not None and scope is not None:
+            scope_changed = history.ensure_scope(scope, changed_at=now)
+            self._effective_price = effective_price
+            self._scope = scope
+        else:
+            self._effective_price = None
+            self._scope = None
+        return scope_changed
+
+
 @dataclass(frozen=True, slots=True)
 class AdaptivePriceResult:
     """Explainable result of evaluating Adaptive mode."""
