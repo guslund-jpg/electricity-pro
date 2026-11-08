@@ -6,6 +6,7 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.electricity_pro.base_load import BaseLoadUnavailableReason
@@ -236,3 +237,39 @@ async def test_restart_finalizes_previous_day_before_retaining_current_buckets(
 def test_new_summary_history_starts_without_a_result(coordinator):
     assert coordinator.estimated_base_load is None
     assert coordinator._statistics_data()[_SUMMARY_KEY] == []
+
+
+async def test_loaded_entry_keeps_old_summaries_and_entity_identity_across_reload(
+    hass, setup_electricity_pro, freezer
+):
+    """An old-format five-day history must publish and survive a real HA reload."""
+    await hass.config.async_set_time_zone("Europe/Stockholm")
+    freezer.move_to(datetime(2026, 11, 8, 12, tzinfo=UTC))
+    rows = [_row(date(2026, 11, day)) for day in range(3, 8)]
+    with patch(
+        "custom_components.electricity_pro.coordinator.Store.async_load",
+        AsyncMock(return_value=json.loads(json.dumps({_SUMMARY_KEY: rows}))),
+    ):
+        entry = await setup_electricity_pro(power_value="200")
+    entity_id = "sensor.electricity_pro_estimated_base_load"
+    state = hass.states.get(entity_id)
+    assert Decimal(state.state) == Decimal("250.00")
+    assert state.attributes["eligible_days"] == 5
+    assert state.attributes["method"] == "median_of_daily_p10"
+    assert state.attributes["daily_estimates_w"] == {
+        row["period_start"]: row["estimate_w"] for row in rows
+    }
+    attributes = dict(state.attributes)
+    registry = er.async_get(hass)
+    identity = registry.async_get(entity_id).unique_id
+    assert identity == f"{entry.entry_id}_estimated_base_load"
+    settings = (dict(entry.data), dict(entry.options))
+
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    state = hass.states.get(entity_id)
+    assert Decimal(state.state) == Decimal("250.00")
+    assert dict(state.attributes) == attributes
+    assert registry.async_get(entity_id).unique_id == identity
+    assert entry.runtime_data._statistics_data()[_SUMMARY_KEY] == rows
+    assert (dict(entry.data), dict(entry.options)) == settings

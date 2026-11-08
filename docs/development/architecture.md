@@ -263,6 +263,21 @@ rolling base load and adaptive price history are implemented. Each has coverage
 and compatibility requirements; elapsed days alone do not guarantee results.
 See the [sensor catalogue](../reference/sensors.md).
 
+Completed base-load days belong to `BaseLoadSummaryHistory` in `base_load.py`.
+It owns the daily summaries and rolling result, composes the existing daily
+calculation, and applies the unchanged seven-day window and five-eligible-day
+requirement. It restores summary rows atomically and writes fresh chronological
+rows using the existing format. Restoration does not recalculate the result:
+the coordinator still decides when to finalize and recalculate.
+
+The coordinator retains live power observations, bucket accumulation, elapsed-day
+average power, shared bidirectional markers, timers, local-day rollover and HA
+storage. Startup still finalizes the retained previous day before retaining the
+current day's buckets. The `base_load_daily_summaries` key, warning behavior,
+timezone/DST arithmetic and public `estimated_base_load` result are unchanged.
+This extracts one feature's completed-day state, not a general tracker framework
+or all power-history ownership.
+
 Ordinary sensors use declarative descriptions. Forecast, historical and optional
 flow sensors use dedicated classes. Good Time is a binary sensor supporting
 fixed and adaptive classification. Keys and unique IDs are compatibility
