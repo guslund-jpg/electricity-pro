@@ -193,13 +193,13 @@ The current strict scope is:
 | `forecast.py` | Forecast interval validation, complete-day averages and serialization |
 | `calculations.py` | Supplier/effective pricing, VAT conversion and cost arithmetic |
 | `forecast_insights.py` | Continuous price windows and duration-weighted two-hour trend |
-| `coordinator.py` | Field-specific snapshot updates, flow metadata and persisted flow scope |
+| `coordinator.py` | Explicit provider inputs, field-specific result updates, flow metadata and persisted flow scope |
 | `__init__.py` | Integration lifecycle and action dispatch to the selected loaded coordinator |
 | `binary_sensor.py` | Good Time entity state, explanatory attributes and numeric settings |
 | `device.py` | Fresh, entry-scoped Home Assistant device metadata |
 | `sensor.py` | Sensor registration, phase readers, availability and entity attributes |
 | `provider.py` | Optional source states, unit normalization and configured adjustments |
-| `data.py` | Immutable source/context contracts, provider snapshot and temporary flat provider projection |
+| `data.py` | Immutable input/result contracts and separate temporary flat provider/publication projections |
 | `source_adapters.py` | Registry metadata, per-home Tibber discovery and capability mappings |
 | `const.py` | Shared integration constants and defaults |
 | `household_cost.py` | Calendar-based fixed-fee accrual and missing-fee metadata |
@@ -282,8 +282,11 @@ Explicit namespace-package bases keep module names consistent with repository
 imports.
 See [mypy import handling](https://mypy.readthedocs.io/en/stable/running_mypy.html).
 
-Coordinator snapshot replacements now use a field-specific `TypedDict`; a test
-checks that its keys and value types match `ElectricityProData`. Flow metadata
+Coordinator result replacements use a field-specific `TypedDict`. Tests check
+its exact 30-field match to `IntegrationResults` and the old flat
+`ElectricityProData` types, retaining the ten narrower Decimal update annotations
+without losing optional snapshot values. The pure publication view selects all
+30 results and retains the other input/context values. Flow metadata
 and persisted scope are typed without changing saved formats. Compatibility
 declarations remain untrusted objects until runtime validation, including
 non-string and unhashable values. Public forecast action responses have explicit

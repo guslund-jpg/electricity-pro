@@ -99,10 +99,13 @@ from .nordpool import (
     forecast_delivery_dates,
 )
 from .pricing_config import vat_rate_from_mapping
-from .provider import (
+from .data import (
     ElectricityProData,
-    ElectricityProEntityProvider,
+    IntegrationResults,
+    ProviderSnapshot,
+    legacy_published_view,
 )
+from .provider import ElectricityProEntityProvider
 from .settings import resolve_settings
 from .statistics_engine import (
     CalendarPeriod,
@@ -123,7 +126,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class _DataUpdates(TypedDict, total=False):
-    """Field-specific replacements for an ElectricityProData snapshot."""
+    """Typed result updates, also used for temporary flat publication overlays."""
 
     current_energy: Decimal | None
     current_energy_unit: str | None
@@ -430,10 +433,10 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         """Finalize timing history and clear daily state at local midnight."""
         local_now = now.astimezone(self._local_timezone)
         self._read_flows(local_now)
-        data = self._provider.read()
+        inputs = self._provider.read_inputs()
         energy_kwh = _energy_in_kwh(
-            data.current_energy,
-            data.current_energy_unit,
+            inputs.readings.import_energy_value,
+            inputs.readings.import_energy_unit,
         )
         if self._provider.energy_source_is_lifetime_total:
             self._energy_today_from_total.reset(energy_kwh, local_now)
@@ -441,9 +444,9 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 energy_kwh is not None
                 and not self._energy_today_from_total.source_reset_detected
             )
-        self._update_timing_history(data, local_now, power_observed=False)
-        self._update_base_load_history(data, local_now, power_observed=False)
-        self._update_adaptive_price_history(data, local_now)
+        self._update_timing_history(inputs, local_now, power_observed=False)
+        self._update_base_load_history(inputs, local_now, power_observed=False)
+        self._update_adaptive_price_history(inputs, local_now)
         self._finalize_timing_day(local_now.date() - timedelta(days=1))
         self._finalize_base_load_day(local_now.date() - timedelta(days=1))
         self._timing_buckets.retain_dates({local_now.date()})
@@ -783,8 +786,11 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             raise ValueError(
                 "This action requires a lifetime accumulated energy source"
             )
-        data = self._provider.read()
-        energy = _energy_in_kwh(data.current_energy, data.current_energy_unit)
+        inputs = self._provider.read_inputs()
+        energy = _energy_in_kwh(
+            inputs.readings.import_energy_value,
+            inputs.readings.import_energy_unit,
+        )
         if energy is None or not energy.is_finite() or energy < 0:
             raise ValueError("A valid energy reading is required before confirming")
         now = dt_util.now().astimezone(self._local_timezone)
@@ -968,13 +974,14 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @callback
     def _read(self, *, power_observed: bool = False) -> ElectricityProData:
         """Read provider data and update derived statistics."""
-        data = self._provider.read()
+        inputs = self._provider.read_inputs()
         source_energy_kwh = _energy_in_kwh(
-            data.current_energy,
-            data.current_energy_unit,
+            inputs.readings.import_energy_value,
+            inputs.readings.import_energy_unit,
         )
 
         now = dt_util.now().astimezone(self._local_timezone)
+        results = IntegrationResults.from_inputs(inputs)
         updates: _DataUpdates = {}
         should_save = self._read_flows(now)
 
@@ -1006,19 +1013,24 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             energy_kwh = source_energy_kwh
 
         should_save |= self._update_timing_history(
-            data,
+            inputs,
             now,
             power_observed=power_observed,
         )
         should_save |= self._update_base_load_history(
-            data,
+            inputs,
             now,
             power_observed=power_observed,
         )
-        should_save |= self._update_adaptive_price_history(data, now)
+        should_save |= self._update_adaptive_price_history(inputs, now)
 
-        if data.current_power is not None and data.current_power >= 0:
-            should_save |= self._peak_power_today.update(data.current_power, now)
+        if (
+            inputs.readings.current_power is not None
+            and inputs.readings.current_power >= 0
+        ):
+            should_save |= self._peak_power_today.update(
+                inputs.readings.current_power, now
+            )
         peak_snapshot = self._peak_power_today.snapshot
         updates["peak_power_today"] = (
             peak_snapshot.peak_power_w if peak_snapshot is not None else None
@@ -1046,29 +1058,29 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             updates["energy_this_month_unit"] = UnitOfEnergy.KILO_WATT_HOUR
             should_save = True
 
-        cost = data.accumulated_cost_today
-        cost_unit = data.accumulated_cost_today_unit
+        cost = inputs.readings.external_cost_today
+        cost_unit = inputs.readings.external_cost_today_unit
         settings = resolve_settings(self._entry.data, self._entry.options)
         use_local_cost = not settings.get("accumulated_cost_today_entity")
         supplier = calculate_supplier_price(
-            data.current_price,
-            data.pricing_metadata,
-            data.supplier_markup_per_kwh,
+            inputs.readings.current_price,
+            inputs.context.pricing_metadata,
+            inputs.context.supplier_markup_per_kwh,
         )
         effective = calculate_declared_effective_price(
-            data.current_price,
-            data.pricing_metadata,
-            data.grid_fee_per_kwh,
-            data.energy_tax_per_kwh,
-            data.supplier_markup_per_kwh,
+            inputs.readings.current_price,
+            inputs.context.pricing_metadata,
+            inputs.context.grid_fee_per_kwh,
+            inputs.context.energy_tax_per_kwh,
+            inputs.context.supplier_markup_per_kwh,
         )
         if (
-            data.pricing_metadata is None
+            inputs.context.pricing_metadata is None
             or effective_price_metadata(
-                data.pricing_metadata,
-                data.grid_fee_per_kwh,
-                data.energy_tax_per_kwh,
-                data.supplier_markup_per_kwh,
+                inputs.context.pricing_metadata,
+                inputs.context.grid_fee_per_kwh,
+                inputs.context.energy_tax_per_kwh,
+                inputs.context.supplier_markup_per_kwh,
             ).completeness.value
             != "complete"
         ):
@@ -1079,15 +1091,15 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             source_energy_kwh,
             supplier,
             effective,
-            _currency_from_price_unit(data.current_price_unit),
+            _currency_from_price_unit(inputs.readings.current_price_unit),
             lifetime=self._provider.energy_source_is_lifetime_total,
         )
         ledger = self._local_costs
         should_save |= before != ledger.as_dict()
         fixed_day, fixed_month, missing_fees = accrued_fixed_fees(
             now,
-            data.fixed_supplier_fee_this_month,
-            data.fixed_grid_fee_this_month,
+            inputs.context.fixed_supplier_fee_this_month,
+            inputs.context.fixed_grid_fee_this_month,
         )
         known_day = ledger.unit is not None and (
             ledger.daily_energy > 0
@@ -1168,17 +1180,19 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
 
         monthly_cost = updates.get("cost_this_month")
         monthly_cost_unit = updates.get("cost_this_month_unit")
-        fixed_fee = data.fixed_supplier_fee_this_month
+        fixed_fee = inputs.context.fixed_supplier_fee_this_month
         fixed_fee_unit = (
             monthly_cost_unit
             if isinstance(monthly_cost_unit, str)
-            else _currency_from_price_unit(data.current_price_unit)
+            else _currency_from_price_unit(inputs.readings.current_price_unit)
         )
         updates["fixed_supplier_fee_this_month_unit"] = (
             fixed_fee_unit if fixed_fee is not None else None
         )
         updates["fixed_grid_fee_this_month_unit"] = (
-            fixed_fee_unit if data.fixed_grid_fee_this_month is not None else None
+            fixed_fee_unit
+            if inputs.context.fixed_grid_fee_this_month is not None
+            else None
         )
         if (
             isinstance(monthly_cost, Decimal)
@@ -1194,11 +1208,11 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         if should_save:
             self._schedule_statistics_save()
 
-        return replace(data, **updates)
+        return legacy_published_view(inputs, replace(results, **updates))
 
     def _update_timing_history(
         self,
-        data: ElectricityProData,
+        inputs: ProviderSnapshot,
         now: datetime,
         *,
         power_observed: bool,
@@ -1229,25 +1243,26 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._timing_last_time = now
         if power_observed:
             self._timing_power = (
-                data.current_power
-                if data.current_power is not None and data.current_power >= 0
+                inputs.readings.current_power
+                if inputs.readings.current_power is not None
+                and inputs.readings.current_power >= 0
                 else None
             )
             self._timing_power_observed_at = (
                 now if self._timing_power is not None else None
             )
         self._timing_effective_price = calculate_declared_effective_price(
-            data.current_price,
-            data.pricing_metadata,
-            data.grid_fee_per_kwh,
-            data.energy_tax_per_kwh,
-            data.supplier_markup_per_kwh,
+            inputs.readings.current_price,
+            inputs.context.pricing_metadata,
+            inputs.context.grid_fee_per_kwh,
+            inputs.context.energy_tax_per_kwh,
+            inputs.context.supplier_markup_per_kwh,
         )
         return bucket_closed
 
     def _update_base_load_history(
         self,
-        data: ElectricityProData,
+        inputs: ProviderSnapshot,
         now: datetime,
         *,
         power_observed: bool,
@@ -1276,18 +1291,21 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._base_load_last_time = now
         if power_observed:
             self._base_load_power = (
-                Decimal(-1) if data.current_power_bidirectional else data.current_power
+                Decimal(-1)
+                if inputs.readings.current_power_bidirectional
+                else inputs.readings.current_power
             )
             self._base_load_power_observed_at = (
                 now
-                if data.current_power is not None or data.current_power_bidirectional
+                if inputs.readings.current_power is not None
+                or inputs.readings.current_power_bidirectional
                 else None
             )
         return bucket_closed
 
     def _update_adaptive_price_history(
         self,
-        data: ElectricityProData,
+        inputs: ProviderSnapshot,
         now: datetime,
     ) -> bool:
         """Integrate compatible Effective Price into bounded hourly history."""
@@ -1310,13 +1328,13 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
 
         self._adaptive_price_last_time = now
         effective_price = calculate_declared_effective_price(
-            data.current_price,
-            data.pricing_metadata,
-            data.grid_fee_per_kwh,
-            data.energy_tax_per_kwh,
-            data.supplier_markup_per_kwh,
+            inputs.readings.current_price,
+            inputs.context.pricing_metadata,
+            inputs.context.grid_fee_per_kwh,
+            inputs.context.energy_tax_per_kwh,
+            inputs.context.supplier_markup_per_kwh,
         )
-        scope = self._adaptive_scope(data)
+        scope = self._adaptive_scope(inputs)
         scope_changed = False
         if effective_price is not None and scope is not None:
             scope_changed = self._adaptive_price_history.ensure_scope(
@@ -1332,17 +1350,17 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
 
     def _adaptive_scope(
         self,
-        data: ElectricityProData,
+        inputs: ProviderSnapshot,
     ) -> AdaptivePriceScope | None:
         """Return a complete compatibility scope for the current price."""
-        currency = _currency_from_price_unit(data.current_price_unit)
-        if currency is None or data.pricing_metadata is None:
+        currency = _currency_from_price_unit(inputs.readings.current_price_unit)
+        if currency is None or inputs.context.pricing_metadata is None:
             return None
         effective_metadata = effective_price_metadata(
-            data.pricing_metadata,
-            data.grid_fee_per_kwh,
-            data.energy_tax_per_kwh,
-            data.supplier_markup_per_kwh,
+            inputs.context.pricing_metadata,
+            inputs.context.grid_fee_per_kwh,
+            inputs.context.energy_tax_per_kwh,
+            inputs.context.supplier_markup_per_kwh,
         )
         scope = AdaptivePriceScope.from_metadata(
             currency=currency,
@@ -1417,52 +1435,52 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             for interval in self._forecast_intervals
         ]
         now = dt_util.now()
-        provider_data = self._provider.read()
+        inputs = self._provider.read_inputs()
         self._cheapest_1h_window = find_cheapest_continuous_window(
             intervals,
             now=now,
             duration_minutes=60,
-            grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
+            grid_fee_per_kwh=inputs.context.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
-            energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
-            supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
+            energy_tax_per_kwh=inputs.context.energy_tax_per_kwh,
+            supplier_markup_per_kwh=inputs.context.supplier_markup_per_kwh,
         )
         self._cheapest_2h_window = find_cheapest_continuous_window(
             intervals,
             now=now,
             duration_minutes=120,
-            grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
+            grid_fee_per_kwh=inputs.context.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
-            energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
-            supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
+            energy_tax_per_kwh=inputs.context.energy_tax_per_kwh,
+            supplier_markup_per_kwh=inputs.context.supplier_markup_per_kwh,
         )
         self._cheapest_3h_window = find_cheapest_continuous_window(
             intervals,
             now=now,
             duration_minutes=180,
-            grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
+            grid_fee_per_kwh=inputs.context.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
-            energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
-            supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
+            energy_tax_per_kwh=inputs.context.energy_tax_per_kwh,
+            supplier_markup_per_kwh=inputs.context.supplier_markup_per_kwh,
         )
-        threshold = provider_data.good_price_threshold
+        threshold = inputs.context.good_price_threshold
         forecast_metadata = intervals[0].pricing_metadata if intervals else None
         forecast_grid_fee = (
             self._provider.grid_fee_at(intervals[0].start)
             if intervals
-            else provider_data.grid_fee_per_kwh
+            else inputs.context.grid_fee_per_kwh
         )
         effective_forecast_metadata = (
             effective_price_metadata(
                 forecast_metadata,
                 forecast_grid_fee,
-                provider_data.energy_tax_per_kwh,
-                provider_data.supplier_markup_per_kwh,
+                inputs.context.energy_tax_per_kwh,
+                inputs.context.supplier_markup_per_kwh,
             )
             if forecast_metadata is not None
             else None
         )
-        live_scope = self._adaptive_scope(provider_data)
+        live_scope = self._adaptive_scope(inputs)
         forecast_scope = (
             AdaptivePriceScope.from_metadata(
                 currency=intervals[0].currency,
@@ -1493,8 +1511,8 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                         interval.market_price,
                         interval.pricing_metadata,
                         self._provider.grid_fee_at(interval.start),
-                        provider_data.energy_tax_per_kwh,
-                        provider_data.supplier_markup_per_kwh,
+                        inputs.context.energy_tax_per_kwh,
+                        inputs.context.supplier_markup_per_kwh,
                     )
                 )
                 is not None
@@ -1507,10 +1525,10 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 intervals,
                 now=now,
                 threshold=threshold,
-                grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
+                grid_fee_per_kwh=inputs.context.grid_fee_per_kwh,
                 grid_fee_at=self._provider.grid_fee_at,
-                energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
-                supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
+                energy_tax_per_kwh=inputs.context.energy_tax_per_kwh,
+                supplier_markup_per_kwh=inputs.context.supplier_markup_per_kwh,
                 price_is_comparable=self._forecast_prices_are_comparable,
             )
             if threshold is not None
@@ -1519,10 +1537,10 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._price_direction = find_price_direction(
             intervals,
             now=now,
-            grid_fee_per_kwh=provider_data.grid_fee_per_kwh,
+            grid_fee_per_kwh=inputs.context.grid_fee_per_kwh,
             grid_fee_at=self._provider.grid_fee_at,
-            energy_tax_per_kwh=provider_data.energy_tax_per_kwh,
-            supplier_markup_per_kwh=provider_data.supplier_markup_per_kwh,
+            energy_tax_per_kwh=inputs.context.energy_tax_per_kwh,
+            supplier_markup_per_kwh=inputs.context.supplier_markup_per_kwh,
             grid_fee_change_times=self._provider.grid_fee_change_times(
                 now,
                 now.astimezone(UTC) + timedelta(hours=2),

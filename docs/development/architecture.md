@@ -41,16 +41,25 @@ point projects those inputs through `legacy_provider_view()` into the existing
 daily/lifetime completeness flag. The view reads no HA states or clock; source
 normalization, read order and tariff evaluation remain at the provider boundary.
 
-The coordinator still consumes this flat provider view and enriches it using
-`dataclasses.replace`. Forecasts, histories and optional flow results also live
-separately on the coordinator.
+The coordinator uses `read_inputs()` at its four provider-read sites: normal
+reads, daily rollover, meter-reset confirmation and forecast-insight refresh.
+History helpers consume explicit readings/context. Each normal read creates
+fresh `IntegrationResults` with exactly the 30 selected/derived fields, retaining
+the old pass-through/default semantics. The existing typed updates apply to this
+local immutable result object; there is no second result cache on the coordinator.
+`legacy_published_view(inputs, results)` projects all selected results and the
+unchanged input/context fields to the 51-field snapshot entities still consume.
+It performs no calculations, source reads or clock reads. Monthly-reset and
+rollover overlays still replace only their existing result fields on that flat
+publication. Forecasts, histories and optional flow results retain their
+separate coordinator ownership.
 
 [ADR-0014](../adr/0014-source-readings-and-integration-results.md) records the accepted plan for
 separate readings, calculation context and integration results, with a field
-inventory and three implementation PRs. The first stage establishes the provider
-boundary described above. Explicit integration-result composition and final
-grouped publication/consumer migration remain the next two stages; the flat
-model and provider view are transitional.
+inventory and three implementation PRs. Provider inputs and explicit result
+composition are in place. Final grouped publication and consumer migration remain
+stage 3, which removes the flat model, both transitional views and the old
+provider entry point.
 
 ## Module map
 
@@ -64,7 +73,7 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `review_config.py` | Read-only final setup draft and options overview with configured price-component coverage |
 | `source_adapters.py` | Guided discovery and provider-specific configuration assistance |
 | `provider.py` | HA state reading, normalization, configured tariffs and canonical input construction; temporary flat `read()` entry point |
-| `data.py` | Pure immutable source/context contracts and provider snapshot; temporary flat model and provider projection |
+| `data.py` | Pure immutable input/result contracts; temporary flat model and separate provider/publication projections |
 | `pricing_config.py`, `vat_suggestions.py` | Price declarations and editable regional VAT suggestions |
 | `markup_estimate.py` | User-requested Tibber/Nord Pool comparison; acquisition and estimator in one module |
 | `coordinator.py` | Events, timers, retrieval, persistence, rollovers and result composition |
