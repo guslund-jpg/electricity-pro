@@ -17,6 +17,7 @@ See [architecture](../development/architecture.md) for current ownership and
 | [0011: market-price series](0011-market-price-series-contract.md) | Proposed status retained; public series implemented, formal acceptance not established by this cleanup |
 | [0012: adaptive classification](0012-adaptive-good-price-classification.md) | Accepted |
 | [0013: energy flows](0013-production-and-bidirectional-energy-flows.md) | Accepted design; only part implemented, unreleased |
+| [0014: source readings and integration results](0014-source-readings-and-integration-results.md) | Accepted design and three-PR delivery plan; implementation not started |
 
 Numbers 0002–0004 were unused placeholders and have been removed; existing
 records retain their numbers. Do not infer decisions from numbering gaps. Formal

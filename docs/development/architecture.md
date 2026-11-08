@@ -34,6 +34,11 @@ The provider constructs it; the coordinator enriches it using
 `dataclasses.replace`. Forecasts, histories and optional flow results also live
 separately on the coordinator.
 
+[ADR-0014](../adr/0014-source-readings-and-integration-results.md) records the accepted plan for
+separate readings, calculation context and integration results, with a field
+inventory and three implementation PRs. Implementation has not started; the
+current runtime still uses the shared flat snapshot described above.
+
 ## Module map
 
 Paths are relative to `custom_components/electricity_pro/`.
