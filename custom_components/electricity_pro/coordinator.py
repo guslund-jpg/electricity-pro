@@ -37,6 +37,7 @@ from .base_load import (
     AveragePowerResult,
     BaseLoadBucketAccumulator,
     BaseLoadEstimateResult,
+    BaseLoadObservation,
     BaseLoadSummaryHistory,
     calculate_average_power,
 )
@@ -267,9 +268,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._timing_effective_price: Decimal | None = None
         self._base_load_buckets = BaseLoadBucketAccumulator(self._local_timezone)
         self._base_load_summaries = BaseLoadSummaryHistory(self._local_timezone)
-        self._base_load_last_time: datetime | None = None
-        self._base_load_power: Decimal | None = None
-        self._base_load_power_observed_at: datetime | None = None
+        self._base_load_observation = BaseLoadObservation()
         self._adaptive_price_history = AdaptivePriceHistory(self._local_timezone)
         self._adaptive_price_last_time: datetime | None = None
         self._adaptive_price: Decimal | None = None
@@ -1270,40 +1269,14 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         power_observed: bool,
     ) -> bool:
         """Integrate power-only history independently of price availability."""
-        bucket_closed = False
-        if (
-            self._base_load_last_time is not None
-            and self._base_load_power is not None
-            and self._base_load_power_observed_at is not None
-        ):
-            valid_end = min(
-                now,
-                self._base_load_power_observed_at + _TIMING_POWER_MAX_HOLD,
-            )
-            if valid_end > self._base_load_last_time:
-                bucket_closed = int(self._base_load_last_time.timestamp()) // (
-                    15 * 60
-                ) != int(valid_end.timestamp()) // (15 * 60)
-                self._base_load_buckets.add_segment(
-                    start=self._base_load_last_time,
-                    end=valid_end,
-                    power_w=self._base_load_power,
-                )
-
-        self._base_load_last_time = now
-        if power_observed:
-            self._base_load_power = (
-                Decimal(-1)
-                if inputs.readings.current_power_bidirectional
-                else inputs.readings.current_power
-            )
-            self._base_load_power_observed_at = (
-                now
-                if inputs.readings.current_power is not None
-                or inputs.readings.current_power_bidirectional
-                else None
-            )
-        return bucket_closed
+        return self._base_load_observation.update(
+            now,
+            self._base_load_buckets,
+            power_w=inputs.readings.current_power,
+            bidirectional_power=inputs.readings.current_power_bidirectional,
+            power_observed=power_observed,
+            maximum_hold=_TIMING_POWER_MAX_HOLD,
+        )
 
     def _update_adaptive_price_history(
         self,

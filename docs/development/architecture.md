@@ -294,13 +294,21 @@ requirement. It restores summary rows atomically and writes fresh chronological
 rows using the existing format. Restoration does not recalculate the result:
 the coordinator still decides when to finalize and recalculate.
 
-The coordinator retains live power observations, bucket accumulation, elapsed-day
-average power, shared bidirectional markers, timers, local-day rollover and HA
-storage. Startup still finalizes the retained previous day before retaining the
-current day's buckets. The `base_load_daily_summaries` key, warning behavior,
+`BaseLoadObservation` owns the latest live base-load sample and interval cursor.
+It closes the preceding held sample before accepting an explicit power
+observation, using the same ten-minute hold and quarter-boundary save signal.
+Quiet updates do not renew the observation. Negative power and the normalized
+bidirectional flag retain their existing export-marker behavior. Live samples
+remain transient and are not written to storage or restored after restart.
+
+The coordinator supplies normalized power, the power-event flag and the hold
+limit to that owner. It retains the bucket accumulator and its restoration and
+retention, elapsed-day average power, shared bidirectional markers, timers,
+local-day rollover and HA storage. The observation updates the supplied bucket
+accumulator rather than retaining a reference to it. Startup still finalizes the
+retained previous day before retaining the current day's buckets. The
+`base_load_buckets` and `base_load_daily_summaries` keys, warning behavior,
 timezone/DST arithmetic and public `estimated_base_load` result are unchanged.
-This extracts one feature's completed-day state, not a general tracker framework
-or all power-history ownership.
 
 `CompletedTimingScore` in `timing_score.py` owns the last completed local day's
 date and score, including unavailable results. It composes the existing score
