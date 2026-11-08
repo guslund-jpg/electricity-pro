@@ -79,13 +79,13 @@ from .const import (
     DOMAIN,
 )
 from .forecast import (
+    ForecastCache,
     DailyAverageMarketPriceResult,
     ForecastInterval,
     MarketPriceForecastResponse,
     current_market_price_interval,
     daily_average_market_price,
     serialize_market_price_forecast,
-    validate_forecast_series,
 )
 from .forecast_insights import (
     ForecastDirectionInsight,
@@ -272,9 +272,8 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._adaptive_price_observation = AdaptivePriceObservation()
         self._adaptive_tariff_signature = _adaptive_tariff_signature(entry)
         self._cost_this_month_unit: str | None = None
-        self._forecast_intervals_by_date: dict[date, list[ForecastInterval]] = {}
+        self._forecast_cache = ForecastCache()
         self._forecast_failures: dict[date, str] = {}
-        self._forecast_intervals: list[ForecastInterval] = []
         self._cheapest_1h_window: ForecastWindowInsight | None = None
         self._cheapest_2h_window: ForecastWindowInsight | None = None
         self._cheapest_3h_window: ForecastWindowInsight | None = None
@@ -485,13 +484,13 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @property
     def forecast_intervals(self) -> list[ForecastInterval]:
         """Return the currently stored forecast intervals."""
-        return self._forecast_intervals
+        return self._forecast_cache.intervals
 
     @property
     def current_market_price_interval(self) -> ForecastInterval | None:
         """Return the normalized market-price interval covering now."""
         return current_market_price_interval(
-            self._forecast_intervals,
+            self._forecast_cache.intervals,
             now=dt_util.now(),
         )
 
@@ -510,7 +509,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             tzinfo=self._local_timezone,
         )
         return daily_average_market_price(
-            self._forecast_intervals,
+            self._forecast_cache.intervals,
             period_start=period_start,
             period_end=period_end,
         )
@@ -518,7 +517,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @property
     def market_price_forecast_response(self) -> MarketPriceForecastResponse:
         """Return the serialized bounded market-price forecast series."""
-        return serialize_market_price_forecast(self._forecast_intervals)
+        return serialize_market_price_forecast(self._forecast_cache.intervals)
 
     @property
     def cheapest_1h_window(self) -> ForecastWindowInsight | None:
@@ -641,13 +640,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         )
         market_today = now.astimezone(market_timezone).date()
 
-        stale_dates = [
-            stored_date
-            for stored_date in self._forecast_intervals_by_date
-            if stored_date < dates[0]
-        ]
-        for stale_date in stale_dates:
-            del self._forecast_intervals_by_date[stale_date]
+        self._forecast_cache.discard_before(dates[0])
         self._forecast_failures = {
             day: failure
             for day, failure in self._forecast_failures.items()
@@ -655,7 +648,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         }
 
         for target_date in dates:
-            if target_date not in self._forecast_intervals_by_date:
+            if not self._forecast_cache.has_date(target_date):
                 await self._async_refresh_forecast_intervals(
                     target_date, market_today=market_today
                 )
@@ -697,17 +690,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 raise ValueError("Nord Pool returned no forecast intervals")
             # Validate before replacing a cache entry: malformed refreshes must
             # not destroy an otherwise usable series from this or another day.
-            validate_forecast_series(
-                [
-                    *(
-                        interval
-                        for day, cached in self._forecast_intervals_by_date.items()
-                        if day != target_date
-                        for interval in cached
-                    ),
-                    *intervals,
-                ]
-            )
+            self._forecast_cache.validate_replacement(target_date, intervals)
         except (HomeAssistantError, TimeoutError, ValueError) as err:
             failure = (
                 f"{type(err).__name__}:{getattr(err, 'translation_key', None)}:{err}"
@@ -726,7 +709,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             return False
 
         self._forecast_failures.pop(target_date, None)
-        self._forecast_intervals_by_date[target_date] = intervals
+        self._forecast_cache.store_validated(target_date, intervals)
         self._rebuild_forecast_intervals()
         self._recalculate_forecast_insights()
         return True
@@ -734,14 +717,10 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     def _rebuild_forecast_intervals(self) -> None:
         """Build one ordered forecast sequence from the cached delivery dates."""
         try:
-            self._forecast_intervals = validate_forecast_series(
-                interval
-                for intervals in self._forecast_intervals_by_date.values()
-                for interval in intervals
-            )
+            self._forecast_cache.rebuild()
         except ValueError as err:
             _LOGGER.warning("Unable to publish market-price forecast series: %s", err)
-            self._forecast_intervals = []
+            self._forecast_cache.clear_published()
 
     @property
     def _monthly_energy_source(self) -> dict[str, object]:
@@ -1343,7 +1322,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 interval,
                 pricing_metadata=replace(interval.pricing_metadata, vat_rate=rate),
             )
-            for interval in self._forecast_intervals
+            for interval in self._forecast_cache.intervals
         ]
         now = dt_util.now()
         inputs = self._provider.read()

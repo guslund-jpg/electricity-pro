@@ -81,7 +81,7 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `good_time.py` | Pure fixed/adaptive Good Time decisions and explanations, including forecast refinement |
 | `settings.py` | Shared saved-settings overlay: options override setup data without normalization |
 | `device.py` | Fresh shared device metadata with stable entry-scoped identifiers |
-| `forecast.py`, `forecast_insights.py` | Interval contracts, validation and scheduling calculations |
+| `forecast.py`, `forecast_insights.py` | Interval contracts, validation, delivery-date cache and scheduling calculations |
 | `nordpool.py`, `workday.py` | HA action adapters for market delivery dates and non-working dates |
 | `energy_flows.py` | Pure protected lifetime counters for independent partial directional totals |
 | `flow_sources.py` | Explicit optional source bindings, HA state reading, unit/freshness validation |
@@ -266,6 +266,22 @@ tomorrow from 13:00 market time and retaining dates needed for the HA local day.
 Expected future empty responses remain retryable; genuine failures warn without
 erasing valid cached data. Forecast failures do not disable live measurements.
 See [forecast retrieval](../reference/forecast-retrieval.md) for the exact policy.
+
+`ForecastCache` in `forecast.py` owns intervals by delivery date and their
+separately rebuilt public series. Replacement validation uses the existing series
+validator against all other cached dates. The coordinator then clears the
+retrieval-failure marker, stores the validated input and rebuilds the publication
+at the existing call sites. Date pruning leaves the public list intact while an
+asynchronous fetch is pending. Rebuilding retains sorting, deduplication and the
+existing list/interval reference behavior.
+
+The coordinator retains date selection, HA acquisition, retries, failure
+deduplication/logging, insight calculation and update notifications. Invalid
+refreshes preserve both dated entries and publication. A defensive rebuild
+failure retains the old list until the coordinator logs the error and clears
+only the publication; the dated entries remain cached. Forecasts still live only
+in memory and are fetched again after restart. Storage formats, public actions,
+entity identities, price calculations and timer/market-clock policy are unchanged.
 
 The coordinator computes current market price, complete-day average and cheapest
 continuous 1h/2h/3h windows. Absolute-threshold and adaptive future comparisons

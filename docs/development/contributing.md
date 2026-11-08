@@ -190,7 +190,7 @@ The current strict scope is:
 | `flow_sources.py` | Explicit source bindings, normalized readings and freshness checks |
 | `cost_ledger.py` | Observed cost allocation, currency resets and validated persisted totals |
 | `nordpool.py` | Native action response validation, interval normalization and delivery dates |
-| `forecast.py` | Forecast interval validation, complete-day averages and serialization |
+| `forecast.py` | Forecast interval validation, delivery-date cache/publication, complete-day averages and serialization |
 | `calculations.py` | Supplier/effective pricing, VAT conversion and cost arithmetic |
 | `forecast_insights.py` | Continuous price windows and duration-weighted two-hour trend |
 | `coordinator.py` | Explicit provider inputs, field-specific result updates, flow metadata and persisted flow scope |
