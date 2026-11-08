@@ -2,13 +2,14 @@
 
 ## Status
 
-**Accepted — implementation has not started.**
+**Accepted — implementation stage 1 of 3 is in place.**
 
 Date: 8 November 2026. Reviewed source baseline: `4cb72d1`.
 The maintainer approved this design and its documentation PR #390 on
 8 November 2026. This document records the next bounded architecture change in
 [#288](https://github.com/guslund-jpg/electricity-pro/issues/288).
-It is a design and delivery plan, not a release commitment or runtime change.
+The provider boundary is implemented as described below. The remaining stages
+are a delivery plan, not a release commitment.
 
 ## Summary
 
@@ -24,8 +25,8 @@ follow-ups, rather than prerequisites for this sequence.
 
 ## Problem
 
-`ElectricityProData` currently has **51 fields**. The provider constructs it with
-source values, resolved settings and empty result slots; the coordinator can
+At the reviewed base, `ElectricityProData` has **51 fields**. The provider
+constructs it with source values, resolved settings and empty result slots; the coordinator can
 replace **30 fields** through `_DataUpdates`. Sensors and the Good Time adapter
 import this shared type from `provider.py`.
 
@@ -82,6 +83,10 @@ behavioral decision.
 
 Place the shared data contracts in a pure `data.py` module. The agreed names
 below describe the target; none of these new types exists at the reviewed base.
+Stage 1 introduces `SourceReadings`, `CalculationContext` and `ProviderSnapshot`.
+It moves the unchanged flat `ElectricityProData` into the same module with a
+temporary explicit re-export from `provider.py`; the grouped aggregate and
+`IntegrationResults` remain for stages 2–3.
 
 | Type | Responsibility |
 | --- | --- |
@@ -207,6 +212,16 @@ only if a concrete validation concern requires separate review.
 
 ### PR 1: input contracts and provider boundary
 
+Implemented: `read_inputs()` constructs the canonical pair; `read()` calls it
+once and uses the pure `legacy_provider_view()`. Existing coordinator and entity
+imports remain valid through the re-export. The new module is strictly typed.
+Independent 51-field characterization cases were run on both pinned Core
+baselines before extraction and retained for the new path and projection.
+Source-read and tariff-clock traces also cover both entry points.
+The stage-1 full suites pass **1,978 tests on each pinned Core baseline**;
+repository validation, Ruff and strict mypy (40 modules) also pass. Manual HA
+reload/restart and overnight observations have not been performed for this stage.
+
 Introduce the neutral data contracts and a canonical provider input read, with
 all 18 source and 7 context fields populated by the existing normalization code.
 Add a temporary explicit `legacy_provider_view(inputs)` for the current flat
@@ -325,6 +340,7 @@ own contracts and validation. No such delivery is implied by this proposal.
 
 - [x] Inspect the current fields and coordinator replacement sites at `4cb72d1`.
 - [x] Review and record acceptance of this design before implementation.
+- [x] Establish the stage-1 input contracts, provider boundary and temporary view.
 - [ ] Complete the three implementation PRs with their stated exit gates.
 - [ ] Provider output contains only readings/context; result composition cannot
   mutate those inputs.

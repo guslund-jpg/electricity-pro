@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from typing import Callable
@@ -45,68 +45,17 @@ from .const import (
     ENERGY_SOURCE_DAILY,
     ENERGY_SOURCE_LIFETIME,
 )
+from .data import (
+    CalculationContext,
+    ElectricityProData as ElectricityProData,
+    ProviderSnapshot,
+    SourceReadings,
+    legacy_provider_view,
+)
 from .grid_tariff import HighLowGridTariff
 from .flow_sources import FlowSources
-from .pricing import PricingMetadata
 from .pricing_config import resolve_pricing_metadata
 from .settings import resolve_settings
-
-
-@dataclass(frozen=True, slots=True)
-class ElectricityProData:
-    """Normalized Electricity Pro data."""
-
-    current_power: Decimal | None
-    current_power_bidirectional: bool
-    current_price: Decimal | None
-    current_price_unit: str | None
-    pricing_metadata: PricingMetadata | None
-    current_energy: Decimal | None
-    current_energy_unit: str | None
-    energy_source_type: str
-    energy_today_period_complete: bool
-    accumulated_cost_today: Decimal | None
-    accumulated_cost_today_unit: str | None
-    peak_power_today: Decimal | None
-    peak_power_time_today: datetime | None
-    current_l1: Decimal | None
-    current_l2: Decimal | None
-    current_l3: Decimal | None
-    voltage_l1: Decimal | None
-    voltage_l2: Decimal | None
-    voltage_l3: Decimal | None
-    monthly_peak_hour_consumption: Decimal | None
-    monthly_peak_hour_consumption_unit: str | None
-    monthly_peak_hour_time: datetime | None
-    energy_this_month: Decimal | None
-    energy_this_month_unit: str | None
-    cost_this_month: Decimal | None
-    cost_this_month_unit: str | None
-    fixed_supplier_fee_this_month: Decimal | None
-    fixed_supplier_fee_this_month_unit: str | None
-    fixed_grid_fee_this_month: Decimal | None
-    fixed_grid_fee_this_month_unit: str | None
-    total_supplier_cost_this_month: Decimal | None
-    total_supplier_cost_this_month_unit: str | None
-    grid_fee_per_kwh: Decimal | None
-    supplier_markup_per_kwh: Decimal | None
-    energy_tax_per_kwh: Decimal | None
-    good_price_threshold: Decimal | None
-    local_cost_estimate: bool = False
-    local_effective_cost_today: Decimal | None = None
-    local_priced_energy_today: Decimal | None = None
-    local_supplier_energy_today: Decimal | None = None
-    local_supplier_energy_month: Decimal | None = None
-    household_cost_today: Decimal | None = None
-    household_cost_this_month: Decimal | None = None
-    household_cost_unit: str | None = None
-    household_variable_today: Decimal | None = None
-    household_variable_month: Decimal | None = None
-    household_fixed_today: Decimal | None = None
-    household_fixed_month: Decimal | None = None
-    household_priced_energy_today: Decimal | None = None
-    household_priced_energy_month: Decimal | None = None
-    household_missing_fees: tuple[str, ...] = ()
 
 
 class ElectricityProEntityProvider:
@@ -267,7 +216,12 @@ class ElectricityProEntityProvider:
 
     @callback
     def read(self) -> ElectricityProData:
-        """Read and normalize all configured source entities."""
+        """Return the temporary flat contract used by coordinator callers."""
+        return legacy_provider_view(self.read_inputs())
+
+    @callback
+    def read_inputs(self) -> ProviderSnapshot:
+        """Read and normalize configured sources with their resolved context."""
         current_energy, current_energy_unit = self._normalize_energy(
             self._hass.states.get(self._energy_entity_id)
             if self._energy_entity_id is not None
@@ -331,7 +285,7 @@ class ElectricityProEntityProvider:
             else None
         )
 
-        return ElectricityProData(
+        readings = SourceReadings(
             current_power=self._normalize_power(
                 self._hass.states.get(self._power_entity_id)
             ),
@@ -340,17 +294,11 @@ class ElectricityProEntityProvider:
             ),
             current_price=current_price,
             current_price_unit=current_price_unit,
-            pricing_metadata=self._pricing_metadata,
-            current_energy=current_energy,
-            current_energy_unit=current_energy_unit,
+            import_energy_value=current_energy,
+            import_energy_unit=current_energy_unit,
             energy_source_type=self._energy_source_type,
-            energy_today_period_complete=(
-                self._energy_source_type == ENERGY_SOURCE_DAILY
-            ),
-            accumulated_cost_today=accumulated_cost_today,
-            accumulated_cost_today_unit=accumulated_cost_today_unit,
-            peak_power_today=None,
-            peak_power_time_today=None,
+            external_cost_today=accumulated_cost_today,
+            external_cost_today_unit=accumulated_cost_today_unit,
             current_l1=current_l1,
             current_l2=current_l2,
             current_l3=current_l3,
@@ -360,21 +308,17 @@ class ElectricityProEntityProvider:
             monthly_peak_hour_consumption=monthly_peak_hour_consumption,
             monthly_peak_hour_consumption_unit=(monthly_peak_hour_consumption_unit),
             monthly_peak_hour_time=monthly_peak_hour_time,
-            energy_this_month=None,
-            energy_this_month_unit=None,
-            cost_this_month=None,
-            cost_this_month_unit=None,
+        )
+        context = CalculationContext(
+            pricing_metadata=self._pricing_metadata,
             fixed_supplier_fee_this_month=self._fixed_supplier_fee_monthly,
-            fixed_supplier_fee_this_month_unit=None,
             fixed_grid_fee_this_month=self._fixed_grid_fee_monthly,
-            fixed_grid_fee_this_month_unit=None,
-            total_supplier_cost_this_month=None,
-            total_supplier_cost_this_month_unit=None,
             grid_fee_per_kwh=self.grid_fee_at(dt_util.now()),
             supplier_markup_per_kwh=self._supplier_markup_per_kwh,
             energy_tax_per_kwh=self._energy_tax_per_kwh,
             good_price_threshold=self._good_price_threshold,
         )
+        return ProviderSnapshot(readings=readings, context=context)
 
     @staticmethod
     def _parse_state(source_state: State | None) -> Decimal | None:

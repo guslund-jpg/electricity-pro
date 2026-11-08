@@ -36,6 +36,12 @@ The provider is responsible for:
 
 Invalid or unsupported measurements are represented as `None`.
 
+[ADR-0014](0014-source-readings-and-integration-results.md) refines the runtime
+contract in three stages. Its first stage adds the canonical `read_inputs()`
+returning immutable source readings and calculation context in `ProviderSnapshot`.
+The existing `read()` temporarily projects those inputs to `ElectricityProData`
+for coordinator callers; normalization and tariff evaluation remain here.
+
 ## Consequences
 
 Advantages
