@@ -1,13 +1,13 @@
 """Publication/order oracles recorded from 54e0c05 before ADR-0014 stage 2."""
 
 from contextlib import ExitStack
-from dataclasses import FrozenInstanceError, fields, is_dataclass
+from dataclasses import FrozenInstanceError, fields, is_dataclass, replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 import json
 from pathlib import Path
-from typing import get_args, get_type_hints
+from typing import get_type_hints
 from unittest.mock import patch
 
 import pytest
@@ -19,11 +19,11 @@ from custom_components.electricity_pro.coordinator import (
     _DataUpdates,
 )
 from custom_components.electricity_pro.data import (
+    CalculationContext,
     ElectricityProData,
+    SourceReadings,
     IntegrationResults,
     ProviderSnapshot,
-    legacy_provider_view,
-    legacy_published_view,
 )
 
 _START = datetime(2026, 11, 2, 22, 50, tzinfo=UTC)
@@ -32,6 +32,96 @@ _FIXTURES = Path(__file__).parent / "fixtures" / "coordinator_results"
 
 def _encode(value):
     """Retain Decimal scale, timestamp offsets and every snapshot field."""
+    if isinstance(value, ElectricityProData):
+        return {
+            "current_power": _encode(value.readings.current_power),
+            "current_power_bidirectional": _encode(
+                value.readings.current_power_bidirectional
+            ),
+            "current_price": _encode(value.readings.current_price),
+            "current_price_unit": _encode(value.readings.current_price_unit),
+            "pricing_metadata": _encode(value.context.pricing_metadata),
+            "current_energy": _encode(value.results.current_energy),
+            "current_energy_unit": _encode(value.results.current_energy_unit),
+            "energy_source_type": _encode(value.readings.energy_source_type),
+            "energy_today_period_complete": _encode(
+                value.results.energy_today_period_complete
+            ),
+            "accumulated_cost_today": _encode(value.results.accumulated_cost_today),
+            "accumulated_cost_today_unit": _encode(
+                value.results.accumulated_cost_today_unit
+            ),
+            "peak_power_today": _encode(value.results.peak_power_today),
+            "peak_power_time_today": _encode(value.results.peak_power_time_today),
+            "current_l1": _encode(value.readings.current_l1),
+            "current_l2": _encode(value.readings.current_l2),
+            "current_l3": _encode(value.readings.current_l3),
+            "voltage_l1": _encode(value.readings.voltage_l1),
+            "voltage_l2": _encode(value.readings.voltage_l2),
+            "voltage_l3": _encode(value.readings.voltage_l3),
+            "monthly_peak_hour_consumption": _encode(
+                value.readings.monthly_peak_hour_consumption
+            ),
+            "monthly_peak_hour_consumption_unit": _encode(
+                value.readings.monthly_peak_hour_consumption_unit
+            ),
+            "monthly_peak_hour_time": _encode(value.readings.monthly_peak_hour_time),
+            "energy_this_month": _encode(value.results.energy_this_month),
+            "energy_this_month_unit": _encode(value.results.energy_this_month_unit),
+            "cost_this_month": _encode(value.results.cost_this_month),
+            "cost_this_month_unit": _encode(value.results.cost_this_month_unit),
+            "fixed_supplier_fee_this_month": _encode(
+                value.context.fixed_supplier_fee_this_month
+            ),
+            "fixed_supplier_fee_this_month_unit": _encode(
+                value.results.fixed_supplier_fee_this_month_unit
+            ),
+            "fixed_grid_fee_this_month": _encode(
+                value.context.fixed_grid_fee_this_month
+            ),
+            "fixed_grid_fee_this_month_unit": _encode(
+                value.results.fixed_grid_fee_this_month_unit
+            ),
+            "total_supplier_cost_this_month": _encode(
+                value.results.total_supplier_cost_this_month
+            ),
+            "total_supplier_cost_this_month_unit": _encode(
+                value.results.total_supplier_cost_this_month_unit
+            ),
+            "grid_fee_per_kwh": _encode(value.context.grid_fee_per_kwh),
+            "supplier_markup_per_kwh": _encode(value.context.supplier_markup_per_kwh),
+            "energy_tax_per_kwh": _encode(value.context.energy_tax_per_kwh),
+            "good_price_threshold": _encode(value.context.good_price_threshold),
+            "local_cost_estimate": _encode(value.results.local_cost_estimate),
+            "local_effective_cost_today": _encode(
+                value.results.local_effective_cost_today
+            ),
+            "local_priced_energy_today": _encode(
+                value.results.local_priced_energy_today
+            ),
+            "local_supplier_energy_today": _encode(
+                value.results.local_supplier_energy_today
+            ),
+            "local_supplier_energy_month": _encode(
+                value.results.local_supplier_energy_month
+            ),
+            "household_cost_today": _encode(value.results.household_cost_today),
+            "household_cost_this_month": _encode(
+                value.results.household_cost_this_month
+            ),
+            "household_cost_unit": _encode(value.results.household_cost_unit),
+            "household_variable_today": _encode(value.results.household_variable_today),
+            "household_variable_month": _encode(value.results.household_variable_month),
+            "household_fixed_today": _encode(value.results.household_fixed_today),
+            "household_fixed_month": _encode(value.results.household_fixed_month),
+            "household_priced_energy_today": _encode(
+                value.results.household_priced_energy_today
+            ),
+            "household_priced_energy_month": _encode(
+                value.results.household_priced_energy_month
+            ),
+            "household_missing_fees": _encode(value.results.household_missing_fees),
+        }
     if isinstance(value, Decimal):
         return {"decimal": str(value)}
     if isinstance(value, datetime):
@@ -192,7 +282,7 @@ async def test_read_keeps_separate_clocks_and_feature_order(hass, power_observed
         )
         stack.enter_context(patch.object(coordinator._store, "async_delay_save"))
         for owner, name, label in (
-            (coordinator._provider, "read_inputs", "inputs"),
+            (coordinator._provider, "read", "inputs"),
             (coordinator, "_read_flows", "flows"),
             (coordinator._energy_today_from_total, "update", "daily_energy"),
             (coordinator, "_update_timing_history", "timing"),
@@ -227,7 +317,7 @@ async def test_provider_read_sites_keep_their_existing_clock_cadence(hass, path)
     await hass.config.async_set_time_zone("UTC")
     coordinator = _coordinator(hass)
     trace = []
-    original = coordinator._provider.read_inputs
+    original = coordinator._provider.read
 
     def inputs():
         trace.append("inputs")
@@ -243,10 +333,7 @@ async def test_provider_read_sites_keep_their_existing_clock_cadence(hass, path)
         return Decimal("0.1250")
 
     with (
-        patch.object(coordinator._provider, "read_inputs", side_effect=inputs),
-        patch.object(
-            coordinator._provider, "read", side_effect=AssertionError("legacy read")
-        ),
+        patch.object(coordinator._provider, "read", side_effect=inputs),
         patch.object(coordinator._provider, "grid_fee_at", side_effect=tariff),
         patch(
             "custom_components.electricity_pro.coordinator.dt_util.now",
@@ -284,68 +371,97 @@ async def test_provider_read_sites_keep_their_existing_clock_cadence(hass, path)
 
 
 def test_result_schema_retains_all_thirty_snapshot_types():
+    """Keep the reviewed types independent of the new container hierarchy."""
     updates = get_type_hints(_DataUpdates)
-    snapshot = get_type_hints(ElectricityProData)
     results = get_type_hints(IntegrationResults)
+    expected = {
+        "current_energy": Decimal | None,
+        "current_energy_unit": str | None,
+        "energy_today_period_complete": bool,
+        "accumulated_cost_today": Decimal | None,
+        "accumulated_cost_today_unit": str | None,
+        "peak_power_today": Decimal | None,
+        "peak_power_time_today": datetime | None,
+        "energy_this_month": Decimal | None,
+        "energy_this_month_unit": str | None,
+        "cost_this_month": Decimal | None,
+        "cost_this_month_unit": str | None,
+        "fixed_supplier_fee_this_month_unit": str | None,
+        "fixed_grid_fee_this_month_unit": str | None,
+        "total_supplier_cost_this_month": Decimal | None,
+        "total_supplier_cost_this_month_unit": str | None,
+        "local_cost_estimate": bool,
+        "local_effective_cost_today": Decimal | None,
+        "local_priced_energy_today": Decimal | None,
+        "local_supplier_energy_today": Decimal | None,
+        "local_supplier_energy_month": Decimal | None,
+        "household_cost_today": Decimal | None,
+        "household_cost_this_month": Decimal | None,
+        "household_cost_unit": str | None,
+        "household_variable_today": Decimal | None,
+        "household_variable_month": Decimal | None,
+        "household_fixed_today": Decimal | None,
+        "household_fixed_month": Decimal | None,
+        "household_priced_energy_today": Decimal | None,
+        "household_priced_energy_month": Decimal | None,
+        "household_missing_fees": tuple[str, ...],
+    }
     assert len(updates) == len(results) == 30
-    assert results == {name: snapshot[name] for name in updates}
-    # The update dictionary deliberately has ten narrower Decimal annotations.
+    assert results == expected
+    assert updates.keys() == expected.keys()
     assert sum(updates[name] != results[name] for name in updates) == 10
 
 
-def test_publication_projection_selects_every_result_and_keeps_input_identity(hass):
-    inputs = _coordinator(hass)._provider.read_inputs()
-    before = _encode(inputs)
-    values = {}
-    for index, (name, annotation) in enumerate(
-        get_type_hints(IntegrationResults).items()
-    ):
-        choices = get_args(annotation) or (annotation,)
-        if Decimal in choices:
-            value = Decimal(f"{index + 10}.0000")
-        elif annotation == tuple[str, ...]:
-            value = ("result:missing_fee",)
-        elif str in choices:
-            value = f"result:{name}"
-        elif datetime in choices:
-            value = _START
-        elif annotation is bool:
-            value = True
-        else:
-            value = ("result:missing_fee",)
-        values[name] = value
-    results = IntegrationResults(**values)
-    raw = legacy_provider_view(inputs)
+def test_grouped_publication_keeps_input_identity_and_is_immutable(hass):
+    inputs = _coordinator(hass)._provider.read()
+    results = replace(
+        IntegrationResults.from_inputs(inputs),
+        current_energy=Decimal("1.2500"),
+        current_energy_unit="kWh",
+        accumulated_cost_today=Decimal("12.5000"),
+    )
     with patch(
         "custom_components.electricity_pro.coordinator.dt_util.now",
         side_effect=AssertionError("clock"),
     ):
-        published = legacy_published_view(inputs, results)
-    for field in fields(published):
-        owner = results if field.name in values else raw
-        assert getattr(published, field.name) is getattr(owner, field.name)
-    assert _encode(inputs) == before
-    assert not hasattr(results, "__dict__")
-    with pytest.raises(FrozenInstanceError):
-        results.current_energy = None
+        published = ElectricityProData(
+            readings=inputs.readings, context=inputs.context, results=results
+        )
+    assert published.readings is inputs.readings
+    assert published.context is inputs.context
+    assert published.results is results
+    assert published.readings.import_energy_value == Decimal("100000.0000")
+    assert published.readings.import_energy_unit == "Wh"
+    assert published.readings.external_cost_today is None
+    assert published.results.current_energy == Decimal("1.2500")
+    assert published.results.current_energy_unit == "kWh"
+    assert published.results.accumulated_cost_today == Decimal("12.5000")
+    assert get_type_hints(ElectricityProData) == {
+        "readings": SourceReadings,
+        "context": CalculationContext,
+        "results": IntegrationResults,
+    }
+    assert not hasattr(published, "current_energy")
+    assert not hasattr(_coordinator(hass)._provider, "read_inputs")
+    for group in (published, published.readings, published.context, published.results):
+        assert not hasattr(group, "__dict__")
+        with pytest.raises(FrozenInstanceError):
+            setattr(group, fields(group)[0].name, None)
 
 
 async def test_each_read_composes_fresh_results_without_mutating_raw_sources(hass):
     await hass.config.async_set_time_zone("UTC")
     coordinator = _coordinator(hass)
-    composed = []
+    captured = []
+    original = coordinator._provider.read
 
-    def publish(inputs, results):
-        assert isinstance(inputs, ProviderSnapshot)
-        assert isinstance(results, IntegrationResults)
-        composed.append((inputs, results))
-        return legacy_published_view(inputs, results)
+    def read_provider():
+        inputs = original()
+        captured.append(inputs)
+        return inputs
 
     with (
-        patch(
-            "custom_components.electricity_pro.coordinator.legacy_published_view",
-            side_effect=publish,
-        ),
+        patch.object(coordinator._provider, "read", side_effect=read_provider),
         patch(
             "custom_components.electricity_pro.coordinator.dt_util.now",
             return_value=_START,
@@ -359,17 +475,97 @@ async def test_each_read_composes_fresh_results_without_mutating_raw_sources(has
             return_value=_START + timedelta(minutes=5),
         ):
             second = coordinator._read()
-    old_inputs, old_results = composed[0]
-    new_inputs, new_results = composed[1]
+    old_inputs, new_inputs = captured
+    assert isinstance(old_inputs, ProviderSnapshot)
     assert old_inputs is not new_inputs
-    assert old_results is not new_results
+    assert first.readings is old_inputs.readings
+    assert second.readings is new_inputs.readings
+    assert first.context is old_inputs.context
+    assert second.context is new_inputs.context
+    assert first.results is not second.results
     assert old_inputs.readings.import_energy_value == Decimal("100000.0000")
     assert new_inputs.readings.import_energy_value == Decimal("101250.0000")
     assert old_inputs.readings.external_cost_today is None
     assert new_inputs.readings.external_cost_today is None
-    assert first.current_energy == old_results.current_energy == Decimal(0)
-    assert second.current_energy == new_results.current_energy == Decimal("1.2500000")
-    assert second.accumulated_cost_today == Decimal("-0.092812500000000")
+    assert first.results.current_energy == Decimal(0)
+    assert second.results.current_energy == Decimal("1.2500000")
+    assert second.results.accumulated_cost_today == Decimal("-0.092812500000000")
     assert not any(
         isinstance(value, IntegrationResults) for value in vars(coordinator).values()
     )
+
+
+@pytest.mark.parametrize("mode", ["daily", "lifetime"])
+@pytest.mark.parametrize("action", ["monthly_reset", "rollover"])
+async def test_action_overlays_replace_only_results(hass, mode, action):
+    """Fresh provider reads must not replace the overlay's original input groups."""
+    await hass.config.async_set_time_zone("UTC")
+    coordinator = _coordinator(hass, mode)
+    with (
+        patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=_START,
+        ),
+        patch.object(coordinator._store, "async_delay_save"),
+        patch.object(coordinator._store, "async_save"),
+    ):
+        coordinator.async_set_updated_data(coordinator._read(power_observed=True))
+        _set(hass, "energy", "101250.0000", "Wh")
+        with patch(
+            "custom_components.electricity_pro.coordinator.dt_util.now",
+            return_value=_START + timedelta(minutes=5),
+        ):
+            coordinator.async_set_updated_data(coordinator._read())
+        _set(hass, "energy", "101750.0000", "Wh")
+        if action == "rollover":
+            before = coordinator.data
+            midnight = datetime(2026, 11, 3, tzinfo=UTC)
+            with patch(
+                "custom_components.electricity_pro.coordinator.dt_util.now",
+                return_value=midnight,
+            ):
+                coordinator._async_daily_rollover(midnight)
+            allowed = {"peak_power_today", "peak_power_time_today"}
+            if mode == "lifetime":
+                allowed |= {
+                    "current_energy",
+                    "current_energy_unit",
+                    "energy_today_period_complete",
+                }
+                assert coordinator.data.results.current_energy == 0
+            assert coordinator.data.results.peak_power_today is None
+            assert coordinator.data.readings.import_energy_value == Decimal(
+                "101250.0000"
+            )
+        else:
+            captured = []
+            original = coordinator._read
+
+            def read():
+                snapshot = original()
+                captured.append(snapshot)
+                return snapshot
+
+            with (
+                patch.object(coordinator, "_read", side_effect=read),
+                patch(
+                    "custom_components.electricity_pro.coordinator.dt_util.now",
+                    return_value=_START + timedelta(minutes=6),
+                ),
+            ):
+                await coordinator.async_reset_monthly_energy()
+            before = captured[0]
+            allowed = {"energy_this_month", "energy_this_month_unit"}
+            assert coordinator.data.results.energy_this_month == 0
+            assert coordinator.data.readings.import_energy_value == Decimal(
+                "101750.0000"
+            )
+    after = coordinator.data
+    assert after.readings is before.readings
+    assert after.context is before.context
+    assert after.results is not before.results
+    for field in fields(before.results):
+        if field.name not in allowed:
+            assert getattr(after.results, field.name) is getattr(
+                before.results, field.name
+            )

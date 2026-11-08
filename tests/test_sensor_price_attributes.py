@@ -17,6 +17,10 @@ from custom_components.electricity_pro.pricing import (
     PricingStrategy,
     VatTreatment,
 )
+from custom_components.electricity_pro.data import (
+    ElectricityProData,
+    IntegrationResults,
+)
 from custom_components.electricity_pro.provider import ElectricityProEntityProvider
 from custom_components.electricity_pro.sensor import (
     SENSOR_DESCRIPTIONS,
@@ -44,18 +48,35 @@ def price_sensor(hass):
     """Build real sensor entities over an explicitly controlled snapshot."""
     entry = MockConfigEntry(domain=DOMAIN, data={"power_entity": "sensor.power"})
     coordinator = ElectricityProCoordinator(hass, entry)
+    inputs = ElectricityProEntityProvider(hass, entry).read()
+    data = ElectricityProData(
+        readings=inputs.readings,
+        context=inputs.context,
+        results=IntegrationResults.from_inputs(inputs),
+    )
     data = replace(
-        ElectricityProEntityProvider(hass, entry).read(),
-        current_price=Decimal("2"),
-        current_price_unit="SEK/kWh",
-        pricing_metadata=_METADATA,
-        supplier_markup_per_kwh=Decimal("0.18"),
-        grid_fee_per_kwh=Decimal("0.50"),
-        energy_tax_per_kwh=Decimal("0.10"),
+        data,
+        readings=replace(
+            data.readings, current_price=Decimal("2"), current_price_unit="SEK/kWh"
+        ),
+        context=replace(
+            data.context,
+            pricing_metadata=_METADATA,
+            supplier_markup_per_kwh=Decimal("0.18"),
+            grid_fee_per_kwh=Decimal("0.50"),
+            energy_tax_per_kwh=Decimal("0.10"),
+        ),
     )
 
-    def create(key, **updates):
-        coordinator.async_set_updated_data(replace(data, **updates))
+    def create(key, *, readings=None, context=None, results=None):
+        coordinator.async_set_updated_data(
+            replace(
+                data,
+                readings=replace(data.readings, **(readings or {})),
+                context=replace(data.context, **(context or {})),
+                results=replace(data.results, **(results or {})),
+            )
+        )
         description = next(item for item in SENSOR_DESCRIPTIONS if item.key == key)
         return ElectricityProSensor(coordinator, entry, description)
 
@@ -66,43 +87,56 @@ def price_sensor(hass):
     "updates,expected",
     [
         pytest.param({}, "2.6800", id="excluded-vat"),
-        pytest.param({"current_price": Decimal("-1")}, "-1.0700", id="negative"),
         pytest.param(
-            {"current_price": Decimal(0), "supplier_markup_per_kwh": Decimal(0)},
+            {"readings": {"current_price": Decimal("-1")}}, "-1.0700", id="negative"
+        ),
+        pytest.param(
+            {
+                "readings": {"current_price": Decimal(0)},
+                "context": {"supplier_markup_per_kwh": Decimal(0)},
+            },
             "0",
             id="zero",
         ),
         pytest.param(
             {
-                "pricing_metadata": replace(
-                    _METADATA,
-                    scope=PriceComponentScope(
-                        included=frozenset(
-                            {
-                                PriceComponent.MARKET_ENERGY,
-                                PriceComponent.SUPPLIER_MARKUP,
-                            }
+                "context": {
+                    "pricing_metadata": replace(
+                        _METADATA,
+                        scope=PriceComponentScope(
+                            included=frozenset(
+                                {
+                                    PriceComponent.MARKET_ENERGY,
+                                    PriceComponent.SUPPLIER_MARKUP,
+                                }
+                            ),
+                            vat=VatTreatment.INCLUDED,
                         ),
-                        vat=VatTreatment.INCLUDED,
-                    ),
-                )
+                    )
+                }
             },
             "2",
             id="markup-already-included",
         ),
-        pytest.param({"pricing_metadata": None}, None, id="missing-metadata"),
-        pytest.param({"current_price": None}, None, id="missing-price"),
-        pytest.param({"supplier_markup_per_kwh": None}, None, id="unknown-markup"),
         pytest.param(
-            {"pricing_metadata": replace(_METADATA, vat_rate=None)},
+            {"context": {"pricing_metadata": None}}, None, id="missing-metadata"
+        ),
+        pytest.param({"readings": {"current_price": None}}, None, id="missing-price"),
+        pytest.param(
+            {"context": {"supplier_markup_per_kwh": None}}, None, id="unknown-markup"
+        ),
+        pytest.param(
+            {"context": {"pricing_metadata": replace(_METADATA, vat_rate=None)}},
             None,
             id="missing-vat-rate",
         ),
         pytest.param(
             {
-                "pricing_metadata": replace(
-                    _METADATA, strategy=PricingStrategy.EXTERNAL_COMPLETE_PRICE
-                )
+                "context": {
+                    "pricing_metadata": replace(
+                        _METADATA, strategy=PricingStrategy.EXTERNAL_COMPLETE_PRICE
+                    )
+                }
             },
             None,
             id="external-complete-price",
@@ -110,15 +144,17 @@ def price_sensor(hass):
         *[
             pytest.param(
                 {
-                    "pricing_metadata": replace(
-                        _METADATA,
-                        scope=replace(
-                            _METADATA.scope,
-                            included=frozenset(
-                                {PriceComponent.MARKET_ENERGY, component}
+                    "context": {
+                        "pricing_metadata": replace(
+                            _METADATA,
+                            scope=replace(
+                                _METADATA.scope,
+                                included=frozenset(
+                                    {PriceComponent.MARKET_ENERGY, component}
+                                ),
                             ),
-                        ),
-                    )
+                        )
+                    }
                 },
                 None,
                 id=f"includes-{component.value}",
@@ -213,8 +249,8 @@ def test_effective_price_attributes_preserve_vat_explanations(
     """Keep serialized rates and configuration hints distinct from availability."""
     sensor = price_sensor(
         "effective_price",
-        pricing_metadata=metadata,
-        current_price=None if price is None else Decimal(price),
+        context={"pricing_metadata": metadata},
+        readings={"current_price": None if price is None else Decimal(price)},
     )
     value = None if expected is None else Decimal(expected)
     assert sensor.native_value == value
@@ -229,7 +265,7 @@ def test_effective_price_attributes_preserve_vat_explanations(
 
 
 def test_effective_price_without_metadata_has_no_attributes(price_sensor):
-    sensor = price_sensor("effective_price", pricing_metadata=None)
+    sensor = price_sensor("effective_price", context={"pricing_metadata": None})
     assert sensor.native_value is None
     assert sensor.available is False
     assert sensor.extra_state_attributes is None
@@ -243,12 +279,18 @@ def test_price_attributes_do_not_depend_on_unit_or_coordinator_availability(
     sensor = price_sensor(key)
     expected = sensor.extra_state_attributes
     value = sensor.native_value
-    sensor.coordinator.data = replace(sensor.coordinator.data, current_price_unit=None)
+    sensor.coordinator.data = replace(
+        sensor.coordinator.data,
+        readings=replace(sensor.coordinator.data.readings, current_price_unit=None),
+    )
     assert sensor.available is False
     assert sensor.native_value == value
     assert sensor.extra_state_attributes == expected
     sensor.coordinator.data = replace(
-        sensor.coordinator.data, current_price_unit="SEK/kWh"
+        sensor.coordinator.data,
+        readings=replace(
+            sensor.coordinator.data.readings, current_price_unit="SEK/kWh"
+        ),
     )
     sensor.coordinator.last_update_success = False
     assert sensor.available is False

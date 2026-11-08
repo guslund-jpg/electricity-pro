@@ -59,7 +59,7 @@ from .device import device_info_for_entry
 from .forecast import DailyAverageMarketPriceResult, ForecastInterval
 from .forecast_insights import ForecastWindowInsight
 from .pricing import PricingMetadata
-from .provider import ElectricityProData
+from .data import ElectricityProData
 from .flow_sources import CHANNELS
 from .settings import resolve_settings
 from .statistics import remaining_cost_today
@@ -94,7 +94,7 @@ class ElectricityProSensorEntityDescription(
 
 def cost_rate_unit(data: ElectricityProData) -> str | None:
     """Return the currency-per-hour unit for the cost-rate sensor."""
-    price_unit = data.current_price_unit
+    price_unit = data.readings.current_price_unit
 
     if price_unit is None:
         return None
@@ -109,7 +109,7 @@ def cost_rate_unit(data: ElectricityProData) -> str | None:
 
 def cost_unit(data: ElectricityProData) -> str | None:
     """Return the currency unit for calculated cost sensors."""
-    price_unit = data.current_price_unit
+    price_unit = data.readings.current_price_unit
 
     if price_unit is None:
         return None
@@ -124,7 +124,7 @@ def cost_unit(data: ElectricityProData) -> str | None:
 def current_cost_rate(data: ElectricityProData) -> Decimal | None:
     """Return the current electricity cost per hour."""
     return calculate_current_cost_rate(
-        data.current_power,
+        data.readings.current_power,
         effective_price(data),
     )
 
@@ -132,18 +132,20 @@ def current_cost_rate(data: ElectricityProData) -> Decimal | None:
 def effective_price(data: ElectricityProData) -> Decimal | None:
     """Return electricity price including configured variable adjustments."""
     return calculate_declared_effective_price(
-        data.current_price,
-        data.pricing_metadata,
-        data.grid_fee_per_kwh,
-        data.energy_tax_per_kwh,
-        data.supplier_markup_per_kwh,
+        data.readings.current_price,
+        data.context.pricing_metadata,
+        data.context.grid_fee_per_kwh,
+        data.context.energy_tax_per_kwh,
+        data.context.supplier_markup_per_kwh,
     )
 
 
 def supplier_price(data: ElectricityProData) -> Decimal | None:
     """Return the supplier-only price when its components can be identified."""
     return calculate_supplier_price(
-        data.current_price, data.pricing_metadata, data.supplier_markup_per_kwh
+        data.readings.current_price,
+        data.context.pricing_metadata,
+        data.context.supplier_markup_per_kwh,
     )
 
 
@@ -176,7 +178,7 @@ def _supplier_price_attributes(data: ElectricityProData) -> dict[str, object]:
 
 def _effective_price_attributes(data: ElectricityProData) -> dict[str, object] | None:
     """Describe source VAT and the existing Effective Price configuration hints."""
-    metadata = data.pricing_metadata
+    metadata = data.context.pricing_metadata
     if metadata is None:
         return None
     vat = metadata.scope.vat.value
@@ -198,17 +200,21 @@ def _household_cost_attributes(
         "source": "local_household_estimate",
         "coverage": "partial",
         "variable_cost": _decimal_string(
-            data.household_variable_month if monthly else data.household_variable_today
+            data.results.household_variable_month
+            if monthly
+            else data.results.household_variable_today
         ),
         "accrued_fixed_fees": _decimal_string(
-            data.household_fixed_month if monthly else data.household_fixed_today
+            data.results.household_fixed_month
+            if monthly
+            else data.results.household_fixed_today
         ),
         "priced_energy_kwh": _decimal_string(
-            data.household_priced_energy_month
+            data.results.household_priced_energy_month
             if monthly
-            else data.household_priced_energy_today
+            else data.results.household_priced_energy_today
         ),
-        "missing_components": list(data.household_missing_fees),
+        "missing_components": list(data.results.household_missing_fees),
         "excluded_charges": ["demand_charges", "other_unconfigured_charges"],
         "fixed_fee_method": "calendar_day_share_accrued_to_now",
         "fixed_fee_coverage": "calendar_month_to_now"
@@ -221,7 +227,7 @@ def _local_cost_attributes(
     data: ElectricityProData, *, priced_energy: Decimal | None
 ) -> dict[str, object] | None:
     """Return the existing local-estimate coverage for locally calculated costs."""
-    if not data.local_cost_estimate:
+    if not data.results.local_cost_estimate:
         return None
     return {
         "source": "local_estimate",
@@ -234,8 +240,8 @@ def _local_cost_attributes(
 def _energy_today_attributes(data: ElectricityProData) -> dict[str, object]:
     """Describe the existing daily import source and period completeness."""
     return {
-        "source_type": data.energy_source_type,
-        "period_complete": data.energy_today_period_complete,
+        "source_type": data.readings.energy_source_type,
+        "period_complete": data.results.energy_today_period_complete,
     }
 
 
@@ -243,21 +249,24 @@ def consumption_weighted_average_price(
     data: ElectricityProData,
 ) -> Decimal | None:
     """Return today's achieved average effective price per kWh."""
-    if data.local_cost_estimate:
+    if data.results.local_cost_estimate:
         if (
-            data.local_priced_energy_today
-            and data.local_effective_cost_today is not None
+            data.results.local_priced_energy_today
+            and data.results.local_effective_cost_today is not None
         ):
-            return data.local_effective_cost_today / data.local_priced_energy_today
+            return (
+                data.results.local_effective_cost_today
+                / data.results.local_priced_energy_today
+            )
         return None
-    if not data.energy_today_period_complete:
+    if not data.results.energy_today_period_complete:
         return None
     return calculate_consumption_weighted_average_price(
-        data.accumulated_cost_today,
-        data.current_energy,
-        data.current_energy_unit,
-        data.grid_fee_per_kwh,
-        data.energy_tax_per_kwh,
+        data.results.accumulated_cost_today,
+        data.results.current_energy,
+        data.results.current_energy_unit,
+        data.context.grid_fee_per_kwh,
+        data.context.energy_tax_per_kwh,
     )
 
 
@@ -265,13 +274,17 @@ def consumption_weighted_average_price_unit(
     data: ElectricityProData,
 ) -> str | None:
     """Return the currency-per-kWh unit for today's achieved average."""
-    if data.accumulated_cost_today_unit is None or data.current_energy_unit not in {
-        UnitOfEnergy.WATT_HOUR,
-        UnitOfEnergy.KILO_WATT_HOUR,
-    }:
+    if (
+        data.results.accumulated_cost_today_unit is None
+        or data.results.current_energy_unit
+        not in {
+            UnitOfEnergy.WATT_HOUR,
+            UnitOfEnergy.KILO_WATT_HOUR,
+        }
+    ):
         return None
 
-    return f"{data.accumulated_cost_today_unit}/kWh"
+    return f"{data.results.accumulated_cost_today_unit}/kWh"
 
 
 def projected_remaining_cost(data: ElectricityProData) -> Decimal | None:
@@ -303,9 +316,9 @@ def _phase_current_descriptions() -> tuple[ElectricityProSensorEntityDescription
         CONF_CURRENT_L3_ENTITY,
     )
     readers: tuple[Callable[[ElectricityProData], Decimal | None], ...] = (
-        lambda data: data.current_l1,
-        lambda data: data.current_l2,
-        lambda data: data.current_l3,
+        lambda data: data.readings.current_l1,
+        lambda data: data.readings.current_l2,
+        lambda data: data.readings.current_l3,
     )
     return tuple(
         ElectricityProSensorEntityDescription(
@@ -333,9 +346,9 @@ def _phase_voltage_descriptions() -> tuple[ElectricityProSensorEntityDescription
         CONF_VOLTAGE_L3_ENTITY,
     )
     readers: tuple[Callable[[ElectricityProData], Decimal | None], ...] = (
-        lambda data: data.voltage_l1,
-        lambda data: data.voltage_l2,
-        lambda data: data.voltage_l3,
+        lambda data: data.readings.voltage_l1,
+        lambda data: data.readings.voltage_l2,
+        lambda data: data.readings.voltage_l3,
     )
     return tuple(
         ElectricityProSensorEntityDescription(
@@ -368,8 +381,8 @@ SENSOR_DESCRIPTIONS: tuple[
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.WATT,
         suggested_display_precision=0,
-        value_fn=lambda data: data.current_power,
-        available_fn=lambda data: data.current_power is not None,
+        value_fn=lambda data: data.readings.current_power,
+        available_fn=lambda data: data.readings.current_power is not None,
     ),
     ElectricityProSensorEntityDescription(
         key="current_price",
@@ -378,10 +391,11 @@ SENSOR_DESCRIPTIONS: tuple[
         icon="mdi:currency-usd",
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
-        value_fn=lambda data: data.current_price,
-        unit_fn=lambda data: data.current_price_unit,
+        value_fn=lambda data: data.readings.current_price,
+        unit_fn=lambda data: data.readings.current_price_unit,
         available_fn=lambda data: (
-            data.current_price is not None and data.current_price_unit is not None
+            data.readings.current_price is not None
+            and data.readings.current_price_unit is not None
         ),
         required_config_key=CONF_PRICE_ENTITY,
     ),
@@ -394,9 +408,10 @@ SENSOR_DESCRIPTIONS: tuple[
         suggested_display_precision=2,
         value_fn=supplier_price,
         attributes_fn=_supplier_price_attributes,
-        unit_fn=lambda data: data.current_price_unit,
+        unit_fn=lambda data: data.readings.current_price_unit,
         available_fn=lambda data: (
-            supplier_price(data) is not None and data.current_price_unit is not None
+            supplier_price(data) is not None
+            and data.readings.current_price_unit is not None
         ),
         required_config_key=CONF_PRICE_ENTITY,
     ),
@@ -423,9 +438,10 @@ SENSOR_DESCRIPTIONS: tuple[
         suggested_display_precision=2,
         value_fn=effective_price,
         attributes_fn=_effective_price_attributes,
-        unit_fn=lambda data: data.current_price_unit,
+        unit_fn=lambda data: data.readings.current_price_unit,
         available_fn=lambda data: (
-            effective_price(data) is not None and data.current_price_unit is not None
+            effective_price(data) is not None
+            and data.readings.current_price_unit is not None
         ),
         required_config_key=CONF_PRICE_ENTITY,
     ),
@@ -438,7 +454,7 @@ SENSOR_DESCRIPTIONS: tuple[
         suggested_display_precision=2,
         value_fn=consumption_weighted_average_price,
         attributes_fn=lambda data: _local_cost_attributes(
-            data, priced_energy=data.local_priced_energy_today
+            data, priced_energy=data.results.local_priced_energy_today
         ),
         unit_fn=consumption_weighted_average_price_unit,
         available_fn=lambda data: (
@@ -472,11 +488,11 @@ SENSOR_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
-        value_fn=lambda data: data.monthly_peak_hour_consumption,
-        unit_fn=lambda data: data.monthly_peak_hour_consumption_unit,
+        value_fn=lambda data: data.readings.monthly_peak_hour_consumption,
+        unit_fn=lambda data: data.readings.monthly_peak_hour_consumption_unit,
         available_fn=lambda data: (
-            data.monthly_peak_hour_consumption is not None
-            and data.monthly_peak_hour_consumption_unit is not None
+            data.readings.monthly_peak_hour_consumption is not None
+            and data.readings.monthly_peak_hour_consumption_unit is not None
         ),
         required_config_key=CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
     ),
@@ -486,8 +502,8 @@ SENSOR_DESCRIPTIONS: tuple[
         translation_key="monthly_peak_hour_time",
         icon="mdi:clock-outline",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda data: data.monthly_peak_hour_time,
-        available_fn=lambda data: data.monthly_peak_hour_time is not None,
+        value_fn=lambda data: data.readings.monthly_peak_hour_time,
+        available_fn=lambda data: data.readings.monthly_peak_hour_time is not None,
         required_config_key=CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
     ),
     ElectricityProSensorEntityDescription(
@@ -498,12 +514,12 @@ SENSOR_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
-        value_fn=lambda data: data.household_cost_today,
+        value_fn=lambda data: data.results.household_cost_today,
         attributes_fn=lambda data: _household_cost_attributes(data, monthly=False),
-        unit_fn=lambda data: data.household_cost_unit,
+        unit_fn=lambda data: data.results.household_cost_unit,
         available_fn=lambda data: (
-            data.household_cost_today is not None
-            and data.household_cost_unit is not None
+            data.results.household_cost_today is not None
+            and data.results.household_cost_unit is not None
         ),
         required_config_keys=(CONF_ENERGY_ENTITY, CONF_PRICE_ENTITY),
     ),
@@ -515,12 +531,12 @@ SENSOR_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
-        value_fn=lambda data: data.household_cost_this_month,
+        value_fn=lambda data: data.results.household_cost_this_month,
         attributes_fn=lambda data: _household_cost_attributes(data, monthly=True),
-        unit_fn=lambda data: data.household_cost_unit,
+        unit_fn=lambda data: data.results.household_cost_unit,
         available_fn=lambda data: (
-            data.household_cost_this_month is not None
-            and data.household_cost_unit is not None
+            data.results.household_cost_this_month is not None
+            and data.results.household_cost_unit is not None
         ),
         required_config_keys=(CONF_ENERGY_ENTITY, CONF_PRICE_ENTITY),
     ),
@@ -532,14 +548,14 @@ SENSOR_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
-        value_fn=lambda data: data.accumulated_cost_today,
+        value_fn=lambda data: data.results.accumulated_cost_today,
         attributes_fn=lambda data: _local_cost_attributes(
-            data, priced_energy=data.local_supplier_energy_today
+            data, priced_energy=data.results.local_supplier_energy_today
         ),
-        unit_fn=lambda data: data.accumulated_cost_today_unit,
+        unit_fn=lambda data: data.results.accumulated_cost_today_unit,
         available_fn=lambda data: (
-            data.accumulated_cost_today is not None
-            and data.accumulated_cost_today_unit is not None
+            data.results.accumulated_cost_today is not None
+            and data.results.accumulated_cost_today_unit is not None
         ),
         required_config_key=CONF_ACCUMULATED_COST_TODAY_ENTITY,
     ),
@@ -551,13 +567,14 @@ SENSOR_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
-        value_fn=lambda data: data.cost_this_month,
+        value_fn=lambda data: data.results.cost_this_month,
         attributes_fn=lambda data: _local_cost_attributes(
-            data, priced_energy=data.local_supplier_energy_month
+            data, priced_energy=data.results.local_supplier_energy_month
         ),
-        unit_fn=lambda data: data.cost_this_month_unit,
+        unit_fn=lambda data: data.results.cost_this_month_unit,
         available_fn=lambda data: (
-            data.cost_this_month is not None and data.cost_this_month_unit is not None
+            data.results.cost_this_month is not None
+            and data.results.cost_this_month_unit is not None
         ),
         required_config_key=CONF_ACCUMULATED_COST_TODAY_ENTITY,
     ),
@@ -569,11 +586,11 @@ SENSOR_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
-        value_fn=lambda data: data.fixed_supplier_fee_this_month,
-        unit_fn=lambda data: data.fixed_supplier_fee_this_month_unit,
+        value_fn=lambda data: data.context.fixed_supplier_fee_this_month,
+        unit_fn=lambda data: data.results.fixed_supplier_fee_this_month_unit,
         available_fn=lambda data: (
-            data.fixed_supplier_fee_this_month is not None
-            and data.fixed_supplier_fee_this_month_unit is not None
+            data.context.fixed_supplier_fee_this_month is not None
+            and data.results.fixed_supplier_fee_this_month_unit is not None
         ),
         required_config_key=CONF_FIXED_SUPPLIER_FEE_MONTHLY,
     ),
@@ -585,11 +602,11 @@ SENSOR_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
-        value_fn=lambda data: data.fixed_grid_fee_this_month,
-        unit_fn=lambda data: data.fixed_grid_fee_this_month_unit,
+        value_fn=lambda data: data.context.fixed_grid_fee_this_month,
+        unit_fn=lambda data: data.results.fixed_grid_fee_this_month_unit,
         available_fn=lambda data: (
-            data.fixed_grid_fee_this_month is not None
-            and data.fixed_grid_fee_this_month_unit is not None
+            data.context.fixed_grid_fee_this_month is not None
+            and data.results.fixed_grid_fee_this_month_unit is not None
         ),
         required_config_key=CONF_FIXED_GRID_FEE_MONTHLY,
     ),
@@ -601,14 +618,14 @@ SENSOR_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
-        value_fn=lambda data: data.total_supplier_cost_this_month,
+        value_fn=lambda data: data.results.total_supplier_cost_this_month,
         attributes_fn=lambda data: _local_cost_attributes(
-            data, priced_energy=data.local_supplier_energy_month
+            data, priced_energy=data.results.local_supplier_energy_month
         ),
-        unit_fn=lambda data: data.total_supplier_cost_this_month_unit,
+        unit_fn=lambda data: data.results.total_supplier_cost_this_month_unit,
         available_fn=lambda data: (
-            data.total_supplier_cost_this_month is not None
-            and data.total_supplier_cost_this_month_unit is not None
+            data.results.total_supplier_cost_this_month is not None
+            and data.results.total_supplier_cost_this_month_unit is not None
         ),
         required_config_keys=(
             CONF_ACCUMULATED_COST_TODAY_ENTITY,
@@ -624,8 +641,8 @@ SENSOR_DESCRIPTIONS: tuple[
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.WATT,
         suggested_display_precision=0,
-        value_fn=lambda data: data.peak_power_today,
-        available_fn=lambda data: data.peak_power_today is not None,
+        value_fn=lambda data: data.results.peak_power_today,
+        available_fn=lambda data: data.results.peak_power_today is not None,
     ),
     ElectricityProSensorEntityDescription(
         key="peak_power_time_today",
@@ -633,8 +650,8 @@ SENSOR_DESCRIPTIONS: tuple[
         translation_key="peak_power_time_today",
         icon="mdi:clock-outline",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda data: data.peak_power_time_today,
-        available_fn=lambda data: data.peak_power_time_today is not None,
+        value_fn=lambda data: data.results.peak_power_time_today,
+        available_fn=lambda data: data.results.peak_power_time_today is not None,
     ),
     ElectricityProSensorEntityDescription(
         key="current_energy",
@@ -644,11 +661,12 @@ SENSOR_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=2,
-        value_fn=lambda data: data.current_energy,
+        value_fn=lambda data: data.results.current_energy,
         attributes_fn=_energy_today_attributes,
-        unit_fn=lambda data: data.current_energy_unit,
+        unit_fn=lambda data: data.results.current_energy_unit,
         available_fn=lambda data: (
-            data.current_energy is not None and data.current_energy_unit is not None
+            data.results.current_energy is not None
+            and data.results.current_energy_unit is not None
         ),
         required_config_key=CONF_ENERGY_ENTITY,
     ),
@@ -660,11 +678,11 @@ SENSOR_DESCRIPTIONS: tuple[
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
-        value_fn=lambda data: data.energy_this_month,
-        unit_fn=lambda data: data.energy_this_month_unit,
+        value_fn=lambda data: data.results.energy_this_month,
+        unit_fn=lambda data: data.results.energy_this_month_unit,
         available_fn=lambda data: (
-            data.energy_this_month is not None
-            and data.energy_this_month_unit is not None
+            data.results.energy_this_month is not None
+            and data.results.energy_this_month_unit is not None
         ),
         required_config_key=CONF_ENERGY_ENTITY,
     ),

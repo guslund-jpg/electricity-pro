@@ -14,7 +14,7 @@ Native HA actions ── nordpool / workday ──► coordinator
                                                  │
                                calculation and history helpers
                                                  │
-                        ElectricityProData + coordinator-owned results
+                 ElectricityProData(readings + context + results)
                                                  ▼
                                      sensor / binary_sensor
                                                  ▼
@@ -27,39 +27,35 @@ user-requested Tibber addition estimate also uses HA actions. Device and externa
 API connectivity remain the source integrations' responsibility.
 
 The diagram is an ownership guide, not a claim of completely separated layers.
-`ElectricityProData` is a frozen flat snapshot defined in `data.py` and temporarily
-re-exported from `provider.py`. It contains
-both normalized inputs and derived results: power, energy, price scope, phase
-values, daily/monthly totals, fixed fees and local/household cost coverage.
-The provider's canonical `read_inputs()` returns a `ProviderSnapshot` with
-18 normalized `SourceReadings` fields and seven resolved `CalculationContext`
-fields. These pure, frozen, slotted contracts contain no analytics placeholders.
-Raw import energy and external daily cost have distinct source names so they
-cannot be confused with selected daily results. The temporary `read()` entry
-point projects those inputs through `legacy_provider_view()` into the existing
-51-field flat contract, retaining raw counters, external costs and the initial
-daily/lifetime completeness flag. The view reads no HA states or clock; source
-normalization, read order and tariff evaluation remain at the provider boundary.
+The pure `data.py` module defines frozen, slotted contracts. `provider.read()`
+returns only `ProviderSnapshot`: 18 normalized `SourceReadings` fields and seven
+resolved `CalculationContext` fields. Raw import energy and external daily cost
+retain explicit source names, separate from their selected/published counterparts.
+Normalization, source-read order and tariff evaluation remain at the provider
+boundary, including its separate clock read.
 
-The coordinator uses `read_inputs()` at its four provider-read sites: normal
+The coordinator uses this contract at its four provider-read sites: normal
 reads, daily rollover, meter-reset confirmation and forecast-insight refresh.
 History helpers consume explicit readings/context. Each normal read creates
-fresh `IntegrationResults` with exactly the 30 selected/derived fields, retaining
-the old pass-through/default semantics. The existing typed updates apply to this
-local immutable result object; there is no second result cache on the coordinator.
-`legacy_published_view(inputs, results)` projects all selected results and the
-unchanged input/context fields to the 51-field snapshot entities still consume.
-It performs no calculations, source reads or clock reads. Monthly-reset and
-rollover overlays still replace only their existing result fields on that flat
-publication. Forecasts, histories and optional flow results retain their
-separate coordinator ownership.
+fresh `IntegrationResults` with exactly the 30 selected/derived fields and applies
+the existing typed updates in the same order. It publishes one immutable
+`ElectricityProData(readings, context, results)` containing the same input groups
+and the selected results. There is no parallel result cache or flat runtime view.
 
-[ADR-0014](../adr/0014-source-readings-and-integration-results.md) records the accepted plan for
-separate readings, calculation context and integration results, with a field
-inventory and three implementation PRs. Provider inputs and explicit result
-composition are in place. Final grouped publication and consumer migration remain
-stage 3, which removes the flat model, both transitional views and the old
-provider entry point.
+Sensors, attribute/value/unit/availability helpers and the Good Time adapter
+consume explicit groups. Existing calculations invoked by entities retain their
+evaluation location and timing. Monthly-reset and rollover overlays replace only
+the nested `results`, preserving the publication's input groups. Forecasts,
+histories and optional flow results retain their separate coordinator ownership.
+`review_config.py` reads saved settings and native Nord Pool configuration, and
+integration actions call public coordinator methods; neither uses a flat runtime
+snapshot.
+
+[ADR-0014](../adr/0014-source-readings-and-integration-results.md) records the field
+inventory and the three implementation stages. The grouped runtime contract is
+in place; the flat model, transitional provider entry point and both legacy views
+have been removed. Manual HA reload/restart and overnight verification of the
+combined migration remain pending, separately from automated contract coverage.
 
 ## Module map
 
@@ -72,8 +68,8 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `measurement_config.py` | Shared measurement forms, source review and energy-counter confirmation |
 | `review_config.py` | Read-only final setup draft and options overview with configured price-component coverage |
 | `source_adapters.py` | Guided discovery and provider-specific configuration assistance |
-| `provider.py` | HA state reading, normalization, configured tariffs and canonical input construction; temporary flat `read()` entry point |
-| `data.py` | Pure immutable input/result contracts; temporary flat model and separate provider/publication projections |
+| `provider.py` | HA state reading, normalization, configured tariffs and canonical `ProviderSnapshot` construction |
+| `data.py` | Pure immutable source/context/result contracts and the grouped published snapshot |
 | `pricing_config.py`, `vat_suggestions.py` | Price declarations and editable regional VAT suggestions |
 | `markup_estimate.py` | User-requested Tibber/Nord Pool comparison; acquisition and estimator in one module |
 | `coordinator.py` | Events, timers, retrieval, persistence, rollovers and result composition |

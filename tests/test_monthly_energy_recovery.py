@@ -70,8 +70,8 @@ async def test_reset_rebases_only_month_and_survives_restart(hass):
         c._energy_this_month.update(Decimal(0), now)
         c._energy_this_month.update(Decimal(326950), now)
         await c.async_reset_monthly_energy()
-        assert c.data.energy_this_month == 0
-        assert c.data.current_energy == Decimal(59)
+        assert c.data.results.energy_this_month == 0
+        assert c.data.results.current_energy == Decimal(59)
         assert c.monthly_energy_attributes["coverage"] == "partial"
         stored = save.call_args.args[0]
         restored = ElectricityProCoordinator(hass, entry)
@@ -79,7 +79,7 @@ async def test_reset_rebases_only_month_and_survives_restart(hass):
             await restored._async_restore_statistics()
         hass.states.async_set("sensor.energy", "60", {"unit_of_measurement": "kWh"})
         with patch.object(restored._store, "async_delay_save"):
-            assert restored._read().energy_this_month == Decimal(1)
+            assert restored._read().results.energy_this_month == Decimal(1)
         assert restored.monthly_energy_attributes["coverage"] == "partial"
 
 
@@ -111,18 +111,18 @@ async def test_confirm_meter_replacement_preserves_totals_and_resumes(hass):
                 "sensor.energy", value, {"unit_of_measurement": "kWh"}
             )
             data = c._read()
-        assert data.current_energy == Decimal(3)
-        assert data.energy_this_month == Decimal(3)
+        assert data.results.current_energy == Decimal(3)
+        assert data.results.energy_this_month == Decimal(3)
         hass.states.async_set("sensor.energy", "1", {"unit_of_measurement": "kWh"})
         await c.async_confirm_meter_reset()
-        assert c.data.current_energy == Decimal(3)
-        assert c.data.energy_this_month == Decimal(3)
-        assert not c.data.energy_today_period_complete
+        assert c.data.results.current_energy == Decimal(3)
+        assert c.data.results.energy_this_month == Decimal(3)
+        assert not c.data.results.energy_today_period_complete
         save.assert_awaited_once()
         hass.states.async_set("sensor.energy", "2", {"unit_of_measurement": "kWh"})
         data = c._read()
-        assert data.current_energy == Decimal(4)
-        assert data.energy_this_month == Decimal(4)
+        assert data.results.current_energy == Decimal(4)
+        assert data.results.energy_this_month == Decimal(4)
 
 
 @pytest.mark.parametrize("mode,value", [("daily", "10"), ("lifetime", "unavailable")])

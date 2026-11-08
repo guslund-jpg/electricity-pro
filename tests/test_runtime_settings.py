@@ -42,11 +42,11 @@ def test_provider_options_do_not_fall_back_to_setup_values(hass, value):
     expected = Decimal(0) if value == 0 else None
     assert provider.power_entity_id == "sensor.new_power"
     assert provider.energy_entity_id is None
-    assert data.current_power == Decimal(1000)
-    assert data.grid_fee_per_kwh == expected
-    assert data.good_price_threshold == expected
-    assert data.fixed_supplier_fee_this_month == expected
-    assert data.fixed_grid_fee_this_month == expected
+    assert data.readings.current_power == Decimal(1000)
+    assert data.context.grid_fee_per_kwh == expected
+    assert data.context.good_price_threshold == expected
+    assert data.context.fixed_supplier_fee_this_month == expected
+    assert data.context.fixed_grid_fee_this_month == expected
 
 
 @pytest.mark.parametrize("value", [None, "", False])

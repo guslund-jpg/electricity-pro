@@ -37,7 +37,7 @@ from custom_components.electricity_pro.coordinator import (
     ElectricityProCoordinator,
     _DataUpdates,
 )
-from custom_components.electricity_pro.provider import ElectricityProData
+from custom_components.electricity_pro.data import IntegrationResults
 from custom_components.electricity_pro.forecast import ForecastInterval
 from custom_components.electricity_pro.forecast_insights import (
     ForecastDirectionInsight,
@@ -56,7 +56,7 @@ from custom_components.electricity_pro.timing_score import (
 
 def test_update_contract_matches_snapshot_fields():
     """Keep replacement keys and their allowed types within the snapshot contract."""
-    fields = get_type_hints(ElectricityProData)
+    fields = get_type_hints(IntegrationResults)
     for name, annotation in get_type_hints(_DataUpdates).items():
         assert name in fields
         assert annotation == fields[name] or annotation in get_args(fields[name])
@@ -343,8 +343,8 @@ async def test_lifetime_energy_baseline_restores_for_same_source(hass) -> None:
     ):
         data = restored._read()  # noqa: SLF001
 
-    assert data.current_energy == Decimal("1.5")
-    assert data.energy_today_period_complete is False
+    assert data.results.current_energy == Decimal("1.5")
+    assert data.results.energy_today_period_complete is False
 
 
 async def test_timing_runtime_expires_stale_power_after_ten_minutes(hass) -> None:
@@ -436,7 +436,7 @@ async def test_base_load_runtime_marks_negative_source_power(hass) -> None:
             coordinator._read()  # noqa: SLF001
 
     local_date = start.astimezone(coordinator._local_timezone).date()  # noqa: SLF001
-    assert data.current_power == Decimal(-100)
+    assert data.readings.current_power == Decimal(-100)
     assert coordinator._base_load_buckets.bidirectional_observed(local_date)  # noqa: SLF001
 
 
@@ -666,8 +666,10 @@ async def test_daily_peak_is_calculated_from_current_power(hass) -> None:
         patch.object(coordinator._store, "async_delay_save"),  # noqa: SLF001
     ):
         data = coordinator._read()  # noqa: SLF001
-    assert data.peak_power_today == Decimal("1000")
-    assert data.peak_power_time_today == first.astimezone(coordinator._local_timezone)  # noqa: SLF001
+    assert data.results.peak_power_today == Decimal("1000")
+    assert data.results.peak_power_time_today == first.astimezone(
+        coordinator._local_timezone
+    )  # noqa: SLF001
 
     hass.states.async_set("sensor.test_power", "900", {"unit_of_measurement": "W"})
     with (
@@ -678,7 +680,7 @@ async def test_daily_peak_is_calculated_from_current_power(hass) -> None:
         patch.object(coordinator._store, "async_delay_save"),  # noqa: SLF001
     ):
         data = coordinator._read()  # noqa: SLF001
-    assert data.peak_power_today == Decimal("1000")
+    assert data.results.peak_power_today == Decimal("1000")
 
 
 async def test_daily_peak_restores_current_day_snapshot(hass) -> None:
@@ -707,8 +709,8 @@ async def test_daily_peak_restores_current_day_snapshot(hass) -> None:
         with patch.object(coordinator._store, "async_delay_save"):  # noqa: SLF001
             data = coordinator._read()  # noqa: SLF001
 
-    assert data.peak_power_today == Decimal("1200")
-    assert data.peak_power_time_today == peak_time.astimezone(
+    assert data.results.peak_power_today == Decimal("1200")
+    assert data.results.peak_power_time_today == peak_time.astimezone(
         coordinator._local_timezone  # noqa: SLF001
     )
 
@@ -731,8 +733,8 @@ async def test_daily_peak_midnight_rollover_publishes_unavailable(hass) -> None:
         )
 
     assert coordinator.data is not None
-    assert coordinator.data.peak_power_today is None
-    assert coordinator.data.peak_power_time_today is None
+    assert coordinator.data.results.peak_power_today is None
+    assert coordinator.data.results.peak_power_time_today is None
     assert "peak_power_today" not in coordinator._statistics_data()  # noqa: SLF001
 
 

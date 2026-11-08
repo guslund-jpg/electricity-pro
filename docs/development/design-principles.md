@@ -69,7 +69,8 @@ becoming assumptions throughout the project.
 ### Practical implications
 
 - Sensors must not query provider APIs or inspect provider-specific attributes.
-- Provider adapters produce the common `ElectricityProData` contract.
+- Provider adapters produce `ProviderSnapshot` readings and calculation context;
+  the coordinator publishes `ElectricityProData` with separately selected results.
 - Shared features must not branch on provider names when a capability or
   semantic check can express the requirement.
 

@@ -256,11 +256,11 @@ def test_read_valid_sources(
     provider = _create_provider(hass)
     data = provider.read()
 
-    assert data.current_power == Decimal(1500)
-    assert data.current_price == Decimal("1.25")
-    assert data.current_price_unit == "SEK/kWh"
-    assert data.current_energy == Decimal("12.5")
-    assert data.current_energy_unit == "kWh"
+    assert data.readings.current_power == Decimal(1500)
+    assert data.readings.current_price == Decimal("1.25")
+    assert data.readings.current_price_unit == "SEK/kWh"
+    assert data.readings.import_energy_value == Decimal("12.5")
+    assert data.readings.import_energy_unit == "kWh"
 
 
 @pytest.mark.parametrize(
@@ -292,7 +292,7 @@ def test_invalid_power_returns_none(
         include_energy=False,
     )
 
-    assert provider.read().current_power is None
+    assert provider.read().readings.current_power is None
 
 
 @pytest.mark.parametrize(
@@ -318,8 +318,8 @@ def test_signed_power_preserves_export(
     )
 
     data = provider.read()
-    assert data.current_power == expected
-    assert data.current_power_bidirectional
+    assert data.readings.current_power == expected
+    assert data.readings.current_power_bidirectional
 
 
 @pytest.mark.parametrize(
@@ -356,8 +356,8 @@ def test_invalid_price_returns_none(
     )
     data = provider.read()
 
-    assert data.current_price is None
-    assert data.current_price_unit is None
+    assert data.readings.current_price is None
+    assert data.readings.current_price_unit is None
 
 
 def test_negative_price_is_valid(hass: HomeAssistant) -> None:
@@ -370,8 +370,8 @@ def test_negative_price_is_valid(hass: HomeAssistant) -> None:
     )
     data = _create_provider(hass, include_energy=False).read()
 
-    assert data.current_price == Decimal("-0.25")
-    assert data.current_price_unit == "SEK/kWh"
+    assert data.readings.current_price == Decimal("-0.25")
+    assert data.readings.current_price_unit == "SEK/kWh"
 
 
 @pytest.mark.parametrize(
@@ -410,8 +410,8 @@ def test_invalid_energy_returns_none(
     )
     data = provider.read()
 
-    assert data.current_energy is None
-    assert data.current_energy_unit is None
+    assert data.readings.import_energy_value is None
+    assert data.readings.import_energy_unit is None
 
 
 @pytest.mark.parametrize(
@@ -444,8 +444,8 @@ def test_valid_energy_units(
     )
     data = provider.read()
 
-    assert data.current_energy == Decimal(value)
-    assert data.current_energy_unit == unit
+    assert data.readings.import_energy_value == Decimal(value)
+    assert data.readings.import_energy_unit == unit
 
 
 def test_phase_current_source_entity_ids(
@@ -500,9 +500,9 @@ def test_read_valid_phase_currents(
     )
     data = provider.read()
 
-    assert data.current_l1 == Decimal("4.5")
-    assert data.current_l2 == Decimal("5.25")
-    assert data.current_l3 == Decimal("6.75")
+    assert data.readings.current_l1 == Decimal("4.5")
+    assert data.readings.current_l2 == Decimal("5.25")
+    assert data.readings.current_l3 == Decimal("6.75")
 
 
 @pytest.mark.parametrize(
@@ -537,7 +537,7 @@ def test_valid_phase_current_units(
         include_phase_currents=True,
     )
 
-    assert provider.read().current_l1 == expected
+    assert provider.read().readings.current_l1 == expected
 
 
 @pytest.mark.parametrize(
@@ -577,7 +577,7 @@ def test_invalid_phase_current_returns_none(
         include_phase_currents=True,
     )
 
-    assert provider.read().current_l1 is None
+    assert provider.read().readings.current_l1 is None
 
 
 def test_unconfigured_phase_currents_are_none(
@@ -597,9 +597,9 @@ def test_unconfigured_phase_currents_are_none(
     )
     data = provider.read()
 
-    assert data.current_l1 is None
-    assert data.current_l2 is None
-    assert data.current_l3 is None
+    assert data.readings.current_l1 is None
+    assert data.readings.current_l2 is None
+    assert data.readings.current_l3 is None
 
 
 def test_phase_voltage_source_entity_ids(
@@ -654,9 +654,9 @@ def test_read_valid_phase_voltages(
     )
     data = provider.read()
 
-    assert data.voltage_l1 == Decimal("231.4")
-    assert data.voltage_l2 == Decimal("232.1")
-    assert data.voltage_l3 == Decimal("230.8")
+    assert data.readings.voltage_l1 == Decimal("231.4")
+    assert data.readings.voltage_l2 == Decimal("232.1")
+    assert data.readings.voltage_l3 == Decimal("230.8")
 
 
 @pytest.mark.parametrize(
@@ -691,7 +691,7 @@ def test_valid_phase_voltage_units(
         include_phase_voltages=True,
     )
 
-    assert provider.read().voltage_l1 == expected
+    assert provider.read().readings.voltage_l1 == expected
 
 
 @pytest.mark.parametrize(
@@ -731,7 +731,7 @@ def test_invalid_phase_voltage_returns_none(
         include_phase_voltages=True,
     )
 
-    assert provider.read().voltage_l1 is None
+    assert provider.read().readings.voltage_l1 is None
 
 
 def test_unconfigured_phase_voltages_are_none(
@@ -751,9 +751,9 @@ def test_unconfigured_phase_voltages_are_none(
     )
     data = provider.read()
 
-    assert data.voltage_l1 is None
-    assert data.voltage_l2 is None
-    assert data.voltage_l3 is None
+    assert data.readings.voltage_l1 is None
+    assert data.readings.voltage_l2 is None
+    assert data.readings.voltage_l3 is None
 
 
 def test_monthly_peak_hour_consumption_source_entity_id(
@@ -805,8 +805,8 @@ def test_valid_monthly_peak_hour_consumption(
     )
     data = provider.read()
 
-    assert data.monthly_peak_hour_consumption == Decimal(value)
-    assert data.monthly_peak_hour_consumption_unit == unit
+    assert data.readings.monthly_peak_hour_consumption == Decimal(value)
+    assert data.readings.monthly_peak_hour_consumption_unit == unit
 
 
 @pytest.mark.parametrize(
@@ -847,8 +847,8 @@ def test_invalid_monthly_peak_hour_consumption_returns_none(
     )
     data = provider.read()
 
-    assert data.monthly_peak_hour_consumption is None
-    assert data.monthly_peak_hour_consumption_unit is None
+    assert data.readings.monthly_peak_hour_consumption is None
+    assert data.readings.monthly_peak_hour_consumption_unit is None
 
 
 def test_unconfigured_monthly_peak_hour_consumption_is_none(
@@ -868,8 +868,8 @@ def test_unconfigured_monthly_peak_hour_consumption_is_none(
     )
     data = provider.read()
 
-    assert data.monthly_peak_hour_consumption is None
-    assert data.monthly_peak_hour_consumption_unit is None
+    assert data.readings.monthly_peak_hour_consumption is None
+    assert data.readings.monthly_peak_hour_consumption_unit is None
 
 
 def test_valid_monthly_peak_hour_time(hass: HomeAssistant) -> None:
@@ -896,7 +896,7 @@ def test_valid_monthly_peak_hour_time(hass: HomeAssistant) -> None:
         "sensor.test_power",
         "sensor.test_monthly_peak_hour_time",
     )
-    assert provider.read().monthly_peak_hour_time == datetime(
+    assert provider.read().readings.monthly_peak_hour_time == datetime(
         2026, 8, 3, 15, tzinfo=UTC
     )
 
@@ -928,4 +928,4 @@ def test_invalid_monthly_peak_hour_time_returns_none(
         include_monthly_peak_hour_time=True,
     )
 
-    assert provider.read().monthly_peak_hour_time is None
+    assert provider.read().readings.monthly_peak_hour_time is None
