@@ -190,6 +190,33 @@ def _effective_price_attributes(data: ElectricityProData) -> dict[str, object] |
     }
 
 
+def _household_cost_attributes(
+    data: ElectricityProData, *, monthly: bool
+) -> dict[str, object]:
+    """Describe the existing partial household estimate for the selected period."""
+    return {
+        "source": "local_household_estimate",
+        "coverage": "partial",
+        "variable_cost": _decimal_string(
+            data.household_variable_month if monthly else data.household_variable_today
+        ),
+        "accrued_fixed_fees": _decimal_string(
+            data.household_fixed_month if monthly else data.household_fixed_today
+        ),
+        "priced_energy_kwh": _decimal_string(
+            data.household_priced_energy_month
+            if monthly
+            else data.household_priced_energy_today
+        ),
+        "missing_components": list(data.household_missing_fees),
+        "excluded_charges": ["demand_charges", "other_unconfigured_charges"],
+        "fixed_fee_method": "calendar_day_share_accrued_to_now",
+        "fixed_fee_coverage": "calendar_month_to_now"
+        if monthly
+        else "local_midnight_to_now",
+    }
+
+
 def consumption_weighted_average_price(
     data: ElectricityProData,
 ) -> Decimal | None:
@@ -447,6 +474,7 @@ SENSOR_DESCRIPTIONS: tuple[
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
         value_fn=lambda data: data.household_cost_today,
+        attributes_fn=lambda data: _household_cost_attributes(data, monthly=False),
         unit_fn=lambda data: data.household_cost_unit,
         available_fn=lambda data: (
             data.household_cost_today is not None
@@ -463,6 +491,7 @@ SENSOR_DESCRIPTIONS: tuple[
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
         value_fn=lambda data: data.household_cost_this_month,
+        attributes_fn=lambda data: _household_cost_attributes(data, monthly=True),
         unit_fn=lambda data: data.household_cost_unit,
         available_fn=lambda data: (
             data.household_cost_this_month is not None
@@ -924,34 +953,6 @@ class ElectricityProSensor(ElectricityProNamedSensor):
         """Expose source coverage and VAT requirements."""
         if self.entity_description.attributes_fn is not None:
             return self.entity_description.attributes_fn(self.coordinator.data)
-        if self.entity_description.key in {"total_cost_today", "total_cost_this_month"}:
-            data = self.coordinator.data
-            monthly = self.entity_description.key == "total_cost_this_month"
-            return {
-                "source": "local_household_estimate",
-                "coverage": "partial",
-                "variable_cost": _decimal_string(
-                    data.household_variable_month
-                    if monthly
-                    else data.household_variable_today
-                ),
-                "accrued_fixed_fees": _decimal_string(
-                    data.household_fixed_month
-                    if monthly
-                    else data.household_fixed_today
-                ),
-                "priced_energy_kwh": _decimal_string(
-                    data.household_priced_energy_month
-                    if monthly
-                    else data.household_priced_energy_today
-                ),
-                "missing_components": list(data.household_missing_fees),
-                "excluded_charges": ["demand_charges", "other_unconfigured_charges"],
-                "fixed_fee_method": "calendar_day_share_accrued_to_now",
-                "fixed_fee_coverage": "calendar_month_to_now"
-                if monthly
-                else "local_midnight_to_now",
-            }
         if (
             self.entity_description.key
             in {

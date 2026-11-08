@@ -275,9 +275,17 @@ supplier/effective-price calculation to decide whether the value is known.
 The entity delegates attribute rendering without adding an availability guard:
 missing units or a failed coordinator update do not change otherwise known
 attribute payloads. Missing metadata, VAT hints, decimal-string formatting and
-fresh attribute containers retain their existing behavior. Other ordinary
-sensor attributes still use the key-based dispatch; this is a bounded #288
-increment, not a migration of every sensor or a new calculation/persistence layer.
+fresh attribute containers retain their existing behavior.
+
+The two household total estimates (`total_cost_today` and `total_cost_this_month`)
+also bind `attributes_fn`, sharing `_household_cost_attributes` with an explicit
+day/month choice. It renders the existing snapshot amounts, missing fees,
+exclusions and fixed-fee coverage as fresh attribute mappings, including when
+the sensor is unavailable. Decimal strings, partial-coverage labels, calculations,
+one-minute publication and persisted ledger state keep their existing contracts.
+Local supplier-cost and import-energy attributes retain the remaining key-based
+dispatch, including the coordinator-owned monthly-energy metadata. These are
+bounded #288 increments, not a new calculation or persistence layer.
 
 Good Time decision logic lives in `good_time.py`, with explicit normalized
 effective price, settings, history, scope, forecasts and evaluation time. It
