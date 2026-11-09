@@ -7,8 +7,10 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from custom_components.electricity_pro.timing_score import (
+    CompletedTimingScore,
     TimingBucketAccumulator,
     TimingInterval,
+    TimingObservation,
     TimingScoreRating,
     TimingScoreUnavailableReason,
     calculate_timing_score,
@@ -243,3 +245,106 @@ def test_bucket_accumulator_rejects_invalid_segments(
             power_w=power,
             effective_price=price,
         )
+
+
+@pytest.mark.parametrize("bidirectional", [False, True])
+def test_completed_score_leaves_bucket_retention_to_caller(bidirectional: bool) -> None:
+    """Finalization reads history and an explicit export marker without pruning."""
+    buckets = TimingBucketAccumulator(UTC)
+    start = datetime(2026, 8, 24, tzinfo=UTC)
+    for index in range(2):
+        buckets.add_segment(
+            start=start + timedelta(hours=12 * index),
+            end=start + timedelta(hours=12 * (index + 1)),
+            power_w=Decimal(1000),
+            effective_price=Decimal(index + 1),
+        )
+    buckets.add_segment(
+        start=start + timedelta(days=1),
+        end=start + timedelta(days=1, minutes=15),
+        power_w=Decimal(1000),
+        effective_price=Decimal(2),
+    )
+    before = buckets.as_dict()
+    completed = CompletedTimingScore(UTC)
+
+    completed.finalize_day(
+        start.date(), buckets, bidirectional_power_observed=bidirectional
+    )
+
+    assert buckets.as_dict() == before
+    assert completed.result is not None
+    assert completed.result[0] == start.date()
+    result = completed.result[1]
+    assert result.coverage_percent == Decimal(100)
+    assert result.energy_kwh == Decimal(24)
+    if bidirectional:
+        assert result.score is None
+        assert (
+            result.unavailable_reason
+            is TimingScoreUnavailableReason.UNSUPPORTED_BIDIRECTIONAL_POWER
+        )
+    else:
+        assert result.score == Decimal(50)
+        assert result.unavailable_reason is None
+
+
+def test_completed_score_storage_containers_do_not_alias_result() -> None:
+    """Mutating input or saved mappings must not change the owned result."""
+    completed = CompletedTimingScore(UTC)
+    assert completed.result is None
+    assert completed.as_dict() is None
+    source = calculate_timing_score(
+        (_interval("1", "1", 720), _interval("1", "2", 720)),
+        period_duration=timedelta(hours=24),
+        longest_uncovered_gap=timedelta(0),
+    ).as_dict()
+    completed.restore(period_start="2026-08-24", result=source)
+    expected = completed.result
+    saved = completed.as_dict()
+    assert saved is not None
+    source["score"] = "0"
+    saved["period_start"] = "2026-08-25"
+    saved["result"]["score"] = "100"
+
+    assert completed.result == expected
+    assert completed.as_dict()["period_start"] == "2026-08-24"
+    assert completed.as_dict()["result"]["score"] == "50"
+    completed.clear()
+    assert completed.result is None
+    assert completed.as_dict() is None
+
+
+def test_live_timing_observation_uses_supplied_history_and_explicit_price() -> None:
+    """A restored accumulator receives future intervals; a price alone is not power."""
+    start = datetime(2026, 8, 24, tzinfo=UTC)
+    observation = TimingObservation()
+    original = TimingBucketAccumulator(UTC)
+
+    def advance(observer, buckets, minute, *, observed=False):
+        return observer.advance(
+            start + timedelta(minutes=minute),
+            buckets,
+            power_w=Decimal(600),
+            power_observed=observed,
+            maximum_hold=timedelta(minutes=10),
+        )
+
+    advance(observation, original, 0, observed=True)
+    observation.set_effective_price(Decimal(1))
+    advance(observation, original, 5)
+    restored = TimingBucketAccumulator.from_dict(UTC, original.as_dict())
+    observation.set_effective_price(Decimal(2))
+    advance(observation, restored, 8)
+
+    assert original.intervals_for_date(start.date()) == (
+        TimingInterval(Decimal("0.05"), Decimal(1), timedelta(minutes=5)),
+    )
+    assert restored.intervals_for_date(start.date()) == (
+        TimingInterval(Decimal("0.08"), Decimal("1.375"), timedelta(minutes=8)),
+    )
+    before = restored.as_dict()
+    fresh = TimingObservation()
+    fresh.set_effective_price(Decimal(3))
+    assert not advance(fresh, restored, 9)
+    assert restored.as_dict() == before

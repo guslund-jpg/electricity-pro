@@ -1004,7 +1004,7 @@ async def test_price_trend_uses_configured_tariff_boundaries_and_expires(hass) -
         },
     )
     coordinator = ElectricityProCoordinator(hass, entry)
-    coordinator._forecast_intervals = [
+    coordinator.forecast_intervals[:] = [
         ForecastInterval(  # noqa: SLF001
             start=start,
             end=start + timedelta(hours=2),

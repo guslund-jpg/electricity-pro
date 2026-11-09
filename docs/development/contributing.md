@@ -178,11 +178,11 @@ The current strict scope is:
 | `statistics.py` | Remaining-cost projection and optional Decimal values |
 | `pricing.py` | Price/component/VAT enums and immutable metadata |
 | `grid_tariff.py` | Grid tariff fields, date/time boundaries and fee selection |
-| `adaptive_price.py` | Comparable history, adaptive thresholds and forecast refinement |
+| `adaptive_price.py` | Live price/scope observations, comparable history, adaptive thresholds and forecast refinement |
 | `good_time.py` | Fixed/adaptive decisions over normalized inputs and explicit time |
 | `settings.py` | Saved-data/options overlay with explicit clearing and no normalization |
-| `base_load.py` | Duration-weighted power, base-load estimates and bounded power history |
-| `timing_score.py` | Consumption-timing scores, matched intervals and bounded timing history |
+| `base_load.py` | Live base-load observations, duration-weighted power, base-load estimates and bounded power history |
+| `timing_score.py` | Live consumption-timing observations, completed-day result ownership, scores, matched intervals and bounded timing history |
 | `statistics_engine.py` | Cumulative counters, calendar periods and persisted snapshots |
 | `history_storage.py` | Runtime narrowing of stored history values |
 | `flow_compatibility.py` | Normalized power observations and the supported diagnostic result statuses |
@@ -190,7 +190,7 @@ The current strict scope is:
 | `flow_sources.py` | Explicit source bindings, normalized readings and freshness checks |
 | `cost_ledger.py` | Observed cost allocation, currency resets and validated persisted totals |
 | `nordpool.py` | Native action response validation, interval normalization and delivery dates |
-| `forecast.py` | Forecast interval validation, complete-day averages and serialization |
+| `forecast.py` | Forecast interval validation, delivery-date cache/publication, complete-day averages and serialization |
 | `calculations.py` | Supplier/effective pricing, VAT conversion and cost arithmetic |
 | `forecast_insights.py` | Continuous price windows and duration-weighted two-hour trend |
 | `coordinator.py` | Explicit provider inputs, field-specific result updates, flow metadata and persisted flow scope |

@@ -83,7 +83,7 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `good_time.py` | Pure fixed/adaptive Good Time decisions and explanations, including forecast refinement |
 | `settings.py` | Shared saved-settings overlay: options override setup data without normalization |
 | `device.py` | Fresh shared device metadata with stable entry-scoped identifiers |
-| `forecast.py`, `forecast_insights.py` | Interval contracts, validation and scheduling calculations |
+| `forecast.py`, `forecast_insights.py` | Interval contracts, validation, delivery-date cache and scheduling calculations |
 | `nordpool.py`, `workday.py` | HA action adapters for market delivery dates and non-working dates |
 | `energy_flows.py` | Pure protected lifetime counters for independent partial directional totals |
 | `flow_sources.py` | Explicit optional source bindings, HA state reading, unit/freshness validation |
@@ -269,6 +269,22 @@ Expected future empty responses remain retryable; genuine failures warn without
 erasing valid cached data. Forecast failures do not disable live measurements.
 See [forecast retrieval](../reference/forecast-retrieval.md) for the exact policy.
 
+`ForecastCache` in `forecast.py` owns intervals by delivery date and their
+separately rebuilt public series. Replacement validation uses the existing series
+validator against all other cached dates. The coordinator then clears the
+retrieval-failure marker, stores the validated input and rebuilds the publication
+at the existing call sites. Date pruning leaves the public list intact while an
+asynchronous fetch is pending. Rebuilding retains sorting, deduplication and the
+existing list/interval reference behavior.
+
+The coordinator retains date selection, HA acquisition, retries, failure
+deduplication/logging, insight calculation and update notifications. Invalid
+refreshes preserve both dated entries and publication. A defensive rebuild
+failure retains the old list until the coordinator logs the error and clears
+only the publication; the dated entries remain cached. Forecasts still live only
+in memory and are fetched again after restart. Storage formats, public actions,
+entity identities, price calculations and timer/market-clock policy are unchanged.
+
 The coordinator computes current market price, complete-day average and cheapest
 continuous 1h/2h/3h windows. Absolute-threshold and adaptive future comparisons
 require compatible complete pricing scopes. Raw Nord Pool market data alone
@@ -296,13 +312,67 @@ requirement. It restores summary rows atomically and writes fresh chronological
 rows using the existing format. Restoration does not recalculate the result:
 the coordinator still decides when to finalize and recalculate.
 
-The coordinator retains live power observations, bucket accumulation, elapsed-day
-average power, shared bidirectional markers, timers, local-day rollover and HA
-storage. Startup still finalizes the retained previous day before retaining the
-current day's buckets. The `base_load_daily_summaries` key, warning behavior,
+`BaseLoadObservation` owns the latest live base-load sample and interval cursor.
+It closes the preceding held sample before accepting an explicit power
+observation, using the same ten-minute hold and quarter-boundary save signal.
+Quiet updates do not renew the observation. Negative power and the normalized
+bidirectional flag retain their existing export-marker behavior. Live samples
+remain transient and are not written to storage or restored after restart.
+
+The coordinator supplies normalized power, the power-event flag and the hold
+limit to that owner. It retains the bucket accumulator and its restoration and
+retention, elapsed-day average power, shared bidirectional markers, timers,
+local-day rollover and HA storage. The observation updates the supplied bucket
+accumulator rather than retaining a reference to it. Startup still finalizes the
+retained previous day before retaining the current day's buckets. The
+`base_load_buckets` and `base_load_daily_summaries` keys, warning behavior,
 timezone/DST arithmetic and public `estimated_base_load` result are unchanged.
-This extracts one feature's completed-day state, not a general tracker framework
-or all power-history ownership.
+
+`CompletedTimingScore` in `timing_score.py` owns the last completed local day's
+date and score, including unavailable results. It composes the existing score
+calculation with the same real-day duration and longest-gap calculation, parses
+saved date/result fields with the existing readers, and returns fresh storage
+containers. The public `timing_score_yesterday` date/result tuple and the saved
+`consumption_timing_score_yesterday` record (`period_start` and `result`) are
+unchanged; no migration is required.
+
+The coordinator still controls when to finalize, retain buckets and save to HA.
+It passes the base-load history's bidirectional-power observation explicitly
+before yesterday's markers are discarded. It also retains the outer stored-record
+guard, caught-error clearing and warning policy.
+
+`TimingObservation` owns the live timing cursor, held power, source-observation
+time and Effective Price. Its `advance` step closes the preceding valid interval
+and accepts an explicit power observation. The coordinator then calculates
+Effective Price at the existing point and calls `set_effective_price` for the
+following interval. The preceding coverage and new power/cursor are committed
+before price calculation; a calculation error leaves the previous price in
+place, as before. Price-only updates do not renew the ten-minute power hold;
+missing prices leave gaps without backfilling them.
+
+The coordinator supplies normalized power, the power-event flag, the hold limit and
+the current bucket accumulator. It retains price calculation, bucket restoration
+and retention, save scheduling and startup/rollover ordering. Live observations
+remain transient and are not restored with the saved bucket history. The
+`consumption_timing_buckets` format, Decimal arithmetic and public score/attribute
+contracts are unchanged.
+
+`AdaptivePriceObservation` in `adaptive_price.py` owns the live price cursor,
+Effective Price and its current comparison scope. `advance` closes the previous
+compatible interval using absolute UTC ordering before moving the cursor. The
+coordinator then calculates price and scope at the existing point, and calls
+`set_price`. A new comparable scope clears incompatible history through the
+existing history policy; invalid current inputs clear only the live price/scope
+and leave saved history intact. The returned hour-closure and scope-change flags
+retain their existing save behavior.
+
+The coordinator retains the price/scope calculations, tariff signature, history
+restoration/retention, HA storage and timers. The observation updates the supplied
+`AdaptivePriceHistory` rather than retaining a reference to it. Public
+`adaptive_price_scope` reports the live scope; it can be absent while saved
+history still has a valid scope. Live observations are not persisted or replayed
+after restart. The `adaptive_price_history` format, restart metadata, hourly/DST
+aggregation and Good Time behavior are unchanged.
 
 Ordinary sensors use declarative descriptions. Forecast, historical and optional
 flow sensors use dedicated classes. Good Time is a binary sensor supporting

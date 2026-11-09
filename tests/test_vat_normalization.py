@@ -100,7 +100,7 @@ def test_runtime_forecast_uses_rate_without_changing_raw_market_data(
         currency="SEK",
         area="SE3",
     )
-    coordinator._forecast_intervals = [interval]
+    coordinator.forecast_intervals[:] = [interval]
     coordinator._recalculate_forecast_insights()
     insight = coordinator.cheapest_1h_window
     if expected is None:

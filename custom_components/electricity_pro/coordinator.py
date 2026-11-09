@@ -31,12 +31,14 @@ from homeassistant.util import dt as dt_util
 from .adaptive_price import (
     AdaptiveForecastPrice,
     AdaptivePriceHistory,
+    AdaptivePriceObservation,
     AdaptivePriceScope,
 )
 from .base_load import (
     AveragePowerResult,
     BaseLoadBucketAccumulator,
     BaseLoadEstimateResult,
+    BaseLoadObservation,
     BaseLoadSummaryHistory,
     calculate_average_power,
 )
@@ -77,13 +79,13 @@ from .const import (
     DOMAIN,
 )
 from .forecast import (
+    ForecastCache,
     DailyAverageMarketPriceResult,
     ForecastInterval,
     MarketPriceForecastResponse,
     current_market_price_interval,
     daily_average_market_price,
     serialize_market_price_forecast,
-    validate_forecast_series,
 )
 from .forecast_insights import (
     ForecastDirectionInsight,
@@ -115,9 +117,10 @@ from .statistics_engine import (
     StatisticsSnapshot,
 )
 from .timing_score import (
+    CompletedTimingScore,
     TimingBucketAccumulator,
+    TimingObservation,
     TimingScoreResult,
-    calculate_timing_score,
 )
 from .workday import async_get_non_working_dates
 
@@ -260,26 +263,17 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._cost_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._peak_power_today = DailyPeakStatistic()
         self._timing_buckets = TimingBucketAccumulator(self._local_timezone)
-        self._timing_result_date: date | None = None
-        self._timing_result: TimingScoreResult | None = None
-        self._timing_last_time: datetime | None = None
-        self._timing_power: Decimal | None = None
-        self._timing_power_observed_at: datetime | None = None
-        self._timing_effective_price: Decimal | None = None
+        self._completed_timing_score = CompletedTimingScore(self._local_timezone)
+        self._timing_observation = TimingObservation()
         self._base_load_buckets = BaseLoadBucketAccumulator(self._local_timezone)
         self._base_load_summaries = BaseLoadSummaryHistory(self._local_timezone)
-        self._base_load_last_time: datetime | None = None
-        self._base_load_power: Decimal | None = None
-        self._base_load_power_observed_at: datetime | None = None
+        self._base_load_observation = BaseLoadObservation()
         self._adaptive_price_history = AdaptivePriceHistory(self._local_timezone)
-        self._adaptive_price_last_time: datetime | None = None
-        self._adaptive_price: Decimal | None = None
-        self._adaptive_price_scope: AdaptivePriceScope | None = None
+        self._adaptive_price_observation = AdaptivePriceObservation()
         self._adaptive_tariff_signature = _adaptive_tariff_signature(entry)
         self._cost_this_month_unit: str | None = None
-        self._forecast_intervals_by_date: dict[date, list[ForecastInterval]] = {}
+        self._forecast_cache = ForecastCache()
         self._forecast_failures: dict[date, str] = {}
-        self._forecast_intervals: list[ForecastInterval] = []
         self._cheapest_1h_window: ForecastWindowInsight | None = None
         self._cheapest_2h_window: ForecastWindowInsight | None = None
         self._cheapest_3h_window: ForecastWindowInsight | None = None
@@ -356,9 +350,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @property
     def timing_score_yesterday(self) -> tuple[date, TimingScoreResult] | None:
         """Return the most recently finalized timing score."""
-        if self._timing_result_date is None or self._timing_result is None:
-            return None
-        return self._timing_result_date, self._timing_result
+        return self._completed_timing_score.result
 
     @property
     def estimated_base_load(self) -> BaseLoadEstimateResult | None:
@@ -399,7 +391,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @property
     def adaptive_price_scope(self) -> AdaptivePriceScope | None:
         """Return the compatibility scope of the current Effective Price."""
-        return self._adaptive_price_scope
+        return self._adaptive_price_observation.scope
 
     @callback
     def _schedule_statistics_save(self, *, immediate: bool = False) -> None:
@@ -492,13 +484,13 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @property
     def forecast_intervals(self) -> list[ForecastInterval]:
         """Return the currently stored forecast intervals."""
-        return self._forecast_intervals
+        return self._forecast_cache.intervals
 
     @property
     def current_market_price_interval(self) -> ForecastInterval | None:
         """Return the normalized market-price interval covering now."""
         return current_market_price_interval(
-            self._forecast_intervals,
+            self._forecast_cache.intervals,
             now=dt_util.now(),
         )
 
@@ -517,7 +509,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             tzinfo=self._local_timezone,
         )
         return daily_average_market_price(
-            self._forecast_intervals,
+            self._forecast_cache.intervals,
             period_start=period_start,
             period_end=period_end,
         )
@@ -525,7 +517,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @property
     def market_price_forecast_response(self) -> MarketPriceForecastResponse:
         """Return the serialized bounded market-price forecast series."""
-        return serialize_market_price_forecast(self._forecast_intervals)
+        return serialize_market_price_forecast(self._forecast_cache.intervals)
 
     @property
     def cheapest_1h_window(self) -> ForecastWindowInsight | None:
@@ -648,13 +640,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         )
         market_today = now.astimezone(market_timezone).date()
 
-        stale_dates = [
-            stored_date
-            for stored_date in self._forecast_intervals_by_date
-            if stored_date < dates[0]
-        ]
-        for stale_date in stale_dates:
-            del self._forecast_intervals_by_date[stale_date]
+        self._forecast_cache.discard_before(dates[0])
         self._forecast_failures = {
             day: failure
             for day, failure in self._forecast_failures.items()
@@ -662,7 +648,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         }
 
         for target_date in dates:
-            if target_date not in self._forecast_intervals_by_date:
+            if not self._forecast_cache.has_date(target_date):
                 await self._async_refresh_forecast_intervals(
                     target_date, market_today=market_today
                 )
@@ -704,17 +690,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 raise ValueError("Nord Pool returned no forecast intervals")
             # Validate before replacing a cache entry: malformed refreshes must
             # not destroy an otherwise usable series from this or another day.
-            validate_forecast_series(
-                [
-                    *(
-                        interval
-                        for day, cached in self._forecast_intervals_by_date.items()
-                        if day != target_date
-                        for interval in cached
-                    ),
-                    *intervals,
-                ]
-            )
+            self._forecast_cache.validate_replacement(target_date, intervals)
         except (HomeAssistantError, TimeoutError, ValueError) as err:
             failure = (
                 f"{type(err).__name__}:{getattr(err, 'translation_key', None)}:{err}"
@@ -733,7 +709,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             return False
 
         self._forecast_failures.pop(target_date, None)
-        self._forecast_intervals_by_date[target_date] = intervals
+        self._forecast_cache.store_validated(target_date, intervals)
         self._rebuild_forecast_intervals()
         self._recalculate_forecast_insights()
         return True
@@ -741,14 +717,10 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     def _rebuild_forecast_intervals(self) -> None:
         """Build one ordered forecast sequence from the cached delivery dates."""
         try:
-            self._forecast_intervals = validate_forecast_series(
-                interval
-                for intervals in self._forecast_intervals_by_date.values()
-                for interval in intervals
-            )
+            self._forecast_cache.rebuild()
         except ValueError as err:
             _LOGGER.warning("Unable to publish market-price forecast series: %s", err)
-            self._forecast_intervals = []
+            self._forecast_cache.clear_published()
 
     @property
     def _monthly_energy_source(self) -> dict[str, object]:
@@ -939,15 +911,12 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         timing_result = stored.get(_TIMING_RESULT)
         if isinstance(timing_result, dict):
             try:
-                self._timing_result_date = date.fromisoformat(
-                    timing_result["period_start"]
-                )
-                self._timing_result = TimingScoreResult.from_dict(
-                    timing_result["result"]
+                self._completed_timing_score.restore(
+                    period_start=timing_result["period_start"],
+                    result=timing_result["result"],
                 )
             except KeyError, TypeError, ValueError:
-                self._timing_result_date = None
-                self._timing_result = None
+                self._completed_timing_score.clear()
                 _LOGGER.warning("Ignoring invalid persisted timing score result")
 
         if _BASE_LOAD_BUCKETS in stored:
@@ -1226,45 +1195,21 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         power_observed: bool,
     ) -> bool:
         """Integrate the previous valid observation up to the current time."""
-        bucket_closed = False
-        if (
-            self._timing_last_time is not None
-            and self._timing_power is not None
-            and self._timing_power_observed_at is not None
-            and self._timing_effective_price is not None
-        ):
-            valid_end = min(
-                now,
-                self._timing_power_observed_at + _TIMING_POWER_MAX_HOLD,
+        bucket_closed = self._timing_observation.advance(
+            now,
+            self._timing_buckets,
+            power_w=inputs.readings.current_power,
+            power_observed=power_observed,
+            maximum_hold=_TIMING_POWER_MAX_HOLD,
+        )
+        self._timing_observation.set_effective_price(
+            calculate_declared_effective_price(
+                inputs.readings.current_price,
+                inputs.context.pricing_metadata,
+                inputs.context.grid_fee_per_kwh,
+                inputs.context.energy_tax_per_kwh,
+                inputs.context.supplier_markup_per_kwh,
             )
-            if valid_end > self._timing_last_time:
-                bucket_closed = int(self._timing_last_time.timestamp()) // (
-                    15 * 60
-                ) != int(valid_end.timestamp()) // (15 * 60)
-                self._timing_buckets.add_segment(
-                    start=self._timing_last_time,
-                    end=valid_end,
-                    power_w=self._timing_power,
-                    effective_price=self._timing_effective_price,
-                )
-
-        self._timing_last_time = now
-        if power_observed:
-            self._timing_power = (
-                inputs.readings.current_power
-                if inputs.readings.current_power is not None
-                and inputs.readings.current_power >= 0
-                else None
-            )
-            self._timing_power_observed_at = (
-                now if self._timing_power is not None else None
-            )
-        self._timing_effective_price = calculate_declared_effective_price(
-            inputs.readings.current_price,
-            inputs.context.pricing_metadata,
-            inputs.context.grid_fee_per_kwh,
-            inputs.context.energy_tax_per_kwh,
-            inputs.context.supplier_markup_per_kwh,
         )
         return bucket_closed
 
@@ -1276,40 +1221,14 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         power_observed: bool,
     ) -> bool:
         """Integrate power-only history independently of price availability."""
-        bucket_closed = False
-        if (
-            self._base_load_last_time is not None
-            and self._base_load_power is not None
-            and self._base_load_power_observed_at is not None
-        ):
-            valid_end = min(
-                now,
-                self._base_load_power_observed_at + _TIMING_POWER_MAX_HOLD,
-            )
-            if valid_end > self._base_load_last_time:
-                bucket_closed = int(self._base_load_last_time.timestamp()) // (
-                    15 * 60
-                ) != int(valid_end.timestamp()) // (15 * 60)
-                self._base_load_buckets.add_segment(
-                    start=self._base_load_last_time,
-                    end=valid_end,
-                    power_w=self._base_load_power,
-                )
-
-        self._base_load_last_time = now
-        if power_observed:
-            self._base_load_power = (
-                Decimal(-1)
-                if inputs.readings.current_power_bidirectional
-                else inputs.readings.current_power
-            )
-            self._base_load_power_observed_at = (
-                now
-                if inputs.readings.current_power is not None
-                or inputs.readings.current_power_bidirectional
-                else None
-            )
-        return bucket_closed
+        return self._base_load_observation.update(
+            now,
+            self._base_load_buckets,
+            power_w=inputs.readings.current_power,
+            bidirectional_power=inputs.readings.current_power_bidirectional,
+            power_observed=power_observed,
+            maximum_hold=_TIMING_POWER_MAX_HOLD,
+        )
 
     def _update_adaptive_price_history(
         self,
@@ -1317,24 +1236,9 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         now: datetime,
     ) -> bool:
         """Integrate compatible Effective Price into bounded hourly history."""
-        hour_closed = False
-        if (
-            self._adaptive_price_last_time is not None
-            and self._adaptive_price is not None
-            and self._adaptive_price_scope is not None
-            and now.astimezone(UTC) > self._adaptive_price_last_time.astimezone(UTC)
-        ):
-            self._adaptive_price_history.ensure_scope(
-                self._adaptive_price_scope,
-                changed_at=self._adaptive_price_last_time,
-            )
-            hour_closed = self._adaptive_price_history.add_segment(
-                start=self._adaptive_price_last_time,
-                end=now,
-                effective_price=self._adaptive_price,
-            )
-
-        self._adaptive_price_last_time = now
+        hour_closed = self._adaptive_price_observation.advance(
+            now, self._adaptive_price_history
+        )
         effective_price = calculate_declared_effective_price(
             inputs.readings.current_price,
             inputs.context.pricing_metadata,
@@ -1343,17 +1247,12 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             inputs.context.supplier_markup_per_kwh,
         )
         scope = self._adaptive_scope(inputs)
-        scope_changed = False
-        if effective_price is not None and scope is not None:
-            scope_changed = self._adaptive_price_history.ensure_scope(
-                scope,
-                changed_at=now,
-            )
-            self._adaptive_price = effective_price
-            self._adaptive_price_scope = scope
-        else:
-            self._adaptive_price = None
-            self._adaptive_price_scope = None
+        scope_changed = self._adaptive_price_observation.set_price(
+            now,
+            self._adaptive_price_history,
+            effective_price=effective_price,
+            scope=scope,
+        )
         return hour_closed or scope_changed
 
     def _adaptive_scope(
@@ -1387,30 +1286,13 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
 
     def _finalize_timing_day(self, period_start: date) -> None:
         """Calculate and retain one completed local-day timing result."""
-        day_start = datetime.combine(
+        self._completed_timing_score.finalize_day(
             period_start,
-            datetime.min.time(),
-            tzinfo=self._local_timezone,
-        )
-        day_end = datetime.combine(
-            period_start + timedelta(days=1),
-            datetime.min.time(),
-            tzinfo=self._local_timezone,
-        )
-        period_duration = day_end.astimezone(UTC) - day_start.astimezone(UTC)
-        self._timing_result = calculate_timing_score(
-            self._timing_buckets.intervals_for_date(period_start),
-            period_duration=period_duration,
-            longest_uncovered_gap=self._timing_buckets.longest_uncovered_gap(
-                period_start,
-                day_start=day_start,
-                day_end=day_end,
-            ),
+            self._timing_buckets,
             bidirectional_power_observed=(
                 self._base_load_buckets.bidirectional_observed(period_start)
             ),
         )
-        self._timing_result_date = period_start
 
     def _finalize_restored_base_load_days(self, local_today: date) -> None:
         """Finalize retained power history after a restart across midnight."""
@@ -1440,7 +1322,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 interval,
                 pricing_metadata=replace(interval.pricing_metadata, vat_rate=rate),
             )
-            for interval in self._forecast_intervals
+            for interval in self._forecast_cache.intervals
         ]
         now = dt_util.now()
         inputs = self._provider.read()
@@ -1587,11 +1469,8 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         if (peak_snapshot := self._peak_power_today.snapshot) is not None:
             data[_PEAK_POWER_TODAY] = peak_snapshot.as_dict()
         data[_TIMING_BUCKETS] = self._timing_buckets.as_dict()
-        if self._timing_result_date is not None and self._timing_result is not None:
-            data[_TIMING_RESULT] = {
-                "period_start": self._timing_result_date.isoformat(),
-                "result": self._timing_result.as_dict(),
-            }
+        if (timing_result := self._completed_timing_score.as_dict()) is not None:
+            data[_TIMING_RESULT] = timing_result
         data[_BASE_LOAD_BUCKETS] = self._base_load_buckets.as_dict()
         data[_BASE_LOAD_DAILY_SUMMARIES] = self._base_load_summaries.as_list()
         data[_ADAPTIVE_PRICE_HISTORY] = self._adaptive_price_history.as_dict()
