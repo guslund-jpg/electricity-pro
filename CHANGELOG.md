@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Record signed monthly variable cost component totals in Home Assistant
+  Recorder and long-term statistics. (#165)
 - Show known variable cost components, earlier unsplit costs and priced energy
   coverage in the English and Swedish monthly dashboard examples. (#165)
 - Record known variable cost components alongside the daily and monthly totals

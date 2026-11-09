@@ -409,6 +409,12 @@ section in the existing statistics checkpoint stores daily and monthly amounts
 with covered cost, priced energy and the first covered interval's start time.
 Older totals restore without component coverage. Open intervals remain in memory.
 
+`variable_cost_statistics.py` accumulates the new monthly ledger deltas for
+Recorder. Its ordered periods share the coordinator statistics checkpoint. The
+Store acknowledges a successful write before the dedicated monetary sensors
+publish the amount and reset timestamp, including when a closing month is
+waiting to publish ahead of the next period. The month card uses the live ledger.
+
 Local cost attributes also use `attributes_fn`. Cost today selects daily
 supplier-priced energy; Cost this month and Total supplier cost this month select
 monthly supplier-priced energy. Consumption-weighted average price today selects
