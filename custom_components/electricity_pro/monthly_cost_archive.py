@@ -36,6 +36,11 @@ class MonthlyVariableCost:
         return CalendarPeriod.MONTH.start(self.started_at)
 
     @property
+    def total(self) -> Decimal:
+        """Return the signed total of the archived components."""
+        return sum((amount for _, amount in self.components), Decimal(0))
+
+    @property
     def complete(self) -> bool:
         """Report whether observed pricing covers the entire calendar month."""
         return (
@@ -157,3 +162,34 @@ class MonthlyVariableCostArchive:
                 # A damaged month is a gap. Preserve the other saved months.
                 continue
         return archive
+
+
+def monthly_cost_chart_rows(
+    months: tuple[MonthlyVariableCost, ...], today: date
+) -> list[dict[str, object]]:
+    """Project one currency onto a full calendar window for the chart."""
+    current = _month_number(today)
+    known = {_month_number(month.month): month for month in months}
+    rows: list[dict[str, object]] = []
+    for number in range(current - _WINDOW_MONTHS + 1, current + 1):
+        year, month_index = divmod(number - 1, 12)
+        row: dict[str, object] = {
+            "month": f"{year:04d}-{month_index + 1:02d}",
+            "coverage": "missing",
+            "priced_kwh": None,
+            "total": None,
+            "components": {},
+        }
+        if (period := known.get(number)) is not None:
+            row.update(
+                coverage="ongoing"
+                if number == current
+                else "complete"
+                if period.complete
+                else "partial",
+                priced_kwh=str(period.priced_kwh),
+                total=str(period.total),
+                components={key.value: str(value) for key, value in period.components},
+            )
+        rows.append(row)
+    return rows

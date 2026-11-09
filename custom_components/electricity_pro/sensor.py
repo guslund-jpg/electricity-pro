@@ -59,6 +59,7 @@ from .coordinator import ElectricityProCoordinator
 from .device import device_info_for_entry
 from .forecast import DailyAverageMarketPriceResult, ForecastInterval
 from .forecast_insights import ForecastWindowInsight
+from .monthly_cost_archive import MonthlyVariableCost, monthly_cost_chart_rows
 from .pricing import PricingMetadata, VariableCostComponent
 from .data import ElectricityProData
 from .flow_sources import CHANNELS
@@ -794,15 +795,13 @@ async def async_setup_entry(
         )
     ]
 
-    if (
-        entry.runtime_data.variable_cost_statistics_enabled
-        and settings.get(CONF_ENERGY_ENTITY)
-        and settings.get(CONF_PRICE_ENTITY)
-    ):
-        entities.extend(
-            ElectricityProVariableCostSensor(entry, component)
-            for component in _VARIABLE_COST_SENSOR_NAMES
-        )
+    if settings.get(CONF_ENERGY_ENTITY) and settings.get(CONF_PRICE_ENTITY):
+        entities.append(ElectricityProMonthlyCostHistorySensor(entry))
+        if entry.runtime_data.variable_cost_statistics_enabled:
+            entities.extend(
+                ElectricityProVariableCostSensor(entry, component)
+                for component in _VARIABLE_COST_SENSOR_NAMES
+            )
 
     forecast_configured = CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in settings
     expose_next_inexpensive_window = (
@@ -925,6 +924,64 @@ class ElectricityProNamedSensor(
         """Use the original English name when Home Assistant generates an ID."""
         name = self.entity_description.name
         return name if isinstance(name, str) else super().suggested_object_id
+
+
+class ElectricityProMonthlyCostHistorySensor(ElectricityProNamedSensor):
+    """Expose the archive independently of the current month's estimate."""
+
+    entity_description = SensorEntityDescription(
+        key="monthly_variable_cost_history",
+        name="Monthly variable cost history",
+        translation_key="monthly_variable_cost_history",
+    )
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_suggested_display_precision = 2
+    _unrecorded_attributes = frozenset({"months"})
+
+    def __init__(self, entry: ElectricityProConfigEntry) -> None:
+        super().__init__(entry.runtime_data)
+        self._attr_unique_id = f"{entry.entry_id}_{self.entity_description.key}"
+        self._attr_device_info = device_info_for_entry(entry.entry_id)
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_track_time_interval(
+                self.hass, self._handle_time_update, timedelta(minutes=1)
+            )
+        )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Refresh the chart on the minute schedule."""
+
+    @callback
+    def _handle_time_update(self, now: datetime) -> None:
+        self.async_write_ha_state()
+
+    @property
+    def _months(self) -> tuple[MonthlyVariableCost, ...]:
+        months = self.coordinator.monthly_variable_cost_history
+        if not months:
+            return ()
+        currency = (
+            self.coordinator.data.results.household_cost_unit or months[-1].currency
+        )
+        return tuple(month for month in months if month.currency == currency)
+
+    @property
+    def native_value(self) -> Decimal | None:
+        months = self._months
+        return months[-1].total if months else None
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        months = self._months
+        return months[-1].currency if months else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        return {"months": monthly_cost_chart_rows(self._months, dt_util.now().date())}
 
 
 class ElectricityProVariableCostSensor(ElectricityProNamedSensor):

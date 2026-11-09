@@ -801,6 +801,7 @@
       "monthly_peak_hour_time": { "name": "Tid för månadens topptimme" },
       "total_cost_today": { "name": "Uppskattad total kostnad i dag" },
       "total_cost_this_month": { "name": "Uppskattad total kostnad den här månaden" },
+      "monthly_variable_cost_history": { "name": "Historik för rörlig månadskostnad" },
       "variable_cost_market_energy_this_month": { "name": "Spotkostnad den här månaden" },
       "variable_cost_supplier_markup_this_month": { "name": "Elhandelspåslag den här månaden" },
       "variable_cost_energy_tax_this_month": { "name": "Energiskatt den här månaden" },

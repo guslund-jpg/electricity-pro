@@ -187,3 +187,20 @@ async def test_late_checkpoint_keeps_both_cost_months_without_double_counting(
 
     await coordinator._async_save_statistics()
     assert hass_storage[key]["data"]["monthly_variable_cost_archive"] == stored
+
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    history = hass.states.get("sensor.electricity_pro_monthly_variable_cost_history")
+    assert Decimal(history.state) == 2
+    assert history.attributes["unit_of_measurement"] == "SEK"
+    months = history.attributes["months"]
+    assert len(months) == 12
+    assert months[-3]["coverage"] == "missing" and months[-3]["total"] is None
+    assert [(row["month"], row["coverage"]) for row in months[-2:]] == [
+        ("2026-11", "partial"),
+        ("2026-12", "ongoing"),
+    ]
+    assert [Decimal(row["components"]["bundled_price"]) for row in months[-2:]] == [
+        14,
+        2,
+    ]

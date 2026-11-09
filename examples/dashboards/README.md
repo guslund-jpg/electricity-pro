@@ -227,7 +227,12 @@ enhanced YAML:
 1. [Mushroom](https://github.com/piitaya/lovelace-mushroom) — compact entity,
    title, and insight cards (`custom:mushroom-*`).
 2. [ApexCharts Card](https://github.com/RomRider/apexcharts-card) — recorded
-   power and price charts (`custom:apexcharts-card`).
+   power and price charts and the monthly variable cost chart (`custom:apexcharts-card`).
+
+**Trends** includes an optional stacked variable cost chart with priced kWh and
+coverage for the last twelve local calendar months. It appears after the
+integration archives its first priced interval. To remove it, delete the
+conditional block for `sensor.electricity_pro_monthly_variable_cost_history`.
 
 HACS itself is not part of Electricity Pro. If either card is missing, Home
 Assistant reports a custom element error; use the standard dashboard instead

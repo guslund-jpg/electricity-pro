@@ -180,3 +180,11 @@ original month.
 A month is fully covered only when priced intervals reach both month boundaries
 without gaps. Months without priced intervals have no entry, and a known zero
 cost remains available as a zero amount.
+
+The Enhanced dashboard's Trends view shows the archive as stacked columns in
+the current cost currency. Combined supplier and variable prices have their own
+series, and negative amounts extend below zero. The coverage table below the
+chart shows the month, priced kWh and net total. It marks the current month as
+to date and incomplete closed months as partial. A missing month has no column.
+The chart appears when the archive has an amount in the selected currency,
+including a known zero. The history sensor reports the latest archived total.
