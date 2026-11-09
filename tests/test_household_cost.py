@@ -14,20 +14,19 @@ from custom_components.electricity_pro.cost_ledger import CostLedger
 @pytest.mark.parametrize("month,days", [(2, 28), (4, 30), (7, 31)])
 def test_calendar_fixed_accrual(month, days):
     now = datetime(2026, month, 10, 12, tzinfo=UTC)
-    day, total, missing = accrued_fixed_fees(now, D(days), D(days))
-    assert day == 1
-    assert total == 19
-    assert missing == ()
+    fees = accrued_fixed_fees(now, D(days), D(days))
+    assert fees.today == 1
+    assert fees.month == 19
+    assert fees.supplier_month == fees.grid_month == D("9.5")
+    assert fees.missing == ()
 
 
 def test_leap_year_and_month_start():
-    day, month, _ = accrued_fixed_fees(datetime(2028, 2, 1, tzinfo=UTC), D(29), D(0))
-    assert day == month == 0
-    day, month, _ = accrued_fixed_fees(
-        datetime(2028, 2, 29, 12, tzinfo=UTC), D(29), D(0)
-    )
-    assert day == D("0.5")
-    assert month == D("28.5")
+    fees = accrued_fixed_fees(datetime(2028, 2, 1, tzinfo=UTC), D(29), D(0))
+    assert fees.today == fees.month == fees.supplier_month == fees.grid_month == 0
+    fees = accrued_fixed_fees(datetime(2028, 2, 29, 12, tzinfo=UTC), D(29), D(0))
+    assert fees.today == D("0.5")
+    assert fees.month == fees.supplier_month == D("28.5")
 
 
 @pytest.mark.parametrize(
@@ -41,13 +40,16 @@ def test_dst_day_fraction(start_utc, hours):
     middle = (start_utc + timedelta(hours=hours / 2)).astimezone(
         ZoneInfo("Europe/Stockholm")
     )
-    day, _, _ = accrued_fixed_fees(middle, D(31), D(0))
-    assert day == D("0.5")
+    fees = accrued_fixed_fees(middle, D(31), D(0))
+    assert fees.today == D("0.5")
+    assert fees.month == fees.supplier_month == D(middle.day - 1) + D("0.5")
 
 
 def test_missing_fee_is_explicit_not_assumed_zero():
-    _, _, missing = accrued_fixed_fees(datetime(2026, 9, 1, tzinfo=UTC), None, D(0))
-    assert missing == ("fixed_supplier_fee",)
+    fees = accrued_fixed_fees(datetime(2026, 9, 1, tzinfo=UTC), None, D(0))
+    assert fees.missing == ("fixed_supplier_fee",)
+    assert fees.supplier_month is None
+    assert fees.grid_month == 0
 
 
 def test_old_ledger_does_not_invent_effective_month_history():
@@ -112,6 +114,14 @@ async def test_household_total_does_not_double_count_supplier(
             fixed_grid_fee_monthly=60,
             accumulated_cost_today_value="99" if external else None,
         )
+    initial_month = hass.states.get(
+        "sensor.electricity_pro_total_cost_estimate_this_month"
+    )
+    assert initial_month.attributes["accrued_fixed_fee_breakdown"] == {
+        "supplier": "13.5",
+        "grid": "27.0",
+    }
+    assert D(initial_month.state) == D("40.5")
     later = now + timedelta(minutes=5)
     with patch(
         "custom_components.electricity_pro.coordinator.dt_util.now", return_value=later
@@ -121,11 +131,11 @@ async def test_household_total_does_not_double_count_supplier(
         )
         await hass.async_block_till_done()
         data = entry.runtime_data.data
-    fixed_day, fixed_month, _ = accrued_fixed_fees(later, D(30), D(60))
+    fixed = accrued_fixed_fees(later, D(30), D(60))
     assert data.results.household_variable_today == D("4.96")
     assert data.results.household_variable_month == D("4.96")
-    assert data.results.household_cost_today == D("4.96") + fixed_day
-    assert data.results.household_cost_this_month == D("4.96") + fixed_month
+    assert data.results.household_cost_today == D("4.96") + fixed.today
+    assert data.results.household_cost_this_month == D("4.96") + fixed.month
     assert data.results.accumulated_cost_today == (D(99) if external else D("4.36"))
     assert data.results.household_missing_fees == ()
     assert (

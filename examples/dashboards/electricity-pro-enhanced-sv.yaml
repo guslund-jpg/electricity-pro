@@ -257,11 +257,20 @@ views:
           {% set supplier = 'sensor.electricity_pro_cost_this_month' %}
           {% set variable = state_attr(total, 'variable_cost') %}
           {% set fixed = state_attr(total, 'accrued_fixed_fees') %}
+          {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
           {% set currency = state_attr(total, 'unit_of_measurement') %}
           {% set missing = state_attr(total, 'missing_components') or [] %}
           {% if has_value(total) and is_number(variable) and is_number(fixed) and currency %}
           **Rörlig kostnad** {{ '%.2f' | format(variable | float) | replace('.', ',') }} {{ currency }} ·
-          {% if 'fixed_supplier_fee' in missing and 'fixed_grid_fee' in missing %}
+          {% if fixed_breakdown is mapping %}
+          **Fast elhandelsavgift hittills**
+          {% if is_number(fixed_breakdown.supplier) %}{{ '%.2f' | format(fixed_breakdown.supplier | float)
+          | replace('.', ',') }} {{ currency }}{% else %}Uppgift saknas{% endif %} ·
+          **Fast elnätsavgift hittills**
+          {% if is_number(fixed_breakdown.grid) %}{{ '%.2f' | format(fixed_breakdown.grid | float)
+          | replace('.', ',') }} {{ currency }}{% else %}Uppgift saknas{% endif %}.
+          {% set missing = missing | reject('in', ['fixed_supplier_fee', 'fixed_grid_fee']) | list %}
+          {% elif 'fixed_supplier_fee' in missing and 'fixed_grid_fee' in missing %}
           **Fasta avgifter hittills** Uppgift saknas.
           {% else %}
           **Kända fasta avgifter hittills** {{ '%.2f' | format(fixed | float) | replace('.', ',') }} {{ currency }}.

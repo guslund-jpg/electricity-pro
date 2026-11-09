@@ -250,11 +250,20 @@ views:
           {% set supplier = 'sensor.electricity_pro_cost_this_month' %}
           {% set variable = state_attr(total, 'variable_cost') %}
           {% set fixed = state_attr(total, 'accrued_fixed_fees') %}
+          {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
           {% set currency = state_attr(total, 'unit_of_measurement') %}
           {% set missing = state_attr(total, 'missing_components') or [] %}
           {% if has_value(total) and is_number(variable) and is_number(fixed) and currency %}
           **Variable cost** {{ '%.2f' | format(variable | float) }} {{ currency }} ·
-          {% if 'fixed_supplier_fee' in missing and 'fixed_grid_fee' in missing %}
+          {% if fixed_breakdown is mapping %}
+          **Fixed supplier fee so far**
+          {% if is_number(fixed_breakdown.supplier) %}{{ '%.2f' | format(fixed_breakdown.supplier | float) }}
+          {{ currency }}{% else %}Not available{% endif %} ·
+          **Fixed grid fee so far**
+          {% if is_number(fixed_breakdown.grid) %}{{ '%.2f' | format(fixed_breakdown.grid | float) }}
+          {{ currency }}{% else %}Not available{% endif %}.
+          {% set missing = missing | reject('in', ['fixed_supplier_fee', 'fixed_grid_fee']) | list %}
+          {% elif 'fixed_supplier_fee' in missing and 'fixed_grid_fee' in missing %}
           **Fixed fees so far** Not available.
           {% else %}
           **Known fixed fees so far** {{ '%.2f' | format(fixed | float) }} {{ currency }}.

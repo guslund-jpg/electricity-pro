@@ -196,7 +196,7 @@ def _household_cost_attributes(
     data: ElectricityProData, *, monthly: bool
 ) -> dict[str, object]:
     """Describe the existing partial household estimate for the selected period."""
-    return {
+    attributes: dict[str, object] = {
         "source": "local_household_estimate",
         "coverage": "partial",
         "variable_cost": _decimal_string(
@@ -221,6 +221,12 @@ def _household_cost_attributes(
         if monthly
         else "local_midnight_to_now",
     }
+    if monthly:
+        attributes["accrued_fixed_fee_breakdown"] = {
+            "supplier": _decimal_string(data.results.household_fixed_supplier_month),
+            "grid": _decimal_string(data.results.household_fixed_grid_month),
+        }
+    return attributes
 
 
 def _local_cost_attributes(

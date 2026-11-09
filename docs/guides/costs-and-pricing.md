@@ -133,10 +133,12 @@ missing_components and excluded_charges attributes. All variable costs use the
 same currency as the configured normalized price.
 
 The monthly dashboard breakdown shows the variable cost of priced energy and
-known fixed fees accrued since the start of the month. The partial estimate
-reports how many kWh were priced. It names any missing fee and displays an
-explicitly configured zero as an amount. If both fixed fees are missing, the
-fixed-fee amount is shown as unavailable.
+separate fixed supplier and grid fees accrued since the start of the month.
+The monthly estimate exposes these two amounts in `accrued_fixed_fee_breakdown`
+as `supplier` and `grid`. A missing fee is unavailable and an explicitly
+configured zero is shown as an amount. The displayed amounts are rounded
+individually. Dashboards paired with an older integration show the combined
+fixed fees. The partial estimate reports how many kWh were priced.
 
 Update the integration, verify pricing and fixed fees, and update the example
 dashboard YAML. Both examples place household estimates before supplier costs.

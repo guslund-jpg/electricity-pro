@@ -37,7 +37,7 @@ boundary, including its separate clock read.
 The coordinator uses this contract at its four provider-read sites: normal
 reads, daily rollover, meter-reset confirmation and forecast-insight refresh.
 History helpers consume explicit readings/context. Each normal read creates
-fresh `IntegrationResults` with exactly the 30 selected/derived fields and applies
+fresh `IntegrationResults` with the 32 selected/derived fields and applies
 the existing typed updates in the same order. It publishes one immutable
 `ElectricityProData(readings, context, results)` containing the same input groups
 and the selected results. There is no parallel result cache or flat runtime view.
@@ -392,7 +392,9 @@ The two household total estimates (`total_cost_today` and `total_cost_this_month
 also bind `attributes_fn`, sharing `_household_cost_attributes` with an explicit
 day/month choice. It renders the existing snapshot amounts, missing fees,
 exclusions and fixed-fee coverage as fresh attribute mappings, including when
-the sensor is unavailable. Decimal strings, partial-coverage labels, calculations,
+the sensor is unavailable. The monthly estimate also exposes the separately
+accrued supplier and grid fees from the same calendar calculation.
+Decimal strings, partial-coverage labels, calculations,
 one-minute publication and persisted ledger state keep their existing contracts.
 
 Local cost attributes also use `attributes_fn`. Cost today selects daily
