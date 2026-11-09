@@ -63,6 +63,7 @@ Git history preserves previous versions.
 
 ## Validation and releases
 
+- [ADR-0014 manual continuity and tariff verification](validation/adr-0014.md)
 - [v1.7.2 maintenance update, upgrade notes and validation](releases/1.7.2.md)
 - [v1.7.1 release, upgrade notes and validation](releases/1.7.1.md)
 - [English/Swedish wording and standard entity-ID review](validation/translation-review-sv.md)

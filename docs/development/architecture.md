@@ -54,8 +54,10 @@ snapshot.
 [ADR-0014](../adr/0014-source-readings-and-integration-results.md) records the field
 inventory and the three implementation stages. The grouped runtime contract is
 in place; the flat model, transitional provider entry point and both legacy views
-have been removed. Manual HA reload/restart and overnight verification of the
-combined migration remain pending, separately from automated contract coverage.
+have been removed. The configured Core 2026.11.0 test instance on `31d7fa6`
+passed the manual upgrade, reload, restart, overnight rollover and tariff
+checks. The results cover that build and configuration.
+[Manual record](../validation/adr-0014.md)
 
 ## Module map
 
