@@ -140,6 +140,13 @@ configured zero is shown as an amount. The displayed amounts are rounded
 individually. Dashboards paired with an older integration show the combined
 fixed fees. The partial estimate reports how many kWh were priced.
 
+The local ledger records VAT-inclusive variable cost components for the same
+observed intervals and priced energy as the variable total. A supplier price
+that combines market energy and markup stays together, as does an externally
+calculated complete price. Separately known rates are recorded when they are
+added to the source price. Earlier totals are retained without allocating them
+to individual components. The dashboards continue to show the variable total.
+
 Update the integration, verify pricing and fixed fees, and update the example
 dashboard YAML. Both examples place household estimates before supplier costs.
 The effective average price remains a variable-cost measure, excluding fixed fees.

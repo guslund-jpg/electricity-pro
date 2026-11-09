@@ -66,6 +66,10 @@ async def test_continuous_readings_write_latest_checkpoint(
     snapshot = hass_storage[key]["data"]
     assert Decimal(snapshot["energy_this_month"]["value"]) == steps - 1
     assert Decimal(snapshot["local_costs"]["daily_effective"]) == steps - 1
+    details = snapshot["local_costs"]["variable_cost_breakdown"]
+    for period in ("daily", "monthly"):
+        assert Decimal(details[period]["priced_kwh"]) == steps - 1
+        assert Decimal(details[period]["components"]["bundled_price"]) == steps - 1
 
     set_energy(hass, steps)
     await hass.async_block_till_done()

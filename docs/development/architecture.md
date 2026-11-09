@@ -394,8 +394,17 @@ day/month choice. It renders the existing snapshot amounts, missing fees,
 exclusions and fixed-fee coverage as fresh attribute mappings, including when
 the sensor is unavailable. The monthly estimate also exposes the separately
 accrued supplier and grid fees from the same calendar calculation.
-Decimal strings, partial-coverage labels, calculations,
-one-minute publication and persisted ledger state keep their existing contracts.
+Decimal strings, partial-coverage labels, calculations and one-minute
+publication keep their existing contracts.
+
+The local `CostLedger` uses the same observed meter delta and price segments to
+accumulate the effective total and known variable cost components. The price
+resolver keeps a combined source price as one component and identifies rates
+added outside its declared scope. Component changes mark a price boundary even
+when the effective rate is unchanged. The optional `variable_cost_breakdown`
+section in the existing statistics checkpoint stores daily and monthly amounts
+with covered cost, priced energy and the first covered interval's start time.
+Older totals restore without component coverage. Open intervals remain in memory.
 
 Local cost attributes also use `attributes_fn`. Cost today selects daily
 supplier-priced energy; Cost this month and Total supplier cost this month select

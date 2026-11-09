@@ -24,6 +24,25 @@ class PriceComponent(StrEnum):
     VARIABLE_GRID_FEE = "variable_grid_fee"
 
 
+class VariableCostComponent(StrEnum):
+    """Separately priced components and indivisible source prices."""
+
+    MARKET_ENERGY = PriceComponent.MARKET_ENERGY.value
+    SUPPLIER_MARKUP = PriceComponent.SUPPLIER_MARKUP.value
+    ENERGY_TAX = PriceComponent.ENERGY_TAX.value
+    VARIABLE_GRID_FEE = PriceComponent.VARIABLE_GRID_FEE.value
+    SUPPLIER_PRICE = "supplier_price"
+    BUNDLED_PRICE = "bundled_price"
+
+
+@dataclass(frozen=True, slots=True)
+class EffectivePriceBreakdown:
+    """The effective price and its known, non-overlapping rates in currency/kWh."""
+
+    total: Decimal
+    components: tuple[tuple[VariableCostComponent, Decimal], ...]
+
+
 class VatTreatment(StrEnum):
     """Whether values from a price source include VAT."""
 

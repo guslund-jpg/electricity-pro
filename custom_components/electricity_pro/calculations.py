@@ -8,11 +8,13 @@ from decimal import Decimal
 from homeassistant.const import UnitOfEnergy
 
 from .pricing import (
+    EffectivePriceBreakdown,
     PriceCompleteness,
     PriceComponent,
     PriceComponentScope,
     PricingMetadata,
     PricingStrategy,
+    VariableCostComponent,
     VatTreatment,
 )
 
@@ -49,10 +51,20 @@ def calculate_normalized_effective_price(
     Every configured live price source reaches this calculation with explicit
     component semantics.
     """
+    additions = adjustments or {}
+    gross = _normalized_source_price(base_price, metadata, additions)
+    return None if gross is None else gross + sum(additions.values(), start=Decimal(0))
+
+
+def _normalized_source_price(
+    base_price: Decimal | None,
+    metadata: PricingMetadata,
+    additions: Mapping[PriceComponent, Decimal],
+) -> Decimal | None:
+    """Validate additions and normalize only the source price for VAT."""
     if base_price is None or not base_price.is_finite():
         return None
 
-    additions = adjustments or {}
     if metadata.is_complete and additions:
         return None
 
@@ -65,10 +77,7 @@ def calculate_normalized_effective_price(
         ):
             return None
 
-    gross_price = vat_inclusive_price(base_price, metadata)
-    if gross_price is None:
-        return None
-    return gross_price + sum(additions.values(), start=Decimal(0))
+    return vat_inclusive_price(base_price, metadata)
 
 
 def calculate_declared_effective_price(
@@ -81,6 +90,22 @@ def calculate_declared_effective_price(
     """Calculate live Effective Price from explicitly declared semantics."""
     if metadata is None:
         return None
+    return calculate_normalized_effective_price(
+        base_price,
+        metadata,
+        _declared_adjustments(
+            metadata, grid_fee_per_kwh, energy_tax_per_kwh, supplier_markup_per_kwh
+        ),
+    )
+
+
+def _declared_adjustments(
+    metadata: PricingMetadata,
+    grid_fee_per_kwh: Decimal | None,
+    energy_tax_per_kwh: Decimal | None,
+    supplier_markup_per_kwh: Decimal | None,
+) -> dict[PriceComponent, Decimal]:
+    """Include only separately configured rates outside the source scope."""
     adjustments = {}
     if grid_fee_per_kwh is not None and not metadata.scope.includes(
         PriceComponent.VARIABLE_GRID_FEE
@@ -94,10 +119,43 @@ def calculate_declared_effective_price(
         PriceComponent.SUPPLIER_MARKUP
     ):
         adjustments[PriceComponent.SUPPLIER_MARKUP] = supplier_markup_per_kwh
-    return calculate_normalized_effective_price(
-        base_price,
-        metadata,
-        adjustments or None,
+    return adjustments
+
+
+def calculate_effective_price_breakdown(
+    base_price: Decimal | None,
+    metadata: PricingMetadata | None,
+    grid_fee_per_kwh: Decimal | None,
+    energy_tax_per_kwh: Decimal | None,
+    supplier_markup_per_kwh: Decimal | None,
+) -> EffectivePriceBreakdown | None:
+    """Keep combined source prices intact and identify each added rate."""
+    if metadata is None:
+        return None
+    additions = _declared_adjustments(
+        metadata, grid_fee_per_kwh, energy_tax_per_kwh, supplier_markup_per_kwh
+    )
+    gross = _normalized_source_price(base_price, metadata, additions)
+    if gross is None:
+        return None
+
+    scope = metadata.scope.included
+    source = VariableCostComponent.BUNDLED_PRICE
+    if metadata.strategy is not PricingStrategy.EXTERNAL_COMPLETE_PRICE:
+        if scope == {PriceComponent.MARKET_ENERGY}:
+            source = VariableCostComponent.MARKET_ENERGY
+        elif scope == {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP}:
+            source = VariableCostComponent.SUPPLIER_PRICE
+
+    return EffectivePriceBreakdown(
+        total=gross + sum(additions.values(), start=Decimal(0)),
+        components=(
+            (source, gross),
+            *(
+                (VariableCostComponent(key.value), rate)
+                for key, rate in additions.items()
+            ),
+        ),
     )
 
 

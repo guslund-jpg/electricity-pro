@@ -8,11 +8,25 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from custom_components.electricity_pro.cost_ledger import CostLedger
+from custom_components.electricity_pro.pricing import (
+    EffectivePriceBreakdown,
+    VariableCostComponent,
+)
 
 START = datetime(2026, 9, 14, 12, tzinfo=UTC)
 
 
-def update(c, minutes, energy, price="2", effective="3", start=START, lifetime=True):
+def update(
+    c,
+    minutes,
+    energy,
+    price="2",
+    effective="3",
+    start=START,
+    lifetime=True,
+    *,
+    breakdown=None,
+):
     c.update(
         start + timedelta(minutes=minutes),
         None if energy is None else D(energy),
@@ -20,6 +34,7 @@ def update(c, minutes, energy, price="2", effective="3", start=START, lifetime=T
         None if effective is None else D(effective),
         "SEK",
         lifetime=lifetime,
+        breakdown=breakdown,
     )
 
 
@@ -32,6 +47,95 @@ def test_weight_prices_over_unchanged_meter_and_keep_effective_separate():
     assert c.daily_effective == D(8)
     assert c.daily_energy == D(2)
     assert c.monthly_supplier == D(6)
+
+
+def test_weight_components_when_rates_change_at_the_same_total():
+    c = CostLedger()
+    old = EffectivePriceBreakdown(
+        D(3),
+        (
+            (VariableCostComponent.MARKET_ENERGY, D(1)),
+            (VariableCostComponent.VARIABLE_GRID_FEE, D(2)),
+        ),
+    )
+    new = EffectivePriceBreakdown(
+        D(3),
+        (
+            (VariableCostComponent.MARKET_ENERGY, D(2)),
+            (VariableCostComponent.VARIABLE_GRID_FEE, D(1)),
+        ),
+    )
+
+    update(c, 0, "100", breakdown=old)
+    update(c, 4, "100", breakdown=new)
+    update(c, 10, "110", breakdown=new)
+
+    stored = c.as_dict()
+    expected = {
+        "started_at": START.isoformat(),
+        "priced_kwh": "10",
+        "covered_cost": "30",
+        "components": {"market_energy": "16", "variable_grid_fee": "14"},
+    }
+    assert stored["variable_cost_breakdown"] == {
+        "version": 1,
+        "daily": expected,
+        "monthly": expected,
+    }
+    assert c.daily_effective == c.monthly_effective == D(30)
+    assert c.daily_energy == c.monthly_energy == D(10)
+    assert CostLedger.from_dict(stored).as_dict() == stored
+
+
+def test_track_only_new_priced_intervals_after_legacy_restore():
+    c = CostLedger()
+    update(c, 0, "100")
+    update(c, 5, "102")
+    legacy = c.as_dict()
+    assert "variable_cost_breakdown" not in legacy
+    restored = CostLedger.from_dict(legacy)
+    price = EffectivePriceBreakdown(
+        D(3), ((VariableCostComponent.BUNDLED_PRICE, D(3)),)
+    )
+
+    update(restored, 10, "110", breakdown=price)
+    update(restored, 15, "111", breakdown=price)
+
+    stored = restored.as_dict()
+    daily = stored["variable_cost_breakdown"]["daily"]
+    assert restored.daily_effective == D(9)
+    assert restored.daily_energy == D(3)
+    assert daily == {
+        "started_at": (START + timedelta(minutes=10)).isoformat(),
+        "priced_kwh": "1",
+        "covered_cost": "3",
+        "components": {"bundled_price": "3"},
+    }
+
+    daily["priced_kwh"] = "NaN"
+    without_details = CostLedger.from_dict(stored)
+    assert without_details.daily_effective == D(9)
+    assert "variable_cost_breakdown" not in without_details.as_dict()
+
+
+def test_track_components_after_midnight_in_the_new_month():
+    c = CostLedger()
+    start = datetime(2026, 9, 30, 23, 55, tzinfo=ZoneInfo("Europe/Stockholm"))
+    price = EffectivePriceBreakdown(
+        D(3), ((VariableCostComponent.BUNDLED_PRICE, D(3)),)
+    )
+    update(c, 0, "100", start=start, breakdown=price)
+    update(c, 2, "101", start=start, breakdown=price)
+    update(c, 8, "103", start=start, breakdown=price)
+
+    stored = c.as_dict()
+    details = stored["variable_cost_breakdown"]
+    assert c.daily_energy == c.monthly_energy == D(1)
+    assert c.daily_effective == c.monthly_effective == D(3)
+    assert D(details["daily"]["components"]["bundled_price"]) == c.daily_effective
+    assert details["monthly"] == details["daily"]
+    assert details["daily"]["started_at"] == (start + timedelta(minutes=5)).isoformat()
+    assert CostLedger.from_dict(stored).as_dict() == stored
 
 
 def test_negative_prices_reduce_cost_without_counter_reset():

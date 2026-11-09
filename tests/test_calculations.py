@@ -8,6 +8,7 @@ from custom_components.electricity_pro.calculations import (
     calculate_consumption_weighted_average_price,
     calculate_current_cost_rate,
     calculate_declared_effective_price,
+    calculate_effective_price_breakdown,
     calculate_normalized_effective_price,
     effective_price_metadata,
 )
@@ -17,6 +18,7 @@ from custom_components.electricity_pro.pricing import (
     PriceCompleteness,
     PricingMetadata,
     PricingStrategy,
+    VariableCostComponent,
     VatTreatment,
 )
 
@@ -191,6 +193,61 @@ def test_supplier_markup_is_added_only_when_missing_from_source() -> None:
     assert calculate_consumption_weighted_average_price(
         Decimal("10"), Decimal("10"), "kWh", Decimal("0.10"), Decimal("0.45")
     ) == Decimal("1.55")
+
+
+@pytest.mark.parametrize(
+    ("strategy", "included", "expected"),
+    [
+        (
+            PricingStrategy.MARKET_PRICE_PLUS_TARIFF,
+            {PriceComponent.MARKET_ENERGY},
+            {
+                VariableCostComponent.MARKET_ENERGY: "0.80",
+                VariableCostComponent.SUPPLIER_MARKUP: "0",
+                VariableCostComponent.ENERGY_TAX: "0.45",
+                VariableCostComponent.VARIABLE_GRID_FEE: "0.10",
+            },
+        ),
+        (
+            PricingStrategy.SUPPLIER_CONTRACTED_PRICE,
+            {PriceComponent.MARKET_ENERGY, PriceComponent.SUPPLIER_MARKUP},
+            {
+                VariableCostComponent.SUPPLIER_PRICE: "0.80",
+                VariableCostComponent.ENERGY_TAX: "0.45",
+                VariableCostComponent.VARIABLE_GRID_FEE: "0.10",
+            },
+        ),
+        (
+            PricingStrategy.EXTERNAL_COMPLETE_PRICE,
+            set(PriceComponent),
+            {VariableCostComponent.BUNDLED_PRICE: "0.80"},
+        ),
+    ],
+    ids=["market", "supplier-bundle", "complete-bundle"],
+)
+def test_effective_price_breakdown_preserves_source_scope(
+    strategy: PricingStrategy,
+    included: set[PriceComponent],
+    expected: dict[VariableCostComponent, str],
+) -> None:
+    metadata = PricingMetadata(
+        strategy=strategy,
+        scope=PriceComponentScope(frozenset(included), vat=VatTreatment.EXCLUDED),
+        completeness=(
+            PriceCompleteness.COMPLETE
+            if strategy is PricingStrategy.EXTERNAL_COMPLETE_PRICE
+            else PriceCompleteness.PARTIAL
+        ),
+        vat_rate=Decimal(25),
+    )
+    rates = (Decimal("0.64"), metadata, Decimal("0.10"), Decimal("0.45"), Decimal(0))
+    breakdown = calculate_effective_price_breakdown(*rates)
+
+    assert breakdown is not None
+    assert dict(breakdown.components) == {
+        key: Decimal(value) for key, value in expected.items()
+    }
+    assert breakdown.total == calculate_declared_effective_price(*rates)
 
 
 def test_effective_price_metadata_becomes_complete_after_composition() -> None:
