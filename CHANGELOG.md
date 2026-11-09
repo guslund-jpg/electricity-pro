@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Show the variable cost, known fixed fees to date, and priced energy below the
+  monthly household estimate in the English and Swedish dashboard examples.
+  Identify missing fees separately from configured zero amounts. (#165)
 - Document how to tune the fixed Current Power, Effective Price and Current Cost
   Rate scales in the dashboard examples, including an independent high-cost
   boundary in local currency per hour. (#215)

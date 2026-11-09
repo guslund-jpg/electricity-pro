@@ -132,6 +132,12 @@ Each total exposes variable_cost, accrued_fixed_fees, priced_energy_kwh,
 missing_components and excluded_charges attributes. All variable costs use the
 same currency as the configured normalized price.
 
+The monthly dashboard breakdown shows the variable cost of priced energy and
+known fixed fees accrued since the start of the month. The partial estimate
+reports how many kWh were priced. It names any missing fee and displays an
+explicitly configured zero as an amount. If both fixed fees are missing, the
+fixed-fee amount is shown as unavailable.
+
 Update the integration, verify pricing and fixed fees, and update the example
 dashboard YAML. Both examples place household estimates before supplier costs.
 The effective average price remains a variable-cost measure, excluding fixed fees.
