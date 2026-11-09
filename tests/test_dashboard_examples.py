@@ -140,6 +140,7 @@ async def test_household_dashboard_notes_explain_missing_fixed_fees(hass) -> Non
         )
 
 
+@pytest.mark.parametrize("split", [False, True], ids=["legacy", "split"])
 @pytest.mark.parametrize(
     ("state", "fixed_fees", "missing", "expected_fixed"),
     [
@@ -175,21 +176,22 @@ async def test_household_dashboard_notes_explain_missing_fixed_fees(hass) -> Non
     ids=["one-missing-fee", "known-zero", "both-missing-fees", "unavailable"],
 )
 async def test_monthly_dashboard_cost_breakdown(
-    hass, state, fixed_fees, missing, expected_fixed
+    hass, state, fixed_fees, missing, expected_fixed, split
 ) -> None:
     """Render the breakdown without confusing missing amounts with zero."""
     entity = "sensor.electricity_pro_total_cost_estimate_this_month"
-    hass.states.async_set(
-        entity,
-        state,
-        {
-            "variable_cost": "240",
-            "accrued_fixed_fees": fixed_fees,
-            "unit_of_measurement": "EUR",
-            "priced_energy_kwh": "160",
-            "missing_components": missing,
-        },
-    )
+    attributes = {
+        "variable_cost": "240",
+        "accrued_fixed_fees": fixed_fees,
+        "unit_of_measurement": "EUR",
+        "priced_energy_kwh": "160",
+        "missing_components": missing,
+    }
+    supplier = None if "fixed_supplier_fee" in missing else fixed_fees
+    grid = None if "fixed_grid_fee" in missing else "0"
+    if split:
+        attributes["accrued_fixed_fee_breakdown"] = {"supplier": supplier, "grid": grid}
+    hass.states.async_set(entity, state, attributes)
     for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
         dashboard = yaml.safe_load(path.read_text())
         note = next(
@@ -200,17 +202,19 @@ async def test_monthly_dashboard_cost_breakdown(
             and entity in card["content"]
         )
         rendered = Template(note, hass).async_render(parse_result=False)
-        assert (_language(path, "Missing", "Saknas") in rendered) == bool(missing)
-        if "fixed_grid_fee" in missing:
-            assert _language(path, "fixed grid fee", "fast elnätsavgift") in rendered
-        if "fixed_supplier_fee" in missing:
-            assert (
-                _language(path, "fixed supplier fee", "fast elhandelsavgift")
-                in rendered
-            )
+        show_missing_note = bool(missing) and (not split or state == "unavailable")
+        assert (
+            _language(path, "**Missing:**", "**Saknas:**") in rendered
+        ) == show_missing_note
         if expected_fixed is None:
             assert "EUR" not in rendered
             assert "160.0 kWh" not in rendered
+            assert (
+                _language(
+                    path, "Fixed supplier fee so far", "Fast elhandelsavgift hittills"
+                )
+                not in rendered
+            )
         else:
             assert (
                 _language(
@@ -218,7 +222,24 @@ async def test_monthly_dashboard_cost_breakdown(
                 )
                 in rendered
             )
-            assert _language(path, *expected_fixed) in rendered
+            if split:
+                labels_and_amounts = (
+                    (
+                        "Fixed supplier fee so far",
+                        "Fast elhandelsavgift hittills",
+                        supplier,
+                    ),
+                    ("Fixed grid fee so far", "Fast elnätsavgift hittills", grid),
+                )
+                for en, sv, fee in labels_and_amounts:
+                    amount = (
+                        _language(path, "Not available", "Uppgift saknas")
+                        if fee is None
+                        else _language(path, f"{fee}.00 EUR", f"{fee},00 EUR")
+                    )
+                    assert f"**{_language(path, en, sv)}** {amount}" in rendered
+            else:
+                assert _language(path, *expected_fixed) in rendered
             assert (
                 _language(path, "160.0 kWh priced", "160.0 kWh prissatta") in rendered
             )
@@ -235,6 +256,7 @@ async def test_cost_notes_remain_compact_and_prioritize_household_coverage(
             {
                 "variable_cost": "20",
                 "accrued_fixed_fees": "5",
+                "accrued_fixed_fee_breakdown": {"supplier": "3", "grid": "2"},
                 "unit_of_measurement": "EUR",
                 "priced_energy_kwh": "2.09",
                 "missing_components": [],

@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Break out accrued fixed supplier and grid fees under the monthly household
+  estimate in the English and Swedish dashboard examples. (#165)
 - Show the variable cost, known fixed fees to date, and priced energy below the
   monthly household estimate in the English and Swedish dashboard examples.
   Identify missing fees separately from configured zero amounts. (#165)

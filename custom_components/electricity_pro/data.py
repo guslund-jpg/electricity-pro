@@ -85,6 +85,8 @@ class IntegrationResults:
     household_variable_month: Decimal | None = None
     household_fixed_today: Decimal | None = None
     household_fixed_month: Decimal | None = None
+    household_fixed_supplier_month: Decimal | None = None
+    household_fixed_grid_month: Decimal | None = None
     household_priced_energy_today: Decimal | None = None
     household_priced_energy_month: Decimal | None = None
     household_missing_fees: tuple[str, ...] = ()

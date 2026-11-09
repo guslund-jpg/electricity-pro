@@ -189,6 +189,10 @@ The inventory covers all **51 distinct existing fields**: 14 input-only,
 produces 18 source fields, 7 context fields and 30 result fields. The extra four
 slots express different meanings, rather than two writable copies of one value.
 
+After this separation, #165 added `household_fixed_supplier_month` and
+`household_fixed_grid_month` to the result snapshot for the accrued monthly
+fee breakdown.
+
 ### Authority and ordering
 
 - Daily energy sources pass through using their existing value/unit semantics.

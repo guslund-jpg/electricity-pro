@@ -144,6 +144,8 @@ class _DataUpdates(TypedDict, total=False):
     household_variable_month: Decimal
     household_fixed_today: Decimal
     household_fixed_month: Decimal
+    household_fixed_supplier_month: Decimal | None
+    household_fixed_grid_month: Decimal | None
     household_priced_energy_today: Decimal
     household_priced_energy_month: Decimal
     household_missing_fees: tuple[str, ...]
@@ -1069,7 +1071,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         )
         ledger = self._local_costs
         should_save |= before != ledger.as_dict()
-        fixed_day, fixed_month, missing_fees = accrued_fixed_fees(
+        fixed_fees = accrued_fixed_fees(
             now,
             inputs.context.fixed_supplier_fee_this_month,
             inputs.context.fixed_grid_fee_this_month,
@@ -1084,21 +1086,23 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         )
         updates.update(
             _DataUpdates(
-                household_cost_today=ledger.daily_effective + fixed_day
+                household_cost_today=ledger.daily_effective + fixed_fees.today
                 if known_day
                 else None,
-                household_cost_this_month=ledger.monthly_effective + fixed_month
+                household_cost_this_month=ledger.monthly_effective + fixed_fees.month
                 if known_month
                 else None,
                 household_cost_unit=ledger.unit,
                 household_variable_today=ledger.daily_effective,
                 household_variable_month=ledger.monthly_effective,
-                household_fixed_today=fixed_day,
-                household_fixed_month=fixed_month,
+                household_fixed_today=fixed_fees.today,
+                household_fixed_month=fixed_fees.month,
+                household_fixed_supplier_month=fixed_fees.supplier_month,
+                household_fixed_grid_month=fixed_fees.grid_month,
                 household_priced_energy_today=ledger.daily_energy,
                 household_priced_energy_month=ledger.monthly_energy,
                 household_missing_fees=(
-                    missing_fees
+                    fixed_fees.missing
                     + (("complete_variable_price",) if effective is None else ())
                 ),
             )

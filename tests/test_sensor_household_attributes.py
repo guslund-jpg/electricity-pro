@@ -49,6 +49,7 @@ def household_sensor(hass, request):
                 household_variable_month=Decimal("100.001"),
                 household_fixed_today=Decimal("2.2200"),
                 household_fixed_month=Decimal("23.455700"),
+                household_fixed_supplier_month=Decimal("23.455700"),
                 household_priced_energy_today=Decimal("8.0100"),
                 household_priced_energy_month=Decimal("80.001"),
                 household_missing_fees=("fixed_grid_fee",),
@@ -83,6 +84,7 @@ def test_household_attributes_preserve_period_and_decimal_strings(household_sens
             "coverage": "partial",
             "variable_cost": "100.001",
             "accrued_fixed_fees": "23.455700",
+            "accrued_fixed_fee_breakdown": {"supplier": "23.455700", "grid": None},
             "priced_energy_kwh": "80.001",
             "missing_components": ["fixed_grid_fee"],
             "excluded_charges": ["demand_charges", "other_unconfigured_charges"],
@@ -202,6 +204,9 @@ async def test_household_publication_schedule_and_reload_preserve_identity_and_t
         assert state.attributes["unit_of_measurement"] == "SEK"
         assert state.attributes["device_class"] == "monetary"
         assert state.attributes["state_class"] == "total"
+        if key == "total_cost_this_month":
+            breakdown = state.attributes["accrued_fixed_fee_breakdown"]
+            assert Decimal(breakdown["supplier"]) == Decimal(breakdown["grid"]) == 0
         assert registry.async_get(entity_id).unique_id == f"{entry.entry_id}_{key}"
         expected_attributes[key] = dict(state.attributes)
 

@@ -370,7 +370,7 @@ async def test_provider_read_sites_keep_their_existing_clock_cadence(hass, path)
     )
 
 
-def test_result_schema_retains_all_thirty_snapshot_types():
+def test_result_schema_retains_snapshot_types():
     """Keep the reviewed types independent of the new container hierarchy."""
     updates = get_type_hints(_DataUpdates)
     results = get_type_hints(IntegrationResults)
@@ -402,11 +402,13 @@ def test_result_schema_retains_all_thirty_snapshot_types():
         "household_variable_month": Decimal | None,
         "household_fixed_today": Decimal | None,
         "household_fixed_month": Decimal | None,
+        "household_fixed_supplier_month": Decimal | None,
+        "household_fixed_grid_month": Decimal | None,
         "household_priced_energy_today": Decimal | None,
         "household_priced_energy_month": Decimal | None,
         "household_missing_fees": tuple[str, ...],
     }
-    assert len(updates) == len(results) == 30
+    assert len(updates) == len(results) == 32
     assert results == expected
     assert updates.keys() == expected.keys()
     assert sum(updates[name] != results[name] for name in updates) == 10
