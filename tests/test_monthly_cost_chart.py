@@ -106,17 +106,26 @@ def test_monthly_chart_series_keep_zero_negative_and_missing_distinct(
     if node is None:
         pytest.skip("Node.js is required to execute the ApexCharts data generators")
     payload = {
-        "generators": [series["data_generator"] for series in chart["series"]],
+        "series": chart["series"],
         "months": chart_rows,
+        "tooltip": chart["apex_config"]["tooltip"]["custom"].removeprefix("EVAL:"),
     }
     result = subprocess.run(
         [
             node,
             "-e",
             """
-const { generators, months } = JSON.parse(require('node:fs').readFileSync(0, 'utf8'));
+const { series, months, tooltip } = JSON.parse(require('node:fs').readFileSync(0, 'utf8'));
 const entity = { attributes: { months } };
-process.stdout.write(JSON.stringify(generators.map(body => new Function('entity', body)(entity))));
+const points = series.map(item => new Function('entity', item.data_generator)(entity));
+const document = { createElement: () => ({children: [], style: {}, append(child) { this.children.push(child); }}) };
+const w = {
+  globals: { seriesX: points.map(item => item.map(([timestamp]) => timestamp)) },
+  config: { series, tooltip: { y: { formatter: value => `<strong>${value} SEK</strong>` } } },
+};
+const render = new Function('document', `return (${tooltip})`)(document);
+const info = render({series: points.map(item => item.map(([, value]) => value)), dataPointIndex: 9, w});
+process.stdout.write(JSON.stringify({points, info: info.children.map(child => child.textContent)}));
 """,
         ],
         input=json.dumps(payload),
@@ -125,7 +134,13 @@ process.stdout.write(JSON.stringify(generators.map(body => new Function('entity'
         check=True,
         timeout=10,
     )
-    points = json.loads(result.stdout)
+    output = json.loads(result.stdout)
+    points = output["points"]
+    assert output["info"] == [
+        "2026-09",
+        f"{chart['series'][0]['name']}: -3 SEK",
+        f"{chart['series'][1]['name']}: 0 SEK",
+    ]
     assert [[value for _, value in series[-4:]] for series in points] == [
         [None, -3, None, None],
         [None, 0, None, None],

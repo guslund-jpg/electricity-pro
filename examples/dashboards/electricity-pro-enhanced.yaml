@@ -612,8 +612,27 @@ views:
                   shared: true
                   intersect: false
                   hideEmptySeries: false
-                  x:
-                    format: MMM yyyy
+                  custom: |
+                    EVAL:function({ series, dataPointIndex, w }) {
+                      const tooltip = document.createElement("div");
+                      const timestamp = w.globals.seriesX[0]?.[dataPointIndex];
+                      if (timestamp == null) return tooltip;
+                      const title = document.createElement("div");
+                      title.className = "apexcharts-tooltip-title";
+                      title.textContent = new Date(timestamp).toISOString().slice(0, 7);
+                      tooltip.append(title);
+                      series.forEach((amounts, seriesIndex) => {
+                        const value = amounts[dataPointIndex];
+                        if (value == null) return;
+                        const line = document.createElement("div");
+                        line.style.padding = "2px 8px";
+                        const amount = w.config.tooltip.y.formatter(value, { seriesIndex, dataPointIndex, w });
+                        line.textContent = w.config.series[seriesIndex].name + ": "
+                          + String(amount).replace(/<\/?strong>/g, "");
+                        tooltip.append(line);
+                      });
+                      return tooltip;
+                    }
               series:
                 - entity: sensor.electricity_pro_monthly_variable_cost_history
                   name: Spot energy
