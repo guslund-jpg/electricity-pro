@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal, localcontext
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -226,7 +226,60 @@ def _household_cost_attributes(
             "supplier": _decimal_string(data.results.household_fixed_supplier_month),
             "grid": _decimal_string(data.results.household_fixed_grid_month),
         }
+        attributes["variable_cost_breakdown"] = _monthly_variable_cost_attributes(data)
     return attributes
+
+
+def _monthly_variable_cost_attributes(
+    data: ElectricityProData,
+) -> dict[str, object] | None:
+    """Keep raw amounts and calculate the rounded lines for the monthly card."""
+    results = data.results
+    total = results.household_variable_month
+    summary = results.household_variable_breakdown_month
+    if summary is None or total is None:
+        return None
+
+    components = {key.value: amount for key, amount in summary.components}
+    unallocated = None
+    if (
+        results.household_priced_energy_month is not None
+        and results.household_priced_energy_month > summary.priced_kwh
+    ):
+        unallocated = total - summary.covered_cost
+    lines = components.copy()
+    if unallocated is not None:
+        lines["unallocated_cost"] = unallocated
+
+    with localcontext() as context:
+        # Leave room for cents and a carry when adding rounded amounts.
+        context.prec = max(
+            context.prec,
+            max(amount.adjusted() for amount in (total, *lines.values())) + 4,
+        )
+        rounded_total = total.quantize(_CURRENCY_QUANTUM, rounding=ROUND_HALF_EVEN)
+        rounded = {
+            key: amount.quantize(_CURRENCY_QUANTUM, rounding=ROUND_HALF_EVEN)
+            for key, amount in lines.items()
+        }
+        difference = rounded_total - sum(rounded.values(), Decimal(0))
+    display_lines = {
+        key: str(amount) if amount else "0.00" for key, amount in rounded.items()
+    }
+    if difference:
+        display_lines["rounding_adjustment"] = f"{difference:+.2f}"
+
+    return {
+        "components": {key: str(amount) for key, amount in components.items()},
+        "unallocated_cost": _decimal_string(unallocated),
+        "covered_cost": str(summary.covered_cost),
+        "priced_energy_kwh": str(summary.priced_kwh),
+        "started_at": summary.started_at.isoformat(),
+        "display": {
+            "total": str(rounded_total) if rounded_total else "0.00",
+            "lines": display_lines,
+        },
+    }
 
 
 def _local_cost_attributes(

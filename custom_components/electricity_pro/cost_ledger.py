@@ -1,6 +1,7 @@
 """Bounded estimates from observed energy deltas and price intervals."""
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 
@@ -10,6 +11,16 @@ from .pricing import EffectivePriceBreakdown, VariableCostComponent
 type _PriceSample = tuple[
     Decimal | None, Decimal | None, EffectivePriceBreakdown | None
 ]
+
+
+@dataclass(frozen=True, slots=True)
+class VariableCostSummary:
+    """Published component amounts and their coverage for one period."""
+
+    started_at: datetime
+    priced_kwh: Decimal
+    covered_cost: Decimal
+    components: tuple[tuple[VariableCostComponent, Decimal], ...]
 
 
 class _VariableCostPeriod:
@@ -91,6 +102,19 @@ class CostLedger:
 
     def __init__(self) -> None:
         self._reset()
+
+    @property
+    def monthly_variable_cost(self) -> VariableCostSummary | None:
+        """Snapshot the recorded components without sharing mutable ledger state."""
+        period = self._monthly_components
+        if period.started_at is None:
+            return None
+        return VariableCostSummary(
+            period.started_at,
+            period.priced_kwh,
+            period.covered_cost,
+            tuple(period.components.items()),
+        )
 
     def _reset(self) -> None:
         """Clear totals and observation state when starting a new currency."""

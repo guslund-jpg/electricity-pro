@@ -48,7 +48,7 @@ from .calculations import (
     calculate_effective_price_breakdown,
     effective_price_metadata,
 )
-from .cost_ledger import CostLedger
+from .cost_ledger import CostLedger, VariableCostSummary
 from .energy_flows import FlowCounter
 from .flow_sources import CHANNELS
 from .flow_compatibility import (
@@ -143,6 +143,7 @@ class _DataUpdates(TypedDict, total=False):
     household_cost_unit: str | None
     household_variable_today: Decimal
     household_variable_month: Decimal
+    household_variable_breakdown_month: VariableCostSummary | None
     household_fixed_today: Decimal
     household_fixed_month: Decimal
     household_fixed_supplier_month: Decimal | None
@@ -1098,6 +1099,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 household_cost_unit=ledger.unit,
                 household_variable_today=ledger.daily_effective,
                 household_variable_month=ledger.monthly_effective,
+                household_variable_breakdown_month=ledger.monthly_variable_cost,
                 household_fixed_today=fixed_fees.today,
                 household_fixed_month=fixed_fees.month,
                 household_fixed_supplier_month=fixed_fees.supplier_month,

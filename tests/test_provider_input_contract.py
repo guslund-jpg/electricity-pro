@@ -114,6 +114,7 @@ def expected_flat_values():
         "household_cost_unit": None,
         "household_variable_today": None,
         "household_variable_month": None,
+        "household_variable_breakdown_month": None,
         "household_fixed_today": None,
         "household_fixed_month": None,
         "household_fixed_supplier_month": None,
@@ -439,7 +440,7 @@ def test_canonical_inputs_and_initial_results_match_recorded_values(provider_cas
 def test_canonical_model_inventory():
     assert len(fields(SourceReadings)) == 18
     assert len(fields(CalculationContext)) == 7
-    assert len(fields(IntegrationResults)) == 32
+    assert len(fields(IntegrationResults)) == 33
     assert get_type_hints(ProviderSnapshot) == {
         "readings": SourceReadings,
         "context": CalculationContext,

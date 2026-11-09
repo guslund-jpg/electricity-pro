@@ -393,7 +393,10 @@ also bind `attributes_fn`, sharing `_household_cost_attributes` with an explicit
 day/month choice. It renders the existing snapshot amounts, missing fees,
 exclusions and fixed-fee coverage as fresh attribute mappings, including when
 the sensor is unavailable. The monthly estimate also exposes the separately
-accrued supplier and grid fees from the same calendar calculation.
+accrued supplier and grid fees from the same calendar calculation and an immutable
+snapshot of the ledger's monthly variable cost components. The attribute renderer
+uses the snapshot to report covered and unsplit costs with full Decimal precision
+and a separate rounded representation for the dashboard.
 Decimal strings, partial-coverage labels, calculations and one-minute
 publication keep their existing contracts.
 

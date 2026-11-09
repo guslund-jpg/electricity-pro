@@ -37,9 +37,26 @@ def walk(value):
 def template_contract(value):
     """Protect state reads, branches, assignments and numeric presentation."""
     tree = Environment().parse(value)
+
+    def assignment_value(assignment):
+        expression = assignment.node
+        if (
+            isinstance(assignment.target, nodes.Name)
+            and assignment.target.name == "variable_cost_labels"
+            and isinstance(expression, nodes.Dict)
+            and all(
+                isinstance(item.value, nodes.Const)
+                and isinstance(item.value.value, str)
+                for item in expression.items
+            )
+        ):
+            # The label text is localized. Its keys and order are shared.
+            return repr([item.key for item in expression.items])
+        return repr(expression)
+
     return {
         "assignments": [
-            (repr(n.target), repr(n.node)) for n in tree.find_all(nodes.Assign)
+            (repr(n.target), assignment_value(n)) for n in tree.find_all(nodes.Assign)
         ],
         "conditions": [repr(n.test) for n in tree.find_all((nodes.If, nodes.CondExpr))],
         "reads": [

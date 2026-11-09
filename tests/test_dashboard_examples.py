@@ -1,6 +1,7 @@
 """Validation tests for the published dashboard examples."""
 
 from collections.abc import Iterator
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -10,11 +11,24 @@ from homeassistant.helpers.template import Template
 
 
 DASHBOARD_EXAMPLES = Path(__file__).parents[1] / "examples" / "dashboards"
+MONTHLY_TOTAL = "sensor.electricity_pro_total_cost_estimate_this_month"
 
 
 def _language(path, english, swedish):
     """Select the expected user-facing assertion for each maintained example."""
     return swedish if path.stem.endswith("-sv") else english
+
+
+def _monthly_cost_note(hass, path):
+    dashboard = yaml.safe_load(path.read_text())
+    note = next(
+        card["content"]
+        for card in _walk(dashboard)
+        if isinstance(card, dict)
+        and card.get("type") == "markdown"
+        and MONTHLY_TOTAL in card["content"]
+    )
+    return Template(note, hass).async_render(parse_result=False)
 
 
 @pytest.mark.parametrize("coverage", ["partial", "unverified", "tracked"])
@@ -179,7 +193,6 @@ async def test_monthly_dashboard_cost_breakdown(
     hass, state, fixed_fees, missing, expected_fixed, split
 ) -> None:
     """Render the breakdown without confusing missing amounts with zero."""
-    entity = "sensor.electricity_pro_total_cost_estimate_this_month"
     attributes = {
         "variable_cost": "240",
         "accrued_fixed_fees": fixed_fees,
@@ -191,17 +204,16 @@ async def test_monthly_dashboard_cost_breakdown(
     grid = None if "fixed_grid_fee" in missing else "0"
     if split:
         attributes["accrued_fixed_fee_breakdown"] = {"supplier": supplier, "grid": grid}
-    hass.states.async_set(entity, state, attributes)
+        attributes["variable_cost_breakdown"] = None
+    hass.states.async_set(MONTHLY_TOTAL, state, attributes)
     for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
-        dashboard = yaml.safe_load(path.read_text())
-        note = next(
-            card["content"]
-            for card in _walk(dashboard)
-            if isinstance(card, dict)
-            and card.get("type") == "markdown"
-            and entity in card["content"]
-        )
-        rendered = Template(note, hass).async_render(parse_result=False)
+        rendered = _monthly_cost_note(hass, path)
+        assert (
+            _language(path, "Breakdown not yet available", "Uppdelning saknas ännu")
+            in rendered
+        ) == (state != "unavailable")
+        assert "kWh with a breakdown" not in rendered
+        assert "kWh med uppdelning" not in rendered
         show_missing_note = bool(missing) and (not split or state == "unavailable")
         assert (
             _language(path, "**Missing:**", "**Saknas:**") in rendered
@@ -243,6 +255,100 @@ async def test_monthly_dashboard_cost_breakdown(
             assert (
                 _language(path, "160.0 kWh priced", "160.0 kWh prissatta") in rendered
             )
+
+
+@pytest.mark.parametrize(
+    ("rows", "covered"),
+    [
+        (
+            (
+                (
+                    "supplier_price",
+                    "52.00",
+                    "Combined supplier price",
+                    "Samlat elhandelspris",
+                ),
+                ("energy_tax", "18.00", "Energy tax", "Energiskatt"),
+                (
+                    "variable_grid_fee",
+                    "9.00",
+                    "Variable grid fee",
+                    "Rörlig elnätsavgift",
+                ),
+                (
+                    "unallocated_cost",
+                    "20.00",
+                    "Earlier unsplit cost",
+                    "Äldre ospecificerad kostnad",
+                ),
+                ("rounding_adjustment", "+0.02", "Rounding", "Avrundning"),
+            ),
+            "60",
+        ),
+        (
+            (
+                ("market_energy", "-4.00", "Spot energy", "Spotpris"),
+                ("supplier_markup", "0.00", "Supplier markup", "Elhandelspåslag"),
+            ),
+            "80",
+        ),
+        (
+            (
+                (
+                    "bundled_price",
+                    "52.00",
+                    "Combined variable price",
+                    "Samlat rörligt pris",
+                ),
+            ),
+            "80",
+        ),
+    ],
+    ids=["partial-breakdown", "separate-rates", "complete-price"],
+)
+async def test_monthly_dashboard_shows_variable_lines_and_coverage(hass, rows, covered):
+    lines = {key: amount for key, amount, _, _ in rows}
+    total = str(sum(map(Decimal, lines.values())))
+    hass.states.async_set(
+        MONTHLY_TOTAL,
+        total,
+        {
+            "variable_cost": total,
+            "variable_cost_breakdown": {
+                "display": {"total": total, "lines": lines},
+                "priced_energy_kwh": covered,
+            },
+            "accrued_fixed_fees": "0",
+            "unit_of_measurement": "EUR",
+            "priced_energy_kwh": "80",
+        },
+    )
+    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+        rendered = _monthly_cost_note(hass, path)
+        assert (
+            _language(
+                path,
+                f"Variable cost** {total} EUR",
+                f"Rörlig kostnad** {total.replace('.', ',')} EUR",
+            )
+            in rendered
+        )
+        assert (
+            _language(
+                path,
+                f"80.0 kWh priced, of which {covered}.0 kWh with a breakdown",
+                f"80.0 kWh prissatta, varav {covered}.0 kWh med uppdelning",
+            )
+            in rendered
+        )
+        assert [
+            line.strip() for line in rendered.splitlines() if line.startswith("- ")
+        ] == [
+            _language(
+                path, f"- {en} {amount} EUR", f"- {sv} {amount.replace('.', ',')} EUR"
+            )
+            for _, amount, en, sv in rows
+        ]
 
 
 async def test_cost_notes_remain_compact_and_prioritize_household_coverage(

@@ -18,6 +18,7 @@ from custom_components.electricity_pro.coordinator import (
     ElectricityProCoordinator,
     _DataUpdates,
 )
+from custom_components.electricity_pro.cost_ledger import VariableCostSummary
 from custom_components.electricity_pro.data import (
     CalculationContext,
     ElectricityProData,
@@ -400,6 +401,7 @@ def test_result_schema_retains_snapshot_types():
         "household_cost_unit": str | None,
         "household_variable_today": Decimal | None,
         "household_variable_month": Decimal | None,
+        "household_variable_breakdown_month": VariableCostSummary | None,
         "household_fixed_today": Decimal | None,
         "household_fixed_month": Decimal | None,
         "household_fixed_supplier_month": Decimal | None,
@@ -408,7 +410,7 @@ def test_result_schema_retains_snapshot_types():
         "household_priced_energy_month": Decimal | None,
         "household_missing_fees": tuple[str, ...],
     }
-    assert len(updates) == len(results) == 32
+    assert len(updates) == len(results) == 33
     assert results == expected
     assert updates.keys() == expected.keys()
     assert sum(updates[name] != results[name] for name in updates) == 10

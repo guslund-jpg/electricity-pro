@@ -257,11 +257,14 @@ views:
           {% set supplier = 'sensor.electricity_pro_cost_this_month' %}
           {% set variable = state_attr(total, 'variable_cost') %}
           {% set fixed = state_attr(total, 'accrued_fixed_fees') %}
+          {% set breakdown = state_attr(total, 'variable_cost_breakdown') %}
+          {% set display = breakdown.display if breakdown is mapping else none %}
           {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
           {% set currency = state_attr(total, 'unit_of_measurement') %}
           {% set missing = state_attr(total, 'missing_components') or [] %}
           {% if has_value(total) and is_number(variable) and is_number(fixed) and currency %}
-          **Rörlig kostnad** {{ '%.2f' | format(variable | float) | replace('.', ',') }} {{ currency }} ·
+          **Rörlig kostnad** {{ (display.total if display is mapping else '%.2f' | format(variable | float))
+          | replace('.', ',') }} {{ currency }} ·
           {% if fixed_breakdown is mapping %}
           **Fast elhandelsavgift hittills**
           {% if is_number(fixed_breakdown.supplier) %}{{ '%.2f' | format(fixed_breakdown.supplier | float)
@@ -275,11 +278,32 @@ views:
           {% else %}
           **Kända fasta avgifter hittills** {{ '%.2f' | format(fixed | float) | replace('.', ',') }} {{ currency }}.
           {% endif %}
+          {% if display is mapping %}
+          {% set variable_cost_labels = {
+            'market_energy': 'Spotpris',
+            'supplier_markup': 'Elhandelspåslag',
+            'supplier_price': 'Samlat elhandelspris',
+            'bundled_price': 'Samlat rörligt pris',
+            'energy_tax': 'Energiskatt',
+            'variable_grid_fee': 'Rörlig elnätsavgift',
+            'unallocated_cost': 'Äldre ospecificerad kostnad',
+            'rounding_adjustment': 'Avrundning'
+          } %}
+          {{ '\n' }}
+          {% for key, label in variable_cost_labels.items() if key in display.lines %}
+          {{ '\n' }}- {{ label }} {{ display.lines[key] | replace('.', ',') }} {{ currency }}
+          {%- endfor %}
+          {{ '\n\n' }}
+          {% else %}
+          *Uppdelning saknas ännu.*
+          {% endif %}
           {% endif %}
 
           {% set priced = state_attr(total, 'priced_energy_kwh') %}
           {% if has_value(total) and is_number(priced) %}
-          **Delvis beräknad kostnad:** {{ priced | float(0) | round(2) }} kWh prissatta.
+          **Delvis beräknad kostnad:** {{ priced | float(0) | round(2) }} kWh prissatta
+          {%- if display is mapping %}, varav {{ breakdown.priced_energy_kwh | float | round(2) }}
+          kWh med uppdelning{% endif %}.
           {% elif state_attr(supplier, 'source') == 'local_estimate' %}
           **Delvis beräknad elhandelskostnad:** {{ state_attr(supplier, 'priced_energy_kwh') | float(0) | round(2) }}
           kWh prissatta.

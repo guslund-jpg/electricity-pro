@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
+from .cost_ledger import VariableCostSummary
 from .pricing import PricingMetadata
 
 
@@ -83,6 +84,7 @@ class IntegrationResults:
     household_cost_unit: str | None = None
     household_variable_today: Decimal | None = None
     household_variable_month: Decimal | None = None
+    household_variable_breakdown_month: VariableCostSummary | None = None
     household_fixed_today: Decimal | None = None
     household_fixed_month: Decimal | None = None
     household_fixed_supplier_month: Decimal | None = None

@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Show known variable cost components, earlier unsplit costs and priced energy
+  coverage in the English and Swedish monthly dashboard examples. (#165)
 - Record known variable cost components alongside the daily and monthly totals
   in the local ledger. Combined source prices stay together. (#165)
 - Break out accrued fixed supplier and grid fees under the monthly household
