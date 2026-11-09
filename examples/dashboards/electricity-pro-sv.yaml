@@ -14,7 +14,7 @@ views:
         columns: 2
         square: false
         cards:
-          # Exempelgränser: anpassa max och severity till ditt hushåll.
+          # Fast effektskala i W. Anpassa max och severity till din vardagslast.
           - type: gauge
             entity: sensor.electricity_pro_current_power
             name: "Aktuell effekt"
@@ -35,7 +35,7 @@ views:
                 entity: sensor.electricity_pro_effective_price
                 state_not: unknown
             card:
-              # Exempelgränser i givarens valuta per kWh.
+              # Fast prisskala och färggränser i sensorns valuta per kWh.
               type: gauge
               entity: sensor.electricity_pro_effective_price
               name: "Effektivt elpris"
@@ -56,7 +56,8 @@ views:
                 entity: sensor.electricity_pro_current_cost_rate
                 state_not: unknown
             card:
-              # Exempelgränser i givarens valuta per timme.
+              # Ange din egen gräns för hög kostnad i severity.red, i valuta per timme.
+              # Välj ett maxvärde som ligger över gränsen.
               type: gauge
               entity: sensor.electricity_pro_current_cost_rate
               name: "Kostnad per timme just nu"
@@ -424,7 +425,7 @@ views:
         columns: 2
         square: false
         cards:
-          # Exempelgränser: anpassa max och severity till ditt hushåll.
+          # Fast effektskala i W. Anpassa max och severity till din vardagslast.
           - type: gauge
             entity: sensor.electricity_pro_current_power
             name: "Aktuell effekt"
@@ -445,7 +446,7 @@ views:
                 entity: sensor.electricity_pro_effective_price
                 state_not: unknown
             card:
-              # Exempelgränser i givarens valuta per kWh.
+              # Fast prisskala och färggränser i sensorns valuta per kWh.
               type: gauge
               entity: sensor.electricity_pro_effective_price
               name: "Effektivt elpris"
@@ -466,7 +467,8 @@ views:
                 entity: sensor.electricity_pro_current_cost_rate
                 state_not: unknown
             card:
-              # Exempelgränser i givarens valuta per timme.
+              # Ange din egen gräns för hög kostnad i severity.red, i valuta per timme.
+              # Välj ett maxvärde som ligger över gränsen.
               type: gauge
               entity: sensor.electricity_pro_current_cost_rate
               name: "Kostnad per timme just nu"

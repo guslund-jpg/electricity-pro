@@ -115,27 +115,52 @@ The Overview translates the Good Time binary state into actionable wording:
 **Good time to use electricity** or **Wait for a better price**. Its tile shows
 the current Effective Price rather than the localized `on` or `off` text.
 
-The Overview and Live views present Current Power, Effective Price, and Current
-Cost Rate as green/yellow/red gauges. Their values are examples, not universal
-limits:
-
-- Current Power uses a 10,000 W scale, with yellow at 4,000 W and red at
-  7,000 W.
-- Effective Price uses a 0–3 scale in the price sensor's currency per kWh,
-  with yellow at 1 and red at 1.5. Set the yellow boundary to the same value as
-  the **Good price threshold** configured in Electricity Pro. These examples
-  use 1.00 in the local currency per kWh.
-- Current Cost Rate combines Current Power and Effective Price into the rate at
-  which money is currently being spent. It uses a 0–20 scale in the price
-  sensor's currency per hour, with yellow at 5 and red at 10.
-
-Edit each gauge's `max` and `severity` values to suit the home's normal power
-demand, local currency, electricity contract, and preferred price limits.
-
 ![Illustrative Electricity Pro standard dashboard](electricity-pro-preview.svg)
 
 The preview is illustrative. Values, language, and visible optional cards depend
 on the entities configured in your Home Assistant installation.
+
+### Set the live gauge scales
+
+The built-in gauges use fixed example settings in Standard (Overview and Live)
+and Enhanced (Overview). Use the units shown by your sensors.
+
+| Gauge | Unit | Example range | Yellow from | Red from |
+| ----- | ---- | ------------- | ----------- | -------- |
+| Current Power | W | 0–10,000 | 4,000 | 7,000 |
+| Effective Price | Currency/kWh | 0–3 | 1 | 1.5 |
+| Current Cost Rate | Currency/h | 0–20 | 5 | 10 |
+
+- **Current Power.** Choose a scale from your power history. For example, a
+  home that usually imports under 2,000 W might use a 3,000 W maximum. A home
+  that regularly charges an EV or uses electric heating might need a 12,000 W
+  maximum. Set the color boundaries around the loads you want to notice.
+- **Effective Price.** Choose a range that leaves room for expensive hours in
+  your currency. In Fixed mode, the configured **Good price threshold** can
+  guide your choice of yellow boundary. In Adaptive mode, use the separate
+  **Good time to use electricity** indicator to see the current price assessment.
+- **Current Cost Rate.** Choose `severity.red` independently in currency per
+  hour, based on the hourly rate you want to notice. Then choose a lower
+  `severity.yellow` and a `max` above the red boundary. At 6 kW and 1.50 SEK/kWh,
+  the rate is 9 SEK/h. At 2 kW and 4.50 SEK/kWh it is also 9 SEK/h, even though
+  the power and price gauges tell different stories.
+
+Edit the card in Home Assistant or change `min`, `max`, and `severity` in the
+dashboard YAML. Set `severity.green` to `min` and put yellow and red in
+ascending order below `max`. In Standard, apply the same settings in both
+Overview and Live. These are display settings. The card still shows the sensor's
+numeric value when it falls outside the selected scale.
+
+Lower `min` below zero if you want the needle to cover export on Current Power
+or negative values on Effective Price and Current Cost Rate. A negative price
+can produce a negative cost rate during import. During export, Current Cost
+Rate is unavailable because it uses the import price. See
+[signed power and cost rates](../../docs/reference/sensors.md#current-power-and-signed-flow).
+
+Ändra `min`, `max` och `severity` i kortet eller i dashboardens
+YAML. Välj en egen röd gräns (`severity.red`) för **Kostnad per timme just nu** i
+din valuta per timme. Lägg gulgränsen under den och skalans max över den. Använd
+samma värden i Översikt och Live i Standard.
 
 ## Requirements
 
@@ -260,9 +285,8 @@ The regression test checks that interval polling stays absent; it does not
 exercise browser rendering. Further horizon/update checks are tracked in
 [#224](https://github.com/guslund-jpg/electricity-pro/issues/224).
 
-Its Overview view uses the same editable Current Power, Effective Price, and
-Current Cost Rate gauges as the standard dashboard. These gauges use built-in
-Home Assistant cards and do not add another frontend dependency.
+Its Overview view uses the same built-in gauges and
+[editable scales](#set-the-live-gauge-scales) as the standard dashboard.
 
 The Details view presents Current L1, L2, and L3 as comparable gauges. The
 example assumes a 20 A main fuse: green below 14 A, yellow from 14 A, and red
