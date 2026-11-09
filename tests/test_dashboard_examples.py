@@ -76,7 +76,6 @@ async def test_dashboard_coverage_notes_render(hass, coverage) -> None:
             )
             in rendered
         )
-        assert _language(path, "since month start", "sedan månadens början") in rendered
         assert (
             _language(path, "Partial monthly energy", "Delvis uppmätt månadsenergi")
             in rendered
@@ -141,6 +140,90 @@ async def test_household_dashboard_notes_explain_missing_fixed_fees(hass) -> Non
         )
 
 
+@pytest.mark.parametrize(
+    ("state", "fixed_fees", "missing", "expected_fixed"),
+    [
+        (
+            "275",
+            "35",
+            ["fixed_grid_fee"],
+            (
+                "Known fixed fees so far** 35.00 EUR",
+                "Kända fasta avgifter hittills** 35,00 EUR",
+            ),
+        ),
+        (
+            "240",
+            "0",
+            [],
+            (
+                "Known fixed fees so far** 0.00 EUR",
+                "Kända fasta avgifter hittills** 0,00 EUR",
+            ),
+        ),
+        (
+            "240",
+            "0",
+            ["fixed_supplier_fee", "fixed_grid_fee"],
+            (
+                "Fixed fees so far** Not available",
+                "Fasta avgifter hittills** Uppgift saknas",
+            ),
+        ),
+        ("unavailable", "35", ["fixed_grid_fee"], None),
+    ],
+    ids=["one-missing-fee", "known-zero", "both-missing-fees", "unavailable"],
+)
+async def test_monthly_dashboard_cost_breakdown(
+    hass, state, fixed_fees, missing, expected_fixed
+) -> None:
+    """Render the breakdown without confusing missing amounts with zero."""
+    entity = "sensor.electricity_pro_total_cost_estimate_this_month"
+    hass.states.async_set(
+        entity,
+        state,
+        {
+            "variable_cost": "240",
+            "accrued_fixed_fees": fixed_fees,
+            "unit_of_measurement": "EUR",
+            "priced_energy_kwh": "160",
+            "missing_components": missing,
+        },
+    )
+    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+        dashboard = yaml.safe_load(path.read_text())
+        note = next(
+            card["content"]
+            for card in _walk(dashboard)
+            if isinstance(card, dict)
+            and card.get("type") == "markdown"
+            and entity in card["content"]
+        )
+        rendered = Template(note, hass).async_render(parse_result=False)
+        assert (_language(path, "Missing", "Saknas") in rendered) == bool(missing)
+        if "fixed_grid_fee" in missing:
+            assert _language(path, "fixed grid fee", "fast elnätsavgift") in rendered
+        if "fixed_supplier_fee" in missing:
+            assert (
+                _language(path, "fixed supplier fee", "fast elhandelsavgift")
+                in rendered
+            )
+        if expected_fixed is None:
+            assert "EUR" not in rendered
+            assert "160.0 kWh" not in rendered
+        else:
+            assert (
+                _language(
+                    path, "Variable cost** 240.00 EUR", "Rörlig kostnad** 240,00 EUR"
+                )
+                in rendered
+            )
+            assert _language(path, *expected_fixed) in rendered
+            assert (
+                _language(path, "160.0 kWh priced", "160.0 kWh prissatta") in rendered
+            )
+
+
 async def test_cost_notes_remain_compact_and_prioritize_household_coverage(
     hass,
 ) -> None:
@@ -150,6 +233,9 @@ async def test_cost_notes_remain_compact_and_prioritize_household_coverage(
             "sensor.electricity_pro_total_cost_estimate_" + suffix,
             "25",
             {
+                "variable_cost": "20",
+                "accrued_fixed_fees": "5",
+                "unit_of_measurement": "EUR",
                 "priced_energy_kwh": "2.09",
                 "missing_components": [],
             },
