@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Document how to tune the fixed Current Power, Effective Price and Current Cost
+  Rate scales in the dashboard examples, including an independent high-cost
+  boundary in local currency per hour. (#215)
+
 ## [1.7.2]
 
 Requires Home Assistant Core 2026.9.0 or newer. See the

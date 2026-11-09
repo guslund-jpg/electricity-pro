@@ -13,7 +13,7 @@ views:
         columns: 2
         square: false
         cards:
-          # Example thresholds: edit max and severity to suit your home.
+          # Fixed power scale in W. Adjust max and severity for your normal load.
           - type: gauge
             entity: sensor.electricity_pro_current_power
             name: Current power
@@ -34,7 +34,7 @@ views:
                 entity: sensor.electricity_pro_effective_price
                 state_not: unknown
             card:
-              # Example thresholds in the sensor's currency/kWh unit.
+              # Fixed price scale and color boundaries in the sensor's currency/kWh.
               type: gauge
               entity: sensor.electricity_pro_effective_price
               name: Effective price
@@ -55,7 +55,8 @@ views:
                 entity: sensor.electricity_pro_current_cost_rate
                 state_not: unknown
             card:
-              # Example thresholds in the sensor's currency/hour unit.
+              # Set severity.red to your own high-cost boundary in currency/hour.
+              # Choose a scale maximum above that boundary.
               type: gauge
               entity: sensor.electricity_pro_current_cost_rate
               name: Current cost rate
@@ -417,7 +418,7 @@ views:
         columns: 2
         square: false
         cards:
-          # Example thresholds: edit max and severity to suit your home.
+          # Fixed power scale in W. Adjust max and severity for your normal load.
           - type: gauge
             entity: sensor.electricity_pro_current_power
             name: Current power
@@ -438,7 +439,7 @@ views:
                 entity: sensor.electricity_pro_effective_price
                 state_not: unknown
             card:
-              # Example thresholds in the sensor's currency/kWh unit.
+              # Fixed price scale and color boundaries in the sensor's currency/kWh.
               type: gauge
               entity: sensor.electricity_pro_effective_price
               name: Effective price
@@ -459,7 +460,8 @@ views:
                 entity: sensor.electricity_pro_current_cost_rate
                 state_not: unknown
             card:
-              # Example thresholds in the sensor's currency/hour unit.
+              # Set severity.red to your own high-cost boundary in currency/hour.
+              # Choose a scale maximum above that boundary.
               type: gauge
               entity: sensor.electricity_pro_current_cost_rate
               name: Current cost rate
