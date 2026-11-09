@@ -43,21 +43,22 @@ English examples. Existing algorithms, accounting and persisted data contracts
 remain unchanged. See the [release notes](docs/releases/1.7.2.md).
 
 The configuration work in #373 and entity translation work in #289 are complete.
-The remaining #288 architecture work is deferred; #335 remains open for real
-solar/battery hardware evidence. The Core minimum remains 2026.9.0 after review.
+Real solar and battery hardware evidence is tracked in #335. The Core minimum
+remains 2026.9.0 after review.
 Versioned-package verification and publication approval are tracked in the
 release-preparation PR; the published-release link above distinguishes source
 changes from an actual release.
 
-Post-v1.7.2 source maintenance implements the three-stage
+Post-v1.7.2 source maintenance completed the
 [ADR-0014 source/result separation](docs/adr/0014-source-readings-and-integration-results.md)
-under #288. Providers return normalized inputs; the coordinator publishes one
-grouped input/context/result snapshot consumed by entities. The old flat model
-and transitional views are removed. Automated parity coverage is recorded in
-the ADR. Manual upgrade, reload, restart, overnight rollover and tariff checks
-passed for `31d7fa6` on the configured Core 2026.11.0 instance. The combined manual
-run for #395–#399 remains pending, and #335 still awaits real solar/battery
-validation.
+and the follow-up refactors in #395–#399. Providers return normalized inputs,
+and the coordinator publishes one grouped input/context/result snapshot for
+entities. [Issue #288](https://github.com/guslund-jpg/electricity-pro/issues/288)
+is closed. On the configured Core 2026.11.0 instance, the earlier `31d7fa6` run
+passed overnight rollover and tariff checks. The combined `c3982e5` run verified
+entity, history and forecast continuity across upgrade, reload and restart.
+The maintainer skipped separate checks of live Nord Pool publication and
+retries, overnight rollover on the combined build, and Adaptive Good Time.
 [Manual verification record](docs/validation/adr-0014.md)
 
 ## Energy-flow follow-up after v1.6 🔭
