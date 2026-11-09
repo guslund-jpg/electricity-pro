@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -19,6 +20,7 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_change,
@@ -123,9 +125,29 @@ from .timing_score import (
     TimingObservation,
     TimingScoreResult,
 )
+from .variable_cost_statistics import VariableCostHistory, VariableCostStatistics
 from .workday import async_get_non_working_dates
 
 _LOGGER = logging.getLogger(__name__)
+_VARIABLE_COST_STATISTICS = "variable_cost_statistics"
+
+
+class _StatisticsStore(Store[dict[str, Any]]):
+    """Notify the coordinator only when a checkpoint was actually written."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        key: str,
+        saved: Callable[[dict[str, Any]], None],
+    ) -> None:
+        super().__init__(hass, _STORAGE_VERSION, key, atomic_writes=True)
+        self._saved = saved
+
+    async def _async_write_data(self, data: dict[str, Any]) -> None:
+        # Store.async_save also returns on a failed write or a deferred final write.
+        await super()._async_write_data(data)
+        self._saved(data["data"])
 
 
 class _DataUpdates(TypedDict, total=False):
@@ -286,10 +308,18 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._adaptive_forecast_prices: tuple[AdaptiveForecastPrice, ...] = ()
         self._price_direction: ForecastDirectionInsight | None = None
         self._statistics_save_pending = False
-        self._store: Store[dict[str, Any]] = Store(
+        self._variable_cost_history = (
+            VariableCostHistory() if "recorder" in hass.config.components else None
+        )
+        self._inactive_variable_cost_statistics: dict[str, object] = {}
+        self.recorded_variable_costs: VariableCostStatistics | None = None
+        self.variable_cost_statistics_signal = (
+            f"{DOMAIN}_{entry.entry_id}_variable_costs"
+        )
+        self._store = _StatisticsStore(
             hass,
-            _STORAGE_VERSION,
             f"{DOMAIN}.{entry.entry_id}.statistics",
+            self._async_statistics_saved,
         )
 
     async def async_start(self) -> None:
@@ -415,6 +445,38 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._statistics_save_pending = False
         return data
 
+    @property
+    def variable_cost_statistics_enabled(self) -> bool:
+        """Report whether this entry can publish statistics sensors."""
+        return self._variable_cost_history is not None
+
+    @callback
+    def _async_statistics_saved(self, data: dict[str, Any]) -> None:
+        history = self._variable_cost_history
+        if history is None or _VARIABLE_COST_STATISTICS not in data:
+            return
+        saved = VariableCostStatistics.from_dict(data[_VARIABLE_COST_STATISTICS][0])
+        finished_period = history.confirm(saved)
+        previous = self.recorded_variable_costs
+        if previous != saved:
+            # Recorder uses the first numeric state as zero. If consumption arrived
+            # before this write, send the new component's zero before its amount.
+            known = dict(previous.amounts) if previous is not None else {}
+            baseline = replace(
+                saved,
+                amounts=tuple(
+                    (key, amount if key in known else Decimal(0))
+                    for key, amount in saved.amounts
+                ),
+            )
+            if baseline != saved:
+                self.recorded_variable_costs = baseline
+                async_dispatcher_send(self.hass, self.variable_cost_statistics_signal)
+            self.recorded_variable_costs = saved
+            async_dispatcher_send(self.hass, self.variable_cost_statistics_signal)
+        if history.dirty:
+            self._schedule_statistics_save(immediate=finished_period)
+
     async def _async_save_statistics(self) -> None:
         """Flush the latest checkpoint for unload or a user-initiated reset."""
         await self._store.async_save(self._statistics_data_for_save())
@@ -448,8 +510,10 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._base_load_buckets.retain_dates({local_now.date()})
         self._adaptive_price_history.retain_for_date(local_now.date())
         peak_cleared = self._peak_power_today.clear()
-        self._schedule_statistics_save(immediate=True)
         if self.data is not None:
+            data = self.data
+            if local_now.day == 1 and self.variable_cost_statistics_enabled:
+                data = self._read()
             rollover_updates: _DataUpdates = {}
             if self._provider.energy_source_is_lifetime_total:
                 rollover_updates["current_energy"] = (
@@ -466,10 +530,11 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 rollover_updates["peak_power_time_today"] = None
             self.async_set_updated_data(
                 replace(
-                    self.data,
-                    results=replace(self.data.results, **rollover_updates),
+                    data,
+                    results=replace(data.results, **rollover_updates),
                 )
             )
+        self._schedule_statistics_save(immediate=True)
 
     @callback
     def _async_source_changed(
@@ -844,6 +909,23 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             except KeyError, ValueError, TypeError, ArithmeticError:
                 _LOGGER.warning("Ignoring invalid local cost estimate state")
 
+        if _VARIABLE_COST_STATISTICS in stored:
+            raw_costs = stored[_VARIABLE_COST_STATISTICS]
+            if self._variable_cost_history is not None:
+                try:
+                    self._variable_cost_history.restore(raw_costs)
+                except KeyError, ValueError, TypeError, ArithmeticError:
+                    _LOGGER.warning(
+                        "Pausing variable cost statistics with an invalid checkpoint"
+                    )
+                    self._variable_cost_history = None
+                else:
+                    self.recorded_variable_costs = self._variable_cost_history.saved
+            if self._variable_cost_history is None:
+                self._inactive_variable_cost_statistics[_VARIABLE_COST_STATISTICS] = (
+                    raw_costs
+                )
+
         month_scope = stored.get("monthly_energy_source")
         if _ENERGY_THIS_MONTH in stored and (
             month_scope is None or month_scope == self._monthly_energy_source
@@ -1063,18 +1145,38 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         ):
             breakdown = None
         effective = breakdown.total if breakdown is not None else None
-        before = self._local_costs.as_dict()
-        self._local_costs.update(
+        ledger = self._local_costs
+        history = self._variable_cost_history
+        currency = _currency_from_price_unit(inputs.readings.current_price_unit)
+        before = ledger.as_dict()
+        previous_components = (
+            ledger.monthly_variable_cost if history is not None else None
+        )
+        previous_cost_period = (ledger.month, ledger.unit)
+        ledger.update(
             now,
             source_energy_kwh,
             supplier,
             effective,
-            _currency_from_price_unit(inputs.readings.current_price_unit),
+            currency,
             lifetime=self._provider.energy_source_is_lifetime_total,
             breakdown=breakdown,
         )
-        ledger = self._local_costs
         should_save |= before != ledger.as_dict()
+        monthly_components = ledger.monthly_variable_cost
+        if history is not None:
+            history.update(
+                now,
+                ledger.unit,
+                breakdown
+                if currency is not None and source_energy_kwh is not None
+                else None,
+                previous_components
+                if previous_cost_period == (ledger.month, ledger.unit)
+                else None,
+                monthly_components,
+            )
+            should_save |= history.dirty
         fixed_fees = accrued_fixed_fees(
             now,
             inputs.context.fixed_supplier_fee_this_month,
@@ -1099,7 +1201,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 household_cost_unit=ledger.unit,
                 household_variable_today=ledger.daily_effective,
                 household_variable_month=ledger.monthly_effective,
-                household_variable_breakdown_month=ledger.monthly_variable_cost,
+                household_variable_breakdown_month=monthly_components,
                 household_fixed_today=fixed_fees.today,
                 household_fixed_month=fixed_fees.month,
                 household_fixed_supplier_month=fixed_fees.supplier_month,
@@ -1457,6 +1559,11 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         }
         data["local_costs"] = self._local_costs.as_dict()
         data["local_cost_scope"] = self._local_cost_scope
+        if (history := self._variable_cost_history) is not None and (
+            periods := history.as_list()
+        ):
+            data[_VARIABLE_COST_STATISTICS] = periods
+        data.update(self._inactive_variable_cost_statistics)
         if (snapshot := self._energy_this_month.snapshot) is not None:
             data[_ENERGY_THIS_MONTH] = snapshot.as_dict()
             data["monthly_energy_source"] = self._monthly_energy_source

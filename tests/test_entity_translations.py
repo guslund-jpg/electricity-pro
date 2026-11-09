@@ -102,6 +102,12 @@ async def test_fresh_install_translates_names_but_keeps_default_ids(
     swedish = _entity_names("translations/sv.json")
     assert english.keys() == swedish.keys()
     names = swedish if language == "sv" else english
+    # Recorder is not loaded in this fixture.
+    names = {
+        entity: name
+        for entity, name in names.items()
+        if not entity[1].startswith("variable_cost_")
+    }
     registered_entries = er.async_entries_for_config_entry(registry, entry.entry_id)
     assert len(registered_entries) == len(names)
 

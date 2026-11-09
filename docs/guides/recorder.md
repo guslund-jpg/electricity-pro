@@ -68,3 +68,26 @@ With normal storage operation, up to one minute of cost and observation updates
 can be missing. A continuing cumulative meter can recover some energy deltas.
 Missing historical prices and power observations cannot be recovered from the
 meter total. Recorder exclusions apply to database history separately.
+
+## Variable cost component history
+
+When Recorder is loaded and both import energy and a price source are
+configured, Electricity Pro exposes monthly monetary sensors for the variable
+cost components. A combined source price has its own sensor. A component becomes
+available when its rate is known and starts with a zero baseline. Its history
+covers newly priced intervals. Costs already in the monthly estimate at upgrade
+stay in that estimate and are excluded from the new statistics. Include the
+component sensors in Recorder to keep their history.
+
+The sensors use state class `total`, so negative prices can reduce both the
+monthly amount and Recorder's running sum. `last_reset` moves to local midnight
+on the first of each month. The previous month's pending amount is published
+before the new month's value. Statistics are timestamped when the sensor state
+is published, which can lag the interval that produced the cost. Calendar month
+membership is carried by `last_reset`.
+
+Electricity Pro checkpoints each amount and its period before publishing it.
+Reload and restart resume the saved amount and reset timestamp. The first
+post-restart meter reading establishes a baseline, so a gap can remain in the
+cost history. A change of currency pauses the existing series to avoid combining
+unlike amounts. The series resumes if the original currency is restored.

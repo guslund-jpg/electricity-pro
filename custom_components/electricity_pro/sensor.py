@@ -22,6 +22,7 @@ from homeassistant.const import (
     UnitOfPower,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
@@ -58,7 +59,7 @@ from .coordinator import ElectricityProCoordinator
 from .device import device_info_for_entry
 from .forecast import DailyAverageMarketPriceResult, ForecastInterval
 from .forecast_insights import ForecastWindowInsight
-from .pricing import PricingMetadata
+from .pricing import PricingMetadata, VariableCostComponent
 from .data import ElectricityProData
 from .flow_sources import CHANNELS
 from .settings import resolve_settings
@@ -74,6 +75,14 @@ _SCHEDULED_SENSOR_UPDATE_INTERVALS = {
     "consumption_weighted_average_price_today": timedelta(minutes=5),
 }
 _NEXT_INEXPENSIVE_1H_WINDOW_KEY = "next_inexpensive_1h_window_start"
+_VARIABLE_COST_SENSOR_NAMES = {
+    VariableCostComponent.MARKET_ENERGY: "Spot energy cost this month",
+    VariableCostComponent.SUPPLIER_MARKUP: "Supplier markup cost this month",
+    VariableCostComponent.ENERGY_TAX: "Energy tax cost this month",
+    VariableCostComponent.VARIABLE_GRID_FEE: "Variable grid cost this month",
+    VariableCostComponent.SUPPLIER_PRICE: "Combined supplier cost this month",
+    VariableCostComponent.BUNDLED_PRICE: "Combined variable cost this month",
+}
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -785,6 +794,16 @@ async def async_setup_entry(
         )
     ]
 
+    if (
+        entry.runtime_data.variable_cost_statistics_enabled
+        and settings.get(CONF_ENERGY_ENTITY)
+        and settings.get(CONF_PRICE_ENTITY)
+    ):
+        entities.extend(
+            ElectricityProVariableCostSensor(entry, component)
+            for component in _VARIABLE_COST_SENSOR_NAMES
+        )
+
     forecast_configured = CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in settings
     expose_next_inexpensive_window = (
         forecast_configured
@@ -906,6 +925,61 @@ class ElectricityProNamedSensor(
         """Use the original English name when Home Assistant generates an ID."""
         name = self.entity_description.name
         return name if isinstance(name, str) else super().suggested_object_id
+
+
+class ElectricityProVariableCostSensor(ElectricityProNamedSensor):
+    """Publish a checkpointed, signed monthly amount to Recorder."""
+
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.TOTAL
+    _attr_suggested_display_precision = 2
+
+    def __init__(
+        self, entry: ElectricityProConfigEntry, component: VariableCostComponent
+    ) -> None:
+        super().__init__(entry.runtime_data)
+        self._component = component
+        key = f"variable_cost_{component.value}_this_month"
+        self.entity_description = SensorEntityDescription(
+            key=key, name=_VARIABLE_COST_SENSOR_NAMES[component], translation_key=key
+        )
+        self._attr_unique_id = f"{entry.entry_id}_{key}"
+        self._attr_device_info = device_info_for_entry(entry.entry_id)
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                self.coordinator.variable_cost_statistics_signal,
+                self.async_write_ha_state,
+            )
+        )
+
+    @property
+    def native_value(self) -> Decimal | None:
+        if (saved := self.coordinator.recorded_variable_costs) is not None:
+            return dict(saved.amounts).get(self._component)
+        return None
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        saved = self.coordinator.recorded_variable_costs
+        return saved.currency if saved is not None else None
+
+    @property
+    def last_reset(self) -> datetime | None:
+        saved = self.coordinator.recorded_variable_costs
+        return saved.last_reset if saved is not None else None
+
+    @property
+    def available(self) -> bool:
+        return (
+            super().available
+            and self.native_value is not None
+            and self.coordinator.data.results.household_cost_unit
+            in (None, self.native_unit_of_measurement)
+        )
 
 
 class ElectricityProFlowCompatibilitySensor(ElectricityProNamedSensor):
