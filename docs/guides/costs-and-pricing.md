@@ -144,8 +144,22 @@ The local ledger records VAT-inclusive variable cost components for the same
 observed intervals and priced energy as the variable total. A supplier price
 that combines market energy and markup stays together, as does an externally
 calculated complete price. Separately known rates are recorded when they are
-added to the source price. Earlier totals are retained without allocating them
-to individual components. The dashboards continue to show the variable total.
+added to the source price.
+
+The monthly estimate populates `variable_cost_breakdown` once priced consumption
+has component data. `components`, `covered_cost`, `unallocated_cost` and
+`priced_energy_kwh` are decimal strings when known. The nested `priced_energy_kwh`
+counts energy with a breakdown. The sensor's existing `priced_energy_kwh`
+counts all energy included in the variable total. `started_at` is the first
+covered interval, and there may be gaps after it. The dashboard shows both
+energy amounts. Earlier priced consumption appears as an unsplit cost, including
+a known zero. When no breakdown is available yet, the dashboard shows the
+variable total on its own.
+
+The `display` amounts use two decimal places with ties rounded to the nearest
+even cent. If the rounded rows differ from the rounded variable total, a signed
+rounding line reconciles them. The original amounts remain available at full
+precision. The fixed fees still accrue separately from the variable cost.
 
 Update the integration, verify pricing and fixed fees, and update the example
 dashboard YAML. Both examples place household estimates before supplier costs.

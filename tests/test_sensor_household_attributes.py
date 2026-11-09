@@ -14,7 +14,11 @@ from pytest_homeassistant_custom_component.common import (
 
 from custom_components.electricity_pro.const import DOMAIN
 from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
-from custom_components.electricity_pro.pricing import PriceCompleteness
+from custom_components.electricity_pro.cost_ledger import VariableCostSummary
+from custom_components.electricity_pro.pricing import (
+    PriceCompleteness,
+    VariableCostComponent,
+)
 from custom_components.electricity_pro.data import (
     ElectricityProData,
     IntegrationResults,
@@ -85,6 +89,7 @@ def test_household_attributes_preserve_period_and_decimal_strings(household_sens
             "variable_cost": "100.001",
             "accrued_fixed_fees": "23.455700",
             "accrued_fixed_fee_breakdown": {"supplier": "23.455700", "grid": None},
+            "variable_cost_breakdown": None,
             "priced_energy_kwh": "80.001",
             "missing_components": ["fixed_grid_fee"],
             "excluded_charges": ["demand_charges", "other_unconfigured_charges"],
@@ -157,6 +162,71 @@ def test_household_attribute_containers_are_fresh(household_sensor):
     assert sensor.coordinator.data.results.household_missing_fees == ("fixed_grid_fee",)
 
 
+@pytest.mark.parametrize("household_sensor", ["total_cost_this_month"], indirect=True)
+@pytest.mark.parametrize(
+    ("older_cost", "total", "rounding"),
+    [
+        (None, "79.01", "+0.01"),
+        ("0.000", "79.01", "+0.01"),
+        ("20.004", "99.02", "+0.02"),
+    ],
+    ids=["full-breakdown", "zero-unsplit-cost", "positive-unsplit-cost"],
+)
+def test_monthly_variable_breakdown_rounds_for_display_only(
+    household_sensor, older_cost, total, rounding
+):
+    sensor = household_sensor
+    now = datetime(2026, 11, 8, 12, tzinfo=UTC)
+    summary = VariableCostSummary(
+        now,
+        Decimal(60),
+        Decimal("79.012"),
+        (
+            (VariableCostComponent.SUPPLIER_PRICE, Decimal("52.004")),
+            (VariableCostComponent.ENERGY_TAX, Decimal("18.004")),
+            (VariableCostComponent.VARIABLE_GRID_FEE, Decimal("9.004")),
+        ),
+    )
+    raw_total = summary.covered_cost + Decimal(older_cost or 0)
+    sensor.coordinator.data = replace(
+        sensor.coordinator.data,
+        results=replace(
+            sensor.coordinator.data.results,
+            household_variable_month=raw_total,
+            household_priced_energy_month=Decimal(60 if older_cost is None else 80),
+            household_variable_breakdown_month=summary,
+        ),
+    )
+
+    attributes = sensor.extra_state_attributes
+    breakdown = attributes["variable_cost_breakdown"]
+    assert attributes["variable_cost"] == str(raw_total)
+    assert breakdown["started_at"] == now.isoformat()
+    assert breakdown["priced_energy_kwh"] == "60"
+    assert breakdown["covered_cost"] == "79.012"
+    assert breakdown["unallocated_cost"] == older_cost
+    assert breakdown["components"] == {
+        "supplier_price": "52.004",
+        "energy_tax": "18.004",
+        "variable_grid_fee": "9.004",
+    }
+    lines = {
+        "supplier_price": "52.00",
+        "energy_tax": "18.00",
+        "variable_grid_fee": "9.00",
+        "rounding_adjustment": rounding,
+    }
+    if older_cost is not None:
+        lines["unallocated_cost"] = f"{Decimal(older_cost):.2f}"
+    assert breakdown["display"] == {"total": total, "lines": lines}
+    assert sum(map(Decimal, lines.values())) == Decimal(total)
+    breakdown["display"]["lines"].clear()
+    assert (
+        sensor.extra_state_attributes["variable_cost_breakdown"]["display"]["lines"]
+        == lines
+    )
+
+
 async def test_household_publication_schedule_and_reload_preserve_identity_and_totals(
     hass, setup_electricity_pro, freezer
 ):
@@ -207,6 +277,16 @@ async def test_household_publication_schedule_and_reload_preserve_identity_and_t
         if key == "total_cost_this_month":
             breakdown = state.attributes["accrued_fixed_fee_breakdown"]
             assert Decimal(breakdown["supplier"]) == Decimal(breakdown["grid"]) == 0
+            assert state.attributes["variable_cost_breakdown"] == {
+                "components": {"bundled_price": "2"},
+                "unallocated_cost": None,
+                "covered_cost": "2",
+                "priced_energy_kwh": "1",
+                "started_at": now.isoformat(),
+                "display": {"total": "2.00", "lines": {"bundled_price": "2.00"}},
+            }
+        else:
+            assert "variable_cost_breakdown" not in state.attributes
         assert registry.async_get(entity_id).unique_id == f"{entry.entry_id}_{key}"
         expected_attributes[key] = dict(state.attributes)
 

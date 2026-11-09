@@ -708,11 +708,14 @@ views:
           {% set supplier = 'sensor.electricity_pro_cost_this_month' %}
           {% set variable = state_attr(total, 'variable_cost') %}
           {% set fixed = state_attr(total, 'accrued_fixed_fees') %}
+          {% set breakdown = state_attr(total, 'variable_cost_breakdown') %}
+          {% set display = breakdown.display if breakdown is mapping else none %}
           {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
           {% set currency = state_attr(total, 'unit_of_measurement') %}
           {% set missing = state_attr(total, 'missing_components') or [] %}
           {% if has_value(total) and is_number(variable) and is_number(fixed) and currency %}
-          **Variable cost** {{ '%.2f' | format(variable | float) }} {{ currency }} ·
+          **Variable cost** {{ display.total if display is mapping else '%.2f' | format(variable | float) }}
+          {{ currency }} ·
           {% if fixed_breakdown is mapping %}
           **Fixed supplier fee so far**
           {% if is_number(fixed_breakdown.supplier) %}{{ '%.2f' | format(fixed_breakdown.supplier | float) }}
@@ -726,11 +729,32 @@ views:
           {% else %}
           **Known fixed fees so far** {{ '%.2f' | format(fixed | float) }} {{ currency }}.
           {% endif %}
+          {% if display is mapping %}
+          {% set variable_cost_labels = {
+            'market_energy': 'Spot energy',
+            'supplier_markup': 'Supplier markup',
+            'supplier_price': 'Combined supplier price',
+            'bundled_price': 'Combined variable price',
+            'energy_tax': 'Energy tax',
+            'variable_grid_fee': 'Variable grid fee',
+            'unallocated_cost': 'Earlier unsplit cost',
+            'rounding_adjustment': 'Rounding'
+          } %}
+          {{ '\n' }}
+          {% for key, label in variable_cost_labels.items() if key in display.lines %}
+          {{ '\n' }}- {{ label }} {{ display.lines[key] }} {{ currency }}
+          {%- endfor %}
+          {{ '\n\n' }}
+          {% else %}
+          *Breakdown not yet available.*
+          {% endif %}
           {% endif %}
 
           {% set priced = state_attr(total, 'priced_energy_kwh') %}
           {% if has_value(total) and is_number(priced) %}
-          **Partial estimate:** {{ priced | float(0) | round(2) }} kWh priced.
+          **Partial estimate:** {{ priced | float(0) | round(2) }} kWh priced
+          {%- if display is mapping %}, of which {{ breakdown.priced_energy_kwh | float | round(2) }}
+          kWh with a breakdown{% endif %}.
           {% elif state_attr(supplier, 'source') == 'local_estimate' %}
           **Partial supplier estimate:** {{ state_attr(supplier, 'priced_energy_kwh') | float(0) | round(2) }} kWh priced.
           {% endif %}
