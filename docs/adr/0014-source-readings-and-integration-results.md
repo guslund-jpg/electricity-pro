@@ -366,8 +366,10 @@ its own review and approval.
 
 The configured development instance on `31d7fa6` and Core 2026.11.0 passed
 the recorded upgrade, integration reload, restart, overnight rollover and tariff
-checks. Later changes in #395–#399 and the hardware checks in #335 have separate
-validation gates. [Manual verification record](../validation/adr-0014.md)
+checks. The follow-up build `c3982e5` passed upgrade, reload and restart checks
+for #395–#399. The maintainer accepted the documented scope and closed #288.
+Hardware validation is tracked in #335.
+[Manual verification record](../validation/adr-0014.md)
 
 ## Alternatives considered
 
@@ -403,9 +405,9 @@ own contracts and validation. No such delivery is implied by this proposal.
 - [x] Update current architecture/type documentation and reconcile the completed
   source/result direction in #288 with the merged implementation evidence.
 
-The separation is finished when these gates are met. Other coordinator ownership
-work remains separately prioritized; completing this plan does not declare the
-whole #288 umbrella or #335 validation complete.
+The separation met these gates. The follow-up verification above completed the
+agreed scope of #288. Further coordinator ownership work can be prioritized
+separately.
 
 ## References
 
