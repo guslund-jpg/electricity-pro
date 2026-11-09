@@ -201,6 +201,11 @@ async def test_variable_cost_sum_through_month_boundary_and_core_restart(
         assert hass.states.get(ENTITY).state == "unavailable"
         await coordinator._async_save_statistics()
         assert Decimal(hass.states.get(ENTITY).state) == 4
+        (archived,) = coordinator.monthly_variable_cost_history
+        assert archived.priced_kwh == 2
+        assert dict(archived.components) == {
+            VariableCostComponent.BUNDLED_PRICE: Decimal(4)
+        }
         assert (
             hass.states.get("sensor.electricity_pro_spot_energy_cost_this_month").state
             == "unavailable"
@@ -259,6 +264,15 @@ async def test_variable_cost_sum_through_month_boundary_and_core_restart(
         restored = hass.states.get(ENTITY)
         assert Decimal(restored.state) == Decimal("-0.25")
         assert restored.attributes["last_reset"] == DECEMBER.isoformat()
+        november, december = entry.runtime_data.monthly_variable_cost_history
+        assert november.month.month == 11 and november.priced_kwh == Decimal("3.75")
+        assert dict(november.components) == {
+            VariableCostComponent.BUNDLED_PRICE: Decimal("2.25")
+        }
+        assert december.month.month == 12 and december.priced_kwh == Decimal("0.25")
+        assert dict(december.components) == {
+            VariableCostComponent.BUNDLED_PRICE: Decimal("-0.25")
+        }
 
         freezer.move_to(DECEMBER + timedelta(minutes=55))
         await compile_period(hass, DECEMBER + timedelta(minutes=50))
@@ -266,6 +280,15 @@ async def test_variable_cost_sum_through_month_boundary_and_core_restart(
         set_energy(hass, 112)
         await hass.async_block_till_done()
         await entry.runtime_data._async_save_statistics()
+        november_after, december_after = (
+            entry.runtime_data.monthly_variable_cost_history
+        )
+        assert november_after == november
+        assert december_after.priced_kwh == Decimal("2.25")
+        assert december_after.has_gaps and not december_after.complete
+        assert dict(december_after.components) == {
+            VariableCostComponent.BUNDLED_PRICE: Decimal("-2.25")
+        }
         freezer.move_to(DECEMBER + timedelta(hours=1))
         await compile_period(hass, DECEMBER + timedelta(minutes=55))
         last = await recorded(hass, DECEMBER, "hour")

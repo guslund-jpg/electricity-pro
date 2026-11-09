@@ -415,6 +415,12 @@ Store acknowledges a successful write before the dedicated monetary sensors
 publish the amount and reset timestamp, including when a closing month is
 waiting to publish ahead of the next period. The month card uses the live ledger.
 
+`monthly_cost_archive.py` receives priced slices from the ledger, including both
+sides of an observed month boundary, and retains up to twelve local calendar
+months. The checkpoint stores one snapshot per cost month. The coordinator
+exposes immutable rows with priced energy and coverage for the optional Enhanced
+chart.
+
 Local cost attributes also use `attributes_fn`. Cost today selects daily
 supplier-priced energy; Cost this month and Total supplier cost this month select
 monthly supplier-priced energy. Consumption-weighted average price today selects

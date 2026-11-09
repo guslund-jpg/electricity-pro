@@ -51,6 +51,7 @@ from .calculations import (
     effective_price_metadata,
 )
 from .cost_ledger import CostLedger, VariableCostSummary
+from .monthly_cost_archive import MonthlyVariableCost, MonthlyVariableCostArchive
 from .energy_flows import FlowCounter
 from .flow_sources import CHANNELS
 from .flow_compatibility import (
@@ -130,6 +131,7 @@ from .workday import async_get_non_working_dates
 
 _LOGGER = logging.getLogger(__name__)
 _VARIABLE_COST_STATISTICS = "variable_cost_statistics"
+_MONTHLY_VARIABLE_COST_ARCHIVE = "monthly_variable_cost_archive"
 
 
 class _StatisticsStore(Store[dict[str, Any]]):
@@ -271,6 +273,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
 
         self._entry = entry
         self._local_costs = CostLedger()
+        self._monthly_variable_cost_archive = MonthlyVariableCostArchive()
         self._flow_counters = {channel: FlowCounter() for channel in CHANNELS}
         self.flow_values: dict[
             str, tuple[Decimal | None, dict[str, str | int | None]]
@@ -444,6 +447,11 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         data = self._statistics_data()
         self._statistics_save_pending = False
         return data
+
+    @property
+    def monthly_variable_cost_history(self) -> tuple[MonthlyVariableCost, ...]:
+        """Return the recorded months for the optional variable cost chart."""
+        return self._monthly_variable_cost_archive.months
 
     @property
     def variable_cost_statistics_enabled(self) -> bool:
@@ -909,6 +917,16 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             except KeyError, ValueError, TypeError, ArithmeticError:
                 _LOGGER.warning("Ignoring invalid local cost estimate state")
 
+        if _MONTHLY_VARIABLE_COST_ARCHIVE in stored:
+            try:
+                self._monthly_variable_cost_archive = (
+                    MonthlyVariableCostArchive.from_dict(
+                        stored[_MONTHLY_VARIABLE_COST_ARCHIVE]
+                    )
+                )
+            except ValueError:
+                _LOGGER.warning("Ignoring invalid monthly variable cost archive")
+
         if _VARIABLE_COST_STATISTICS in stored:
             raw_costs = stored[_VARIABLE_COST_STATISTICS]
             if self._variable_cost_history is not None:
@@ -1146,6 +1164,8 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             breakdown = None
         effective = breakdown.total if breakdown is not None else None
         ledger = self._local_costs
+        archive = self._monthly_variable_cost_archive
+        should_save |= archive.prune(now.date())
         history = self._variable_cost_history
         currency = _currency_from_price_unit(inputs.readings.current_price_unit)
         before = ledger.as_dict()
@@ -1161,6 +1181,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             currency,
             lifetime=self._provider.energy_source_is_lifetime_total,
             breakdown=breakdown,
+            monthly_archive=archive,
         )
         should_save |= before != ledger.as_dict()
         monthly_components = ledger.monthly_variable_cost
@@ -1559,6 +1580,8 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         }
         data["local_costs"] = self._local_costs.as_dict()
         data["local_cost_scope"] = self._local_cost_scope
+        if archive := self._monthly_variable_cost_archive.as_dict():
+            data[_MONTHLY_VARIABLE_COST_ARCHIVE] = archive
         if (history := self._variable_cost_history) is not None and (
             periods := history.as_list()
         ):
