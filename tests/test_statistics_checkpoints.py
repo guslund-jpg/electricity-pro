@@ -147,3 +147,43 @@ async def test_midnight_persists_lifetime_baseline_promptly(
     monthly = hass_storage[key]["data"]["energy_this_month"]
     assert monthly["period_start"] == "2026-12-01"
     assert Decimal(monthly["value"]) == 1
+
+
+async def test_late_checkpoint_keeps_both_cost_months_without_double_counting(
+    hass, hass_storage, setup_electricity_pro, freezer
+):
+    """A first write in December retains the November cost under November."""
+    await hass.config.async_set_time_zone("Europe/Stockholm")
+    start = datetime(2026, 11, 30, 22, 55, tzinfo=UTC)
+    freezer.move_to(start)
+    entry = await setup_electricity_pro(
+        energy_value="100",
+        energy_source_type=ENERGY_SOURCE_LIFETIME,
+        price_value="4",
+        price_completeness=PriceCompleteness.COMPLETE,
+    )
+    coordinator = entry.runtime_data
+    key = f"{DOMAIN}.{entry.entry_id}.statistics"
+
+    freezer.move_to(start + timedelta(minutes=2))
+    set_energy(hass, 102)
+    await hass.async_block_till_done()
+    assert coordinator.data.results.household_variable_month == 8
+    assert key not in hass_storage
+
+    freezer.move_to(start + timedelta(minutes=6))
+    set_energy(hass, 104)
+    await hass.async_block_till_done()
+    assert coordinator.data.results.household_variable_month == 2
+    await coordinator._async_save_statistics()
+    stored = hass_storage[key]["data"]["monthly_variable_cost_archive"]
+    assert list(stored) == ["2026-11", "2026-12"]
+    # The straddling reading adds 1.5 kWh to November and 0.5 kWh to December.
+    for month, energy, amount in (("2026-11", "3.5", "14"), ("2026-12", "0.5", "2")):
+        assert Decimal(stored[month]["priced_kwh"]) == Decimal(energy)
+        assert Decimal(stored[month]["components"]["bundled_price"]) == Decimal(amount)
+    assert stored["2026-12"]["started_at"] == "2026-12-01T00:00:00+01:00"
+    assert stored["2026-11"]["covered_until"] == stored["2026-12"]["started_at"]
+
+    await coordinator._async_save_statistics()
+    assert hass_storage[key]["data"]["monthly_variable_cost_archive"] == stored

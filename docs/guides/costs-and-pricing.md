@@ -164,3 +164,19 @@ precision. The fixed fees still accrue separately from the variable cost.
 Update the integration, verify pricing and fixed fees, and update the example
 dashboard YAML. Both examples place household estimates before supplier costs.
 The effective average price remains a variable-cost measure, excluding fixed fees.
+
+### Monthly chart data
+
+The integration saves up to twelve local calendar months of variable costs in
+its statistics checkpoint. It starts with newly priced intervals. Each record
+contains its currency, component amounts, priced kWh, first and last covered
+times and an indicator for gaps between covered intervals. The first currency
+used in a month identifies that month's record.
+
+A checkpoint written after midnight retains each amount under the local month
+where it was booked. When a valid meter interval crosses midnight, the archive
+keeps the priced portion on each side. Costs saved before restart remain in their
+original month.
+A month is fully covered only when priced intervals reach both month boundaries
+without gaps. Months without priced intervals have no entry, and a known zero
+cost remains available as a zero amount.

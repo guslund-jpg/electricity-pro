@@ -6,6 +6,7 @@ from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from .history_storage import stored_decimal, stored_record, stored_string
+from .monthly_cost_archive import MonthlyVariableCostArchive
 from .pricing import EffectivePriceBreakdown, VariableCostComponent
 
 type _PriceSample = tuple[
@@ -147,6 +148,7 @@ class CostLedger:
         *,
         lifetime: bool,
         breakdown: EffectivePriceBreakdown | None = None,
+        monthly_archive: MonthlyVariableCostArchive | None = None,
     ) -> None:
         """Apply readings; gaps over 15 minutes and meter resets are unpriced."""
         if unit is not None and self.unit not in (None, unit):
@@ -261,6 +263,17 @@ class CostLedger:
                             if parts is not None
                             else ()
                         )
+                        if (
+                            amounts
+                            and monthly_archive is not None
+                            and self.unit is not None
+                            and energy > 0
+                        ):
+                            # A reading just after midnight can close a priced
+                            # slice in the previous month as well as the new one.
+                            monthly_archive.record(
+                                start, stop, self.unit, energy, amounts
+                            )
                         if same_month:
                             self.monthly_effective += cost
                             self.monthly_energy += energy

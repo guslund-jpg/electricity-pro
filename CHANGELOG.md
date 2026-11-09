@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Save monthly variable cost chart data by local cost month, with priced energy
+  and coverage. (#165)
 - Record signed monthly variable cost component totals in Home Assistant
   Recorder and long-term statistics. (#165)
 - Show known variable cost components, earlier unsplit costs and priced energy
