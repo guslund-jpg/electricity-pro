@@ -45,6 +45,7 @@ from .base_load import (
 from .calculations import (
     calculate_supplier_price,
     calculate_declared_effective_price,
+    calculate_effective_price_breakdown,
     effective_price_metadata,
 )
 from .cost_ledger import CostLedger
@@ -1042,7 +1043,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             inputs.context.pricing_metadata,
             inputs.context.supplier_markup_per_kwh,
         )
-        effective = calculate_declared_effective_price(
+        breakdown = calculate_effective_price_breakdown(
             inputs.readings.current_price,
             inputs.context.pricing_metadata,
             inputs.context.grid_fee_per_kwh,
@@ -1059,7 +1060,8 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             ).completeness.value
             != "complete"
         ):
-            effective = None
+            breakdown = None
+        effective = breakdown.total if breakdown is not None else None
         before = self._local_costs.as_dict()
         self._local_costs.update(
             now,
@@ -1068,6 +1070,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             effective,
             _currency_from_price_unit(inputs.readings.current_price_unit),
             lifetime=self._provider.energy_source_is_lifetime_total,
+            breakdown=breakdown,
         )
         ledger = self._local_costs
         should_save |= before != ledger.as_dict()

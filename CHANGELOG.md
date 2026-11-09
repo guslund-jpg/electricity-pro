@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Record known variable cost components alongside the daily and monthly totals
+  in the local ledger. Combined source prices stay together. (#165)
 - Break out accrued fixed supplier and grid fees under the monthly household
   estimate in the English and Swedish dashboard examples. (#165)
 - Show the variable cost, known fixed fees to date, and priced energy below the
