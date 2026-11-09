@@ -583,6 +583,102 @@ views:
     path: trends
     icon: mdi:chart-areaspline
     cards:
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_monthly_variable_cost_history
+            state_not: unavailable
+          - condition: state
+            entity: sensor.electricity_pro_monthly_variable_cost_history
+            state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:apexcharts-card
+              graph_span: 365d
+              span:
+                end: month
+              stacked: true
+              header:
+                show: true
+                title: Variable cost by month
+              all_series_config:
+                type: column
+                float_precision: 2
+                show:
+                  legend_value: false
+              apex_config:
+                tooltip:
+                  shared: true
+                  intersect: false
+                  hideEmptySeries: false
+                  x:
+                    format: MMM yyyy
+              series:
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Spot energy
+                  color: "#42a5f5"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.market_energy == null ? null : Number(components.market_energy),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Supplier markup
+                  color: "#26a69a"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.supplier_markup == null ? null : Number(components.supplier_markup),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Combined supplier price
+                  color: "#7e57c2"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.supplier_price == null ? null : Number(components.supplier_price),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Combined variable price
+                  color: "#78909c"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.bundled_price == null ? null : Number(components.bundled_price),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Energy tax
+                  color: "#ef5350"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.energy_tax == null ? null : Number(components.energy_tax),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Variable grid fee
+                  color: "#ffb300"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.variable_grid_fee == null ? null : Number(components.variable_grid_fee),
+                    ]);
+            - type: markdown
+              content: |
+                {% set history = 'sensor.electricity_pro_monthly_variable_cost_history' %}
+                {% set months = state_attr(history, 'months') or [] %}
+                {% set currency = state_attr(history, 'unit_of_measurement') %}
+                | Month | Coverage | Priced kWh | Total ({{ currency }}) |
+                | --- | --- | ---: | ---: |
+                {% for row in months if row.coverage != 'missing' -%}
+                | {{ row.month }} | {% if row.coverage == 'ongoing' %}To date{% elif row.coverage == 'complete'
+                %}Full month{% else %}Partial coverage{% endif %}
+                {{- ' | ' -}} {{ '%.2f' | format(row.priced_kwh | float) }}
+                {{- ' | ' -}} {{ '%.2f' | format(row.total | float) }} |
+                {% endfor %}
+
+                Months without priced intervals appear as gaps.
+
       - type: custom:mushroom-title-card
         title: Power
         subtitle: Recorded household demand — last 24 hours

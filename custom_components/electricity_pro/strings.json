@@ -16,6 +16,7 @@
       "monthly_peak_hour_time": { "name": "Monthly peak-hour time" },
       "total_cost_today": { "name": "Total cost estimate today" },
       "total_cost_this_month": { "name": "Total cost estimate this month" },
+      "monthly_variable_cost_history": { "name": "Monthly variable cost history" },
       "variable_cost_market_energy_this_month": { "name": "Spot energy cost this month" },
       "variable_cost_supplier_markup_this_month": { "name": "Supplier markup cost this month" },
       "variable_cost_energy_tax_this_month": { "name": "Energy tax cost this month" },
