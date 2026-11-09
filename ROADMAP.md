@@ -54,11 +54,11 @@ Post-v1.7.2 source maintenance implements the three-stage
 under #288. Providers return normalized inputs; the coordinator publishes one
 grouped input/context/result snapshot consumed by entities. The old flat model
 and transitional views are removed. Automated parity coverage is recorded in
-the ADR. [Manual upgrade/reload/restart checks](docs/validation/adr-0014.md) passed
-on the configured Core 2026.11.0 instance; overnight/tariff observations remain
-pending. Further coordinator
-ownership work remains separately prioritized, and #335 still awaits real
-solar/battery validation.
+the ADR. Manual upgrade, reload, restart, overnight rollover and tariff checks
+passed for `31d7fa6` on the configured Core 2026.11.0 instance. The combined manual
+run for #395–#399 remains pending, and #335 still awaits real solar/battery
+validation.
+[Manual verification record](docs/validation/adr-0014.md)
 
 ## Energy-flow follow-up after v1.6 🔭
 

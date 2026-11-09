@@ -2,8 +2,8 @@
 
 ## Status
 
-**Accepted — implementation, upgrade, reload and restart checks are in place;
-overnight/tariff verification remains pending.**
+**Accepted. All three stages are implemented and the configured development
+instance passed the manual continuity and tariff checks.**
 
 Date: 8 November 2026. Reviewed source baseline: `4cb72d1`.
 The maintainer approved this design and its documentation PR #390 on
@@ -364,12 +364,10 @@ local-midnight transition. Automated evidence, manual HA observations and real
 solar/battery validation remain separate records. Release publication requires
 its own review and approval.
 
-The [8 November manual verification record](../validation/adr-0014.md) identifies
-the tested build `31d7fa6`, Core 2026.11.0, the configured 40-entity scope and
-preserved evidence. Upgrade, integration reload and subsequent restart passed
-the recorded continuity checks. Overnight/local-midnight and tariff observations
-remain **NOT RUN**; the manual acceptance gate stays open. This evidence is
-separate from both pinned automated suites and #335's hardware validation.
+The configured development instance on `31d7fa6` and Core 2026.11.0 passed
+the recorded upgrade, integration reload, restart, overnight rollover and tariff
+checks. Later changes in #395–#399 and the hardware checks in #335 have separate
+validation gates. [Manual verification record](../validation/adr-0014.md)
 
 ## Alternatives considered
 
@@ -401,9 +399,9 @@ own contracts and validation. No such delivery is implied by this proposal.
 - [x] Final runtime state has one canonical grouped snapshot and no legacy views.
 - [x] Preserve current entities, public payloads, Decimal meanings, settings,
   action responses and persistence/source-scope contracts in automated tests.
-- [ ] Record both full suites, required CI and separate manual HA evidence.
-- [ ] Update current architecture/type documentation and reconcile the completed
-  source/result direction in #288 with the merged evidence.
+- [x] Record both full suites, required CI and separate manual HA evidence.
+- [x] Update current architecture/type documentation and reconcile the completed
+  source/result direction in #288 with the merged implementation evidence.
 
 The separation is finished when these gates are met. Other coordinator ownership
 work remains separately prioritized; completing this plan does not declare the
