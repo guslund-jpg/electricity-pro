@@ -613,6 +613,8 @@ views:
                 show:
                   legend_value: false
               apex_config:
+                legend:
+                  showForNullSeries: false
                 xaxis:
                   tooltip:
                     enabled: false
@@ -623,7 +625,8 @@ views:
                   custom: |
                     EVAL:function({ series, dataPointIndex, w }) {
                       const tooltip = document.createElement("div");
-                      const timestamp = w.globals.seriesX[0]?.[dataPointIndex];
+                      const timestamps = w.globals.seriesX.find(points => points?.[dataPointIndex] != null);
+                      const timestamp = timestamps?.[dataPointIndex];
                       if (timestamp == null) return tooltip;
                       const title = document.createElement("div");
                       title.className = "apexcharts-tooltip-title";
@@ -637,7 +640,10 @@ views:
                       const history = document.querySelector("home-assistant")?.hass?.states
                         ?.["sensor.electricity_pro_monthly_variable_cost_history"];
                       const row = history?.attributes.months?.find(item => item.month === month);
-                      const values = series.map(amounts => amounts[dataPointIndex]);
+                      // ApexCharts can pad an empty stacked series with zeros.
+                      const values = series.map((amounts, index) =>
+                        w.config.series[index].data.length ? amounts[dataPointIndex] : null
+                      );
                       // The chart may still show older data or have a series hidden.
                       const matches = row?.display && values.length === componentKeys.length
                         && values.every((value, index) => {
@@ -668,50 +674,56 @@ views:
                   name: Spot energy
                   color: "#42a5f5"
                   data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                    const data = (entity.attributes.months ?? []).map(({ month, components }) => [
                       Date.parse(month + "-15T12:00:00Z"),
                       components.market_energy == null ? null : Number(components.market_energy),
                     ]);
+                    return data.some(([, amount]) => amount != null) ? data : [];
                 - entity: sensor.electricity_pro_monthly_variable_cost_history
                   name: Supplier markup
                   color: "#26a69a"
                   data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                    const data = (entity.attributes.months ?? []).map(({ month, components }) => [
                       Date.parse(month + "-15T12:00:00Z"),
                       components.supplier_markup == null ? null : Number(components.supplier_markup),
                     ]);
+                    return data.some(([, amount]) => amount != null) ? data : [];
                 - entity: sensor.electricity_pro_monthly_variable_cost_history
                   name: Combined supplier price
                   color: "#7e57c2"
                   data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                    const data = (entity.attributes.months ?? []).map(({ month, components }) => [
                       Date.parse(month + "-15T12:00:00Z"),
                       components.supplier_price == null ? null : Number(components.supplier_price),
                     ]);
+                    return data.some(([, amount]) => amount != null) ? data : [];
                 - entity: sensor.electricity_pro_monthly_variable_cost_history
                   name: Combined variable price
                   color: "#78909c"
                   data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                    const data = (entity.attributes.months ?? []).map(({ month, components }) => [
                       Date.parse(month + "-15T12:00:00Z"),
                       components.bundled_price == null ? null : Number(components.bundled_price),
                     ]);
+                    return data.some(([, amount]) => amount != null) ? data : [];
                 - entity: sensor.electricity_pro_monthly_variable_cost_history
                   name: Energy tax
                   color: "#ef5350"
                   data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                    const data = (entity.attributes.months ?? []).map(({ month, components }) => [
                       Date.parse(month + "-15T12:00:00Z"),
                       components.energy_tax == null ? null : Number(components.energy_tax),
                     ]);
+                    return data.some(([, amount]) => amount != null) ? data : [];
                 - entity: sensor.electricity_pro_monthly_variable_cost_history
                   name: Variable grid fee
                   color: "#ffb300"
                   data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                    const data = (entity.attributes.months ?? []).map(({ month, components }) => [
                       Date.parse(month + "-15T12:00:00Z"),
                       components.variable_grid_fee == null ? null : Number(components.variable_grid_fee),
                     ]);
+                    return data.some(([, amount]) => amount != null) ? data : [];
             - type: markdown
               content: |
                 {% set history = 'sensor.electricity_pro_monthly_variable_cost_history' %}
