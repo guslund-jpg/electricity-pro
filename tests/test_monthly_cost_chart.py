@@ -108,6 +108,7 @@ def test_monthly_chart_series_keep_zero_negative_and_missing_distinct(
 ):
     language, chart, _ = chart_cards
     assert chart["stacked"] and chart["all_series_config"]["type"] == "column"
+    assert chart["apex_config"]["legend"]["showForNullSeries"] is False
     assert chart["apex_config"]["xaxis"]["tooltip"]["enabled"] is False
     assert chart["apex_config"]["tooltip"]["hideEmptySeries"] is False
     assert all(series["entity"] == ENTITY for series in chart["series"])
@@ -134,16 +135,24 @@ const document = {
 };
 const w = {
   globals: { seriesX: points.map(item => item.map(([timestamp]) => timestamp)) },
-  config: { series, tooltip: { y: { formatter: value => `<strong>${value} SEK</strong>` } } },
+  config: {
+    series: series.map((item, index) => ({...item, data: points[index]})),
+    tooltip: { y: { formatter: value => `<strong>${value} SEK</strong>` } },
+  },
 };
 const render = new Function('document', `return (${tooltip})`)(document);
-const plotted = points.map(item => item.map(([, value]) => value));
+const zeros = months.map(() => 0);
+const plotted = points.map(item => item.length ? item.map(([, value]) => value) : zeros);
 const lines = (index, values = plotted) =>
   render({series: values, dataPointIndex: index, w}).children.map(child => child.textContent);
 const info = lines(9);
 const filtered = lines(9, plotted.map((values, index) => index === 4 ? [] : values));
 delete months[9].display;
-process.stdout.write(JSON.stringify({points, info, filtered, legacy: lines(9), august: lines(8), november: lines(11)}));
+const output = {points, info, filtered, legacy: lines(9), august: lines(8), november: lines(11)};
+w.globals.seriesX[0] = [];
+w.config.series[0].data = [];
+output.withoutSpot = lines(11, plotted.map((values, index) => index === 0 ? zeros : values));
+process.stdout.write(JSON.stringify(output));
 """,
         ],
         input=json.dumps(payload),
@@ -180,13 +189,14 @@ process.stdout.write(JSON.stringify({points, info, filtered, legacy: lines(9), a
         "2026-11",
         f"{chart['series'][2]['name']}: 7 SEK",
     ]
+    assert output["withoutSpot"] == output["november"]
     assert [[value for _, value in series[-4:]] for series in points] == [
         [None, -3.005, None, None],
         [None, 0, None, None],
         [None, None, None, 7],
         [14.004, None, None, None],
         [0.004, 0.006, None, None],
-        [None, None, None, None],
+        [],
     ]
     expected_dates = [
         int(
@@ -196,5 +206,7 @@ process.stdout.write(JSON.stringify({points, info, filtered, legacy: lines(9), a
         for row in chart_rows
     ]
     assert all(
-        [timestamp for timestamp, _ in series] == expected_dates for series in points
+        [timestamp for timestamp, _ in series] == expected_dates
+        for series in points
+        if series
     )
