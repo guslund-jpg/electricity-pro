@@ -5,7 +5,8 @@
 ### Changed
 
 - Show stacked monthly variable costs and priced-energy coverage in the English
-  and Swedish Enhanced dashboards. (#165)
+  and Swedish Enhanced dashboards, with one tooltip for the month and its cost
+  components. (#165)
 - Save monthly variable cost chart data by local cost month, with priced energy
   and coverage. (#165)
 - Record signed monthly variable cost component totals in Home Assistant

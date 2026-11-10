@@ -623,6 +623,9 @@ views:
                 show:
                   legend_value: false
               apex_config:
+                xaxis:
+                  tooltip:
+                    enabled: false
                 tooltip:
                   shared: true
                   intersect: false

@@ -99,6 +99,7 @@ def test_monthly_chart_series_keep_zero_negative_and_missing_distinct(
 ):
     _, chart, _ = chart_cards
     assert chart["stacked"] and chart["all_series_config"]["type"] == "column"
+    assert chart["apex_config"]["xaxis"]["tooltip"]["enabled"] is False
     assert chart["apex_config"]["tooltip"]["hideEmptySeries"] is False
     assert all(series["entity"] == ENTITY for series in chart["series"])
     assert len(chart_rows) == 12 and chart_rows[0]["month"] == "2025-12"
