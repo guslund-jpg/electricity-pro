@@ -26,7 +26,6 @@ from custom_components.electricity_pro.data import (
     IntegrationResults,
     ProviderSnapshot,
 )
-from custom_components.electricity_pro.household_cost import BilledDemandCharge
 
 _START = datetime(2026, 11, 2, 22, 50, tzinfo=UTC)
 _FIXTURES = Path(__file__).parent / "fixtures" / "coordinator_results"
@@ -407,13 +406,11 @@ def test_result_schema_retains_snapshot_types():
         "household_fixed_month": Decimal | None,
         "household_fixed_supplier_month": Decimal | None,
         "household_fixed_grid_month": Decimal | None,
-        "billed_demand_charge": BilledDemandCharge | None,
-        "billed_demand_charge_in_estimate": bool,
         "household_priced_energy_today": Decimal | None,
         "household_priced_energy_month": Decimal | None,
         "household_missing_fees": tuple[str, ...],
     }
-    assert len(updates) == len(results) == 35
+    assert len(updates) == len(results) == 33
     assert results == expected
     assert updates.keys() == expected.keys()
     assert sum(updates[name] != results[name] for name in updates) == 10

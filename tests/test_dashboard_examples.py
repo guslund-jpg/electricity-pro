@@ -306,59 +306,6 @@ async def test_monthly_dashboard_itemizes_only_known_vat(hass):
         )
 
 
-@pytest.mark.parametrize("treatment", ["added", "included", "separate"])
-async def test_monthly_dashboard_shows_billed_demand_charge_once(hass, treatment):
-    lines = (
-        {"other": "1000.00"}
-        if treatment == "included"
-        else {"variable": "800.00", "supplier": "50.00", "grid": "150.00"}
-    )
-    total = "1000.00"
-    if treatment != "separate":
-        lines["demand_charge"] = "150.00"
-        total = "1150.00"
-    hass.states.async_set(
-        MONTHLY_TOTAL,
-        total,
-        {
-            "variable_cost": "800.00",
-            "accrued_fixed_fees": "200.00",
-            "accrued_fixed_fee_breakdown": {"supplier": "50.00", "grid": "150.00"},
-            "monthly_cost_display": {"total": total, "lines": lines},
-            "unit_of_measurement": "SEK",
-        },
-    )
-    hass.states.async_set(
-        "sensor.electricity_pro_billed_demand_charge",
-        "150.00",
-        {
-            "amount": "150.00",
-            "period_start": "2026-10-01",
-            "period_end": "2026-10-31",
-            "unit_of_measurement": "SEK",
-        },
-    )
-    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
-        rendered = _monthly_cost_note(hass, path)
-        charge = _language(
-            path,
-            "Billed demand charge** 150.00 SEK",
-            "Fakturerad effektavgift** 150,00 SEK",
-        )
-        assert rendered.count(charge) == 1
-        assert ("2026-10-01 – 2026-10-31" in rendered) == (treatment == "separate")
-        assert (
-            _language(path, "**Other costs**", "**Övriga kostnader**") in rendered
-        ) == (treatment == "included")
-        assert (
-            _language(path, "**Variable cost**", "**Rörlig kostnad**") in rendered
-        ) == (treatment != "included")
-        assert (
-            _language(path, "Breakdown not yet available.", "Uppdelning saknas ännu.")
-            in rendered
-        ) == (treatment != "included")
-
-
 @pytest.mark.parametrize("adjustment", ["-0.01", "+0.01", None])
 async def test_monthly_dashboard_shows_total_estimate_rounding(hass, adjustment):
     lines = {"variable": "633.09", "supplier": "15.26", "grid": "186.83"}

@@ -261,15 +261,10 @@ views:
           {% set display = breakdown.vat_display if breakdown is mapping and breakdown.vat_display is mapping
           else breakdown.display if breakdown is mapping else none %}
           {% set estimate = state_attr(total, 'monthly_cost_display') %}
-          {% set charge_in_estimate = has_value(total) and estimate is mapping and 'demand_charge' in estimate.lines %}
-          {% set charge_separated = charge_in_estimate and 'other' in estimate.lines %}
           {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
           {% set currency = state_attr(total, 'unit_of_measurement') %}
           {% set missing = state_attr(total, 'missing_components') or [] %}
           {% if has_value(total) and is_number(variable) and is_number(fixed) and currency %}
-          {% if charge_separated %}
-          **Övriga kostnader** {{ estimate.lines.other | replace('.', ',') }} {{ currency }}.
-          {% else %}
           **Rörlig kostnad** {{ (estimate.lines.variable if estimate is mapping else
           display.total if display is mapping else '%.2f' | format(variable | float))
           | replace('.', ',') }} {{ currency }} ·
@@ -288,17 +283,12 @@ views:
           {% else %}
           **Kända fasta avgifter hittills** {{ '%.2f' | format(fixed | float) | replace('.', ',') }} {{ currency }}.
           {% endif %}
-          {% endif %}
-          {% if charge_in_estimate %}
-          {{ '\n\n' }}
-          **Fakturerad effektavgift** {{ estimate.lines.demand_charge | replace('.', ',') }} {{ currency }}.
-          {% endif %}
           {% if estimate is mapping and 'rounding_adjustment' in estimate.lines %}
           {{ '\n\n' }}
           **Avrundning av totalestimatet** {{ estimate.lines.rounding_adjustment | replace('.', ',') }} {{ currency }} ·
           **Totalestimat** {{ estimate.total | replace('.', ',') }} {{ currency }}.
           {% endif %}
-          {% if display is mapping and not charge_separated %}
+          {% if display is mapping %}
           {% set variable_cost_labels = {
             'market_energy': 'Spotpris',
             'supplier_markup': 'Elhandelspåslag',
@@ -321,7 +311,7 @@ views:
           {%- endif %}
           {%- endfor %}
           {{ '\n\n' }}
-          {% elif not charge_separated %}
+          {% else %}
           *Uppdelning saknas ännu.*
           {% endif %}
           {% endif %}
@@ -351,17 +341,7 @@ views:
           | replace('fixed_grid_fee', 'fast elnätsavgift')
           | replace('complete_variable_price', 'komplett rörligt elpris')
           | replace('_', ' ') }}.{% endif %}
-          {% set bill = 'sensor.electricity_pro_billed_demand_charge' %}
-          {% if has_value(bill) and not charge_in_estimate %}
-          {{ '\n\n' }}
-          **Fakturerad effektavgift** {{ state_attr(bill, 'amount') | replace('.', ',') }}
-          {{ state_attr(bill, 'unit_of_measurement') }}
-          ({{ state_attr(bill, 'period_start') }} – {{ state_attr(bill, 'period_end') }}).
-          Visas separat från månadsestimatet.
-          {{ '\n\n' }}
-          {% endif %}
-          {% if charge_in_estimate %}Andra ej konfigurerade avgifter ingår inte.
-          {% else %}Effektavgifter och andra ej konfigurerade avgifter ingår inte.{% endif %}
+          Effektavgifter och andra ej konfigurerade avgifter ingår inte.
           [Om kostnader och mätningens
           täckning](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/costs-and-pricing.md)
 

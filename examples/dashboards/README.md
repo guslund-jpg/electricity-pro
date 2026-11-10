@@ -14,14 +14,13 @@ unverified monthly totals are flagged without claiming that they are incorrect.
 
 To see these presentation changes in an existing manually copied dashboard,
 update its YAML from the appropriate example. Updating the integration alone
-does not rewrite that dashboard.
+does not rewrite that dashboard. Sensor entity IDs and calculations are unchanged.
 
 ## Choose a dashboard
 
 Household cost estimates are shown before the supplier-only breakdown.
-They include observed effective variable costs and accrued fixed fees.
-The monthly breakdown also shows a manually entered billed demand charge
-and explains when it is separate from the estimate.
+They include observed effective variable costs plus accrued fixed fees; notes
+identify partial periods, missing settings and excluded demand charges.
 See [household cost estimates](../../docs/guides/costs-and-pricing.md#household-cost-estimates).
 
 | Example | Choose it when | Dependencies |
