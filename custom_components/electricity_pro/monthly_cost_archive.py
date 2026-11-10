@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time
 from decimal import Decimal
 
+from .cost_display import cost_display
 from .history_storage import stored_decimal, stored_record, stored_string
 from .pricing import VariableCostComponent
 from .statistics_engine import CalendarPeriod
@@ -181,6 +182,8 @@ def monthly_cost_chart_rows(
             "components": {},
         }
         if (period := known.get(number)) is not None:
+            total = period.total
+            amounts = {key.value: amount for key, amount in period.components}
             row.update(
                 coverage="ongoing"
                 if number == current
@@ -188,8 +191,9 @@ def monthly_cost_chart_rows(
                 if period.complete
                 else "partial",
                 priced_kwh=str(period.priced_kwh),
-                total=str(period.total),
-                components={key.value: str(value) for key, value in period.components},
+                total=str(total),
+                components={key: str(amount) for key, amount in amounts.items()},
+                display=cost_display(total, amounts),
             )
         rows.append(row)
     return rows

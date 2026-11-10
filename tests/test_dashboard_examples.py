@@ -257,6 +257,46 @@ async def test_monthly_dashboard_cost_breakdown(
             )
 
 
+@pytest.mark.parametrize("adjustment", ["-0.01", "+0.01", None])
+async def test_monthly_dashboard_shows_total_estimate_rounding(hass, adjustment):
+    lines = {"variable": "633.09", "supplier": "15.26", "grid": "186.83"}
+    total = Decimal("835.18") + Decimal(adjustment or 0)
+    if adjustment is not None:
+        lines["rounding_adjustment"] = adjustment
+    hass.states.async_set(
+        MONTHLY_TOTAL,
+        str(total),
+        {
+            "variable_cost": "633.09",
+            "accrued_fixed_fees": "202.09",
+            "accrued_fixed_fee_breakdown": {"supplier": "15.26", "grid": "186.83"},
+            "monthly_cost_display": {"total": str(total), "lines": lines},
+            "unit_of_measurement": "SEK",
+        },
+    )
+    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+        rendered = _monthly_cost_note(hass, path)
+        label = _language(
+            path, "Total estimate rounding", "Avrundning av totalestimatet"
+        )
+        if adjustment is None:
+            assert label not in rendered
+        else:
+            amount = _language(path, adjustment, adjustment.replace(".", ","))
+            assert any(
+                line.strip().startswith(f"**{label}** {amount} SEK")
+                for line in rendered.splitlines()
+            )
+            assert (
+                _language(
+                    path,
+                    f"**Total estimate** {total} SEK",
+                    f"**Totalestimat** {str(total).replace('.', ',')} SEK",
+                )
+                in rendered
+            )
+
+
 @pytest.mark.parametrize(
     ("rows", "covered"),
     [

@@ -723,24 +723,33 @@ views:
           {% set fixed = state_attr(total, 'accrued_fixed_fees') %}
           {% set breakdown = state_attr(total, 'variable_cost_breakdown') %}
           {% set display = breakdown.display if breakdown is mapping else none %}
+          {% set estimate = state_attr(total, 'monthly_cost_display') %}
           {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
           {% set currency = state_attr(total, 'unit_of_measurement') %}
           {% set missing = state_attr(total, 'missing_components') or [] %}
           {% if has_value(total) and is_number(variable) and is_number(fixed) and currency %}
-          **Rörlig kostnad** {{ (display.total if display is mapping else '%.2f' | format(variable | float))
+          **Rörlig kostnad** {{ (estimate.lines.variable if estimate is mapping else
+          display.total if display is mapping else '%.2f' | format(variable | float))
           | replace('.', ',') }} {{ currency }} ·
           {% if fixed_breakdown is mapping %}
           **Fast elhandelsavgift hittills**
-          {% if is_number(fixed_breakdown.supplier) %}{{ '%.2f' | format(fixed_breakdown.supplier | float)
+          {% if is_number(fixed_breakdown.supplier) %}{{ estimate.lines.supplier if estimate is mapping else
+          '%.2f' | format(fixed_breakdown.supplier | float)
           | replace('.', ',') }} {{ currency }}{% else %}Uppgift saknas{% endif %} ·
           **Fast elnätsavgift hittills**
-          {% if is_number(fixed_breakdown.grid) %}{{ '%.2f' | format(fixed_breakdown.grid | float)
+          {% if is_number(fixed_breakdown.grid) %}{{ estimate.lines.grid if estimate is mapping else
+          '%.2f' | format(fixed_breakdown.grid | float)
           | replace('.', ',') }} {{ currency }}{% else %}Uppgift saknas{% endif %}.
           {% set missing = missing | reject('in', ['fixed_supplier_fee', 'fixed_grid_fee']) | list %}
           {% elif 'fixed_supplier_fee' in missing and 'fixed_grid_fee' in missing %}
           **Fasta avgifter hittills** Uppgift saknas.
           {% else %}
           **Kända fasta avgifter hittills** {{ '%.2f' | format(fixed | float) | replace('.', ',') }} {{ currency }}.
+          {% endif %}
+          {% if estimate is mapping and 'rounding_adjustment' in estimate.lines %}
+          {{ '\n\n' }}
+          **Avrundning av totalestimatet** {{ estimate.lines.rounding_adjustment | replace('.', ',') }} {{ currency }} ·
+          **Totalestimat** {{ estimate.total | replace('.', ',') }} {{ currency }}.
           {% endif %}
           {% if display is mapping %}
           {% set variable_cost_labels = {

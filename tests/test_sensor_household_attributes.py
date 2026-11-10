@@ -90,6 +90,10 @@ def test_household_attributes_preserve_period_and_decimal_strings(household_sens
             "accrued_fixed_fees": "23.455700",
             "accrued_fixed_fee_breakdown": {"supplier": "23.455700", "grid": None},
             "variable_cost_breakdown": None,
+            "monthly_cost_display": {
+                "total": "123.46",
+                "lines": {"variable": "100.00", "supplier": "23.46"},
+            },
             "priced_energy_kwh": "80.001",
             "missing_components": ["fixed_grid_fee"],
             "excluded_charges": ["demand_charges", "other_unconfigured_charges"],
@@ -101,6 +105,34 @@ def test_household_attributes_preserve_period_and_decimal_strings(household_sens
     assert sensor.native_unit_of_measurement == "SEK"
     assert sensor.available is True
     assert sensor.extra_state_attributes == expected_attributes
+
+
+@pytest.mark.parametrize("household_sensor", ["total_cost_this_month"], indirect=True)
+def test_monthly_estimate_rounds_known_fees_for_display(household_sensor):
+    sensor = household_sensor
+    data = sensor.coordinator.data
+    sensor.coordinator.data = replace(
+        data,
+        results=replace(
+            data.results,
+            household_cost_this_month=Decimal("835.172"),
+            household_variable_month=Decimal("633.087"),
+            household_fixed_month=Decimal("202.085"),
+            household_fixed_supplier_month=Decimal("15.257"),
+            household_fixed_grid_month=Decimal("186.828"),
+            household_missing_fees=(),
+        ),
+    )
+    assert sensor.native_value == Decimal("835.172")
+    assert sensor.extra_state_attributes["monthly_cost_display"] == {
+        "total": "835.17",
+        "lines": {
+            "variable": "633.09",
+            "supplier": "15.26",
+            "grid": "186.83",
+            "rounding_adjustment": "-0.01",
+        },
+    }
 
 
 @pytest.mark.parametrize("amount", [None, Decimal("0.000"), Decimal("-1.2300")])

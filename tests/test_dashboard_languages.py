@@ -95,6 +95,8 @@ def test_language_variants_share_operational_configuration(name):
             else:
                 assert en != sv, f"Untranslated {field}: {en}"
                 assert template_contract(en) == template_contract(sv)
+        elif field == "custom" and isinstance(en, str) and 'append("Rounding", ' in en:
+            assert en.replace('append("Rounding", ', 'append("Avrundning", ') == sv
         else:
             # Includes IDs, URLs/paths, conditions, thresholds, JS, colours,
             # visibility, chart precision and custom-card dependencies.

@@ -252,24 +252,33 @@ views:
           {% set fixed = state_attr(total, 'accrued_fixed_fees') %}
           {% set breakdown = state_attr(total, 'variable_cost_breakdown') %}
           {% set display = breakdown.display if breakdown is mapping else none %}
+          {% set estimate = state_attr(total, 'monthly_cost_display') %}
           {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
           {% set currency = state_attr(total, 'unit_of_measurement') %}
           {% set missing = state_attr(total, 'missing_components') or [] %}
           {% if has_value(total) and is_number(variable) and is_number(fixed) and currency %}
-          **Variable cost** {{ display.total if display is mapping else '%.2f' | format(variable | float) }}
+          **Variable cost** {{ estimate.lines.variable if estimate is mapping else
+          display.total if display is mapping else '%.2f' | format(variable | float) }}
           {{ currency }} ·
           {% if fixed_breakdown is mapping %}
           **Fixed supplier fee so far**
-          {% if is_number(fixed_breakdown.supplier) %}{{ '%.2f' | format(fixed_breakdown.supplier | float) }}
+          {% if is_number(fixed_breakdown.supplier) %}{{ estimate.lines.supplier if estimate is mapping else
+          '%.2f' | format(fixed_breakdown.supplier | float) }}
           {{ currency }}{% else %}Not available{% endif %} ·
           **Fixed grid fee so far**
-          {% if is_number(fixed_breakdown.grid) %}{{ '%.2f' | format(fixed_breakdown.grid | float) }}
+          {% if is_number(fixed_breakdown.grid) %}{{ estimate.lines.grid if estimate is mapping else
+          '%.2f' | format(fixed_breakdown.grid | float) }}
           {{ currency }}{% else %}Not available{% endif %}.
           {% set missing = missing | reject('in', ['fixed_supplier_fee', 'fixed_grid_fee']) | list %}
           {% elif 'fixed_supplier_fee' in missing and 'fixed_grid_fee' in missing %}
           **Fixed fees so far** Not available.
           {% else %}
           **Known fixed fees so far** {{ '%.2f' | format(fixed | float) }} {{ currency }}.
+          {% endif %}
+          {% if estimate is mapping and 'rounding_adjustment' in estimate.lines %}
+          {{ '\n\n' }}
+          **Total estimate rounding** {{ estimate.lines.rounding_adjustment }} {{ currency }} ·
+          **Total estimate** {{ estimate.total }} {{ currency }}.
           {% endif %}
           {% if display is mapping %}
           {% set variable_cost_labels = {
@@ -622,18 +631,40 @@ views:
                       if (timestamp == null) return tooltip;
                       const title = document.createElement("div");
                       title.className = "apexcharts-tooltip-title";
-                      title.textContent = new Date(timestamp).toISOString().slice(0, 7);
+                      const month = new Date(timestamp).toISOString().slice(0, 7);
+                      title.textContent = month;
                       tooltip.append(title);
-                      series.forEach((amounts, seriesIndex) => {
-                        const value = amounts[dataPointIndex];
-                        if (value == null) return;
+                      const componentKeys = [
+                        "market_energy", "supplier_markup", "supplier_price",
+                        "bundled_price", "energy_tax", "variable_grid_fee",
+                      ];
+                      const history = document.querySelector("home-assistant")?.hass?.states
+                        ?.["sensor.electricity_pro_monthly_variable_cost_history"];
+                      const row = history?.attributes.months?.find(item => item.month === month);
+                      const values = series.map(amounts => amounts[dataPointIndex]);
+                      // The chart may still show older data or have a series hidden.
+                      const matches = row?.display && values.length === componentKeys.length
+                        && values.every((value, index) => {
+                          const raw = row.components[componentKeys[index]];
+                          return raw == null ? value == null : Number(raw) === value;
+                        });
+                      const append = (label, value, seriesIndex, sign = "") => {
                         const line = document.createElement("div");
                         line.style.padding = "2px 8px";
                         const amount = w.config.tooltip.y.formatter(value, { seriesIndex, dataPointIndex, w });
-                        line.textContent = w.config.series[seriesIndex].name + ": "
-                          + String(amount).replace(/<\/?strong>/g, "");
+                        line.textContent = label + ": " + sign + String(amount).replace(/<\/?strong>/g, "");
                         tooltip.append(line);
+                      };
+                      values.forEach((value, index) => {
+                        if (value == null) return;
+                        const amount = matches ? Number(row.display.lines[componentKeys[index]]) : value;
+                        append(w.config.series[index].name, amount, index);
                       });
+                      const adjustment = matches && row.display.lines.rounding_adjustment;
+                      if (adjustment) {
+                        append("Rounding", Number(adjustment), values.findIndex(value => value != null),
+                          adjustment.startsWith("+") ? "+" : "");
+                      }
                       return tooltip;
                     }
               series:
@@ -696,7 +727,8 @@ views:
                 | {{ row.month }} | {% if row.coverage == 'ongoing' %}To date{% elif row.coverage == 'complete'
                 %}Full month{% else %}Partial coverage{% endif %}
                 {{- ' | ' -}} {{ '%.2f' | format(row.priced_kwh | float) }}
-                {{- ' | ' -}} {{ '%.2f' | format(row.total | float) }} |
+                {{- ' | ' -}} {{ row.display.total if row.display is mapping else
+                '%.2f' | format(row.total | float) }} |
                 {% endfor %}
 
                 Months without priced intervals appear as gaps.

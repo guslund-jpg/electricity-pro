@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Explain rounding differences in the monthly estimate and the Enhanced chart
+  tooltip in the English and Swedish dashboards. (#165)
 - Show stacked monthly variable costs and priced-energy coverage in the English
   and Swedish Enhanced dashboards, with one tooltip for the month and its cost
   components. (#165)

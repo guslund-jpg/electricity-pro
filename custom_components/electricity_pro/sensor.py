@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from decimal import ROUND_HALF_EVEN, Decimal, localcontext
+from decimal import Decimal
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -56,6 +56,7 @@ from .const import (
     DOMAIN,
 )
 from .coordinator import ElectricityProCoordinator
+from .cost_display import CURRENCY_QUANTUM, cost_display
 from .device import device_info_for_entry
 from .forecast import DailyAverageMarketPriceResult, ForecastInterval
 from .forecast_insights import ForecastWindowInsight
@@ -68,7 +69,6 @@ from .statistics import remaining_cost_today
 from .timing_score import TimingScoreResult
 
 _AVERAGE_POWER_UPDATE_INTERVAL = timedelta(minutes=5)
-_CURRENCY_QUANTUM = Decimal("0.01")
 _SCHEDULED_SENSOR_UPDATE_INTERVALS = {
     "total_cost_today": timedelta(minutes=1),
     "total_cost_this_month": timedelta(minutes=1),
@@ -232,11 +232,30 @@ def _household_cost_attributes(
         else "local_midnight_to_now",
     }
     if monthly:
+        results = data.results
         attributes["accrued_fixed_fee_breakdown"] = {
-            "supplier": _decimal_string(data.results.household_fixed_supplier_month),
-            "grid": _decimal_string(data.results.household_fixed_grid_month),
+            "supplier": _decimal_string(results.household_fixed_supplier_month),
+            "grid": _decimal_string(results.household_fixed_grid_month),
         }
         attributes["variable_cost_breakdown"] = _monthly_variable_cost_attributes(data)
+        total = results.household_cost_this_month
+        variable = results.household_variable_month
+        fees = {
+            key: amount
+            for key, amount in (
+                ("supplier", results.household_fixed_supplier_month),
+                ("grid", results.household_fixed_grid_month),
+            )
+            if amount is not None
+        }
+        if (
+            total is not None
+            and variable is not None
+            and total == variable + sum(fees.values(), Decimal(0))
+        ):
+            attributes["monthly_cost_display"] = cost_display(
+                total, {"variable": variable, **fees}
+            )
     return attributes
 
 
@@ -261,34 +280,13 @@ def _monthly_variable_cost_attributes(
     if unallocated is not None:
         lines["unallocated_cost"] = unallocated
 
-    with localcontext() as context:
-        # Leave room for cents and a carry when adding rounded amounts.
-        context.prec = max(
-            context.prec,
-            max(amount.adjusted() for amount in (total, *lines.values())) + 4,
-        )
-        rounded_total = total.quantize(_CURRENCY_QUANTUM, rounding=ROUND_HALF_EVEN)
-        rounded = {
-            key: amount.quantize(_CURRENCY_QUANTUM, rounding=ROUND_HALF_EVEN)
-            for key, amount in lines.items()
-        }
-        difference = rounded_total - sum(rounded.values(), Decimal(0))
-    display_lines = {
-        key: str(amount) if amount else "0.00" for key, amount in rounded.items()
-    }
-    if difference:
-        display_lines["rounding_adjustment"] = f"{difference:+.2f}"
-
     return {
         "components": {key: str(amount) for key, amount in components.items()},
         "unallocated_cost": _decimal_string(unallocated),
         "covered_cost": str(summary.covered_cost),
         "priced_energy_kwh": str(summary.priced_kwh),
         "started_at": summary.started_at.isoformat(),
-        "display": {
-            "total": str(rounded_total) if rounded_total else "0.00",
-            "lines": display_lines,
-        },
+        "display": cost_display(total, lines),
     }
 
 
@@ -362,9 +360,7 @@ def projected_remaining_cost(data: ElectricityProData) -> Decimal | None:
         current_cost_rate(data),
         dt_util.now(),
     )
-    return (
-        None if projected_cost is None else projected_cost.quantize(_CURRENCY_QUANTUM)
-    )
+    return None if projected_cost is None else projected_cost.quantize(CURRENCY_QUANTUM)
 
 
 PHASES: tuple[str, ...] = ("l1", "l2", "l3")
