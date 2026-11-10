@@ -187,305 +187,149 @@ views:
           - type: conditional
             conditions:
               - condition: state
-                entity: sensor.electricity_pro_peak_power_today
+                entity: sensor.electricity_pro_remaining_cost_today
                 state_not: unavailable
               - condition: state
-                entity: sensor.electricity_pro_peak_power_today
+                entity: sensor.electricity_pro_remaining_cost_today
                 state_not: unknown
             card:
               type: tile
-              entity: sensor.electricity_pro_peak_power_today
-              name: "Högsta effekt i dag"
-              icon: mdi:flash-outline
-              color: amber
+              entity: sensor.electricity_pro_remaining_cost_today
+              name: "Återstående kostnad i dag"
+              icon: mdi:progress-clock
+              color: green
 
-      # Dölj saknade/okända entiteter, men visa nollvärden och otillgängliga givare.
-      - type: conditional
-        conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_production_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_production_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_production_this_month
-                state_not: unknown
-        card:
-          type: vertical-stack
-          cards:
-            - type: markdown
-              content: >-
-                ### Produktion
-
-                Produktion på AC-sidan, exklusive batteriurladdning.
-                {% if states('sensor.electricity_pro_production_today') != 'unknown'
-                   or states('sensor.electricity_pro_production_this_month') != 'unknown' %}
-                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
-                {% endif %}
-                [Om mätning av
-                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_power
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_power
-                name: "Produktionseffekt"
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_today
-                name: "I dag (delvis uppmätt)"
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_this_month
-                name: "Den här månaden (delvis uppmätt)"
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-      # Dölj saknade/okända entiteter, men visa nollvärden och otillgängliga givare.
-      - type: conditional
-        conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_this_month
-                state_not: unknown
-        card:
-          type: vertical-stack
-          cards:
-            - type: markdown
-              content: >-
-                ### Export till elnätet
-
-                Energi som levereras till elnätet. Även energi från ett batteri kan ingå.
-                {% if states('sensor.electricity_pro_grid_export_today') != 'unknown'
-                   or states('sensor.electricity_pro_grid_export_this_month') != 'unknown' %}
-                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
-                {% endif %}
-                [Om mätning av
-                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_power
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_power
-                name: "Effekt ut till elnätet"
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_today
-                name: "I dag (delvis uppmätt)"
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_this_month
-                name: "Den här månaden (delvis uppmätt)"
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-      # Uppmätt förbrukning är oberoende av elnätsimport och lagringens utformning.
-      - type: conditional
-        conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_household_demand_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_household_energy_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_household_energy_this_month
-                state_not: unknown
-        card:
-          type: vertical-stack
-          cards:
-            - type: markdown
-              content: >-
-                ### Hushållets energibehov
-
-                Uppmätt förbrukning inklusive elbilsladdning, men exklusive batteriladdning. Detta är hushållets
-                energibehov, inte elnätsimport eller en kostnadsuppskattning.
-                {% if states('sensor.electricity_pro_household_energy_today') != 'unknown'
-                   or states('sensor.electricity_pro_household_energy_this_month') != 'unknown' %}
-                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
-                {% endif %}
-                [Om mätning av
-                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_demand_power
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_demand_power
-                name: "Hushållets effektbehov"
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_energy_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_energy_today
-                name: "I dag (delvis uppmätt)"
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_energy_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_energy_this_month
-                name: "Den här månaden (delvis uppmätt)"
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-  - title: "Aktuellt"
-    path: live
-    icon: mdi:flash
+  - title: "Priser och trender"
+    path: trends
+    icon: mdi:chart-areaspline
     cards:
       - type: heading
-        heading: "El just nu"
-        icon: mdi:flash
+        heading: "Kommande prisperioder"
+        icon: mdi:calendar-clock
 
       - type: grid
         columns: 2
         square: false
         cards:
-          # Fast effektskala i W. Anpassa max och severity till din vardagslast.
-          - type: gauge
-            entity: sensor.electricity_pro_current_power
-            name: "Aktuell effekt"
-            min: 0
-            max: 10000
-            needle: true
-            severity:
-              green: 0
-              yellow: 4000
-              red: 7000
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_1h_window_start
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_1h_window_start
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_cheapest_1h_window_start
+              name: "Billigaste 1h period"
+              icon: mdi:clock-fast
+              color: green
 
           - type: conditional
             conditions:
               - condition: state
-                entity: sensor.electricity_pro_effective_price
+                entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
                 state_not: unavailable
               - condition: state
-                entity: sensor.electricity_pro_effective_price
+                entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
                 state_not: unknown
             card:
-              # Fast prisskala och färggränser i sensorns valuta per kWh.
-              type: gauge
-              entity: sensor.electricity_pro_effective_price
-              name: "Effektivt elpris"
-              min: 0
-              max: 3
-              needle: true
-              severity:
-                green: 0
-                yellow: 1
-                red: 1.5
+              type: tile
+              entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
+              name: "Snittpris 1h period"
+              icon: mdi:cash-clock
+              color: green
 
           - type: conditional
             conditions:
               - condition: state
-                entity: sensor.electricity_pro_current_cost_rate
+                entity: sensor.electricity_pro_cheapest_2h_window_start
                 state_not: unavailable
               - condition: state
-                entity: sensor.electricity_pro_current_cost_rate
+                entity: sensor.electricity_pro_cheapest_2h_window_start
                 state_not: unknown
             card:
-              # Ange din egen gräns för hög kostnad i severity.red, i valuta per timme.
-              # Välj ett maxvärde som ligger över gränsen.
-              type: gauge
-              entity: sensor.electricity_pro_current_cost_rate
-              name: "Kostnad per timme just nu"
-              min: 0
-              max: 20
-              needle: true
-              severity:
-                green: 0
-                yellow: 5
-                red: 10
+              type: tile
+              entity: sensor.electricity_pro_cheapest_2h_window_start
+              name: "Billigaste 2h period"
+              icon: mdi:clock-fast
+              color: blue
 
-      - type: history-graph
-        title: "Effekt – senaste 24 timmarna"
-        hours_to_show: 24
-        entities:
-          - entity: sensor.electricity_pro_current_power
-            name: "Aktuell effekt"
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
+              name: "Snittpris 2h period"
+              icon: mdi:cash-clock
+              color: blue
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_3h_window_start
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_3h_window_start
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_cheapest_3h_window_start
+              name: "Billigaste 3h period"
+              icon: mdi:clock-fast
+              color: purple
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
+              name: "Snittpris 3h period"
+              icon: mdi:cash-clock
+              color: purple
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_next_inexpensive_1h_window_start
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_next_inexpensive_1h_window_start
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_next_inexpensive_1h_window_start
+              name: "Nästa billiga timme"
+              icon: mdi:clock-check-outline
+              color: green
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_price_direction
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_price_direction
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_price_direction
+              name: "Pristrend 2h"
+              icon: mdi:trending-up
+              color: amber
 
       - type: conditional
         conditions:
@@ -507,161 +351,10 @@ views:
             - entity: sensor.electricity_pro_effective_price
               name: "Effektivt elpris"
 
-  - title: "Statistik"
-    path: statistics
-    icon: mdi:calendar-range
-    cards:
-      - type: heading
-        heading: "Dagens totaler"
-        icon: mdi:calendar-today
-
-      - type: markdown
-        content: >-
-          {% set total = 'sensor.electricity_pro_total_cost_estimate_today' %}
-          {% set supplier = 'sensor.electricity_pro_cost_today' %}
-          {% set priced = state_attr(total, 'priced_energy_kwh') %}
-          {% if priced is not none %}
-          **Delvis beräknad kostnad:** {{ priced | float(0) | round(2) }} kWh prissatta.
-          {% elif state_attr(supplier, 'source') == 'local_estimate' %}
-          **Delvis beräknad elhandelskostnad:** {{ state_attr(supplier, 'priced_energy_kwh') | float(0) | round(2) }}
-          kWh prissatta.
-          {% endif %}
-          Totalen inkluderar fasta avgifter upplupna sedan midnatt.
-
-          {% set missing = state_attr(total, 'missing_components') or [] %}
-          {% if missing %}**Saknas:** {{ missing | join(', ')
-          | replace('fixed_supplier_fee', 'fast elhandelsavgift')
-          | replace('fixed_grid_fee', 'fast elnätsavgift')
-          | replace('complete_variable_price', 'komplett rörligt elpris')
-          | replace('_', ' ') }}.{% endif %}
-          Effektavgifter och andra ej konfigurerade avgifter ingår inte.
-          [Om kostnader och mätningens
-          täckning](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/costs-and-pricing.md)
-
       - type: grid
         columns: 2
         square: false
         cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_energy_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_energy_today
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_energy_today
-              name: "Energi i dag"
-              icon: mdi:lightning-bolt
-              color: blue
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_total_cost_estimate_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_total_cost_estimate_today
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_total_cost_estimate_today
-              name: "Total kostnad (ca)"
-              icon: mdi:cash-multiple
-              color: green
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_cost_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_cost_today
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_cost_today
-              name: "Elhandelskostnad i dag"
-              icon: mdi:cash
-              color: green
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_consumption_weighted_average_price_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_consumption_weighted_average_price_today
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_consumption_weighted_average_price_today
-              name: "Effektivt snittpris"
-              icon: mdi:chart-line
-              color: green
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_remaining_cost_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_remaining_cost_today
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_remaining_cost_today
-              name: "Återstående kostnad i dag"
-              icon: mdi:progress-clock
-              color: green
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_average_power_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_average_power_today
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_average_power_today
-              name: "Genomsnittlig effekt i dag"
-              icon: mdi:chart-areaspline
-              color: blue
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_today
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_peak_power_today
-              name: "Högsta effekt i dag"
-              icon: mdi:flash-outline
-              color: amber
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_time_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_time_today
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_peak_power_time_today
-              name: "Tid för dagens högsta effekt"
-              icon: mdi:clock-outline
-              color: amber
-
           - type: conditional
             conditions:
               - condition: state
@@ -828,6 +521,173 @@ views:
               icon: mdi:calendar-month-outline
               color: green
 
+  - title: "Eldetaljer"
+    path: details
+    icon: mdi:transmission-tower
+    cards:
+      - type: heading
+        heading: "Fasmätningar"
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l1
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l1
+                state_not: unknown
+            card:
+              type: gauge
+              entity: sensor.electricity_pro_current_l1
+              name: "Ström L1"
+              min: 0
+              max: 20
+              needle: true
+              severity:
+                green: 0
+                yellow: 14
+                red: 18
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l2
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l2
+                state_not: unknown
+            card:
+              type: gauge
+              entity: sensor.electricity_pro_current_l2
+              name: "Ström L2"
+              min: 0
+              max: 20
+              needle: true
+              severity:
+                green: 0
+                yellow: 14
+                red: 18
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l3
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l3
+                state_not: unknown
+            card:
+              type: gauge
+              entity: sensor.electricity_pro_current_l3
+              name: "Ström L3"
+              min: 0
+              max: 20
+              needle: true
+              severity:
+                green: 0
+                yellow: 14
+                red: 18
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l1
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l1
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_voltage_l1
+              name: "Spänning L1"
+              vertical: true
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l2
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l2
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_voltage_l2
+              name: "Spänning L2"
+              vertical: true
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l3
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l3
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_voltage_l3
+              name: "Spänning L3"
+              vertical: true
+
+      - type: heading
+        heading: "Medel- och toppeffekt"
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_average_power_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_average_power_today
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_average_power_today
+              name: "Genomsnittlig effekt i dag"
+              icon: mdi:chart-areaspline
+              color: blue
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_today
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_peak_power_today
+              name: "Högsta effekt i dag"
+              icon: mdi:flash-outline
+              color: amber
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_time_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_time_today
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_peak_power_time_today
+              name: "Tid för dagens högsta effekt"
+              icon: mdi:clock-outline
+              color: amber
+
+      - type: heading
+        heading: "Månadens topptimme"
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
           - type: conditional
             conditions:
               - condition: state
@@ -858,134 +718,227 @@ views:
               icon: mdi:clock-outline
               color: amber
 
-  - title: "Prognos"
-    path: forecast
-    icon: mdi:calendar-clock
-    cards:
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_production_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_production_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_production_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Produktion
+
+                Produktion på AC-sidan, exklusive batteriurladdning.
+                {% if states('sensor.electricity_pro_production_today') != 'unknown'
+                   or states('sensor.electricity_pro_production_this_month') != 'unknown' %}
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+                {% endif %}
+                [Om mätning av
+                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_power
+                name: "Produktionseffekt"
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_today
+                name: "I dag (delvis uppmätt)"
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_this_month
+                name: "Den här månaden (delvis uppmätt)"
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+      # Dölj saknade/okända entiteter, men visa nollvärden och otillgängliga givare.
+
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Export till elnätet
+
+                Energi som levereras till elnätet. Även energi från ett batteri kan ingå.
+                {% if states('sensor.electricity_pro_grid_export_today') != 'unknown'
+                   or states('sensor.electricity_pro_grid_export_this_month') != 'unknown' %}
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+                {% endif %}
+                [Om mätning av
+                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_power
+                name: "Effekt ut till elnätet"
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_today
+                name: "I dag (delvis uppmätt)"
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_this_month
+                name: "Den här månaden (delvis uppmätt)"
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
+      # Uppmätt förbrukning är oberoende av elnätsimport och lagringens utformning.
+
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_household_demand_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_household_energy_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_household_energy_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Hushållets energibehov
+
+                Uppmätt förbrukning inklusive elbilsladdning, men exklusive batteriladdning. Detta är hushållets
+                energibehov, inte elnätsimport eller en kostnadsuppskattning.
+                {% if states('sensor.electricity_pro_household_energy_today') != 'unknown'
+                   or states('sensor.electricity_pro_household_energy_this_month') != 'unknown' %}
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+                {% endif %}
+                [Om mätning av
+                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_demand_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_demand_power
+                name: "Hushållets effektbehov"
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_today
+                name: "I dag (delvis uppmätt)"
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_this_month
+                name: "Den här månaden (delvis uppmätt)"
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
       - type: heading
-        heading: "Kommande prisperioder"
-        icon: mdi:calendar-clock
+        heading: "Effekthistorik"
 
-      - type: grid
-        columns: 2
-        square: false
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_1h_window_start
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_1h_window_start
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_cheapest_1h_window_start
-              name: "Billigaste 1h period"
-              icon: mdi:clock-fast
-              color: green
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_cheapest_1h_window_average_effective_price
-              name: "Snittpris 1h period"
-              icon: mdi:cash-clock
-              color: green
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_2h_window_start
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_2h_window_start
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_cheapest_2h_window_start
-              name: "Billigaste 2h period"
-              icon: mdi:clock-fast
-              color: blue
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_cheapest_2h_window_average_effective_price
-              name: "Snittpris 2h period"
-              icon: mdi:cash-clock
-              color: blue
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_3h_window_start
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_3h_window_start
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_cheapest_3h_window_start
-              name: "Billigaste 3h period"
-              icon: mdi:clock-fast
-              color: purple
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_cheapest_3h_window_average_effective_price
-              name: "Snittpris 3h period"
-              icon: mdi:cash-clock
-              color: purple
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_next_inexpensive_1h_window_start
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_next_inexpensive_1h_window_start
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_next_inexpensive_1h_window_start
-              name: "Nästa billiga timme"
-              icon: mdi:clock-check-outline
-              color: green
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_price_direction
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_price_direction
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_price_direction
-              name: "Pristrend 2h"
-              icon: mdi:trending-up
-              color: amber
+      - type: history-graph
+        title: "Effekt – senaste 24 timmarna"
+        hours_to_show: 24
+        entities:
+          - entity: sensor.electricity_pro_current_power
+            name: "Aktuell effekt"

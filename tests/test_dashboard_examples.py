@@ -579,42 +579,6 @@ def test_standard_dashboard_covers_core_measurements_and_insights() -> None:
         str(item.get("type")) for item in _walk(dashboard) if isinstance(item, dict)
     } & {"custom:mushroom-template-card", "custom:apexcharts-card"}
 
-    views_by_title = {view["title"]: view for view in dashboard["views"]}
-    assert set(views_by_title) == {"Overview", "Live", "Statistics", "Forecast"}
-    overview_entity_ids = {
-        item["entity"]
-        for item in _walk(views_by_title["Overview"])
-        if isinstance(item, dict) and isinstance(item.get("entity"), str)
-    }
-    assert (
-        not {
-            "sensor.electricity_pro_energy_this_month",
-            "sensor.electricity_pro_cost_this_month",
-        }
-        & overview_entity_ids
-    )
-    statistics_headings = {
-        card["heading"]
-        for card in views_by_title["Statistics"]["cards"]
-        if card.get("type") == "heading"
-    }
-    assert statistics_headings == {"Today’s totals", "This month"}
-
-    live_tile_entity_ids = {
-        item["entity"]
-        for item in _walk(views_by_title["Live"])
-        if isinstance(item, dict)
-        and item.get("type") == "tile"
-        and isinstance(item.get("entity"), str)
-    }
-    assert (
-        not {
-            "sensor.electricity_pro_current_market_price",
-            "sensor.electricity_pro_current_supplier_price",
-        }
-        & live_tile_entity_ids
-    )
-
     advice_tiles = {
         item["card"]["name"]: item
         for item in _walk(dashboard)
@@ -634,6 +598,66 @@ def test_standard_dashboard_covers_core_measurements_and_insights() -> None:
         advice_tiles["Good time to use electricity"]["conditions"][0]["state"] == "on"
     )
     assert advice_tiles["Wait for a better price"]["conditions"][0]["state"] == "off"
+
+
+@pytest.mark.parametrize("path", sorted(DASHBOARD_EXAMPLES.glob("*.yaml")))
+def test_dashboard_tabs_group_daily_price_and_electrical_cards(path: Path) -> None:
+    """Users can find the same kinds of cards in each localized layout."""
+    views = yaml.safe_load(path.read_text(encoding="utf-8"))["views"]
+    assert [view["path"] for view in views] == ["overview", "trends", "details"]
+    assert [view["title"] for view in views] == _language(
+        path,
+        ["Overview", "Prices and Trends", "Electrical Details"],
+        ["Översikt", "Priser och trender", "Eldetaljer"],
+    )
+    overview, trends, details = [set(_walk_entity_ids(view)) for view in views]
+    assert {
+        "sensor.electricity_pro_current_power",
+        "sensor.electricity_pro_effective_price",
+        "sensor.electricity_pro_current_cost_rate",
+        "sensor.electricity_pro_energy_today",
+        "sensor.electricity_pro_total_cost_estimate_today",
+    } <= overview
+    assert {
+        "sensor.electricity_pro_cheapest_1h_window_start",
+        "sensor.electricity_pro_current_market_price",
+        MONTHLY_TOTAL,
+    } <= trends
+    assert {
+        "sensor.electricity_pro_peak_power_time_today",
+        "sensor.electricity_pro_monthly_peak_hour_consumption",
+        "sensor.electricity_pro_current_l1",
+        "sensor.electricity_pro_voltage_l3",
+    } <= details
+    assert MONTHLY_TOTAL not in overview | details
+    electrical_cards = [
+        card
+        for card in views[2]["cards"]
+        if card["type"] not in {"heading", "custom:mushroom-title-card"}
+    ]
+    assert "sensor.electricity_pro_current_l1" in _walk_entity_ids(electrical_cards[0])
+    assert "sensor.electricity_pro_peak_power_today" in _walk_entity_ids(
+        electrical_cards[1]
+    )
+    power_charts = [
+        view["path"]
+        for view in views
+        for card in _walk(view)
+        if isinstance(card, dict)
+        and card.get("type") in {"history-graph", "custom:apexcharts-card"}
+        and "sensor.electricity_pro_current_power" in _walk_entity_ids(card)
+    ]
+    assert power_charts and set(power_charts) == {"details"}
+    assert all(
+        "sensor.electricity_pro_current_power" in _walk_entity_ids(card)
+        for card in electrical_cards[-len(power_charts) :]
+    )
+
+
+def _walk_entity_ids(value: Any) -> Iterator[str]:
+    for item in _walk(value):
+        if isinstance(item, dict) and isinstance(item.get("entity"), str):
+            yield item["entity"]
 
 
 def test_enhanced_dashboard_live_header_precision() -> None:

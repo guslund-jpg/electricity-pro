@@ -1,7 +1,7 @@
 title: Electricity Pro Enhanced
 
 views:
-  - title: Overview
+  - title: "Overview"
     path: overview
     icon: mdi:home-lightning-bolt
     cards:
@@ -189,797 +189,9 @@ views:
               icon_color: green
               layout: vertical
 
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_today
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_peak_power_today
-              name: Peak power today
-              icon: mdi:flash-outline
-              icon_color: amber
-              layout: vertical
-
-      - type: custom:mushroom-title-card
-        title: This month
-
-      - type: grid
-        columns: 2
-        square: false
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_energy_this_month
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_energy_this_month
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_energy_this_month
-              name: Energy this month
-              icon: mdi:calendar-month
-              icon_color: blue
-              layout: vertical
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_total_cost_estimate_this_month
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_total_cost_estimate_this_month
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_total_cost_estimate_this_month
-              name: Total cost estimate this month
-              icon: mdi:calendar-month-outline
-              icon_color: green
-              layout: vertical
-
-      - type: markdown
-        content: >-
-          {% set total = 'sensor.electricity_pro_total_cost_estimate_this_month' %}
-          {% set supplier = 'sensor.electricity_pro_cost_this_month' %}
-          {% set variable = state_attr(total, 'variable_cost') %}
-          {% set fixed = state_attr(total, 'accrued_fixed_fees') %}
-          {% set breakdown = state_attr(total, 'variable_cost_breakdown') %}
-          {% set display = breakdown.vat_display if breakdown is mapping and breakdown.vat_display is mapping
-          else breakdown.display if breakdown is mapping else none %}
-          {% set estimate = state_attr(total, 'monthly_cost_display') %}
-          {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
-          {% set currency = state_attr(total, 'unit_of_measurement') %}
-          {% set missing = state_attr(total, 'missing_components') or [] %}
-          {% if has_value(total) and is_number(variable) and is_number(fixed) and currency %}
-          **Variable cost** {{ estimate.lines.variable if estimate is mapping else
-          display.total if display is mapping else '%.2f' | format(variable | float) }}
-          {{ currency }} ·
-          {% if fixed_breakdown is mapping %}
-          **Fixed supplier fee so far**
-          {% if is_number(fixed_breakdown.supplier) %}{{ estimate.lines.supplier if estimate is mapping else
-          '%.2f' | format(fixed_breakdown.supplier | float) }}
-          {{ currency }}{% else %}Not available{% endif %} ·
-          **Fixed grid fee so far**
-          {% if is_number(fixed_breakdown.grid) %}{{ estimate.lines.grid if estimate is mapping else
-          '%.2f' | format(fixed_breakdown.grid | float) }}
-          {{ currency }}{% else %}Not available{% endif %}.
-          {% set missing = missing | reject('in', ['fixed_supplier_fee', 'fixed_grid_fee']) | list %}
-          {% elif 'fixed_supplier_fee' in missing and 'fixed_grid_fee' in missing %}
-          **Fixed fees so far** Not available.
-          {% else %}
-          **Known fixed fees so far** {{ '%.2f' | format(fixed | float) }} {{ currency }}.
-          {% endif %}
-          {% if estimate is mapping and 'rounding_adjustment' in estimate.lines %}
-          {{ '\n\n' }}
-          **Total estimate rounding** {{ estimate.lines.rounding_adjustment }} {{ currency }} ·
-          **Total estimate** {{ estimate.total }} {{ currency }}.
-          {% endif %}
-          {% if display is mapping %}
-          {% set variable_cost_labels = {
-            'market_energy': 'Spot energy',
-            'supplier_markup': 'Supplier markup',
-            'supplier_price': 'Combined supplier price',
-            'bundled_price': 'Combined variable price',
-            'energy_tax': 'Energy tax',
-            'variable_grid_fee': 'Variable grid fee',
-            'unallocated_cost': 'Earlier unsplit cost',
-            'vat': 'VAT on specified items',
-            'rounding_adjustment': 'Rounding'
-          } %}
-          {{ '\n' }}
-          {% for key, label in variable_cost_labels.items() %}
-          {% set net_key = key ~ '_excluding_vat' %}
-          {%- if net_key in display.lines %}
-          {{ '\n' }}- {{ label }} (excl. VAT) {{ display.lines[net_key] }} {{ currency }}
-          {%- endif %}
-          {%- if key in display.lines %}
-          {{ '\n' }}- {{ label }} {{ display.lines[key] }} {{ currency }}
-          {%- endif %}
-          {%- endfor %}
-          {{ '\n\n' }}
-          {% else %}
-          *Breakdown not yet available.*
-          {% endif %}
-          {% endif %}
-
-          {% set priced = state_attr(total, 'priced_energy_kwh') %}
-          {% if has_value(total) and is_number(priced) %}
-          **Partial estimate:** {{ priced | float(0) | round(2) }} kWh priced
-          {%- if display is mapping %}, of which {{ breakdown.priced_energy_kwh | float | round(2) }}
-          kWh with a breakdown{% endif %}.
-          {% elif state_attr(supplier, 'source') == 'local_estimate' %}
-          **Partial supplier estimate:** {{ state_attr(supplier, 'priced_energy_kwh') | float(0) | round(2) }} kWh priced.
-          {% endif %}
-
-          {% set coverage = state_attr('sensor.electricity_pro_energy_this_month', 'coverage') %}
-          {% if coverage == 'partial' %}
-          {% set started = as_datetime(state_attr('sensor.electricity_pro_energy_this_month', 'tracking_started_at'), none) %}
-          **Partial monthly energy**{% if started is not none %} since {{ as_local(started).strftime('%d %b, %H:%M') }}{% endif %}.
-          {% elif coverage == 'unverified' %}
-          **Unverified monthly energy — check total.**
-          {% endif %}
-
-          {% if missing %}**Missing:** {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
-          Demand/other unconfigured charges excluded.
-          [Cost & coverage details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/costs-and-pricing.md)
-
-      - type: grid
-        columns: 2
-        square: false
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_cost_this_month
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_cost_this_month
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_cost_this_month
-              name: Supplier cost this month
-              icon: mdi:calendar-month-outline
-              icon_color: green
-              layout: vertical
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_consumption
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_consumption
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_monthly_peak_hour_consumption
-              name: Monthly peak-hour consumption
-              icon: mdi:chart-bell-curve
-              icon_color: amber
-              layout: vertical
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_time
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_time
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_monthly_peak_hour_time
-              name: Monthly peak-hour time
-              icon: mdi:clock-outline
-              icon_color: amber
-              layout: vertical
-
-      # Hide absent/unknown entities, but retain zero and unavailable readings.
-      - type: conditional
-        conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_production_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_production_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_production_this_month
-                state_not: unknown
-        card:
-          type: vertical-stack
-          cards:
-            - type: markdown
-              content: >-
-                ### Production
-
-                AC generation, excluding battery discharge.
-                {% if states('sensor.electricity_pro_production_today') != 'unknown'
-                   or states('sensor.electricity_pro_production_this_month') != 'unknown' %}
-                **Partial energy totals:** observed increments only, not complete
-                day/month totals.
-                {% endif %}
-                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_power
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_power
-                name: Production power
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_today
-                name: Today (partial)
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_this_month
-                name: This month (partial)
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-      # Hide absent/unknown entities, but retain zero and unavailable readings.
-      - type: conditional
-        conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_this_month
-                state_not: unknown
-        card:
-          type: vertical-stack
-          cards:
-            - type: markdown
-              content: >-
-                ### Grid export
-
-                Energy delivered to the grid; its source may include a battery.
-                {% if states('sensor.electricity_pro_grid_export_today') != 'unknown'
-                   or states('sensor.electricity_pro_grid_export_this_month') != 'unknown' %}
-                **Partial energy totals:** observed increments only, not complete
-                day/month totals.
-                {% endif %}
-                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_power
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_power
-                name: Grid export power
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_today
-                name: Today (partial)
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_this_month
-                name: This month (partial)
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-      # Measured load is independent of grid import and storage topology.
-      - type: conditional
-        conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_household_demand_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_household_energy_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_household_energy_this_month
-                state_not: unknown
-        card:
-          type: vertical-stack
-          cards:
-            - type: markdown
-              content: >-
-                ### Household demand
-
-                Measured non-storage load, including EV charging but excluding
-                battery charging. Not grid import or a cost estimate.
-                {% if states('sensor.electricity_pro_household_energy_today') != 'unknown'
-                   or states('sensor.electricity_pro_household_energy_this_month') != 'unknown' %}
-                **Partial energy totals:** observed increments only, not complete
-                day/month totals.
-                {% endif %}
-                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_demand_power
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_demand_power
-                name: Household demand power
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_energy_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_energy_today
-                name: Today (partial)
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_energy_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_energy_this_month
-                name: This month (partial)
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-  - title: Trends
+  - title: "Prices and Trends"
     path: trends
     icon: mdi:chart-areaspline
-    cards:
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: sensor.electricity_pro_monthly_variable_cost_history
-            state_not: unavailable
-          - condition: state
-            entity: sensor.electricity_pro_monthly_variable_cost_history
-            state_not: unknown
-        card:
-          type: vertical-stack
-          cards:
-            - type: custom:apexcharts-card
-              graph_span: 365d
-              span:
-                end: month
-              stacked: true
-              header:
-                show: true
-                title: Variable cost by month
-              all_series_config:
-                type: column
-                float_precision: 2
-                show:
-                  legend_value: false
-              apex_config:
-                xaxis:
-                  tooltip:
-                    enabled: false
-                tooltip:
-                  shared: true
-                  intersect: false
-                  hideEmptySeries: false
-                  custom: |
-                    EVAL:function({ series, dataPointIndex, w }) {
-                      const tooltip = document.createElement("div");
-                      const timestamp = w.globals.seriesX[0]?.[dataPointIndex];
-                      if (timestamp == null) return tooltip;
-                      const title = document.createElement("div");
-                      title.className = "apexcharts-tooltip-title";
-                      const month = new Date(timestamp).toISOString().slice(0, 7);
-                      title.textContent = month;
-                      tooltip.append(title);
-                      const componentKeys = [
-                        "market_energy", "supplier_markup", "supplier_price",
-                        "bundled_price", "energy_tax", "variable_grid_fee",
-                      ];
-                      const history = document.querySelector("home-assistant")?.hass?.states
-                        ?.["sensor.electricity_pro_monthly_variable_cost_history"];
-                      const row = history?.attributes.months?.find(item => item.month === month);
-                      const values = series.map(amounts => amounts[dataPointIndex]);
-                      // The chart may still show older data or have a series hidden.
-                      const matches = row?.display && values.length === componentKeys.length
-                        && values.every((value, index) => {
-                          const raw = row.components[componentKeys[index]];
-                          return raw == null ? value == null : Number(raw) === value;
-                        });
-                      const append = (label, value, seriesIndex, sign = "") => {
-                        const line = document.createElement("div");
-                        line.style.padding = "2px 8px";
-                        const amount = w.config.tooltip.y.formatter(value, { seriesIndex, dataPointIndex, w });
-                        line.textContent = label + ": " + sign + String(amount).replace(/<\/?strong>/g, "");
-                        tooltip.append(line);
-                      };
-                      values.forEach((value, index) => {
-                        if (value == null) return;
-                        const amount = matches ? Number(row.display.lines[componentKeys[index]]) : value;
-                        append(w.config.series[index].name, amount, index);
-                      });
-                      const adjustment = matches && row.display.lines.rounding_adjustment;
-                      if (adjustment) {
-                        append("Rounding", Number(adjustment), values.findIndex(value => value != null),
-                          adjustment.startsWith("+") ? "+" : "");
-                      }
-                      return tooltip;
-                    }
-              series:
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Spot energy
-                  color: "#42a5f5"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.market_energy == null ? null : Number(components.market_energy),
-                    ]);
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Supplier markup
-                  color: "#26a69a"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.supplier_markup == null ? null : Number(components.supplier_markup),
-                    ]);
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Combined supplier price
-                  color: "#7e57c2"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.supplier_price == null ? null : Number(components.supplier_price),
-                    ]);
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Combined variable price
-                  color: "#78909c"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.bundled_price == null ? null : Number(components.bundled_price),
-                    ]);
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Energy tax
-                  color: "#ef5350"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.energy_tax == null ? null : Number(components.energy_tax),
-                    ]);
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Variable grid fee
-                  color: "#ffb300"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.variable_grid_fee == null ? null : Number(components.variable_grid_fee),
-                    ]);
-            - type: markdown
-              content: |
-                {% set history = 'sensor.electricity_pro_monthly_variable_cost_history' %}
-                {% set months = state_attr(history, 'months') or [] %}
-                {% set currency = state_attr(history, 'unit_of_measurement') %}
-                | Month | Coverage | Priced kWh | Total ({{ currency }}) |
-                | --- | --- | ---: | ---: |
-                {% for row in months if row.coverage != 'missing' -%}
-                | {{ row.month }} | {% if row.coverage == 'ongoing' %}To date{% elif row.coverage == 'complete'
-                %}Full month{% else %}Partial coverage{% endif %}
-                {{- ' | ' -}} {{ '%.2f' | format(row.priced_kwh | float) }}
-                {{- ' | ' -}} {{ row.display.total if row.display is mapping else
-                '%.2f' | format(row.total | float) }} |
-                {% endfor %}
-
-                Months without priced intervals appear as gaps.
-
-      - type: custom:mushroom-title-card
-        title: Power
-        subtitle: Recorded household demand — last 24 hours
-
-      - type: custom:apexcharts-card
-        graph_span: 24h
-        header:
-          show: true
-          title: Household power
-          show_states: true
-          colorize_states: true
-        yaxis:
-          - min: 0
-            decimals: 0
-        series:
-          - entity: sensor.electricity_pro_current_power
-            name: Current power
-            type: line
-            color: "#ffb300"
-            stroke_width: 1
-            float_precision: 0
-            show:
-              in_header: true
-            group_by:
-              duration: 5min
-              func: avg
-
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: sensor.electricity_pro_effective_price
-            state_not: unavailable
-          - condition: state
-            entity: sensor.electricity_pro_effective_price
-            state_not: unknown
-        card:
-          type: custom:apexcharts-card
-          graph_span: 24h
-          header:
-            show: true
-            title: Spot, supplier, and effective price
-            show_states: true
-            colorize_states: true
-          yaxis:
-            - min: "~0"
-              decimals: 2
-          series:
-            - entity: sensor.electricity_pro_current_market_price
-              name: Current spot price
-              type: line
-              curve: stepline
-              color: "#b0bec5"
-              stroke_width: 2
-              float_precision: 2
-              show:
-                in_header: false
-              group_by:
-                duration: 15min
-                func: avg
-            - entity: sensor.electricity_pro_current_supplier_price
-              name: Current supplier price
-              type: line
-              color: "#42a5f5"
-              stroke_width: 2
-              float_precision: 2
-              show:
-                in_header: true
-              group_by:
-                duration: 15min
-                func: avg
-            - entity: sensor.electricity_pro_effective_price
-              name: Effective price
-              type: line
-              color: "#66bb6a"
-              stroke_width: 3
-              float_precision: 2
-              show:
-                in_header: true
-              group_by:
-                duration: 15min
-                func: avg
-
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: sensor.electricity_pro_consumption_weighted_average_price_today
-            state_not: unavailable
-          - condition: state
-            entity: sensor.electricity_pro_consumption_weighted_average_price_today
-            state_not: unknown
-        card:
-          type: custom:mushroom-entity-card
-          entity: sensor.electricity_pro_consumption_weighted_average_price_today
-          name: Average effective price today
-          icon: mdi:chart-line
-          icon_color: green
-
-  - title: Details
-    path: details
-    icon: mdi:transmission-tower
-    cards:
-      - type: custom:mushroom-title-card
-        title: Electrical details
-        subtitle: Optional phase measurements
-
-      - type: grid
-        columns: 3
-        square: false
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_current_l1
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_current_l1
-                state_not: unknown
-            card:
-              type: gauge
-              entity: sensor.electricity_pro_current_l1
-              name: Current L1
-              min: 0
-              max: 20
-              needle: true
-              severity:
-                green: 0
-                yellow: 14
-                red: 18
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_current_l2
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_current_l2
-                state_not: unknown
-            card:
-              type: gauge
-              entity: sensor.electricity_pro_current_l2
-              name: Current L2
-              min: 0
-              max: 20
-              needle: true
-              severity:
-                green: 0
-                yellow: 14
-                red: 18
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_current_l3
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_current_l3
-                state_not: unknown
-            card:
-              type: gauge
-              entity: sensor.electricity_pro_current_l3
-              name: Current L3
-              min: 0
-              max: 20
-              needle: true
-              severity:
-                green: 0
-                yellow: 14
-                red: 18
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l1
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l1
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_voltage_l1
-              name: Voltage L1
-              layout: vertical
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l2
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l2
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_voltage_l2
-              name: Voltage L2
-              layout: vertical
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l3
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l3
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_voltage_l3
-              name: Voltage L3
-              layout: vertical
-
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: sensor.electricity_pro_current_power
-            state_not: unavailable
-          - condition: state
-            entity: sensor.electricity_pro_current_power
-            state_not: unknown
-        card:
-          type: custom:apexcharts-card
-          graph_span: 6h
-          header:
-            show: true
-            title: Power detail — last 6 hours
-            show_states: true
-            colorize_states: true
-          yaxis:
-            - min: 0
-              decimals: 0
-          series:
-            - entity: sensor.electricity_pro_current_power
-              name: Current power
-              type: line
-              curve: straight
-              color: "#ffb300"
-              stroke_width: 1
-              float_precision: 0
-              show:
-                in_header: true
-
-  - title: Forecast
-    path: forecast
-    icon: mdi:calendar-clock
     cards:
       - type: custom:mushroom-title-card
         title: Upcoming price windows
@@ -1175,3 +387,820 @@ views:
               icon: mdi:trending-up
               icon_color: amber
               layout: vertical
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_effective_price
+            state_not: unavailable
+          - condition: state
+            entity: sensor.electricity_pro_effective_price
+            state_not: unknown
+        card:
+          type: custom:apexcharts-card
+          graph_span: 24h
+          header:
+            show: true
+            title: Spot, supplier, and effective price
+            show_states: true
+            colorize_states: true
+          yaxis:
+            - min: "~0"
+              decimals: 2
+          series:
+            - entity: sensor.electricity_pro_current_market_price
+              name: Current spot price
+              type: line
+              curve: stepline
+              color: "#b0bec5"
+              stroke_width: 2
+              float_precision: 2
+              show:
+                in_header: false
+              group_by:
+                duration: 15min
+                func: avg
+            - entity: sensor.electricity_pro_current_supplier_price
+              name: Current supplier price
+              type: line
+              color: "#42a5f5"
+              stroke_width: 2
+              float_precision: 2
+              show:
+                in_header: true
+              group_by:
+                duration: 15min
+                func: avg
+            - entity: sensor.electricity_pro_effective_price
+              name: Effective price
+              type: line
+              color: "#66bb6a"
+              stroke_width: 3
+              float_precision: 2
+              show:
+                in_header: true
+              group_by:
+                duration: 15min
+                func: avg
+
+      - type: custom:mushroom-title-card
+        title: This month
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_energy_this_month
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_energy_this_month
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_energy_this_month
+              name: Energy this month
+              icon: mdi:calendar-month
+              icon_color: blue
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_total_cost_estimate_this_month
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_total_cost_estimate_this_month
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_total_cost_estimate_this_month
+              name: Total cost estimate this month
+              icon: mdi:calendar-month-outline
+              icon_color: green
+              layout: vertical
+
+      - type: markdown
+        content: >-
+          {% set total = 'sensor.electricity_pro_total_cost_estimate_this_month' %}
+          {% set supplier = 'sensor.electricity_pro_cost_this_month' %}
+          {% set variable = state_attr(total, 'variable_cost') %}
+          {% set fixed = state_attr(total, 'accrued_fixed_fees') %}
+          {% set breakdown = state_attr(total, 'variable_cost_breakdown') %}
+          {% set display = breakdown.vat_display if breakdown is mapping and breakdown.vat_display is mapping
+          else breakdown.display if breakdown is mapping else none %}
+          {% set estimate = state_attr(total, 'monthly_cost_display') %}
+          {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
+          {% set currency = state_attr(total, 'unit_of_measurement') %}
+          {% set missing = state_attr(total, 'missing_components') or [] %}
+          {% if has_value(total) and is_number(variable) and is_number(fixed) and currency %}
+          **Variable cost** {{ estimate.lines.variable if estimate is mapping else
+          display.total if display is mapping else '%.2f' | format(variable | float) }}
+          {{ currency }} ·
+          {% if fixed_breakdown is mapping %}
+          **Fixed supplier fee so far**
+          {% if is_number(fixed_breakdown.supplier) %}{{ estimate.lines.supplier if estimate is mapping else
+          '%.2f' | format(fixed_breakdown.supplier | float) }}
+          {{ currency }}{% else %}Not available{% endif %} ·
+          **Fixed grid fee so far**
+          {% if is_number(fixed_breakdown.grid) %}{{ estimate.lines.grid if estimate is mapping else
+          '%.2f' | format(fixed_breakdown.grid | float) }}
+          {{ currency }}{% else %}Not available{% endif %}.
+          {% set missing = missing | reject('in', ['fixed_supplier_fee', 'fixed_grid_fee']) | list %}
+          {% elif 'fixed_supplier_fee' in missing and 'fixed_grid_fee' in missing %}
+          **Fixed fees so far** Not available.
+          {% else %}
+          **Known fixed fees so far** {{ '%.2f' | format(fixed | float) }} {{ currency }}.
+          {% endif %}
+          {% if estimate is mapping and 'rounding_adjustment' in estimate.lines %}
+          {{ '\n\n' }}
+          **Total estimate rounding** {{ estimate.lines.rounding_adjustment }} {{ currency }} ·
+          **Total estimate** {{ estimate.total }} {{ currency }}.
+          {% endif %}
+          {% if display is mapping %}
+          {% set variable_cost_labels = {
+            'market_energy': 'Spot energy',
+            'supplier_markup': 'Supplier markup',
+            'supplier_price': 'Combined supplier price',
+            'bundled_price': 'Combined variable price',
+            'energy_tax': 'Energy tax',
+            'variable_grid_fee': 'Variable grid fee',
+            'unallocated_cost': 'Earlier unsplit cost',
+            'vat': 'VAT on specified items',
+            'rounding_adjustment': 'Rounding'
+          } %}
+          {{ '\n' }}
+          {% for key, label in variable_cost_labels.items() %}
+          {% set net_key = key ~ '_excluding_vat' %}
+          {%- if net_key in display.lines %}
+          {{ '\n' }}- {{ label }} (excl. VAT) {{ display.lines[net_key] }} {{ currency }}
+          {%- endif %}
+          {%- if key in display.lines %}
+          {{ '\n' }}- {{ label }} {{ display.lines[key] }} {{ currency }}
+          {%- endif %}
+          {%- endfor %}
+          {{ '\n\n' }}
+          {% else %}
+          *Breakdown not yet available.*
+          {% endif %}
+          {% endif %}
+
+          {% set priced = state_attr(total, 'priced_energy_kwh') %}
+          {% if has_value(total) and is_number(priced) %}
+          **Partial estimate:** {{ priced | float(0) | round(2) }} kWh priced
+          {%- if display is mapping %}, of which {{ breakdown.priced_energy_kwh | float | round(2) }}
+          kWh with a breakdown{% endif %}.
+          {% elif state_attr(supplier, 'source') == 'local_estimate' %}
+          **Partial supplier estimate:** {{ state_attr(supplier, 'priced_energy_kwh') | float(0) | round(2) }} kWh priced.
+          {% endif %}
+
+          {% set coverage = state_attr('sensor.electricity_pro_energy_this_month', 'coverage') %}
+          {% if coverage == 'partial' %}
+          {% set started = as_datetime(state_attr('sensor.electricity_pro_energy_this_month', 'tracking_started_at'), none) %}
+          **Partial monthly energy**{% if started is not none %} since {{ as_local(started).strftime('%d %b, %H:%M') }}{% endif %}.
+          {% elif coverage == 'unverified' %}
+          **Unverified monthly energy — check total.**
+          {% endif %}
+
+          {% if missing %}**Missing:** {{ missing | join(', ') | replace('_', ' ') }}.{% endif %}
+          Demand/other unconfigured charges excluded.
+          [Cost & coverage details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/costs-and-pricing.md)
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cost_this_month
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cost_this_month
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_cost_this_month
+              name: Supplier cost this month
+              icon: mdi:calendar-month-outline
+              icon_color: green
+              layout: vertical
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_monthly_variable_cost_history
+            state_not: unavailable
+          - condition: state
+            entity: sensor.electricity_pro_monthly_variable_cost_history
+            state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:apexcharts-card
+              graph_span: 365d
+              span:
+                end: month
+              stacked: true
+              header:
+                show: true
+                title: Variable cost by month
+              all_series_config:
+                type: column
+                float_precision: 2
+                show:
+                  legend_value: false
+              apex_config:
+                xaxis:
+                  tooltip:
+                    enabled: false
+                tooltip:
+                  shared: true
+                  intersect: false
+                  hideEmptySeries: false
+                  custom: |
+                    EVAL:function({ series, dataPointIndex, w }) {
+                      const tooltip = document.createElement("div");
+                      const timestamp = w.globals.seriesX[0]?.[dataPointIndex];
+                      if (timestamp == null) return tooltip;
+                      const title = document.createElement("div");
+                      title.className = "apexcharts-tooltip-title";
+                      const month = new Date(timestamp).toISOString().slice(0, 7);
+                      title.textContent = month;
+                      tooltip.append(title);
+                      const componentKeys = [
+                        "market_energy", "supplier_markup", "supplier_price",
+                        "bundled_price", "energy_tax", "variable_grid_fee",
+                      ];
+                      const history = document.querySelector("home-assistant")?.hass?.states
+                        ?.["sensor.electricity_pro_monthly_variable_cost_history"];
+                      const row = history?.attributes.months?.find(item => item.month === month);
+                      const values = series.map(amounts => amounts[dataPointIndex]);
+                      // The chart may still show older data or have a series hidden.
+                      const matches = row?.display && values.length === componentKeys.length
+                        && values.every((value, index) => {
+                          const raw = row.components[componentKeys[index]];
+                          return raw == null ? value == null : Number(raw) === value;
+                        });
+                      const append = (label, value, seriesIndex, sign = "") => {
+                        const line = document.createElement("div");
+                        line.style.padding = "2px 8px";
+                        const amount = w.config.tooltip.y.formatter(value, { seriesIndex, dataPointIndex, w });
+                        line.textContent = label + ": " + sign + String(amount).replace(/<\/?strong>/g, "");
+                        tooltip.append(line);
+                      };
+                      values.forEach((value, index) => {
+                        if (value == null) return;
+                        const amount = matches ? Number(row.display.lines[componentKeys[index]]) : value;
+                        append(w.config.series[index].name, amount, index);
+                      });
+                      const adjustment = matches && row.display.lines.rounding_adjustment;
+                      if (adjustment) {
+                        append("Rounding", Number(adjustment), values.findIndex(value => value != null),
+                          adjustment.startsWith("+") ? "+" : "");
+                      }
+                      return tooltip;
+                    }
+              series:
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Spot energy
+                  color: "#42a5f5"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.market_energy == null ? null : Number(components.market_energy),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Supplier markup
+                  color: "#26a69a"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.supplier_markup == null ? null : Number(components.supplier_markup),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Combined supplier price
+                  color: "#7e57c2"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.supplier_price == null ? null : Number(components.supplier_price),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Combined variable price
+                  color: "#78909c"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.bundled_price == null ? null : Number(components.bundled_price),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Energy tax
+                  color: "#ef5350"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.energy_tax == null ? null : Number(components.energy_tax),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Variable grid fee
+                  color: "#ffb300"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.variable_grid_fee == null ? null : Number(components.variable_grid_fee),
+                    ]);
+            - type: markdown
+              content: |
+                {% set history = 'sensor.electricity_pro_monthly_variable_cost_history' %}
+                {% set months = state_attr(history, 'months') or [] %}
+                {% set currency = state_attr(history, 'unit_of_measurement') %}
+                | Month | Coverage | Priced kWh | Total ({{ currency }}) |
+                | --- | --- | ---: | ---: |
+                {% for row in months if row.coverage != 'missing' -%}
+                | {{ row.month }} | {% if row.coverage == 'ongoing' %}To date{% elif row.coverage == 'complete'
+                %}Full month{% else %}Partial coverage{% endif %}
+                {{- ' | ' -}} {{ '%.2f' | format(row.priced_kwh | float) }}
+                {{- ' | ' -}} {{ row.display.total if row.display is mapping else
+                '%.2f' | format(row.total | float) }} |
+                {% endfor %}
+
+                Months without priced intervals appear as gaps.
+
+  - title: "Electrical Details"
+    path: details
+    icon: mdi:transmission-tower
+    cards:
+      - type: custom:mushroom-title-card
+        title: "Phase measurements"
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l1
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l1
+                state_not: unknown
+            card:
+              type: gauge
+              entity: sensor.electricity_pro_current_l1
+              name: Current L1
+              min: 0
+              max: 20
+              needle: true
+              severity:
+                green: 0
+                yellow: 14
+                red: 18
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l2
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l2
+                state_not: unknown
+            card:
+              type: gauge
+              entity: sensor.electricity_pro_current_l2
+              name: Current L2
+              min: 0
+              max: 20
+              needle: true
+              severity:
+                green: 0
+                yellow: 14
+                red: 18
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l3
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l3
+                state_not: unknown
+            card:
+              type: gauge
+              entity: sensor.electricity_pro_current_l3
+              name: Current L3
+              min: 0
+              max: 20
+              needle: true
+              severity:
+                green: 0
+                yellow: 14
+                red: 18
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l1
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l1
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_voltage_l1
+              name: Voltage L1
+              layout: vertical
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l2
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l2
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_voltage_l2
+              name: Voltage L2
+              layout: vertical
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l3
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l3
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_voltage_l3
+              name: Voltage L3
+              layout: vertical
+
+      - type: custom:mushroom-title-card
+        title: "Average and peak power"
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_average_power_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_average_power_today
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_average_power_today
+              name: Average power today
+              icon: mdi:chart-areaspline
+              icon_color: blue
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_today
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_peak_power_today
+              name: Peak power today
+              icon: mdi:flash-outline
+              icon_color: amber
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_time_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_time_today
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_peak_power_time_today
+              name: Peak power time today
+              icon: mdi:clock-outline
+              icon_color: amber
+              layout: vertical
+
+      - type: custom:mushroom-title-card
+        title: "Monthly peak hour"
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_consumption
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_consumption
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_monthly_peak_hour_consumption
+              name: Monthly peak-hour consumption
+              icon: mdi:chart-bell-curve
+              icon_color: amber
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_time
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_time
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_monthly_peak_hour_time
+              name: Monthly peak-hour time
+              icon: mdi:clock-outline
+              icon_color: amber
+              layout: vertical
+
+      # Hide absent/unknown entities, but retain zero and unavailable readings.
+
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_production_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_production_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_production_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Production
+
+                AC generation, excluding battery discharge.
+                {% if states('sensor.electricity_pro_production_today') != 'unknown'
+                   or states('sensor.electricity_pro_production_this_month') != 'unknown' %}
+                **Partial energy totals:** observed increments only, not complete
+                day/month totals.
+                {% endif %}
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_power
+                name: Production power
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_today
+                name: Today (partial)
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_this_month
+                name: This month (partial)
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+      # Hide absent/unknown entities, but retain zero and unavailable readings.
+
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Grid export
+
+                Energy delivered to the grid; its source may include a battery.
+                {% if states('sensor.electricity_pro_grid_export_today') != 'unknown'
+                   or states('sensor.electricity_pro_grid_export_this_month') != 'unknown' %}
+                **Partial energy totals:** observed increments only, not complete
+                day/month totals.
+                {% endif %}
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_power
+                name: Grid export power
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_today
+                name: Today (partial)
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_this_month
+                name: This month (partial)
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
+      # Measured load is independent of grid import and storage topology.
+
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_household_demand_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_household_energy_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_household_energy_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Household demand
+
+                Measured non-storage load, including EV charging but excluding
+                battery charging. Not grid import or a cost estimate.
+                {% if states('sensor.electricity_pro_household_energy_today') != 'unknown'
+                   or states('sensor.electricity_pro_household_energy_this_month') != 'unknown' %}
+                **Partial energy totals:** observed increments only, not complete
+                day/month totals.
+                {% endif %}
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_demand_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_demand_power
+                name: Household demand power
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_today
+                name: Today (partial)
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_this_month
+                name: This month (partial)
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+      - type: custom:mushroom-title-card
+        title: Power
+        subtitle: Recorded grid power — last 24 hours
+
+      - type: custom:apexcharts-card
+        graph_span: 24h
+        header:
+          show: true
+          title: Grid power
+          show_states: true
+          colorize_states: true
+        yaxis:
+          - min: 0
+            decimals: 0
+        series:
+          - entity: sensor.electricity_pro_current_power
+            name: Current power
+            type: line
+            color: "#ffb300"
+            stroke_width: 1
+            float_precision: 0
+            show:
+              in_header: true
+            group_by:
+              duration: 5min
+              func: avg
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_current_power
+            state_not: unavailable
+          - condition: state
+            entity: sensor.electricity_pro_current_power
+            state_not: unknown
+        card:
+          type: custom:apexcharts-card
+          graph_span: 6h
+          header:
+            show: true
+            title: Power detail — last 6 hours
+            show_states: true
+            colorize_states: true
+          yaxis:
+            - min: 0
+              decimals: 0
+          series:
+            - entity: sensor.electricity_pro_current_power
+              name: Current power
+              type: line
+              curve: straight
+              color: "#ffb300"
+              stroke_width: 1
+              float_precision: 0
+              show:
+                in_header: true
