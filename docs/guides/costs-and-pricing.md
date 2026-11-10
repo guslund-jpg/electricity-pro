@@ -123,8 +123,30 @@ Missing fixed fees are listed in the sensor's missing_components attribute and
 dashboard notes; they are not silently confirmed as zero. Explicit zero means
 no such fee. Changing a configured monthly fee recalculates its accrued portion.
 
-Demand charges and other unconfigured charges are excluded and explicitly listed.
-These totals are estimates of configured charges, not a complete bill guarantee.
+The totals remain partial estimates of the configured charges.
+
+### Billed demand charges
+
+In Electricity Pro's **Configure** menu, select **Billed demand charge**
+(**Fakturerad effektavgift** in Swedish). The entry uses the configured import
+energy source as the meter point. Enter the first and last dates printed on
+the grid bill, the amount including VAT, and its currency code. Enter zero
+when the bill specifies zero. Use the same dates to replace the amount, or
+select **Remove** to delete the charge for those dates.
+
+Choose how the existing cost estimate covers that exact charge. For the
+current calendar month and the same currency, Electricity Pro adds the charge
+when the underlying costs exclude it. If you confirm that the full billed
+amount already belongs to that month's estimate, the breakdown shows the
+charge and the remainder as separate amounts with the same total. For example,
+SEK 1,000 in other costs and a billed SEK 150 make SEK 1,150 in either case.
+
+The latest saved charge for the meter source is shown with its dates when
+the estimate cannot include it. This covers an earlier bill, a period across
+month boundaries, a different currency, a change to the cost settings or
+unknown overlap. A late November bill stays with its November dates in
+December. Recheck the overlap setting if you change the prices or fees.
+The variable-cost chart and its archive cover priced energy intervals.
 
 ### Breakdown and installation
 

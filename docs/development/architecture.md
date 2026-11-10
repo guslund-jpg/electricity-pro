@@ -241,9 +241,10 @@ state comparisons.
 - Current Cost Rate uses import power and Effective Price. Export makes it
   unavailable because export compensation is not implemented.
 - Supplier costs and household estimates are distinct. Household totals price
-  observed import energy locally and add accrued fixed supplier/grid fees;
-  they do not add an external supplier total again. They remain partial
-  estimates, not bills or demand-charge calculations.
+  observed import energy locally and add accrued fixed supplier/grid fees.
+  A manually entered billed demand charge can contribute to the monthly
+  total when the meter, period, currency and confirmed cost scope match.
+  The bill record is separate from the variable-cost ledger and archive.
 
 See [pricing ADR](../adr/0005-pricing-and-tariff-strategies.md),
 [signed values ADR](../adr/0010-signed-power-and-negative-values.md),

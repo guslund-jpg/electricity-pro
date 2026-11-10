@@ -71,6 +71,7 @@ async def start_options(hass, profile="custom", **data):
         "market_prices",
         "supplier",
         "grid",
+        *(["billed_demand_charge"] if data.get("energy_entity") else []),
         "energy_flows",
         "insights",
         "overview",

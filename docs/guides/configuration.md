@@ -374,9 +374,10 @@ a separate component. It is intentionally not added to **Total supplier cost
 this month**, because that sensor covers the electricity supplier only.
 The separate **Total cost estimate today/this month** sensors combine locally
 observed effective variable costs with fixed supplier and grid fees accrued
-since the start of the day/month. These are partial estimates, not complete
-bills. They exclude demand charges and other unconfigured charges; energy and
-cost coverage may differ. See [household cost estimates](costs-and-pricing.md#household-cost-estimates).
+since the start of the day/month. The monthly estimate can also include a
+[manually entered billed demand charge](costs-and-pricing.md#billed-demand-charges)
+for the matching period. Energy and cost coverage may differ. See
+[household cost estimates](costs-and-pricing.md#household-cost-estimates).
 
 Depending on the enabled capabilities, configuration may therefore include:
 

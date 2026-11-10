@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Enter a billed demand charge from a grid invoice and see it in the monthly
+  cost breakdown in English and Swedish Standard and Enhanced dashboards. (#165)
+
 ### Changed
 
 - Show VAT separately in the monthly household breakdown when Electricity Pro
