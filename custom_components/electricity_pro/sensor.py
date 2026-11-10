@@ -39,6 +39,7 @@ from .calculations import (
 )
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
+    CONF_BILLED_DEMAND_CHARGES,
     CONF_CURRENT_L1_ENTITY,
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
@@ -60,6 +61,7 @@ from .cost_display import CURRENCY_QUANTUM, cost_display
 from .device import device_info_for_entry
 from .forecast import DailyAverageMarketPriceResult, ForecastInterval
 from .forecast_insights import ForecastWindowInsight
+from .household_cost import DemandChargeCoverage
 from .monthly_cost_archive import MonthlyVariableCost, monthly_cost_chart_rows
 from .pricing import PricingMetadata, VariableCostComponent
 from .data import ElectricityProData
@@ -248,7 +250,23 @@ def _household_cost_attributes(
             )
             if amount is not None
         }
+        charge = results.billed_demand_charge
         if (
+            total is not None
+            and variable is not None
+            and charge is not None
+            and results.billed_demand_charge_in_estimate
+        ):
+            attributes["excluded_charges"] = ["other_unconfigured_charges"]
+            amounts = (
+                {"other": total - charge.amount}
+                if charge.coverage is DemandChargeCoverage.INCLUDED
+                else {"variable": variable, **fees}
+            )
+            attributes["monthly_cost_display"] = cost_display(
+                total, {**amounts, "demand_charge": charge.amount}
+            )
+        elif (
             total is not None
             and variable is not None
             and total == variable + sum(fees.values(), Decimal(0))
@@ -257,6 +275,20 @@ def _household_cost_attributes(
                 total, {"variable": variable, **fees}
             )
     return attributes
+
+
+def _billed_demand_charge_attributes(
+    data: ElectricityProData,
+) -> dict[str, object] | None:
+    """Expose the bill's own dates and decimal amount even without an estimate."""
+    charge = data.results.billed_demand_charge
+    if charge is None:
+        return None
+    return {
+        "period_start": charge.period_start.isoformat(),
+        "period_end": charge.period_end.isoformat(),
+        "amount": f"{charge.amount:.2f}" if charge.amount else "0.00",
+    }
 
 
 def _monthly_variable_cost_attributes(
@@ -617,6 +649,27 @@ SENSOR_DESCRIPTIONS: tuple[
             and data.results.household_cost_unit is not None
         ),
         required_config_keys=(CONF_ENERGY_ENTITY, CONF_PRICE_ENTITY),
+    ),
+    ElectricityProSensorEntityDescription(
+        key="billed_demand_charge",
+        name="Billed demand charge",
+        translation_key="billed_demand_charge",
+        icon="mdi:receipt-text-outline",
+        device_class=SensorDeviceClass.MONETARY,
+        suggested_display_precision=2,
+        value_fn=lambda data: (
+            charge.amount
+            if (charge := data.results.billed_demand_charge) is not None
+            else None
+        ),
+        unit_fn=lambda data: (
+            charge.currency
+            if (charge := data.results.billed_demand_charge) is not None
+            else None
+        ),
+        attributes_fn=_billed_demand_charge_attributes,
+        available_fn=lambda data: data.results.billed_demand_charge is not None,
+        required_config_key=CONF_BILLED_DEMAND_CHARGES,
     ),
     ElectricityProSensorEntityDescription(
         key="cost_today",

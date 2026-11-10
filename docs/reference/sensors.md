@@ -102,7 +102,8 @@ clear and broadly useful.
 | Daily | Consumption-weighted average price today | `consumption_weighted_average_price_today` | Calculated | Currency/kWh | None | Measurement | Available |
 | Monthly | Cost this month | `cost_this_month` | Calculated | Currency | Monetary | Total | Available |
 | Daily | Total cost estimate today | `total_cost_today` | Local effective variable cost plus accrued fixed fees | Currency | Monetary | Total | Price/coverage dependent |
-| Monthly | Total cost estimate this month | `total_cost_this_month` | Local effective variable cost plus accrued fixed fees | Currency | Monetary | Total | Price/coverage dependent |
+| Monthly | Total cost estimate this month | `total_cost_this_month` | Local effective variable cost, accrued fixed fees and any applicable billed demand charge | Currency | Monetary | Total | Price/coverage dependent |
+| Billing period | Billed demand charge | `billed_demand_charge` | Latest entered VAT-inclusive charge for the configured meter source | Bill currency | Monetary | None | Saved bill dependent |
 | Daily | Remaining cost today | `remaining_cost_today` | Calculated | Currency | None | Measurement | Available |
 | Daily | Peak power today | `peak_power_today` | Calculated | W | Power | Measurement | Available |
 | Daily | Peak power time today | `peak_power_time_today` | Calculated | Timestamp | Timestamp | None | Available |

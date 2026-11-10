@@ -1,5 +1,12 @@
 {
   "selector": {
+    "demand_charge_coverage": {
+      "options": {
+        "excluded": "Avgiften ingår inte i underlaget",
+        "included": "Hela fakturabeloppet ingår redan för samma period",
+        "unknown": "Okänt"
+      }
+    },
     "pricing_strategy": {
       "options": {
         "supplier_contracted_price": "Elhandelspris från leverantören",
@@ -422,6 +429,8 @@
       }
     },
     "error": {
+      "invalid_billed_demand_charge": "Ange giltiga datum, ett belopp med högst två decimaler och en valutakod med tre bokstäver.",
+      "overlapping_billing_period": "Perioden överlappar en sparad avgift för den här mätkällan. Rätta den med samma datum eller ta först bort den gamla posten.",
       "pricing_metadata_required": "Ange priskällans typ, ingående delar och moms. Spotpris måste ingå.",
       "electricity_pro_source": "Välj en extern källa. Electricity Pros egna givare kan inte användas som indata.",
       "invalid_supplier_amount": "Ange ett giltigt belopp som är noll eller större. Moms måste vara mellan 0 och 100 procent.",
@@ -544,6 +553,18 @@
           "energy_source_type": "Energimätarens period"
         }
       },
+      "billed_demand_charge": {
+        "title": "Fakturerad effektavgift",
+        "description": "Använd avgiften för mätkällan {meter}. Ange fakturaperiodens första och sista dag, samt beloppet inklusive moms från nätfakturan. Spara samma datum för att rätta beloppet eller markera Ta bort för att radera posten. Välj Okänt om du är osäker på vad som ingår i månadsestimatet.",
+        "data": {
+          "period_start": "Första dagen i fakturaperioden",
+          "period_end": "Sista dagen i fakturaperioden",
+          "amount": "Fakturerat belopp inklusive moms",
+          "currency": "Valuta, till exempel SEK",
+          "coverage": "Hur ingår avgiften i det befintliga månadsestimatet?",
+          "remove": "Ta bort sparad avgift för dessa datum"
+        }
+      },
       "menu": {
         "title": "Konfigurera Electricity Pro",
         "description": "Välj den del av konfigurationen som du vill ändra.",
@@ -554,6 +575,7 @@
           "grid": "Elnät",
           "energy_flows": "Produktion och export",
           "insights": "Användarpreferenser för el",
+          "billed_demand_charge": "Fakturerad effektavgift",
           "overview": "Översikt"
         }
       },
@@ -800,6 +822,7 @@
       "monthly_peak_hour_consumption": { "name": "Energiförbrukning under månadens topptimme" },
       "monthly_peak_hour_time": { "name": "Tid för månadens topptimme" },
       "total_cost_today": { "name": "Uppskattad total kostnad i dag" },
+      "billed_demand_charge": { "name": "Fakturerad effektavgift" },
       "total_cost_this_month": { "name": "Uppskattad total kostnad den här månaden" },
       "monthly_variable_cost_history": { "name": "Historik för rörlig månadskostnad" },
       "variable_cost_market_energy_this_month": { "name": "Spotkostnad den här månaden" },

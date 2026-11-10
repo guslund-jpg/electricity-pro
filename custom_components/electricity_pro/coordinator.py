@@ -61,25 +61,19 @@ from .flow_compatibility import (
     PowerInput,
     check_power_compatibility,
 )
-from .household_cost import accrued_fixed_fees
+from .household_cost import (
+    TARIFF_SCOPE_CONFIG_KEYS,
+    BilledDemandCharge,
+    DemandChargeCoverage,
+    accrued_fixed_fees,
+    billed_demand_charges,
+    demand_charge_basis,
+)
 from .const import (
-    CONF_ENERGY_TAX_PER_KWH,
+    CONF_BILLED_DEMAND_CHARGES,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
-    CONF_GRID_FEE_HIGH_END,
-    CONF_GRID_FEE_HIGH_PER_KWH,
-    CONF_GRID_FEE_HIGH_SEASON_END,
-    CONF_GRID_FEE_HIGH_SEASON_START,
-    CONF_GRID_FEE_HIGH_START,
-    CONF_GRID_FEE_PER_KWH,
     CONF_GRID_FEE_WORKDAY_ENTITY,
-    CONF_PRICE_COMPLETENESS,
-    CONF_PRICE_ENTITY,
-    CONF_PRICE_INCLUDED_COMPONENTS,
-    CONF_PRICE_VAT_TREATMENT,
-    CONF_PRICE_VAT_RATE,
-    CONF_PRICING_STRATEGY,
-    CONF_SUPPLIER_MARKUP_PER_KWH,
     DOMAIN,
 )
 from .forecast import (
@@ -172,6 +166,8 @@ class _DataUpdates(TypedDict, total=False):
     household_fixed_month: Decimal
     household_fixed_supplier_month: Decimal | None
     household_fixed_grid_month: Decimal | None
+    billed_demand_charge: BilledDemandCharge | None
+    billed_demand_charge_in_estimate: bool
     household_priced_energy_today: Decimal
     household_priced_energy_month: Decimal
     household_missing_fees: tuple[str, ...]
@@ -237,23 +233,6 @@ _HOLIDAY_LOOKAHEAD_DAYS = 32
 _TIMING_TICK_INTERVAL = timedelta(minutes=5)
 _TIMING_POWER_MAX_HOLD = timedelta(minutes=10)
 _STATISTICS_SAVE_DELAY = 60
-_ADAPTIVE_SCOPE_CONFIG_KEYS = (
-    CONF_PRICE_ENTITY,
-    CONF_PRICING_STRATEGY,
-    CONF_PRICE_INCLUDED_COMPONENTS,
-    CONF_PRICE_VAT_TREATMENT,
-    CONF_PRICE_VAT_RATE,
-    CONF_PRICE_COMPLETENESS,
-    CONF_SUPPLIER_MARKUP_PER_KWH,
-    CONF_ENERGY_TAX_PER_KWH,
-    CONF_GRID_FEE_PER_KWH,
-    CONF_GRID_FEE_HIGH_PER_KWH,
-    CONF_GRID_FEE_HIGH_START,
-    CONF_GRID_FEE_HIGH_END,
-    CONF_GRID_FEE_HIGH_SEASON_START,
-    CONF_GRID_FEE_HIGH_SEASON_END,
-    CONF_GRID_FEE_WORKDAY_ENTITY,
-)
 
 
 class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
@@ -283,6 +262,19 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._provider = ElectricityProEntityProvider(
             hass=hass,
             entry=entry,
+        )
+        settings = resolve_settings(entry.data, entry.options)
+        self._billed_demand_charges = tuple(
+            charge
+            for charge in billed_demand_charges(
+                settings.get(CONF_BILLED_DEMAND_CHARGES)
+            )
+            if charge.meter == self._provider.energy_entity_id
+        )
+        self._demand_charge_basis = (
+            demand_charge_basis(settings, str(self._local_timezone))
+            if self._billed_demand_charges
+            else ""
         )
         self._energy_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._monthly_energy_started: str | None = None
@@ -881,7 +873,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             "settings": {
                 key: value
                 for key, value in settings.items()
-                if key in _ADAPTIVE_SCOPE_CONFIG_KEYS
+                if key in TARIFF_SCOPE_CONFIG_KEYS
                 or key
                 in (
                     "energy_entity",
@@ -1211,14 +1203,37 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             ledger.monthly_energy > 0
             or (effective is not None and source_energy_kwh is not None)
         )
+        today = now.date()
+        charge = max(
+            (
+                charge
+                for charge in self._billed_demand_charges
+                if charge.period_start <= today
+            ),
+            key=lambda charge: (charge.period_end, charge.period_start),
+            default=None,
+        )
+        month_total = (
+            ledger.monthly_effective + fixed_fees.month if known_month else None
+        )
+        charge_in_estimate = (
+            known_month
+            and charge is not None
+            and charge.matches_estimate(today, ledger.unit, self._demand_charge_basis)
+        )
+        if (
+            month_total is not None
+            and charge_in_estimate
+            and charge is not None
+            and charge.coverage is DemandChargeCoverage.EXCLUDED
+        ):
+            month_total += charge.amount
         updates.update(
             _DataUpdates(
                 household_cost_today=ledger.daily_effective + fixed_fees.today
                 if known_day
                 else None,
-                household_cost_this_month=ledger.monthly_effective + fixed_fees.month
-                if known_month
-                else None,
+                household_cost_this_month=month_total,
                 household_cost_unit=ledger.unit,
                 household_variable_today=ledger.daily_effective,
                 household_variable_month=ledger.monthly_effective,
@@ -1227,6 +1242,8 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 household_fixed_month=fixed_fees.month,
                 household_fixed_supplier_month=fixed_fees.supplier_month,
                 household_fixed_grid_month=fixed_fees.grid_month,
+                billed_demand_charge=charge,
+                billed_demand_charge_in_estimate=charge_in_estimate,
                 household_priced_energy_today=ledger.daily_energy,
                 household_priced_energy_month=ledger.monthly_energy,
                 household_missing_fees=(
@@ -1773,7 +1790,7 @@ def _adaptive_tariff_signature(entry: ConfigEntry) -> str:
     """Return a stable fingerprint for price-affecting configuration."""
     settings = resolve_settings(entry.data, entry.options)
     relevant_settings = {
-        key: settings[key] for key in _ADAPTIVE_SCOPE_CONFIG_KEYS if key in settings
+        key: settings[key] for key in TARIFF_SCOPE_CONFIG_KEYS if key in settings
     }
     serialized = json.dumps(
         relevant_settings,
