@@ -100,16 +100,15 @@ name was already in use.
 
 ## Standard dashboard
 
-`electricity-pro.yaml` contains four views:
+The English and Swedish Standard examples use three views:
 
-- **Overview** — the most important live values and today's key figures
-- **Live** — current power, spot, supplier, and Effective Price, plus recent
-  history
-- **Statistics** — today's energy, cost, average and peak power, peak time, the
-  previous day's Consumption Timing Score, and this month's energy, cost, and
-  peak-hour information
-- **Forecast** — cheapest upcoming 1h, 2h and 3h windows, their average
-  Effective Prices, next inexpensive hour, and near-term price direction
+- **Overview / Översikt** — current power, Effective Price, current cost rate,
+  Good Time and today's energy and cost figures.
+- **Prices and Trends / Priser och trender** — upcoming low-price windows,
+  recent price history, yesterday's Consumption Timing Score and this month's
+  energy and cost breakdown.
+- **Electrical Details / Eldetaljer** — power history, average and peak power,
+  monthly peak hour, phase measurements and optional energy flows.
 
 The Overview translates the Good Time binary state into actionable wording:
 **Good time to use electricity** or **Wait for a better price**. Its tile shows
@@ -122,8 +121,8 @@ on the entities configured in your Home Assistant installation.
 
 ### Set the live gauge scales
 
-The built-in gauges use fixed example settings in Standard (Overview and Live)
-and Enhanced (Overview). Use the units shown by your sensors.
+The built-in gauges in Overview use fixed example settings in Standard and
+Enhanced. Use the units shown by your sensors.
 
 | Gauge | Unit | Example range | Yellow from | Red from |
 | ----- | ---- | ------------- | ----------- | -------- |
@@ -147,8 +146,7 @@ and Enhanced (Overview). Use the units shown by your sensors.
 
 Edit the card in Home Assistant or change `min`, `max`, and `severity` in the
 dashboard YAML. Set `severity.green` to `min` and put yellow and red in
-ascending order below `max`. In Standard, apply the same settings in both
-Overview and Live. These are display settings. The card still shows the sensor's
+ascending order below `max`. These are display settings. The card still shows the sensor's
 numeric value when it falls outside the selected scale.
 
 Lower `min` below zero if you want the needle to cover export on Current Power
@@ -159,14 +157,13 @@ Rate is unavailable because it uses the import price. See
 
 Ändra `min`, `max` och `severity` i kortet eller i dashboardens
 YAML. Välj en egen röd gräns (`severity.red`) för **Kostnad per timme just nu** i
-din valuta per timme. Lägg gulgränsen under den och skalans max över den. Använd
-samma värden i Översikt och Live i Standard.
+din valuta per timme. Lägg gulgränsen under den och skalans max över den.
 
 ## Requirements
 
 ### Optional production, export and household demand (experimental)
 
-Both Overview views include independent Production, Grid export and Household demand groups
+Electrical Details includes independent Production, Grid export and Household demand groups
 using built-in cards. They show configured power and partial daily/monthly
 energy sensors; power-only and energy-only configurations are supported.
 Energy tiles explicitly say **partial** and link to
@@ -202,20 +199,19 @@ the integration.
 
 ## Card requirements
 
-The example uses only built-in Home Assistant heading, grid, tile, conditional,
-and history graph cards. No HACS frontend cards are required.
+The example uses built-in Home Assistant cards, including headings, gauges,
+tiles, conditional cards and history graphs. No HACS frontend cards are required.
 
 ## Enhanced dashboard
 
-`electricity-pro-enhanced.yaml` contains four views:
+The English and Swedish Enhanced examples use the same three views:
 
-- **Overview** — insight, live values, and daily and monthly statistics
-- **Trends** — recorded power history plus spot, supplier, and effective-price
-  comparison
-- **Details** — optional three-phase current and voltage measurements plus a
-  six-hour raw power-detail chart
-- **Forecast** — a forward spot-price chart and Mushroom presentation of the
-  scheduling insights
+- **Overview / Översikt** — live gauges, Good Time and today's key figures.
+- **Prices and Trends / Priser och trender** — the spot-price forecast and
+  scheduling insights, recent price comparison, and the monthly cost breakdown
+  with an optional stacked chart.
+- **Electrical Details / Eldetaljer** — 24-hour power history and six-hour raw
+  power detail, average and peak readings, phase measurements and optional flows.
 
 ![Illustrative Electricity Pro enhanced dashboard](electricity-pro-enhanced-preview.svg)
 
@@ -229,7 +225,7 @@ enhanced YAML:
 2. [ApexCharts Card](https://github.com/RomRider/apexcharts-card) — recorded
    power and price charts and the monthly variable cost chart (`custom:apexcharts-card`).
 
-**Trends** includes an optional stacked variable cost chart with priced kWh and
+**Prices and Trends** includes an optional stacked variable cost chart with priced kWh and
 coverage for the last twelve local calendar months. It appears after the
 integration archives its first priced interval. To remove it, delete the
 conditional block for `sensor.electricity_pro_monthly_variable_cost_history`.
@@ -246,8 +242,8 @@ until both dependencies are installed and their frontend resources are loaded.
    **ApexCharts Card**, then refresh the browser when prompted.
 3. Create a new manual dashboard and open its raw configuration editor.
 4. Replace its contents with `electricity-pro-enhanced.yaml` and save.
-5. Exit edit mode and verify the **Overview**, **Trends**, and **Details**
-   views.
+5. Exit edit mode and verify **Overview**, **Prices and Trends** and
+   **Electrical Details**.
 
 The enhanced example displays recorded Electricity Pro entity history and the
 forecast insights calculated by the integration. It does not create forecasts,
@@ -255,7 +251,7 @@ modify prices, or contain provider-specific calculations. Optional cards are
 wrapped in built-in conditional cards and are hidden when their entities are
 `unknown` or `unavailable`.
 
-When a Nord Pool forecast source is configured, the Trends price chart adds the
+When a Nord Pool forecast source is configured, the price comparison chart adds the
 raw spot price alongside the contracted supplier price and Electricity Pro's
 effective price. These lines deliberately represent different scopes: spot
 price is the underlying exchange price, supplier price includes VAT and supplier
@@ -266,7 +262,7 @@ copied dashboard to use this entity instead of `sensor.electricity_pro_current_p
 If the input includes inseparable grid charges or lacks VAT/markup information,
 the supplier sensor is unavailable instead of showing the source as supplier price.
 
-The Forecast view plots every spot-price interval retained by Electricity Pro
+The forecast chart plots every spot-price interval retained by Electricity Pro
 from the start of today through tomorrow, with a red **Now** marker. Before Nord
 Pool publishes tomorrow's prices, normally around 13:00 local market time, the
 unpublished part of the chart remains blank. The 50-hour display span also
@@ -293,16 +289,16 @@ exercise browser rendering. Further horizon/update checks are tracked in
 Its Overview view uses the same built-in gauges and
 [editable scales](#set-the-live-gauge-scales) as the standard dashboard.
 
-The Details view presents Current L1, L2, and L3 as comparable gauges. The
+Electrical Details presents Current L1, L2, and L3 as comparable gauges. The
 example assumes a 20 A main fuse: green below 14 A, yellow from 14 A, and red
 from 18 A. All three gauges deliberately use the same scale so phase imbalance
 is easy to see. Change each gauge's `max` and `severity` values together if the
 installation has a different main-fuse rating.
 
-Below the voltage readings, the six-hour Power Detail chart retains the
+The six-hour Power Detail chart retains the
 individual recorded power readings instead of averaging them into five-minute
 groups. Use it to inspect whether a high reading is a brief transient or a
-sustained load. The 24-hour Trends chart remains five-minute averaged for a
+sustained load. The 24-hour power chart uses five-minute averages for a
 clearer overview, so short peaks can appear lower or be hidden there.
 
 ## Customization

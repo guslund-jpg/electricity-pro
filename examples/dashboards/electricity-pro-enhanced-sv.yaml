@@ -196,805 +196,9 @@ views:
               icon_color: green
               layout: vertical
 
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_today
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_peak_power_today
-              name: "Högsta effekt i dag"
-              icon: mdi:flash-outline
-              icon_color: amber
-              layout: vertical
-
-      - type: custom:mushroom-title-card
-        title: "Den här månaden"
-
-      - type: grid
-        columns: 2
-        square: false
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_energy_this_month
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_energy_this_month
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_energy_this_month
-              name: "Energi den här månaden"
-              icon: mdi:calendar-month
-              icon_color: blue
-              layout: vertical
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_total_cost_estimate_this_month
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_total_cost_estimate_this_month
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_total_cost_estimate_this_month
-              name: "Total kostnad (ca)"
-              icon: mdi:calendar-month-outline
-              icon_color: green
-              layout: vertical
-
-      - type: markdown
-        content: >-
-          {% set total = 'sensor.electricity_pro_total_cost_estimate_this_month' %}
-          {% set supplier = 'sensor.electricity_pro_cost_this_month' %}
-          {% set variable = state_attr(total, 'variable_cost') %}
-          {% set fixed = state_attr(total, 'accrued_fixed_fees') %}
-          {% set breakdown = state_attr(total, 'variable_cost_breakdown') %}
-          {% set display = breakdown.vat_display if breakdown is mapping and breakdown.vat_display is mapping
-          else breakdown.display if breakdown is mapping else none %}
-          {% set estimate = state_attr(total, 'monthly_cost_display') %}
-          {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
-          {% set currency = state_attr(total, 'unit_of_measurement') %}
-          {% set missing = state_attr(total, 'missing_components') or [] %}
-          {% if has_value(total) and is_number(variable) and is_number(fixed) and currency %}
-          **Rörlig kostnad** {{ (estimate.lines.variable if estimate is mapping else
-          display.total if display is mapping else '%.2f' | format(variable | float))
-          | replace('.', ',') }} {{ currency }} ·
-          {% if fixed_breakdown is mapping %}
-          **Fast elhandelsavgift hittills**
-          {% if is_number(fixed_breakdown.supplier) %}{{ estimate.lines.supplier if estimate is mapping else
-          '%.2f' | format(fixed_breakdown.supplier | float)
-          | replace('.', ',') }} {{ currency }}{% else %}Uppgift saknas{% endif %} ·
-          **Fast elnätsavgift hittills**
-          {% if is_number(fixed_breakdown.grid) %}{{ estimate.lines.grid if estimate is mapping else
-          '%.2f' | format(fixed_breakdown.grid | float)
-          | replace('.', ',') }} {{ currency }}{% else %}Uppgift saknas{% endif %}.
-          {% set missing = missing | reject('in', ['fixed_supplier_fee', 'fixed_grid_fee']) | list %}
-          {% elif 'fixed_supplier_fee' in missing and 'fixed_grid_fee' in missing %}
-          **Fasta avgifter hittills** Uppgift saknas.
-          {% else %}
-          **Kända fasta avgifter hittills** {{ '%.2f' | format(fixed | float) | replace('.', ',') }} {{ currency }}.
-          {% endif %}
-          {% if estimate is mapping and 'rounding_adjustment' in estimate.lines %}
-          {{ '\n\n' }}
-          **Avrundning av totalestimatet** {{ estimate.lines.rounding_adjustment | replace('.', ',') }} {{ currency }} ·
-          **Totalestimat** {{ estimate.total | replace('.', ',') }} {{ currency }}.
-          {% endif %}
-          {% if display is mapping %}
-          {% set variable_cost_labels = {
-            'market_energy': 'Spotpris',
-            'supplier_markup': 'Elhandelspåslag',
-            'supplier_price': 'Samlat elhandelspris',
-            'bundled_price': 'Samlat rörligt pris',
-            'energy_tax': 'Energiskatt',
-            'variable_grid_fee': 'Rörlig elnätsavgift',
-            'unallocated_cost': 'Äldre ospecificerad kostnad',
-            'vat': 'Moms på specificerade poster',
-            'rounding_adjustment': 'Avrundning'
-          } %}
-          {{ '\n' }}
-          {% for key, label in variable_cost_labels.items() %}
-          {% set net_key = key ~ '_excluding_vat' %}
-          {%- if net_key in display.lines %}
-          {{ '\n' }}- {{ label }} (exkl. moms) {{ display.lines[net_key] | replace('.', ',') }} {{ currency }}
-          {%- endif %}
-          {%- if key in display.lines %}
-          {{ '\n' }}- {{ label }} {{ display.lines[key] | replace('.', ',') }} {{ currency }}
-          {%- endif %}
-          {%- endfor %}
-          {{ '\n\n' }}
-          {% else %}
-          *Uppdelning saknas ännu.*
-          {% endif %}
-          {% endif %}
-
-          {% set priced = state_attr(total, 'priced_energy_kwh') %}
-          {% if has_value(total) and is_number(priced) %}
-          **Delvis beräknad kostnad:** {{ priced | float(0) | round(2) }} kWh prissatta
-          {%- if display is mapping %}, varav {{ breakdown.priced_energy_kwh | float | round(2) }}
-          kWh med uppdelning{% endif %}.
-          {% elif state_attr(supplier, 'source') == 'local_estimate' %}
-          **Delvis beräknad elhandelskostnad:** {{ state_attr(supplier, 'priced_energy_kwh') | float(0) | round(2) }}
-          kWh prissatta.
-          {% endif %}
-
-          {% set coverage = state_attr('sensor.electricity_pro_energy_this_month', 'coverage') %}
-          {% if coverage == 'partial' %}
-          {% set started = as_datetime(state_attr('sensor.electricity_pro_energy_this_month', 'tracking_started_at'),
-          none) %}
-          **Delvis uppmätt månadsenergi**{% if started is not none %}  sedan {{ as_local(started).strftime('%Y-%m-%d
-          %H:%M') }}{% endif %}.
-          {% elif coverage == 'unverified' %}
-          **Ej verifierad månadsenergi – kontrollera totalen.**
-          {% endif %}
-
-          {% if missing %}**Saknas:** {{ missing | join(', ')
-          | replace('fixed_supplier_fee', 'fast elhandelsavgift')
-          | replace('fixed_grid_fee', 'fast elnätsavgift')
-          | replace('complete_variable_price', 'komplett rörligt elpris')
-          | replace('_', ' ') }}.{% endif %}
-          Effektavgifter och andra ej konfigurerade avgifter ingår inte.
-          [Om kostnader och mätningens
-          täckning](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/costs-and-pricing.md)
-
-      - type: grid
-        columns: 2
-        square: false
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_cost_this_month
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_cost_this_month
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_cost_this_month
-              name: "Elhandelskostnad den här månaden"
-              icon: mdi:calendar-month-outline
-              icon_color: green
-              layout: vertical
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_consumption
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_consumption
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_monthly_peak_hour_consumption
-              name: "Energiförbrukning under månadens topptimme"
-              icon: mdi:chart-bell-curve
-              icon_color: amber
-              layout: vertical
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_time
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_time
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_monthly_peak_hour_time
-              name: "Tid för månadens topptimme"
-              icon: mdi:clock-outline
-              icon_color: amber
-              layout: vertical
-
-      # Dölj saknade/okända entiteter, men visa nollvärden och otillgängliga givare.
-      - type: conditional
-        conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_production_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_production_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_production_this_month
-                state_not: unknown
-        card:
-          type: vertical-stack
-          cards:
-            - type: markdown
-              content: >-
-                ### Produktion
-
-                Produktion på AC-sidan, exklusive batteriurladdning.
-                {% if states('sensor.electricity_pro_production_today') != 'unknown'
-                   or states('sensor.electricity_pro_production_this_month') != 'unknown' %}
-                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
-                {% endif %}
-                [Om mätning av
-                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_power
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_power
-                name: "Produktionseffekt"
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_today
-                name: "I dag (delvis uppmätt)"
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_this_month
-                name: "Den här månaden (delvis uppmätt)"
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-      # Dölj saknade/okända entiteter, men visa nollvärden och otillgängliga givare.
-      - type: conditional
-        conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_this_month
-                state_not: unknown
-        card:
-          type: vertical-stack
-          cards:
-            - type: markdown
-              content: >-
-                ### Export till elnätet
-
-                Energi som levereras till elnätet. Även energi från ett batteri kan ingå.
-                {% if states('sensor.electricity_pro_grid_export_today') != 'unknown'
-                   or states('sensor.electricity_pro_grid_export_this_month') != 'unknown' %}
-                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
-                {% endif %}
-                [Om mätning av
-                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_power
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_power
-                name: "Effekt ut till elnätet"
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_today
-                name: "I dag (delvis uppmätt)"
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_this_month
-                name: "Den här månaden (delvis uppmätt)"
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-      # Uppmätt förbrukning är oberoende av elnätsimport och lagringens utformning.
-      - type: conditional
-        conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_household_demand_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_household_energy_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_household_energy_this_month
-                state_not: unknown
-        card:
-          type: vertical-stack
-          cards:
-            - type: markdown
-              content: >-
-                ### Hushållets energibehov
-
-                Uppmätt förbrukning inklusive elbilsladdning, men exklusive batteriladdning. Detta är hushållets
-                energibehov, inte elnätsimport eller en kostnadsuppskattning.
-                {% if states('sensor.electricity_pro_household_energy_today') != 'unknown'
-                   or states('sensor.electricity_pro_household_energy_this_month') != 'unknown' %}
-                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
-                {% endif %}
-                [Om mätning av
-                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_demand_power
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_demand_power
-                name: "Hushållets effektbehov"
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_energy_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_energy_today
-                name: "I dag (delvis uppmätt)"
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_energy_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_energy_this_month
-                name: "Den här månaden (delvis uppmätt)"
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-  - title: "Trender"
+  - title: "Priser och trender"
     path: trends
     icon: mdi:chart-areaspline
-    cards:
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: sensor.electricity_pro_monthly_variable_cost_history
-            state_not: unavailable
-          - condition: state
-            entity: sensor.electricity_pro_monthly_variable_cost_history
-            state_not: unknown
-        card:
-          type: vertical-stack
-          cards:
-            - type: custom:apexcharts-card
-              graph_span: 365d
-              span:
-                end: month
-              stacked: true
-              header:
-                show: true
-                title: Rörlig kostnad per månad
-              all_series_config:
-                type: column
-                float_precision: 2
-                show:
-                  legend_value: false
-              apex_config:
-                xaxis:
-                  tooltip:
-                    enabled: false
-                tooltip:
-                  shared: true
-                  intersect: false
-                  hideEmptySeries: false
-                  custom: |
-                    EVAL:function({ series, dataPointIndex, w }) {
-                      const tooltip = document.createElement("div");
-                      const timestamp = w.globals.seriesX[0]?.[dataPointIndex];
-                      if (timestamp == null) return tooltip;
-                      const title = document.createElement("div");
-                      title.className = "apexcharts-tooltip-title";
-                      const month = new Date(timestamp).toISOString().slice(0, 7);
-                      title.textContent = month;
-                      tooltip.append(title);
-                      const componentKeys = [
-                        "market_energy", "supplier_markup", "supplier_price",
-                        "bundled_price", "energy_tax", "variable_grid_fee",
-                      ];
-                      const history = document.querySelector("home-assistant")?.hass?.states
-                        ?.["sensor.electricity_pro_monthly_variable_cost_history"];
-                      const row = history?.attributes.months?.find(item => item.month === month);
-                      const values = series.map(amounts => amounts[dataPointIndex]);
-                      // The chart may still show older data or have a series hidden.
-                      const matches = row?.display && values.length === componentKeys.length
-                        && values.every((value, index) => {
-                          const raw = row.components[componentKeys[index]];
-                          return raw == null ? value == null : Number(raw) === value;
-                        });
-                      const append = (label, value, seriesIndex, sign = "") => {
-                        const line = document.createElement("div");
-                        line.style.padding = "2px 8px";
-                        const amount = w.config.tooltip.y.formatter(value, { seriesIndex, dataPointIndex, w });
-                        line.textContent = label + ": " + sign + String(amount).replace(/<\/?strong>/g, "");
-                        tooltip.append(line);
-                      };
-                      values.forEach((value, index) => {
-                        if (value == null) return;
-                        const amount = matches ? Number(row.display.lines[componentKeys[index]]) : value;
-                        append(w.config.series[index].name, amount, index);
-                      });
-                      const adjustment = matches && row.display.lines.rounding_adjustment;
-                      if (adjustment) {
-                        append("Avrundning", Number(adjustment), values.findIndex(value => value != null),
-                          adjustment.startsWith("+") ? "+" : "");
-                      }
-                      return tooltip;
-                    }
-              series:
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Spotpris
-                  color: "#42a5f5"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.market_energy == null ? null : Number(components.market_energy),
-                    ]);
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Elhandelspåslag
-                  color: "#26a69a"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.supplier_markup == null ? null : Number(components.supplier_markup),
-                    ]);
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Samlat elhandelspris
-                  color: "#7e57c2"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.supplier_price == null ? null : Number(components.supplier_price),
-                    ]);
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Samlat rörligt pris
-                  color: "#78909c"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.bundled_price == null ? null : Number(components.bundled_price),
-                    ]);
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Energiskatt
-                  color: "#ef5350"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.energy_tax == null ? null : Number(components.energy_tax),
-                    ]);
-                - entity: sensor.electricity_pro_monthly_variable_cost_history
-                  name: Rörlig elnätsavgift
-                  color: "#ffb300"
-                  data_generator: |
-                    return (entity.attributes.months ?? []).map(({ month, components }) => [
-                      Date.parse(month + "-15T12:00:00Z"),
-                      components.variable_grid_fee == null ? null : Number(components.variable_grid_fee),
-                    ]);
-            - type: markdown
-              content: |
-                {% set history = 'sensor.electricity_pro_monthly_variable_cost_history' %}
-                {% set months = state_attr(history, 'months') or [] %}
-                {% set currency = state_attr(history, 'unit_of_measurement') %}
-                | Månad | Täckning | Prissatta kWh | Totalt ({{ currency }}) |
-                | --- | --- | ---: | ---: |
-                {% for row in months if row.coverage != 'missing' -%}
-                | {{ row.month }} | {% if row.coverage == 'ongoing' %}Hittills{% elif row.coverage == 'complete'
-                %}Hel månad{% else %}Delvis täckt{% endif %}
-                {{- ' | ' -}} {{ '%.2f' | format(row.priced_kwh | float) | replace('.', ',') }}
-                {{- ' | ' -}} {{ (row.display.total if row.display is mapping else
-                '%.2f' | format(row.total | float)) | replace('.', ',') }} |
-                {% endfor %}
-
-                Månader utan prissatta intervall visas som luckor.
-
-      - type: custom:mushroom-title-card
-        title: "Effekt"
-        subtitle: "Uppmätt effekt vid elnätet – senaste 24 timmarna"
-
-      - type: custom:apexcharts-card
-        graph_span: 24h
-        header:
-          show: true
-          title: "Effekt vid elnätet"
-          show_states: true
-          colorize_states: true
-        yaxis:
-          - min: 0
-            decimals: 0
-        series:
-          - entity: sensor.electricity_pro_current_power
-            name: "Aktuell effekt"
-            type: line
-            color: "#ffb300"
-            stroke_width: 1
-            float_precision: 0
-            show:
-              in_header: true
-            group_by:
-              duration: 5min
-              func: avg
-
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: sensor.electricity_pro_effective_price
-            state_not: unavailable
-          - condition: state
-            entity: sensor.electricity_pro_effective_price
-            state_not: unknown
-        card:
-          type: custom:apexcharts-card
-          graph_span: 24h
-          header:
-            show: true
-            title: "Spotpris, elhandelspris och effektivt elpris"
-            show_states: true
-            colorize_states: true
-          yaxis:
-            - min: "~0"
-              decimals: 2
-          series:
-            - entity: sensor.electricity_pro_current_market_price
-              name: "Aktuellt spotpris"
-              type: line
-              curve: stepline
-              color: "#b0bec5"
-              stroke_width: 2
-              float_precision: 2
-              show:
-                in_header: false
-              group_by:
-                duration: 15min
-                func: avg
-            - entity: sensor.electricity_pro_current_supplier_price
-              name: "Aktuellt elhandelspris"
-              type: line
-              color: "#42a5f5"
-              stroke_width: 2
-              float_precision: 2
-              show:
-                in_header: true
-              group_by:
-                duration: 15min
-                func: avg
-            - entity: sensor.electricity_pro_effective_price
-              name: "Effektivt elpris"
-              type: line
-              color: "#66bb6a"
-              stroke_width: 3
-              float_precision: 2
-              show:
-                in_header: true
-              group_by:
-                duration: 15min
-                func: avg
-
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: sensor.electricity_pro_consumption_weighted_average_price_today
-            state_not: unavailable
-          - condition: state
-            entity: sensor.electricity_pro_consumption_weighted_average_price_today
-            state_not: unknown
-        card:
-          type: custom:mushroom-entity-card
-          entity: sensor.electricity_pro_consumption_weighted_average_price_today
-          name: "Effektivt snittpris"
-          icon: mdi:chart-line
-          icon_color: green
-
-  - title: "Detaljer"
-    path: details
-    icon: mdi:transmission-tower
-    cards:
-      - type: custom:mushroom-title-card
-        title: "Elektriska mätvärden"
-        subtitle: "Valfria mätvärden per fas"
-
-      - type: grid
-        columns: 3
-        square: false
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_current_l1
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_current_l1
-                state_not: unknown
-            card:
-              type: gauge
-              entity: sensor.electricity_pro_current_l1
-              name: "Ström L1"
-              min: 0
-              max: 20
-              needle: true
-              severity:
-                green: 0
-                yellow: 14
-                red: 18
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_current_l2
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_current_l2
-                state_not: unknown
-            card:
-              type: gauge
-              entity: sensor.electricity_pro_current_l2
-              name: "Ström L2"
-              min: 0
-              max: 20
-              needle: true
-              severity:
-                green: 0
-                yellow: 14
-                red: 18
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_current_l3
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_current_l3
-                state_not: unknown
-            card:
-              type: gauge
-              entity: sensor.electricity_pro_current_l3
-              name: "Ström L3"
-              min: 0
-              max: 20
-              needle: true
-              severity:
-                green: 0
-                yellow: 14
-                red: 18
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l1
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l1
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_voltage_l1
-              name: "Spänning L1"
-              layout: vertical
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l2
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l2
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_voltage_l2
-              name: "Spänning L2"
-              layout: vertical
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l3
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_voltage_l3
-                state_not: unknown
-            card:
-              type: custom:mushroom-entity-card
-              entity: sensor.electricity_pro_voltage_l3
-              name: "Spänning L3"
-              layout: vertical
-
-      - type: conditional
-        conditions:
-          - condition: state
-            entity: sensor.electricity_pro_current_power
-            state_not: unavailable
-          - condition: state
-            entity: sensor.electricity_pro_current_power
-            state_not: unknown
-        card:
-          type: custom:apexcharts-card
-          graph_span: 6h
-          header:
-            show: true
-            title: "Effekt i detalj – senaste 6 timmarna"
-            show_states: true
-            colorize_states: true
-          yaxis:
-            - min: 0
-              decimals: 0
-          series:
-            - entity: sensor.electricity_pro_current_power
-              name: "Aktuell effekt"
-              type: line
-              curve: straight
-              color: "#ffb300"
-              stroke_width: 1
-              float_precision: 0
-              show:
-                in_header: true
-
-  - title: "Prognos"
-    path: forecast
-    icon: mdi:calendar-clock
     cards:
       - type: custom:mushroom-title-card
         title: "Kommande prisperioder"
@@ -1190,3 +394,828 @@ views:
               icon: mdi:trending-up
               icon_color: amber
               layout: vertical
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_effective_price
+            state_not: unavailable
+          - condition: state
+            entity: sensor.electricity_pro_effective_price
+            state_not: unknown
+        card:
+          type: custom:apexcharts-card
+          graph_span: 24h
+          header:
+            show: true
+            title: "Spotpris, elhandelspris och effektivt elpris"
+            show_states: true
+            colorize_states: true
+          yaxis:
+            - min: "~0"
+              decimals: 2
+          series:
+            - entity: sensor.electricity_pro_current_market_price
+              name: "Aktuellt spotpris"
+              type: line
+              curve: stepline
+              color: "#b0bec5"
+              stroke_width: 2
+              float_precision: 2
+              show:
+                in_header: false
+              group_by:
+                duration: 15min
+                func: avg
+            - entity: sensor.electricity_pro_current_supplier_price
+              name: "Aktuellt elhandelspris"
+              type: line
+              color: "#42a5f5"
+              stroke_width: 2
+              float_precision: 2
+              show:
+                in_header: true
+              group_by:
+                duration: 15min
+                func: avg
+            - entity: sensor.electricity_pro_effective_price
+              name: "Effektivt elpris"
+              type: line
+              color: "#66bb6a"
+              stroke_width: 3
+              float_precision: 2
+              show:
+                in_header: true
+              group_by:
+                duration: 15min
+                func: avg
+
+      - type: custom:mushroom-title-card
+        title: "Den här månaden"
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_energy_this_month
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_energy_this_month
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_energy_this_month
+              name: "Energi den här månaden"
+              icon: mdi:calendar-month
+              icon_color: blue
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_total_cost_estimate_this_month
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_total_cost_estimate_this_month
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_total_cost_estimate_this_month
+              name: "Total kostnad (ca)"
+              icon: mdi:calendar-month-outline
+              icon_color: green
+              layout: vertical
+
+      - type: markdown
+        content: >-
+          {% set total = 'sensor.electricity_pro_total_cost_estimate_this_month' %}
+          {% set supplier = 'sensor.electricity_pro_cost_this_month' %}
+          {% set variable = state_attr(total, 'variable_cost') %}
+          {% set fixed = state_attr(total, 'accrued_fixed_fees') %}
+          {% set breakdown = state_attr(total, 'variable_cost_breakdown') %}
+          {% set display = breakdown.vat_display if breakdown is mapping and breakdown.vat_display is mapping
+          else breakdown.display if breakdown is mapping else none %}
+          {% set estimate = state_attr(total, 'monthly_cost_display') %}
+          {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
+          {% set currency = state_attr(total, 'unit_of_measurement') %}
+          {% set missing = state_attr(total, 'missing_components') or [] %}
+          {% if has_value(total) and is_number(variable) and is_number(fixed) and currency %}
+          **Rörlig kostnad** {{ (estimate.lines.variable if estimate is mapping else
+          display.total if display is mapping else '%.2f' | format(variable | float))
+          | replace('.', ',') }} {{ currency }} ·
+          {% if fixed_breakdown is mapping %}
+          **Fast elhandelsavgift hittills**
+          {% if is_number(fixed_breakdown.supplier) %}{{ estimate.lines.supplier if estimate is mapping else
+          '%.2f' | format(fixed_breakdown.supplier | float)
+          | replace('.', ',') }} {{ currency }}{% else %}Uppgift saknas{% endif %} ·
+          **Fast elnätsavgift hittills**
+          {% if is_number(fixed_breakdown.grid) %}{{ estimate.lines.grid if estimate is mapping else
+          '%.2f' | format(fixed_breakdown.grid | float)
+          | replace('.', ',') }} {{ currency }}{% else %}Uppgift saknas{% endif %}.
+          {% set missing = missing | reject('in', ['fixed_supplier_fee', 'fixed_grid_fee']) | list %}
+          {% elif 'fixed_supplier_fee' in missing and 'fixed_grid_fee' in missing %}
+          **Fasta avgifter hittills** Uppgift saknas.
+          {% else %}
+          **Kända fasta avgifter hittills** {{ '%.2f' | format(fixed | float) | replace('.', ',') }} {{ currency }}.
+          {% endif %}
+          {% if estimate is mapping and 'rounding_adjustment' in estimate.lines %}
+          {{ '\n\n' }}
+          **Avrundning av totalestimatet** {{ estimate.lines.rounding_adjustment | replace('.', ',') }} {{ currency }} ·
+          **Totalestimat** {{ estimate.total | replace('.', ',') }} {{ currency }}.
+          {% endif %}
+          {% if display is mapping %}
+          {% set variable_cost_labels = {
+            'market_energy': 'Spotpris',
+            'supplier_markup': 'Elhandelspåslag',
+            'supplier_price': 'Samlat elhandelspris',
+            'bundled_price': 'Samlat rörligt pris',
+            'energy_tax': 'Energiskatt',
+            'variable_grid_fee': 'Rörlig elnätsavgift',
+            'unallocated_cost': 'Äldre ospecificerad kostnad',
+            'vat': 'Moms på specificerade poster',
+            'rounding_adjustment': 'Avrundning'
+          } %}
+          {{ '\n' }}
+          {% for key, label in variable_cost_labels.items() %}
+          {% set net_key = key ~ '_excluding_vat' %}
+          {%- if net_key in display.lines %}
+          {{ '\n' }}- {{ label }} (exkl. moms) {{ display.lines[net_key] | replace('.', ',') }} {{ currency }}
+          {%- endif %}
+          {%- if key in display.lines %}
+          {{ '\n' }}- {{ label }} {{ display.lines[key] | replace('.', ',') }} {{ currency }}
+          {%- endif %}
+          {%- endfor %}
+          {{ '\n\n' }}
+          {% else %}
+          *Uppdelning saknas ännu.*
+          {% endif %}
+          {% endif %}
+
+          {% set priced = state_attr(total, 'priced_energy_kwh') %}
+          {% if has_value(total) and is_number(priced) %}
+          **Delvis beräknad kostnad:** {{ priced | float(0) | round(2) }} kWh prissatta
+          {%- if display is mapping %}, varav {{ breakdown.priced_energy_kwh | float | round(2) }}
+          kWh med uppdelning{% endif %}.
+          {% elif state_attr(supplier, 'source') == 'local_estimate' %}
+          **Delvis beräknad elhandelskostnad:** {{ state_attr(supplier, 'priced_energy_kwh') | float(0) | round(2) }}
+          kWh prissatta.
+          {% endif %}
+
+          {% set coverage = state_attr('sensor.electricity_pro_energy_this_month', 'coverage') %}
+          {% if coverage == 'partial' %}
+          {% set started = as_datetime(state_attr('sensor.electricity_pro_energy_this_month', 'tracking_started_at'),
+          none) %}
+          **Delvis uppmätt månadsenergi**{% if started is not none %}  sedan {{ as_local(started).strftime('%Y-%m-%d
+          %H:%M') }}{% endif %}.
+          {% elif coverage == 'unverified' %}
+          **Ej verifierad månadsenergi – kontrollera totalen.**
+          {% endif %}
+
+          {% if missing %}**Saknas:** {{ missing | join(', ')
+          | replace('fixed_supplier_fee', 'fast elhandelsavgift')
+          | replace('fixed_grid_fee', 'fast elnätsavgift')
+          | replace('complete_variable_price', 'komplett rörligt elpris')
+          | replace('_', ' ') }}.{% endif %}
+          Effektavgifter och andra ej konfigurerade avgifter ingår inte.
+          [Om kostnader och mätningens
+          täckning](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/costs-and-pricing.md)
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_cost_this_month
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_cost_this_month
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_cost_this_month
+              name: "Elhandelskostnad den här månaden"
+              icon: mdi:calendar-month-outline
+              icon_color: green
+              layout: vertical
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_monthly_variable_cost_history
+            state_not: unavailable
+          - condition: state
+            entity: sensor.electricity_pro_monthly_variable_cost_history
+            state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:apexcharts-card
+              graph_span: 365d
+              span:
+                end: month
+              stacked: true
+              header:
+                show: true
+                title: Rörlig kostnad per månad
+              all_series_config:
+                type: column
+                float_precision: 2
+                show:
+                  legend_value: false
+              apex_config:
+                xaxis:
+                  tooltip:
+                    enabled: false
+                tooltip:
+                  shared: true
+                  intersect: false
+                  hideEmptySeries: false
+                  custom: |
+                    EVAL:function({ series, dataPointIndex, w }) {
+                      const tooltip = document.createElement("div");
+                      const timestamp = w.globals.seriesX[0]?.[dataPointIndex];
+                      if (timestamp == null) return tooltip;
+                      const title = document.createElement("div");
+                      title.className = "apexcharts-tooltip-title";
+                      const month = new Date(timestamp).toISOString().slice(0, 7);
+                      title.textContent = month;
+                      tooltip.append(title);
+                      const componentKeys = [
+                        "market_energy", "supplier_markup", "supplier_price",
+                        "bundled_price", "energy_tax", "variable_grid_fee",
+                      ];
+                      const history = document.querySelector("home-assistant")?.hass?.states
+                        ?.["sensor.electricity_pro_monthly_variable_cost_history"];
+                      const row = history?.attributes.months?.find(item => item.month === month);
+                      const values = series.map(amounts => amounts[dataPointIndex]);
+                      // The chart may still show older data or have a series hidden.
+                      const matches = row?.display && values.length === componentKeys.length
+                        && values.every((value, index) => {
+                          const raw = row.components[componentKeys[index]];
+                          return raw == null ? value == null : Number(raw) === value;
+                        });
+                      const append = (label, value, seriesIndex, sign = "") => {
+                        const line = document.createElement("div");
+                        line.style.padding = "2px 8px";
+                        const amount = w.config.tooltip.y.formatter(value, { seriesIndex, dataPointIndex, w });
+                        line.textContent = label + ": " + sign + String(amount).replace(/<\/?strong>/g, "");
+                        tooltip.append(line);
+                      };
+                      values.forEach((value, index) => {
+                        if (value == null) return;
+                        const amount = matches ? Number(row.display.lines[componentKeys[index]]) : value;
+                        append(w.config.series[index].name, amount, index);
+                      });
+                      const adjustment = matches && row.display.lines.rounding_adjustment;
+                      if (adjustment) {
+                        append("Avrundning", Number(adjustment), values.findIndex(value => value != null),
+                          adjustment.startsWith("+") ? "+" : "");
+                      }
+                      return tooltip;
+                    }
+              series:
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Spotpris
+                  color: "#42a5f5"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.market_energy == null ? null : Number(components.market_energy),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Elhandelspåslag
+                  color: "#26a69a"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.supplier_markup == null ? null : Number(components.supplier_markup),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Samlat elhandelspris
+                  color: "#7e57c2"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.supplier_price == null ? null : Number(components.supplier_price),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Samlat rörligt pris
+                  color: "#78909c"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.bundled_price == null ? null : Number(components.bundled_price),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Energiskatt
+                  color: "#ef5350"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.energy_tax == null ? null : Number(components.energy_tax),
+                    ]);
+                - entity: sensor.electricity_pro_monthly_variable_cost_history
+                  name: Rörlig elnätsavgift
+                  color: "#ffb300"
+                  data_generator: |
+                    return (entity.attributes.months ?? []).map(({ month, components }) => [
+                      Date.parse(month + "-15T12:00:00Z"),
+                      components.variable_grid_fee == null ? null : Number(components.variable_grid_fee),
+                    ]);
+            - type: markdown
+              content: |
+                {% set history = 'sensor.electricity_pro_monthly_variable_cost_history' %}
+                {% set months = state_attr(history, 'months') or [] %}
+                {% set currency = state_attr(history, 'unit_of_measurement') %}
+                | Månad | Täckning | Prissatta kWh | Totalt ({{ currency }}) |
+                | --- | --- | ---: | ---: |
+                {% for row in months if row.coverage != 'missing' -%}
+                | {{ row.month }} | {% if row.coverage == 'ongoing' %}Hittills{% elif row.coverage == 'complete'
+                %}Hel månad{% else %}Delvis täckt{% endif %}
+                {{- ' | ' -}} {{ '%.2f' | format(row.priced_kwh | float) | replace('.', ',') }}
+                {{- ' | ' -}} {{ (row.display.total if row.display is mapping else
+                '%.2f' | format(row.total | float)) | replace('.', ',') }} |
+                {% endfor %}
+
+                Månader utan prissatta intervall visas som luckor.
+
+  - title: "Eldetaljer"
+    path: details
+    icon: mdi:transmission-tower
+    cards:
+      - type: custom:mushroom-title-card
+        title: "Effekt"
+        subtitle: "Uppmätt effekt vid elnätet – senaste 24 timmarna"
+
+      - type: custom:apexcharts-card
+        graph_span: 24h
+        header:
+          show: true
+          title: "Effekt vid elnätet"
+          show_states: true
+          colorize_states: true
+        yaxis:
+          - min: 0
+            decimals: 0
+        series:
+          - entity: sensor.electricity_pro_current_power
+            name: "Aktuell effekt"
+            type: line
+            color: "#ffb300"
+            stroke_width: 1
+            float_precision: 0
+            show:
+              in_header: true
+            group_by:
+              duration: 5min
+              func: avg
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_current_power
+            state_not: unavailable
+          - condition: state
+            entity: sensor.electricity_pro_current_power
+            state_not: unknown
+        card:
+          type: custom:apexcharts-card
+          graph_span: 6h
+          header:
+            show: true
+            title: "Effekt i detalj – senaste 6 timmarna"
+            show_states: true
+            colorize_states: true
+          yaxis:
+            - min: 0
+              decimals: 0
+          series:
+            - entity: sensor.electricity_pro_current_power
+              name: "Aktuell effekt"
+              type: line
+              curve: straight
+              color: "#ffb300"
+              stroke_width: 1
+              float_precision: 0
+              show:
+                in_header: true
+
+      - type: custom:mushroom-title-card
+        title: "Medel- och toppeffekt"
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_average_power_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_average_power_today
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_average_power_today
+              name: "Genomsnittlig effekt i dag"
+              icon: mdi:chart-areaspline
+              icon_color: blue
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_today
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_peak_power_today
+              name: "Högsta effekt i dag"
+              icon: mdi:flash-outline
+              icon_color: amber
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_time_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_time_today
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_peak_power_time_today
+              name: "Tid för dagens högsta effekt"
+              icon: mdi:clock-outline
+              icon_color: amber
+              layout: vertical
+
+      - type: custom:mushroom-title-card
+        title: "Månadens topptimme"
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_consumption
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_consumption
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_monthly_peak_hour_consumption
+              name: "Energiförbrukning under månadens topptimme"
+              icon: mdi:chart-bell-curve
+              icon_color: amber
+              layout: vertical
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_time
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_time
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_monthly_peak_hour_time
+              name: "Tid för månadens topptimme"
+              icon: mdi:clock-outline
+              icon_color: amber
+              layout: vertical
+
+      # Dölj saknade/okända entiteter, men visa nollvärden och otillgängliga givare.
+
+      - type: custom:mushroom-title-card
+        title: "Fasmätningar"
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l1
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l1
+                state_not: unknown
+            card:
+              type: gauge
+              entity: sensor.electricity_pro_current_l1
+              name: "Ström L1"
+              min: 0
+              max: 20
+              needle: true
+              severity:
+                green: 0
+                yellow: 14
+                red: 18
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l2
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l2
+                state_not: unknown
+            card:
+              type: gauge
+              entity: sensor.electricity_pro_current_l2
+              name: "Ström L2"
+              min: 0
+              max: 20
+              needle: true
+              severity:
+                green: 0
+                yellow: 14
+                red: 18
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_current_l3
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_current_l3
+                state_not: unknown
+            card:
+              type: gauge
+              entity: sensor.electricity_pro_current_l3
+              name: "Ström L3"
+              min: 0
+              max: 20
+              needle: true
+              severity:
+                green: 0
+                yellow: 14
+                red: 18
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l1
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l1
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_voltage_l1
+              name: "Spänning L1"
+              layout: vertical
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l2
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l2
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_voltage_l2
+              name: "Spänning L2"
+              layout: vertical
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l3
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_voltage_l3
+                state_not: unknown
+            card:
+              type: custom:mushroom-entity-card
+              entity: sensor.electricity_pro_voltage_l3
+              name: "Spänning L3"
+              layout: vertical
+
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_production_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_production_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_production_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Produktion
+
+                Produktion på AC-sidan, exklusive batteriurladdning.
+                {% if states('sensor.electricity_pro_production_today') != 'unknown'
+                   or states('sensor.electricity_pro_production_this_month') != 'unknown' %}
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+                {% endif %}
+                [Om mätning av
+                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_power
+                name: "Produktionseffekt"
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_today
+                name: "I dag (delvis uppmätt)"
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_this_month
+                name: "Den här månaden (delvis uppmätt)"
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+      # Dölj saknade/okända entiteter, men visa nollvärden och otillgängliga givare.
+
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Export till elnätet
+
+                Energi som levereras till elnätet. Även energi från ett batteri kan ingå.
+                {% if states('sensor.electricity_pro_grid_export_today') != 'unknown'
+                   or states('sensor.electricity_pro_grid_export_this_month') != 'unknown' %}
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+                {% endif %}
+                [Om mätning av
+                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_power
+                name: "Effekt ut till elnätet"
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_today
+                name: "I dag (delvis uppmätt)"
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_this_month
+                name: "Den här månaden (delvis uppmätt)"
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
+      # Uppmätt förbrukning är oberoende av elnätsimport och lagringens utformning.
+
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_household_demand_power
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_household_energy_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_household_energy_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Hushållets energibehov
+
+                Uppmätt förbrukning inklusive elbilsladdning, men exklusive batteriladdning. Detta är hushållets
+                energibehov, inte elnätsimport eller en kostnadsuppskattning.
+                {% if states('sensor.electricity_pro_household_energy_today') != 'unknown'
+                   or states('sensor.electricity_pro_household_energy_this_month') != 'unknown' %}
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+                {% endif %}
+                [Om mätning av
+                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_demand_power
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_demand_power
+                name: "Hushållets effektbehov"
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_today
+                name: "I dag (delvis uppmätt)"
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_this_month
+                name: "Den här månaden (delvis uppmätt)"
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info

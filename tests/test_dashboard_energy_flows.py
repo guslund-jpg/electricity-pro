@@ -62,12 +62,12 @@ def groups(request, language_suffix):
             DASHBOARDS / request.param.replace(".yaml", f"{language_suffix}.yaml")
         ).read_text()
     )
-    overview = next(view for view in dashboard["views"] if view["path"] == "overview")
+    details = next(view for view in dashboard["views"] if view["path"] == "details")
     result = {}
     for channel in CHANNELS:
         groups = [
             card
-            for card in overview["cards"]
+            for card in details["cards"]
             if card.get("type") == "conditional"
             and card.get("card", {}).get("type") == "vertical-stack"
             and entity_id(channel, "power") in str(card["conditions"])
