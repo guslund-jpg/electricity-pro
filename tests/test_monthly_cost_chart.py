@@ -25,13 +25,21 @@ DASHBOARDS = Path(__file__).parents[1] / "examples" / "dashboards"
 def chart_rows():
     archive = MonthlyVariableCostArchive()
     for (start_month, start_day, end_month, end_day), kwh, amounts in (
-        ((8, 1, 9, 1), 40, {VariableCostComponent.BUNDLED_PRICE: "14"}),
+        (
+            (8, 1, 9, 1),
+            40,
+            {
+                VariableCostComponent.BUNDLED_PRICE: "14.004",
+                VariableCostComponent.ENERGY_TAX: "0.004",
+            },
+        ),
         (
             (9, 15, 9, 30),
             20,
             {
-                VariableCostComponent.MARKET_ENERGY: "-3",
+                VariableCostComponent.MARKET_ENERGY: "-3.005",
                 VariableCostComponent.SUPPLIER_MARKUP: "0",
+                VariableCostComponent.ENERGY_TAX: "0.006",
             },
         ),
         ((11, 1, 11, 2), 3, {VariableCostComponent.SUPPLIER_PRICE: "7"}),
@@ -92,12 +100,13 @@ async def test_monthly_chart_coverage_labels(hass, chart_cards, chart_rows):
         20,
         3,
     ]
+    assert Decimal(rows[1].split("|")[4].strip().replace(",", ".")) == Decimal("-3.00")
 
 
 def test_monthly_chart_series_keep_zero_negative_and_missing_distinct(
     chart_cards, chart_rows
 ):
-    _, chart, _ = chart_cards
+    language, chart, _ = chart_cards
     assert chart["stacked"] and chart["all_series_config"]["type"] == "column"
     assert chart["apex_config"]["xaxis"]["tooltip"]["enabled"] is False
     assert chart["apex_config"]["tooltip"]["hideEmptySeries"] is False
@@ -119,14 +128,22 @@ def test_monthly_chart_series_keep_zero_negative_and_missing_distinct(
 const { series, months, tooltip } = JSON.parse(require('node:fs').readFileSync(0, 'utf8'));
 const entity = { attributes: { months } };
 const points = series.map(item => new Function('entity', item.data_generator)(entity));
-const document = { createElement: () => ({children: [], style: {}, append(child) { this.children.push(child); }}) };
+const document = {
+  querySelector: () => ({ hass: { states: { [series[0].entity]: entity } } }),
+  createElement: () => ({children: [], style: {}, append(child) { this.children.push(child); }}),
+};
 const w = {
   globals: { seriesX: points.map(item => item.map(([timestamp]) => timestamp)) },
   config: { series, tooltip: { y: { formatter: value => `<strong>${value} SEK</strong>` } } },
 };
 const render = new Function('document', `return (${tooltip})`)(document);
-const info = render({series: points.map(item => item.map(([, value]) => value)), dataPointIndex: 9, w});
-process.stdout.write(JSON.stringify({points, info: info.children.map(child => child.textContent)}));
+const plotted = points.map(item => item.map(([, value]) => value));
+const lines = (index, values = plotted) =>
+  render({series: values, dataPointIndex: index, w}).children.map(child => child.textContent);
+const info = lines(9);
+const filtered = lines(9, plotted.map((values, index) => index === 4 ? [] : values));
+delete months[9].display;
+process.stdout.write(JSON.stringify({points, info, filtered, legacy: lines(9), august: lines(8), november: lines(11)}));
 """,
         ],
         input=json.dumps(payload),
@@ -137,17 +154,38 @@ process.stdout.write(JSON.stringify({points, info: info.children.map(child => ch
     )
     output = json.loads(result.stdout)
     points = output["points"]
+    rounding = "Rounding" if language == "en" else "Avrundning"
     assert output["info"] == [
         "2026-09",
         f"{chart['series'][0]['name']}: -3 SEK",
         f"{chart['series'][1]['name']}: 0 SEK",
+        f"{chart['series'][4]['name']}: 0.01 SEK",
+        f"{rounding}: -0.01 SEK",
+    ]
+    assert output["filtered"] == [
+        "2026-09",
+        f"{chart['series'][0]['name']}: -3.005 SEK",
+        f"{chart['series'][1]['name']}: 0 SEK",
+    ]
+    assert output["legacy"] == output["filtered"] + [
+        f"{chart['series'][4]['name']}: 0.006 SEK",
+    ]
+    assert output["august"] == [
+        "2026-08",
+        f"{chart['series'][3]['name']}: 14 SEK",
+        f"{chart['series'][4]['name']}: 0 SEK",
+        f"{rounding}: +0.01 SEK",
+    ]
+    assert output["november"] == [
+        "2026-11",
+        f"{chart['series'][2]['name']}: 7 SEK",
     ]
     assert [[value for _, value in series[-4:]] for series in points] == [
-        [None, -3, None, None],
+        [None, -3.005, None, None],
         [None, 0, None, None],
         [None, None, None, 7],
-        [14, None, None, None],
-        [None, None, None, None],
+        [14.004, None, None, None],
+        [0.004, 0.006, None, None],
         [None, None, None, None],
     ]
     expected_dates = [

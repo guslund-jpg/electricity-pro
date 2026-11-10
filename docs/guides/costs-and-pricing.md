@@ -160,6 +160,10 @@ The `display` amounts use two decimal places with ties rounded to the nearest
 even cent. If the rounded rows differ from the rounded variable total, a signed
 rounding line reconciles them. The original amounts remain available at full
 precision. The fixed fees still accrue separately from the variable cost.
+The monthly card adds a separate signed adjustment when the rounded variable
+subtotal and the known fixed fees add up to a different amount than the rounded
+household estimate. The card shows the reconciled estimate alongside that
+adjustment. A missing fee is still marked unavailable.
 
 Update the integration, verify pricing and fixed fees, and update the example
 dashboard YAML. Both examples place household estimates before supplier costs.
@@ -188,3 +192,7 @@ chart shows the month, priced kWh and net total. It marks the current month as
 to date and incomplete closed months as partial. A missing month has no column.
 The chart appears when the archive has an amount in the selected currency,
 including a known zero. The history sensor reports the latest archived total.
+The chart uses full-precision amounts for its columns. The tooltip and coverage
+table use the same two-decimal rounding as the monthly estimate. The tooltip
+adds a signed rounding line when all cost items are shown and their displayed
+amounts differ from the table total.
