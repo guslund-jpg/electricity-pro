@@ -32,6 +32,8 @@ from .const import (
     CONF_CURRENT_L2_ENTITY,
     CONF_CURRENT_L3_ENTITY,
     CONF_ENERGY_ENTITY,
+    CONF_HOURLY_IMPORT_ENTITY,
+    CONF_HOURLY_IMPORT_METER,
     CONF_ENERGY_SOURCE_TYPE,
     CONF_ENERGY_TAX_PER_KWH,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
@@ -1497,6 +1499,7 @@ class ElectricityProOptionsFlow(
         """Initialize the options flow."""
         self._pending_forecast_settings: dict[str, Any] | None = None
         self._supplier_open = False
+        self._hourly_import_meter: str | None = None
 
     def _measurement_defaults(self) -> dict[str, Any]:
         return resolve_settings(self.config_entry.data, self.config_entry.options)
@@ -1650,6 +1653,66 @@ class ElectricityProOptionsFlow(
             description_placeholders={"meter": meter},
         )
 
+    async def async_step_hourly_import(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Bind the hourly sensor to the confirmed meter for this entry."""
+        settings = self._settings_defaults()
+        meter = settings.get(CONF_ENERGY_ENTITY)
+        if not isinstance(meter, str) or not meter:
+            return await self.async_step_menu()
+
+        own = _own_source_entities(self.hass)
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            source = user_input.get(CONF_HOURLY_IMPORT_ENTITY)
+            if source and (
+                source == meter or source in own or not source.startswith("sensor.")
+            ):
+                errors[CONF_HOURLY_IMPORT_ENTITY] = "invalid_hourly_import_source"
+            elif source and meter != self._hourly_import_meter:
+                errors["base"] = "hourly_import_meter_changed"
+            elif source and not user_input.get("confirm_hourly_import_meter"):
+                errors["confirm_hourly_import_meter"] = "confirm_hourly_import_meter"
+            else:
+                return self.async_create_entry(
+                    title="",
+                    data={
+                        **self.config_entry.options,
+                        CONF_HOURLY_IMPORT_ENTITY: source,
+                        CONF_HOURLY_IMPORT_METER: meter if source else None,
+                    },
+                )
+
+        self._hourly_import_meter = meter
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_HOURLY_IMPORT_ENTITY): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor", exclude_entities=[*own, meter]
+                    )
+                ),
+                vol.Optional(
+                    "confirm_hourly_import_meter", default=False
+                ): selector.BooleanSelector(),
+            }
+        )
+        return self.async_show_form(
+            step_id="hourly_import",
+            data_schema=self.add_suggested_values_to_schema(
+                schema,
+                {
+                    CONF_HOURLY_IMPORT_ENTITY: (
+                        user_input.get(CONF_HOURLY_IMPORT_ENTITY)
+                        if user_input is not None
+                        else settings.get(CONF_HOURLY_IMPORT_ENTITY)
+                    )
+                },
+            ),
+            errors=errors,
+            description_placeholders={"meter": meter},
+        )
+
     def _production_defaults(self) -> dict[str, Any]:
         return self._settings_defaults()
 
@@ -1704,7 +1767,7 @@ class ElectricityProOptionsFlow(
                 "supplier",
                 "grid",
                 *(
-                    ["billed_demand_charge"]
+                    ["hourly_import", "billed_demand_charge"]
                     if self._settings_defaults().get(CONF_ENERGY_ENTITY)
                     else []
                 ),
