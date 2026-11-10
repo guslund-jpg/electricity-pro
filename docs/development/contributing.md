@@ -131,6 +131,40 @@ Full automated integration coverage on 2026.11 remains a separate gap; the
 maintainer's 2026.11 UI/runtime checks and the minimal stable-HA YAML workflow
 are different evidence. See the [v1.7.2 record](../releases/1.7.2.md).
 
+### Home Assistant 2025.9 compatibility investigation
+
+The minimum remains **Home Assistant Core 2026.9.0** and Python 3.14.
+Lowering it would add a Python runtime and older Core interfaces to maintain
+and verify at each release. The following findings are recorded for a future
+review of that tradeoff.
+
+- The same `import voluptuous` can use Voluptuous on Core 2025.9 and Probatio on
+  Core 2026.9. Home Assistant provides the alias on startup. A shared import
+  module can expose Probatio types to mypy while using that alias at runtime.
+  See the [Home Assistant validation-engine announcement](https://contributors.home-assistant.io/blog/2026/09/30/probatio-validation-engine/).
+- Python 3.13 needs parentheses around the exception types in 25 `except`
+  clauses in the reviewed source. This syntax change preserves behavior.
+  See [PEP 758](https://peps.python.org/pep-0758/).
+- The private storage write method used by `_StatisticsStore` receives
+  `path, data` on Core 2025.9 and `data` on Core 2026.9. A compatibility
+  change must keep Recorder publication tied to a successful checkpoint write.
+- Forecast window sensors need an ID suggestion understood by both Core
+  versions. The prototype used the entity's initial `entity_id` so dashboards
+  resolve the same IDs, while the entity registry keeps existing IDs.
+
+In a temporary copy of `490083a`, the prototype and test harness adaptations
+passed **2,094 tests per baseline** on Core **2025.9.0** (Python **3.13.18**,
+harness **0.13.277**) and Core **2026.9.0** (Python **3.14.6**,
+harness **0.13.363**). Coverage included Recorder, restart restoration and
+entity identity. A separate typed prototype passed mypy and 78 focused tests
+on each Core version. The investigation did not include a live upgrade or
+dashboard rendering on Core 2025.9.
+
+If the minimum is reconsidered, add both Core baselines to CI and verify an
+upgrade from Electricity Pro v1.6.0 on a separate Core 2025.9 installation.
+Check history, entity IDs and the cost chart there before changing the
+declared minimum.
+
 ## Check scope and documentation
 
 `./scripts/validate.sh` checks YAML, JSON, Python syntax, unique IDs and repository
