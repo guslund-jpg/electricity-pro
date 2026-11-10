@@ -1,12 +1,5 @@
 {
   "selector": {
-    "demand_charge_coverage": {
-      "options": {
-        "excluded": "Avgiften ingår inte i underlaget",
-        "included": "Hela fakturabeloppet ingår redan för samma period",
-        "unknown": "Okänt"
-      }
-    },
     "pricing_strategy": {
       "options": {
         "supplier_contracted_price": "Elhandelspris från leverantören",
@@ -429,8 +422,6 @@
       }
     },
     "error": {
-      "invalid_billed_demand_charge": "Ange giltiga datum, ett belopp med högst två decimaler och en valutakod med tre bokstäver.",
-      "overlapping_billing_period": "Perioden överlappar en sparad avgift för den här mätkällan. Rätta den med samma datum eller ta först bort den gamla posten.",
       "pricing_metadata_required": "Ange priskällans typ, ingående delar och moms. Spotpris måste ingå.",
       "electricity_pro_source": "Välj en extern källa. Electricity Pros egna givare kan inte användas som indata.",
       "invalid_supplier_amount": "Ange ett giltigt belopp som är noll eller större. Moms måste vara mellan 0 och 100 procent.",
@@ -553,26 +544,6 @@
           "energy_source_type": "Energimätarens period"
         }
       },
-      "hourly_import": {
-        "title": "Timvis nätimport",
-        "description": "Välj en sensor som rapporterar nätimport i Wh eller kWh för en avslutad timme. Sensorn behöver ange interval_start och interval_end med UTC-offset. Mätkällan för månadsestimatet är {meter}. Lämna sensorn tom för att koppla bort timkällan.",
-        "data": {
-          "hourly_import_entity": "Sensor för avslutad importtimme",
-          "confirm_hourly_import_meter": "Jag bekräftar att båda källorna mäter samma mätpunkt"
-        }
-      },
-      "billed_demand_charge": {
-        "title": "Fakturerad effektavgift",
-        "description": "Använd avgiften för mätkällan {meter}. Ange fakturaperiodens första och sista dag, samt beloppet inklusive moms från nätfakturan. Spara samma datum för att rätta beloppet eller markera Ta bort för att radera posten. Välj Okänt om du är osäker på vad som ingår i månadsestimatet.",
-        "data": {
-          "period_start": "Första dagen i fakturaperioden",
-          "period_end": "Sista dagen i fakturaperioden",
-          "amount": "Fakturerat belopp inklusive moms",
-          "currency": "Valuta, till exempel SEK",
-          "coverage": "Hur ingår avgiften i det befintliga månadsestimatet?",
-          "remove": "Ta bort sparad avgift för dessa datum"
-        }
-      },
       "menu": {
         "title": "Konfigurera Electricity Pro",
         "description": "Välj den del av konfigurationen som du vill ändra.",
@@ -583,8 +554,6 @@
           "grid": "Elnät",
           "energy_flows": "Produktion och export",
           "insights": "Användarpreferenser för el",
-          "hourly_import": "Timvis nätimport",
-          "billed_demand_charge": "Fakturerad effektavgift",
           "overview": "Översikt"
         }
       },
@@ -797,9 +766,6 @@
       }
     },
     "error": {
-      "invalid_hourly_import_source": "Välj en separat extern sensor för avslutad importtimme.",
-      "hourly_import_meter_changed": "Mätkällan har ändrats. Kontrollera den nya mätkällan och bekräfta igen.",
-      "confirm_hourly_import_meter": "Bekräfta att båda källorna mäter samma mätpunkt.",
       "pricing_metadata_required": "Ange priskällans typ, ingående delar och moms. Spotpris måste ingå.",
       "electricity_pro_source": "Välj en extern källa. Electricity Pros egna givare kan inte användas som indata.",
       "invalid_supplier_amount": "Ange ett giltigt belopp som är noll eller större. Moms måste vara mellan 0 och 100 procent.",
@@ -834,7 +800,6 @@
       "monthly_peak_hour_consumption": { "name": "Energiförbrukning under månadens topptimme" },
       "monthly_peak_hour_time": { "name": "Tid för månadens topptimme" },
       "total_cost_today": { "name": "Uppskattad total kostnad i dag" },
-      "billed_demand_charge": { "name": "Fakturerad effektavgift" },
       "total_cost_this_month": { "name": "Uppskattad total kostnad den här månaden" },
       "monthly_variable_cost_history": { "name": "Historik för rörlig månadskostnad" },
       "variable_cost_market_energy_this_month": { "name": "Spotkostnad den här månaden" },

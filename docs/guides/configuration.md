@@ -235,27 +235,6 @@ Installation-presence answers remain unknown unless declared, independently of
 whether optional measurement sources have been selected. This summary does not
 establish a household balance or solar/battery hardware validation.
 
-## Hourly grid import screen
-
-Open **Configure → Hourly grid import** (**Timvis nätimport** in Swedish) after
-selecting the import energy source. Choose a separate sensor and confirm both
-sources measure the same meter point. Clear the hourly sensor to disconnect it.
-Confirm the association again after changing the import energy source.
-
-The hourly sensor reports measured grid import as its state in Wh or kWh. Its
-`interval_start` and `interval_end` attributes must be ISO 8601 strings with an
-explicit UTC offset. They must span one elapsed hour between whole hour
-boundaries in Home Assistant's time zone, and the sensor must report after the
-hour ends. For example, a state of `1.75` kWh with timestamps
-`2026-11-10T08:00:00+01:00` and `2026-11-10T09:00:00+01:00` reports 1.75 kWh for
-that hour. The timestamps determine the hour even when the sensor reports it late.
-
-Electricity Pro keeps the current and previous local month. Missing or invalid
-reports leave gaps, measured zero counts as coverage, and conflicting values
-for the same UTC start leave that hour unavailable. The saved measurements and
-conflicts are restored after restart. Collection prepares data for the demand
-charge estimate.
-
 ## Guided Tibber setup
 
 Choose **Tibber fast track** when the official Home Assistant Tibber integration
@@ -395,10 +374,9 @@ a separate component. It is intentionally not added to **Total supplier cost
 this month**, because that sensor covers the electricity supplier only.
 The separate **Total cost estimate today/this month** sensors combine locally
 observed effective variable costs with fixed supplier and grid fees accrued
-since the start of the day/month. The monthly estimate can also include a
-[manually entered billed demand charge](costs-and-pricing.md#billed-demand-charges)
-for the matching period. Energy and cost coverage may differ. See
-[household cost estimates](costs-and-pricing.md#household-cost-estimates).
+since the start of the day/month. These are partial estimates, not complete
+bills. They exclude demand charges and other unconfigured charges; energy and
+cost coverage may differ. See [household cost estimates](costs-and-pricing.md#household-cost-estimates).
 
 Depending on the enabled capabilities, configuration may therefore include:
 

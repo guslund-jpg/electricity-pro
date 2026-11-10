@@ -7,7 +7,6 @@ from datetime import datetime
 from decimal import Decimal
 
 from .cost_ledger import VariableCostSummary
-from .household_cost import BilledDemandCharge
 from .pricing import PricingMetadata
 
 
@@ -90,8 +89,6 @@ class IntegrationResults:
     household_fixed_month: Decimal | None = None
     household_fixed_supplier_month: Decimal | None = None
     household_fixed_grid_month: Decimal | None = None
-    billed_demand_charge: BilledDemandCharge | None = None
-    billed_demand_charge_in_estimate: bool = False
     household_priced_energy_today: Decimal | None = None
     household_priced_energy_month: Decimal | None = None
     household_missing_fees: tuple[str, ...] = ()

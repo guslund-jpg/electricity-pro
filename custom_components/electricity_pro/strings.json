@@ -15,7 +15,6 @@
       "monthly_peak_hour_consumption": { "name": "Monthly peak-hour consumption" },
       "monthly_peak_hour_time": { "name": "Monthly peak-hour time" },
       "total_cost_today": { "name": "Total cost estimate today" },
-      "billed_demand_charge": { "name": "Billed demand charge" },
       "total_cost_this_month": { "name": "Total cost estimate this month" },
       "monthly_variable_cost_history": { "name": "Monthly variable cost history" },
       "variable_cost_market_energy_this_month": { "name": "Spot energy cost this month" },
@@ -71,13 +70,6 @@
     }
   },
   "selector": {
-    "demand_charge_coverage": {
-      "options": {
-        "excluded": "The underlying costs exclude the charge",
-        "included": "The full billed amount is already included for the same period",
-        "unknown": "Unknown"
-      }
-    },
     "pricing_strategy": {
       "options": {
         "supplier_contracted_price": "Supplier-contracted price",
@@ -664,8 +656,6 @@
       }
     },
     "error": {
-      "invalid_billed_demand_charge": "Enter valid dates, an amount with up to two decimal places and a three-letter currency code.",
-      "overlapping_billing_period": "The period overlaps a saved charge for this meter source. Correct it using the same dates or remove the earlier entry first.",
       "electricity_pro_source": "Choose a source from another integration, not an Electricity Pro output. Leave optional sources empty if none is available.",
       "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
@@ -828,26 +818,6 @@
           "household_power_phase_convention": "Household demand power phase convention"
         }
       },
-      "hourly_import": {
-        "title": "Hourly grid import",
-        "description": "Choose a sensor that reports grid import in Wh or kWh for a completed hour. The sensor must provide interval_start and interval_end with a UTC offset. The meter source for the monthly estimate is {meter}. Leave the sensor empty to disconnect the hourly source.",
-        "data": {
-          "hourly_import_entity": "Completed hourly import sensor",
-          "confirm_hourly_import_meter": "I confirm both sources measure the same meter point"
-        }
-      },
-      "billed_demand_charge": {
-        "title": "Billed demand charge",
-        "description": "Use the charge for the meter source {meter}. Enter the first and last dates of the billing period and the VAT-inclusive amount from the grid bill. Save the same dates to correct the amount, or select Remove to delete the entry. Choose Unknown if you are unsure what the monthly estimate already covers.",
-        "data": {
-          "period_start": "First day of billing period",
-          "period_end": "Last day of billing period",
-          "amount": "Billed amount including VAT",
-          "currency": "Currency, for example SEK",
-          "coverage": "How is the charge covered by the existing monthly estimate?",
-          "remove": "Remove saved charge for these dates"
-        }
-      },
       "menu": {
         "title": "Configure Electricity Pro",
         "description": "Choose the part of the configuration to edit.",
@@ -858,8 +828,6 @@
           "grid": "Grid charges",
           "energy_flows": "Production and export",
           "insights": "Usage insights",
-          "hourly_import": "Hourly grid import",
-          "billed_demand_charge": "Billed demand charge",
           "overview": "Configuration overview"
         }
       },
@@ -1081,9 +1049,6 @@
       }
     },
     "error": {
-      "invalid_hourly_import_source": "Choose a separate external sensor that reports completed hourly import.",
-      "hourly_import_meter_changed": "The meter source changed. Review the new meter source and confirm again.",
-      "confirm_hourly_import_meter": "Confirm that both sources measure the same meter point.",
       "electricity_pro_source": "Choose a source from another integration, not an Electricity Pro output. Leave optional sources empty if none is available.",
       "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",

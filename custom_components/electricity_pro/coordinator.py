@@ -16,16 +16,13 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STOP, UnitOfEnergy
 from homeassistant.core import (
     Event,
     EventStateChangedData,
-    EventStateReportedData,
     HomeAssistant,
-    State,
     callback,
 )
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
     async_track_state_change_event,
-    async_track_state_report_event,
     async_track_time_change,
     async_track_time_interval,
 )
@@ -54,8 +51,6 @@ from .calculations import (
     effective_price_metadata,
 )
 from .cost_ledger import CostLedger, VariableCostSummary
-from .demand_charge import HourlyImportBlock
-from .hourly_import import HourlyImportHistory, hourly_import_block
 from .monthly_cost_archive import MonthlyVariableCost, MonthlyVariableCostArchive
 from .energy_flows import FlowCounter
 from .flow_sources import CHANNELS
@@ -66,21 +61,25 @@ from .flow_compatibility import (
     PowerInput,
     check_power_compatibility,
 )
-from .household_cost import (
-    TARIFF_SCOPE_CONFIG_KEYS,
-    BilledDemandCharge,
-    DemandChargeCoverage,
-    accrued_fixed_fees,
-    billed_demand_charges,
-    demand_charge_basis,
-)
+from .household_cost import accrued_fixed_fees
 from .const import (
-    CONF_BILLED_DEMAND_CHARGES,
+    CONF_ENERGY_TAX_PER_KWH,
     CONF_FORECAST_NORDPOOL_CONFIG_ENTRY,
     CONF_FORECAST_PRICE_AREA,
+    CONF_GRID_FEE_HIGH_END,
+    CONF_GRID_FEE_HIGH_PER_KWH,
+    CONF_GRID_FEE_HIGH_SEASON_END,
+    CONF_GRID_FEE_HIGH_SEASON_START,
+    CONF_GRID_FEE_HIGH_START,
+    CONF_GRID_FEE_PER_KWH,
     CONF_GRID_FEE_WORKDAY_ENTITY,
-    CONF_HOURLY_IMPORT_ENTITY,
-    CONF_HOURLY_IMPORT_METER,
+    CONF_PRICE_COMPLETENESS,
+    CONF_PRICE_ENTITY,
+    CONF_PRICE_INCLUDED_COMPONENTS,
+    CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICE_VAT_RATE,
+    CONF_PRICING_STRATEGY,
+    CONF_SUPPLIER_MARKUP_PER_KWH,
     DOMAIN,
 )
 from .forecast import (
@@ -133,7 +132,6 @@ from .workday import async_get_non_working_dates
 _LOGGER = logging.getLogger(__name__)
 _VARIABLE_COST_STATISTICS = "variable_cost_statistics"
 _MONTHLY_VARIABLE_COST_ARCHIVE = "monthly_variable_cost_archive"
-_HOURLY_IMPORT = "hourly_import"
 
 
 class _StatisticsStore(Store[dict[str, Any]]):
@@ -174,8 +172,6 @@ class _DataUpdates(TypedDict, total=False):
     household_fixed_month: Decimal
     household_fixed_supplier_month: Decimal | None
     household_fixed_grid_month: Decimal | None
-    billed_demand_charge: BilledDemandCharge | None
-    billed_demand_charge_in_estimate: bool
     household_priced_energy_today: Decimal
     household_priced_energy_month: Decimal
     household_missing_fees: tuple[str, ...]
@@ -241,6 +237,23 @@ _HOLIDAY_LOOKAHEAD_DAYS = 32
 _TIMING_TICK_INTERVAL = timedelta(minutes=5)
 _TIMING_POWER_MAX_HOLD = timedelta(minutes=10)
 _STATISTICS_SAVE_DELAY = 60
+_ADAPTIVE_SCOPE_CONFIG_KEYS = (
+    CONF_PRICE_ENTITY,
+    CONF_PRICING_STRATEGY,
+    CONF_PRICE_INCLUDED_COMPONENTS,
+    CONF_PRICE_VAT_TREATMENT,
+    CONF_PRICE_VAT_RATE,
+    CONF_PRICE_COMPLETENESS,
+    CONF_SUPPLIER_MARKUP_PER_KWH,
+    CONF_ENERGY_TAX_PER_KWH,
+    CONF_GRID_FEE_PER_KWH,
+    CONF_GRID_FEE_HIGH_PER_KWH,
+    CONF_GRID_FEE_HIGH_START,
+    CONF_GRID_FEE_HIGH_END,
+    CONF_GRID_FEE_HIGH_SEASON_START,
+    CONF_GRID_FEE_HIGH_SEASON_END,
+    CONF_GRID_FEE_WORKDAY_ENTITY,
+)
 
 
 class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
@@ -270,29 +283,6 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._provider = ElectricityProEntityProvider(
             hass=hass,
             entry=entry,
-        )
-        settings = resolve_settings(entry.data, entry.options)
-        hourly_source = settings.get(CONF_HOURLY_IMPORT_ENTITY)
-        meter = self._provider.energy_entity_id
-        self._hourly_import = (
-            HourlyImportHistory(hourly_source, meter, self._local_timezone)
-            if isinstance(hourly_source, str)
-            and hourly_source
-            and meter is not None
-            and settings.get(CONF_HOURLY_IMPORT_METER) == meter
-            else None
-        )
-        self._billed_demand_charges = tuple(
-            charge
-            for charge in billed_demand_charges(
-                settings.get(CONF_BILLED_DEMAND_CHARGES)
-            )
-            if charge.meter == self._provider.energy_entity_id
-        )
-        self._demand_charge_basis = (
-            demand_charge_basis(settings, str(self._local_timezone))
-            if self._billed_demand_charges
-            else ""
         )
         self._energy_this_month = CumulativeStatistic(CalendarPeriod.MONTH)
         self._monthly_energy_started: str | None = None
@@ -339,18 +329,6 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         """Start listening for provider source changes."""
         await self._async_restore_statistics()
         self._entry.async_on_unload(self._async_save_statistics)
-        if (history := self._hourly_import) is not None:
-            self._entry.async_on_unload(
-                async_track_state_change_event(
-                    self.hass, history.source, self._async_hourly_import_report
-                )
-            )
-            self._entry.async_on_unload(
-                async_track_state_report_event(
-                    self.hass, history.source, self._async_hourly_import_report
-                )
-            )
-            self._record_hourly_import(self.hass.states.get(history.source))
         local_today = dt_util.now().astimezone(self._local_timezone).date()
         self._finalize_restored_timing_days(local_today)
         self._finalize_restored_base_load_days(local_today)
@@ -476,30 +454,6 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         return self._monthly_variable_cost_archive.months
 
     @property
-    def hourly_import_blocks(self) -> tuple[HourlyImportBlock, ...]:
-        """Return measured, usable blocks for the confirmed import source."""
-        return self._hourly_import.blocks if self._hourly_import is not None else ()
-
-    @callback
-    def _async_hourly_import_report(
-        self, event: Event[EventStateChangedData] | Event[EventStateReportedData]
-    ) -> None:
-        """Use the report from the event even when several arrive together."""
-        self._record_hourly_import(event.data["new_state"])
-
-    @callback
-    def _record_hourly_import(self, state: State | None) -> None:
-        if (
-            self._hourly_import is not None
-            and state is not None
-            and (block := hourly_import_block(state.state, state.attributes))
-            is not None
-            and block.end <= state.last_reported
-            and self._hourly_import.observe(block, dt_util.utcnow())
-        ):
-            self._schedule_statistics_save(immediate=True)
-
-    @property
     def variable_cost_statistics_enabled(self) -> bool:
         """Report whether this entry can publish statistics sensors."""
         return self._variable_cost_history is not None
@@ -563,8 +517,6 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._timing_buckets.retain_dates({local_now.date()})
         self._base_load_buckets.retain_dates({local_now.date()})
         self._adaptive_price_history.retain_for_date(local_now.date())
-        if self._hourly_import is not None:
-            self._hourly_import.retain(local_now)
         peak_cleared = self._peak_power_today.clear()
         if self.data is not None:
             data = self.data
@@ -929,7 +881,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             "settings": {
                 key: value
                 for key, value in settings.items()
-                if key in TARIFF_SCOPE_CONFIG_KEYS
+                if key in _ADAPTIVE_SCOPE_CONFIG_KEYS
                 or key
                 in (
                     "energy_entity",
@@ -964,12 +916,6 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 self._local_costs = CostLedger.from_dict(stored["local_costs"])
             except KeyError, ValueError, TypeError, ArithmeticError:
                 _LOGGER.warning("Ignoring invalid local cost estimate state")
-
-        if self._hourly_import is not None and _HOURLY_IMPORT in stored:
-            try:
-                self._hourly_import.restore(stored[_HOURLY_IMPORT], dt_util.utcnow())
-            except ValueError:
-                _LOGGER.warning("Ignoring invalid hourly import history")
 
         if _MONTHLY_VARIABLE_COST_ARCHIVE in stored:
             try:
@@ -1265,37 +1211,14 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             ledger.monthly_energy > 0
             or (effective is not None and source_energy_kwh is not None)
         )
-        today = now.date()
-        charge = max(
-            (
-                charge
-                for charge in self._billed_demand_charges
-                if charge.period_start <= today
-            ),
-            key=lambda charge: (charge.period_end, charge.period_start),
-            default=None,
-        )
-        month_total = (
-            ledger.monthly_effective + fixed_fees.month if known_month else None
-        )
-        charge_in_estimate = (
-            known_month
-            and charge is not None
-            and charge.matches_estimate(today, ledger.unit, self._demand_charge_basis)
-        )
-        if (
-            month_total is not None
-            and charge_in_estimate
-            and charge is not None
-            and charge.coverage is DemandChargeCoverage.EXCLUDED
-        ):
-            month_total += charge.amount
         updates.update(
             _DataUpdates(
                 household_cost_today=ledger.daily_effective + fixed_fees.today
                 if known_day
                 else None,
-                household_cost_this_month=month_total,
+                household_cost_this_month=ledger.monthly_effective + fixed_fees.month
+                if known_month
+                else None,
                 household_cost_unit=ledger.unit,
                 household_variable_today=ledger.daily_effective,
                 household_variable_month=ledger.monthly_effective,
@@ -1304,8 +1227,6 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                 household_fixed_month=fixed_fees.month,
                 household_fixed_supplier_month=fixed_fees.supplier_month,
                 household_fixed_grid_month=fixed_fees.grid_month,
-                billed_demand_charge=charge,
-                billed_demand_charge_in_estimate=charge_in_estimate,
                 household_priced_energy_today=ledger.daily_energy,
                 household_priced_energy_month=ledger.monthly_energy,
                 household_missing_fees=(
@@ -1659,8 +1580,6 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         }
         data["local_costs"] = self._local_costs.as_dict()
         data["local_cost_scope"] = self._local_cost_scope
-        if self._hourly_import is not None:
-            data[_HOURLY_IMPORT] = self._hourly_import.as_dict()
         if archive := self._monthly_variable_cost_archive.as_dict():
             data[_MONTHLY_VARIABLE_COST_ARCHIVE] = archive
         if (history := self._variable_cost_history) is not None and (
@@ -1854,7 +1773,7 @@ def _adaptive_tariff_signature(entry: ConfigEntry) -> str:
     """Return a stable fingerprint for price-affecting configuration."""
     settings = resolve_settings(entry.data, entry.options)
     relevant_settings = {
-        key: settings[key] for key in TARIFF_SCOPE_CONFIG_KEYS if key in settings
+        key: settings[key] for key in _ADAPTIVE_SCOPE_CONFIG_KEYS if key in settings
     }
     serialized = json.dumps(
         relevant_settings,

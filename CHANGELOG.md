@@ -2,13 +2,6 @@
 
 ## [Unreleased]
 
-### Added
-
-- Collect measured hourly grid import from an optional Home Assistant sensor
-  for the configured meter. (#165)
-- Enter a billed demand charge from a grid invoice and see it in the monthly
-  cost breakdown in English and Swedish Standard and Enhanced dashboards. (#165)
-
 ### Changed
 
 - Show VAT separately in the monthly household breakdown when Electricity Pro

@@ -97,23 +97,6 @@ async def test_fresh_install_translates_names_but_keeps_default_ids(
         ],
         include_flow_sources=True,
     )
-    hass.config_entries.async_update_entry(
-        entry,
-        options={
-            "billed_demand_charges": [
-                {
-                    "meter": "sensor.test_energy",
-                    "period_start": "2026-10-01",
-                    "period_end": "2026-10-31",
-                    "amount": "150",
-                    "currency": "SEK",
-                    "coverage": "unknown",
-                    "basis": "",
-                }
-            ]
-        },
-    )
-    await hass.async_block_till_done()
     registry = er.async_get(hass)
     english = _entity_names("translations/en.json")
     swedish = _entity_names("translations/sv.json")
