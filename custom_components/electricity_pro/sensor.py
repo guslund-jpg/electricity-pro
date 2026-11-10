@@ -280,7 +280,7 @@ def _monthly_variable_cost_attributes(
     if unallocated is not None:
         lines["unallocated_cost"] = unallocated
 
-    return {
+    attributes: dict[str, object] = {
         "components": {key: str(amount) for key, amount in components.items()},
         "unallocated_cost": _decimal_string(unallocated),
         "covered_cost": str(summary.covered_cost),
@@ -288,6 +288,19 @@ def _monthly_variable_cost_attributes(
         "started_at": summary.started_at.isoformat(),
         "display": cost_display(total, lines),
     }
+    if summary.itemized_vat:
+        vat_lines = lines.copy()
+        vat_lines["vat"] = sum(
+            (amount.vat for _, amount in summary.itemized_vat), Decimal(0)
+        )
+        for component, amount in summary.itemized_vat:
+            key = component.value
+            remaining = vat_lines.pop(key) - amount.gross
+            if remaining:
+                vat_lines[key] = remaining
+            vat_lines[f"{key}_excluding_vat"] = amount.gross - amount.vat
+        attributes["vat_display"] = cost_display(total, vat_lines)
+    return attributes
 
 
 def _local_cost_attributes(

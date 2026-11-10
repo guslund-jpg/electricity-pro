@@ -257,6 +257,55 @@ async def test_monthly_dashboard_cost_breakdown(
             )
 
 
+async def test_monthly_dashboard_itemizes_only_known_vat(hass):
+    hass.states.async_set(
+        MONTHLY_TOTAL,
+        "4.20",
+        {
+            "variable_cost": "4.20",
+            "accrued_fixed_fees": "0",
+            "unit_of_measurement": "SEK",
+            "variable_cost_breakdown": {
+                "display": {"total": "4.20", "lines": {"market_energy": "4.20"}},
+                "vat_display": {
+                    "total": "4.20",
+                    "lines": {
+                        "market_energy": "2.95",
+                        "market_energy_excluding_vat": "1.00",
+                        "vat": "0.25",
+                    },
+                },
+                "priced_energy_kwh": "2",
+            },
+        },
+    )
+    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+        rendered = _monthly_cost_note(hass, path)
+        assert (
+            _language(
+                path,
+                "- Spot energy (excl. VAT) 1.00 SEK",
+                "- Spotpris (exkl. moms) 1,00 SEK",
+            )
+            in rendered
+        )
+        assert (
+            _language(path, "- Spot energy 2.95 SEK", "- Spotpris 2,95 SEK") in rendered
+        )
+        assert (
+            _language(
+                path,
+                "- VAT on specified items 0.25 SEK",
+                "- Moms på specificerade poster 0,25 SEK",
+            )
+            in rendered
+        )
+        assert (
+            _language(path, "**Variable cost** 4.20 SEK", "**Rörlig kostnad** 4,20 SEK")
+            in rendered
+        )
+
+
 @pytest.mark.parametrize("adjustment", ["-0.01", "+0.01", None])
 async def test_monthly_dashboard_shows_total_estimate_rounding(hass, adjustment):
     lines = {"variable": "633.09", "supplier": "15.26", "grid": "186.83"}

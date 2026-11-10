@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Show VAT separately in the monthly household breakdown when Electricity Pro
+  applied it to a declared VAT-exclusive price. (#165)
 - Explain rounding differences in the monthly estimate and the Enhanced chart
   tooltip in the English and Swedish dashboards. (#165)
 - Show stacked monthly variable costs and priced-energy coverage in the English

@@ -1,5 +1,6 @@
 """Tests for Electricity Pro calculations."""
 
+from dataclasses import replace
 from decimal import Decimal
 
 import pytest
@@ -248,6 +249,17 @@ def test_effective_price_breakdown_preserves_source_scope(
         key: Decimal(value) for key, value in expected.items()
     }
     assert breakdown.total == calculate_declared_effective_price(*rates)
+    assert breakdown.source_vat == Decimal("0.16")
+
+    included_metadata = replace(
+        metadata, scope=replace(metadata.scope, vat=VatTreatment.INCLUDED)
+    )
+    included = calculate_effective_price_breakdown(
+        Decimal("0.80"), included_metadata, *rates[2:]
+    )
+    assert included is not None
+    assert included.components == breakdown.components
+    assert included.source_vat is None
 
 
 def test_effective_price_metadata_becomes_complete_after_composition() -> None:

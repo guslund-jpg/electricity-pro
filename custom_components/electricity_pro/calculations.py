@@ -156,6 +156,11 @@ def calculate_effective_price_breakdown(
                 for key, rate in additions.items()
             ),
         ),
+        source_vat=(
+            gross - base_price
+            if base_price is not None and metadata.scope.vat is VatTreatment.EXCLUDED
+            else None
+        ),
     )
 
 

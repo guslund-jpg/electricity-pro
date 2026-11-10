@@ -165,6 +165,16 @@ subtotal and the known fixed fees add up to a different amount than the rounded
 household estimate. The card shows the reconciled estimate alongside that
 adjustment. A missing fee is still marked unavailable.
 
+The monthly card shows **VAT on specified items** for intervals where
+Electricity Pro applied a configured VAT rate to a declared VAT-exclusive
+source. It shows that part of the source cost excluding VAT, with any
+remaining gross cost on its own row. Earlier costs, VAT-inclusive sources
+and separately configured fees stay at their recorded gross amounts.
+The applicable VAT is recorded when the interval is priced and saved with
+the monthly breakdown. The optional `vat_display` attribute contains the
+itemized view, including any display rounding. Both views reconcile to the
+same gross subtotal, and the chart continues to show gross variable costs.
+
 Update the integration, verify pricing and fixed fees, and update the example
 dashboard YAML. Both examples place household estimates before supplier costs.
 The effective average price remains a variable-cost measure, excluding fixed fees.
