@@ -250,6 +250,30 @@ See [pricing ADR](../adr/0005-pricing-and-tariff-strategies.md),
 [signed values ADR](../adr/0010-signed-power-and-negative-values.md),
 [VAT guide](../guides/vat-pricing.md) and [household totals](../guides/costs-and-pricing.md#household-cost-estimates).
 
+### Hourly demand charge calculation
+
+`demand_charge.py` calculates an estimate for an explicit local calendar
+month and cutoff. The tariff supplies one window of eligible whole-hour
+starts per selected weekday, the number of peaks from distinct local days,
+and one VAT-inclusive rate per kW and currency. The calculation multiplies
+the mean of the selected peaks by that rate.
+
+Each input block contains measured grid import in kWh over one elapsed hour.
+The calculation matches blocks by UTC start, keeping both occurrences of a
+repeated local hour and omitting nonexistent starts. An eligible block must
+also end at a whole local hour, so a tariff that needs blocks across a
+fractional clock change needs its own boundary rules.
+
+Coverage counts observed and expected eligible blocks that have ended by
+the cutoff. Missing or conflicting measurements leave gaps. Known zero
+counts as observed. The result reports partial coverage and withholds the
+amount until enough distinct days have usable peaks. The block ending at
+local midnight belongs to the date on which it started.
+
+Connecting the interval source and publishing the estimate are follow-up
+work. At publication, the billed charge takes precedence for the same
+meter, billing period and currency. [Issue #165](https://github.com/guslund-jpg/electricity-pro/issues/165)
+
 ## Forecast retrieval and recommendations
 
 `nordpool.py` calls `nordpool.get_prices_for_date`, normalizing MWh prices to
