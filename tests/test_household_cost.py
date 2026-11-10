@@ -6,9 +6,85 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 import pytest
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
+from custom_components.electricity_pro.const import (
+    CONF_PRICE_VAT_RATE,
+    CONF_PRICE_VAT_TREATMENT,
+)
 from custom_components.electricity_pro.household_cost import accrued_fixed_fees
 from custom_components.electricity_pro.cost_ledger import CostLedger
+from custom_components.electricity_pro.pricing import VatTreatment
+
+
+async def test_monthly_vat_only_splits_newly_priced_costs(
+    hass, setup_electricity_pro, freezer
+):
+    await hass.config.async_set_time_zone("UTC")
+    start = datetime(2026, 11, 10, 12, tzinfo=UTC)
+    freezer.move_to(start)
+    entry = await setup_electricity_pro(
+        energy_value="100",
+        energy_source_type="lifetime",
+        price_value="1.25",
+        supplier_markup_per_kwh=0.10,
+        grid_fee_per_kwh=0.25,
+        energy_tax_per_kwh=0.50,
+        fixed_supplier_fee_monthly=0,
+        fixed_grid_fee_monthly=0,
+    )
+    entity = "sensor.electricity_pro_total_cost_estimate_this_month"
+
+    async def book(minutes, meter):
+        freezer.move_to(start + timedelta(minutes=minutes))
+        hass.states.async_set(
+            "sensor.test_energy", meter, {"unit_of_measurement": "kWh"}
+        )
+        await hass.async_block_till_done()
+        async_fire_time_changed(hass, dt_util.utcnow())
+        await hass.async_block_till_done()
+
+    await book(1, "101")
+    first = hass.states.get(entity)
+    assert D(first.state) == D("2.10")
+    assert "vat_display" not in first.attributes["variable_cost_breakdown"]
+
+    hass.states.async_set("sensor.test_price", "1", {"unit_of_measurement": "SEK/kWh"})
+    await hass.async_block_till_done()
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_PRICE_VAT_TREATMENT: VatTreatment.EXCLUDED.value,
+            CONF_PRICE_VAT_RATE: 25,
+        },
+    )
+    await hass.async_block_till_done()
+    await book(2, "102")
+    state = hass.states.get(entity)
+    assert D(state.state) == D("4.20")
+    details = state.attributes["variable_cost_breakdown"]
+    assert D(details["components"]["market_energy"]) == D("2.50")
+    assert details["display"]["lines"]["market_energy"] == "2.50"
+    assert details["vat_display"] == {
+        "total": "4.20",
+        "lines": {
+            "market_energy": "1.25",
+            "market_energy_excluding_vat": "1.00",
+            "supplier_markup": "0.20",
+            "energy_tax": "1.00",
+            "variable_grid_fee": "0.50",
+            "vat": "0.25",
+        },
+    }
+    assert sum(map(D, details["vat_display"]["lines"].values())) == D(state.state)
+
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    restored = hass.states.get(entity)
+    assert restored.state == state.state
+    assert restored.attributes["variable_cost_breakdown"] == details
 
 
 @pytest.mark.parametrize("month,days", [(2, 28), (4, 30), (7, 31)])

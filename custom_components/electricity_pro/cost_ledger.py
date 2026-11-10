@@ -15,6 +15,14 @@ type _PriceSample = tuple[
 
 
 @dataclass(frozen=True, slots=True)
+class ItemizedVat:
+    """Gross cost and the VAT applied to the covered part of one component."""
+
+    gross: Decimal
+    vat: Decimal
+
+
+@dataclass(frozen=True, slots=True)
 class VariableCostSummary:
     """Published component amounts and their coverage for one period."""
 
@@ -22,6 +30,7 @@ class VariableCostSummary:
     priced_kwh: Decimal
     covered_cost: Decimal
     components: tuple[tuple[VariableCostComponent, Decimal], ...]
+    itemized_vat: tuple[tuple[VariableCostComponent, ItemizedVat], ...] = ()
 
 
 class _VariableCostPeriod:
@@ -32,6 +41,7 @@ class _VariableCostPeriod:
         self.priced_kwh = Decimal(0)
         self.covered_cost = Decimal(0)
         self.components: dict[VariableCostComponent, Decimal] = {}
+        self.itemized_vat: dict[VariableCostComponent, ItemizedVat] = {}
 
     def add(
         self,
@@ -39,6 +49,8 @@ class _VariableCostPeriod:
         energy: Decimal,
         cost: Decimal,
         amounts: tuple[tuple[VariableCostComponent, Decimal], ...],
+        *,
+        source_vat: Decimal | None = None,
     ) -> None:
         if self.started_at is None:
             self.started_at = start
@@ -48,11 +60,19 @@ class _VariableCostPeriod:
             self.components[component] = (
                 self.components.get(component, Decimal(0)) + amount
             )
+        if source_vat is not None:
+            component, gross = amounts[0]
+            previous = self.itemized_vat.get(
+                component, ItemizedVat(Decimal(0), Decimal(0))
+            )
+            self.itemized_vat[component] = ItemizedVat(
+                previous.gross + gross, previous.vat + energy * source_vat
+            )
 
     def as_dict(self) -> dict[str, object] | None:
         if self.started_at is None:
             return None
-        return {
+        data: dict[str, object] = {
             "started_at": self.started_at.isoformat(),
             "priced_kwh": str(self.priced_kwh),
             "covered_cost": str(self.covered_cost),
@@ -60,6 +80,12 @@ class _VariableCostPeriod:
                 key.value: str(value) for key, value in self.components.items()
             },
         }
+        if self.itemized_vat:
+            data["itemized_vat"] = {
+                key.value: {"gross": str(amount.gross), "vat": str(amount.vat)}
+                for key, amount in self.itemized_vat.items()
+            }
+        return data
 
     @classmethod
     def from_dict(
@@ -91,6 +117,24 @@ class _VariableCostPeriod:
         result.priced_kwh = kwh
         result.covered_cost = cost
         result.components = components
+        try:
+            itemized_vat = {}
+            for key, raw in stored_record(data.get("itemized_vat", {})).items():
+                component = VariableCostComponent(key)
+                vat_row = stored_record(raw)
+                gross = stored_decimal(vat_row["gross"])
+                vat = stored_decimal(vat_row["vat"])
+                if (
+                    component not in components
+                    or not gross.is_finite()
+                    or not vat.is_finite()
+                ):
+                    raise ValueError("Invalid itemized VAT")
+                itemized_vat[component] = ItemizedVat(gross, vat)
+            result.itemized_vat = itemized_vat
+        except KeyError, ValueError, TypeError, ArithmeticError:
+            # Preserve the gross breakdown when optional VAT data is damaged.
+            pass
         return result
 
 
@@ -115,6 +159,7 @@ class CostLedger:
             period.priced_kwh,
             period.covered_cost,
             tuple(period.components.items()),
+            tuple(period.itemized_vat.items()),
         )
 
     def _reset(self) -> None:
@@ -277,9 +322,13 @@ class CostLedger:
                         if same_month:
                             self.monthly_effective += cost
                             self.monthly_energy += energy
-                            if amounts:
+                            if parts is not None and amounts:
                                 self._monthly_components.add(
-                                    start, energy, cost, amounts
+                                    start,
+                                    energy,
+                                    cost,
+                                    amounts,
+                                    source_vat=parts.source_vat,
                                 )
                         if same_day:
                             self.daily_effective += cost

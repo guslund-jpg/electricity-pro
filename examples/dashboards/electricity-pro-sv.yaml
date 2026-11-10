@@ -722,7 +722,8 @@ views:
           {% set variable = state_attr(total, 'variable_cost') %}
           {% set fixed = state_attr(total, 'accrued_fixed_fees') %}
           {% set breakdown = state_attr(total, 'variable_cost_breakdown') %}
-          {% set display = breakdown.display if breakdown is mapping else none %}
+          {% set display = breakdown.vat_display if breakdown is mapping and breakdown.vat_display is mapping
+          else breakdown.display if breakdown is mapping else none %}
           {% set estimate = state_attr(total, 'monthly_cost_display') %}
           {% set fixed_breakdown = state_attr(total, 'accrued_fixed_fee_breakdown') %}
           {% set currency = state_attr(total, 'unit_of_measurement') %}
@@ -760,11 +761,18 @@ views:
             'energy_tax': 'Energiskatt',
             'variable_grid_fee': 'Rörlig elnätsavgift',
             'unallocated_cost': 'Äldre ospecificerad kostnad',
+            'vat': 'Moms på specificerade poster',
             'rounding_adjustment': 'Avrundning'
           } %}
           {{ '\n' }}
-          {% for key, label in variable_cost_labels.items() if key in display.lines %}
+          {% for key, label in variable_cost_labels.items() %}
+          {% set net_key = key ~ '_excluding_vat' %}
+          {%- if net_key in display.lines %}
+          {{ '\n' }}- {{ label }} (exkl. moms) {{ display.lines[net_key] | replace('.', ',') }} {{ currency }}
+          {%- endif %}
+          {%- if key in display.lines %}
           {{ '\n' }}- {{ label }} {{ display.lines[key] | replace('.', ',') }} {{ currency }}
+          {%- endif %}
           {%- endfor %}
           {{ '\n\n' }}
           {% else %}

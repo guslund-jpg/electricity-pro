@@ -41,6 +41,7 @@ class EffectivePriceBreakdown:
 
     total: Decimal
     components: tuple[tuple[VariableCostComponent, Decimal], ...]
+    source_vat: Decimal | None = None  # VAT applied to the first component.
 
 
 class VatTreatment(StrEnum):
