@@ -630,6 +630,15 @@ def test_dashboard_tabs_group_daily_price_and_electrical_cards(path: Path) -> No
         "sensor.electricity_pro_voltage_l3",
     } <= details
     assert MONTHLY_TOTAL not in overview | details
+    electrical_cards = [
+        card
+        for card in views[2]["cards"]
+        if card["type"] not in {"heading", "custom:mushroom-title-card"}
+    ]
+    assert "sensor.electricity_pro_current_l1" in _walk_entity_ids(electrical_cards[0])
+    assert "sensor.electricity_pro_peak_power_today" in _walk_entity_ids(
+        electrical_cards[1]
+    )
     power_charts = [
         view["path"]
         for view in views
@@ -639,6 +648,10 @@ def test_dashboard_tabs_group_daily_price_and_electrical_cards(path: Path) -> No
         and "sensor.electricity_pro_current_power" in _walk_entity_ids(card)
     ]
     assert power_charts and set(power_charts) == {"details"}
+    assert all(
+        "sensor.electricity_pro_current_power" in _walk_entity_ids(card)
+        for card in electrical_cards[-len(power_charts) :]
+    )
 
 
 def _walk_entity_ids(value: Any) -> Iterator[str]:

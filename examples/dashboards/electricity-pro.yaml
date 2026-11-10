@@ -511,105 +511,6 @@ views:
     icon: mdi:transmission-tower
     cards:
       - type: heading
-        heading: "Power history"
-
-      - type: history-graph
-        title: Power — last 24 hours
-        hours_to_show: 24
-        entities:
-          - entity: sensor.electricity_pro_current_power
-            name: Current power
-
-      - type: heading
-        heading: "Average and peak power"
-
-      - type: grid
-        columns: 2
-        square: false
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_average_power_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_average_power_today
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_average_power_today
-              name: Average power today
-              icon: mdi:chart-areaspline
-              color: blue
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_today
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_peak_power_today
-              name: Peak power today
-              icon: mdi:flash-outline
-              color: amber
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_time_today
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_peak_power_time_today
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_peak_power_time_today
-              name: Peak power time today
-              icon: mdi:clock-outline
-              color: amber
-
-      - type: heading
-        heading: "Monthly peak hour"
-
-      - type: grid
-        columns: 2
-        square: false
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_consumption
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_consumption
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_monthly_peak_hour_consumption
-              name: Monthly peak-hour consumption
-              icon: mdi:chart-bell-curve
-              color: amber
-
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_time
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_monthly_peak_hour_time
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_monthly_peak_hour_time
-              name: Monthly peak-hour time
-              icon: mdi:clock-outline
-              color: amber
-
-      - type: heading
         heading: "Phase measurements"
 
       - type: grid
@@ -712,6 +613,95 @@ views:
               entity: sensor.electricity_pro_voltage_l3
               name: Voltage L3
               vertical: true
+
+      - type: heading
+        heading: "Average and peak power"
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_average_power_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_average_power_today
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_average_power_today
+              name: Average power today
+              icon: mdi:chart-areaspline
+              color: blue
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_today
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_peak_power_today
+              name: Peak power today
+              icon: mdi:flash-outline
+              color: amber
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_time_today
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_peak_power_time_today
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_peak_power_time_today
+              name: Peak power time today
+              icon: mdi:clock-outline
+              color: amber
+
+      - type: heading
+        heading: "Monthly peak hour"
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_consumption
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_consumption
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_monthly_peak_hour_consumption
+              name: Monthly peak-hour consumption
+              icon: mdi:chart-bell-curve
+              color: amber
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_time
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_monthly_peak_hour_time
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_monthly_peak_hour_time
+              name: Monthly peak-hour time
+              icon: mdi:clock-outline
+              color: amber
 
       - type: conditional
         conditions:
@@ -927,3 +917,13 @@ views:
                 color: green
                 tap_action:
                   action: more-info
+
+      - type: heading
+        heading: "Power history"
+
+      - type: history-graph
+        title: Power — last 24 hours
+        hours_to_show: 24
+        entities:
+          - entity: sensor.electricity_pro_current_power
+            name: Current power

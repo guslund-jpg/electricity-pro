@@ -107,8 +107,8 @@ The English and Swedish Standard examples use three views:
 - **Prices and Trends / Priser och trender** — upcoming low-price windows,
   recent price history, yesterday's Consumption Timing Score and this month's
   energy and cost breakdown.
-- **Electrical Details / Eldetaljer** — power history, average and peak power,
-  monthly peak hour, phase measurements and optional energy flows.
+- **Electrical Details / Eldetaljer** — phase measurements first, then average
+  and peak power, monthly peak hour and optional flows, with power history last.
 
 The Overview translates the Good Time binary state into actionable wording:
 **Good time to use electricity** or **Wait for a better price**. Its tile shows
@@ -210,8 +210,9 @@ The English and Swedish Enhanced examples use the same three views:
 - **Prices and Trends / Priser och trender** — the spot-price forecast and
   scheduling insights, recent price comparison, and the monthly cost breakdown
   with an optional stacked chart.
-- **Electrical Details / Eldetaljer** — 24-hour power history and six-hour raw
-  power detail, average and peak readings, phase measurements and optional flows.
+- **Electrical Details / Eldetaljer** — phase measurements first, then average
+  and peak readings and optional flows. The 24-hour and six-hour power charts
+  are at the bottom.
 
 ![Illustrative Electricity Pro enhanced dashboard](electricity-pro-enhanced-preview.svg)
 
