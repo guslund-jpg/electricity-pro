@@ -829,6 +829,14 @@
           "household_power_phase_convention": "Household demand power phase convention"
         }
       },
+      "hourly_import": {
+        "title": "Hourly grid import",
+        "description": "Choose a sensor that reports grid import in Wh or kWh for a completed hour. The sensor must provide interval_start and interval_end with a UTC offset. The meter source for the monthly estimate is {meter}. Leave the sensor empty to disconnect the hourly source.",
+        "data": {
+          "hourly_import_entity": "Completed hourly import sensor",
+          "confirm_hourly_import_meter": "I confirm both sources measure the same meter point"
+        }
+      },
       "billed_demand_charge": {
         "title": "Billed demand charge",
         "description": "Use the charge for the meter source {meter}. Enter the first and last dates of the billing period and the VAT-inclusive amount from the grid bill. Save the same dates to correct the amount, or select Remove to delete the entry. Choose Unknown if you are unsure what the monthly estimate already covers.",
@@ -851,6 +859,7 @@
           "grid": "Grid charges",
           "energy_flows": "Production and export",
           "insights": "Usage insights",
+          "hourly_import": "Hourly grid import",
           "billed_demand_charge": "Billed demand charge",
           "overview": "Configuration overview"
         }
@@ -1073,6 +1082,9 @@
       }
     },
     "error": {
+      "invalid_hourly_import_source": "Choose a separate external sensor that reports completed hourly import.",
+      "hourly_import_meter_changed": "The meter source changed. Review the new meter source and confirm again.",
+      "confirm_hourly_import_meter": "Confirm that both sources measure the same meter point.",
       "electricity_pro_source": "Choose a source from another integration, not an Electricity Pro output. Leave optional sources empty if none is available.",
       "invalid_grid_tariff": "Enter both low and high fees and use valid HH:MM times and MM-DD season dates.",
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",

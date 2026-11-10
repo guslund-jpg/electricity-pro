@@ -270,8 +270,13 @@ counts as observed. The result reports partial coverage and withholds the
 amount until enough distinct days have usable peaks. The block ending at
 local midnight belongs to the date on which it started.
 
-Connecting the interval source and publishing the estimate are follow-up
-work. At publication, the billed charge takes precedence for the same
+The optional hourly source feeds `HourlyImportHistory` on sensor reports and
+once after restore. The statistics checkpoint retains the current and previous
+local months under the confirmed source, import meter and timezone. Reported
+interval timestamps identify the hour, including for late reports.
+
+Tariff configuration and publishing the estimate are follow-up work. At
+publication, the billed charge takes precedence for the same
 meter, billing period and currency. [Issue #165](https://github.com/guslund-jpg/electricity-pro/issues/165)
 
 ## Forecast retrieval and recommendations
