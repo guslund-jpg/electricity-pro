@@ -21,6 +21,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_ACCUMULATED_COST_TODAY_ENTITY,
@@ -89,6 +90,12 @@ from .market_config import (
 from .supplier_config import SUPPLIER_KEYS, SupplierFlow, without_supplier_fields
 from .pricing_config import prepare_pricing_metadata as _prepare_pricing_metadata
 from .flow_sources import FLOW_KEYS
+from .export_price_config import (
+    EXPORT_ENERGY_SOURCE,
+    EXPORT_PRICE_PERIODS,
+    ExportPricePeriod,
+    updated_export_price_periods,
+)
 from .production_config import ProductionFlow
 from .insight_config import InsightFlow
 from .review_config import ReviewFlow
@@ -1483,6 +1490,7 @@ class ElectricityProOptionsFlow(
     """Handle Electricity Pro options."""
 
     _review_step_id = "overview"
+    _offer_fixed_export_price = True
 
     def __init__(self) -> None:
         """Initialize the options flow."""
@@ -1577,9 +1585,17 @@ class ElectricityProOptionsFlow(
     async def _async_production_complete(
         self, values: dict[str, Any]
     ) -> ConfigFlowResult:
-        return self.async_create_entry(
-            title="", data={**self.config_entry.options, **values}
-        )
+        options = {**self.config_entry.options, **values}
+        periods: list[ExportPricePeriod] = options.get(EXPORT_PRICE_PERIODS, [])
+        if self._export_price_edited or (
+            periods and periods[-1]["meter"] != values.get(EXPORT_ENERGY_SOURCE)
+        ):
+            updated = updated_export_price_periods(
+                periods, self._export_price_terms, dt_util.utcnow()
+            )
+            if updated != periods:
+                options[EXPORT_PRICE_PERIODS] = updated
+        return self.async_create_entry(title="", data=options)
 
     def _insight_defaults(self) -> dict[str, Any]:
         return self._settings_defaults()

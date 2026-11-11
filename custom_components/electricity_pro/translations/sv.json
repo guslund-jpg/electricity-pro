@@ -45,6 +45,20 @@
         "present": "Finns"
       }
     },
+    "export_price_vat": {
+      "options": {
+        "included": "Moms ingår",
+        "excluded": "Moms ingår inte",
+        "not_applicable": "Moms är inte tillämplig"
+      }
+    },
+    "export_price_components": {
+      "options": {
+        "supplier_compensation": "Elhandelsersättning",
+        "grid_compensation": "Ersättning från nätbolaget",
+        "variable_deductions": "Rörliga avdrag"
+      }
+    },
     "flow_phase": {
       "options": {
         "unknown": "Okänt / inte bekräftat",
@@ -609,10 +623,27 @@
           "confirm_flow_semantics": "De valda källorna har dessa betydelser för hela anläggningen på AC-sidan och visar livstidsenergi. Ingen anläggningsbalans, batterifördelning eller exportintäkt beräknas."
         }
       },
+      "fixed_export_price": {
+        "title": "Fast exportpris",
+        "description": "Exportregister: {export_meter}. Ändringar av priset gäller från det att du sparar.",
+        "data": {
+          "fixed_export_price_enabled": "Använd fast exportpris",
+          "export_price_amount": "Fast pris per kWh",
+          "export_price_currency": "Valuta",
+          "export_price_vat_treatment": "Moms",
+          "export_price_components": "Delar som ingår i priset"
+        },
+        "data_description": {
+          "export_price_amount": "Ange det avtalade beloppet per exporterad kWh. Negativa belopp och noll är giltiga.",
+          "export_price_currency": "Ange en valutakod, exempelvis SEK.",
+          "export_price_components": "Välj ersättning och eventuella avdrag som redan ingår i beloppet."
+        }
+      },
       "flow_compatibility": {
         "title": "Installation och kompatibilitet",
         "description": "Granska anläggningsuppgifterna när valfria källor används. Välj Okänt / inte bekräftat om du är osäker. Saknade givare betyder inte att utrustning saknas. Fasfrågor visas bara för valda effektkällor. Lämna obekräftade fasuppgifter som okända. Du kan spara uppgifterna utan att aktivera den valfria diagnostiken. Diagnostiken behöver minst två valfria effektkällor och granskar bara deras mätvärden. Den beräknar inte hushållslast, energikvoter eller en komplett anläggningsbalans. Separata mätvärden för batteriets laddning/urladdning och riktad importeffekt stöds inte här.",
         "data": {
+          "edit_fixed_export_price": "Konfigurera fast exportpris",
           "flow_compatibility_enabled": "Aktivera diagnostik för effektvärdenas kompatibilitet",
           "flow_generation_presence": "Lokal elproduktion installerad",
           "flow_storage_presence": "Batterilagring installerad",
@@ -778,6 +809,10 @@
       "grid_rate_required": "Ange både lågperiodens och högperiodens avgift. Noll är tillåtet.",
       "invalid_flow_source": "Välj separata externa effektkällor (W/kW) eller livstidsregister för energi (Wh/kWh). Återanvänd inte en importkälla.",
       "confirm_flow_semantics": "Bekräfta källornas betydelse som AC-mätvärden för hela anläggningen, inklusive hushållslast utan batteriladdning och livstidsregister för energi.",
+      "invalid_export_price": "Ange ett ändligt pris per kWh.",
+      "invalid_export_currency": "Ange en giltig valutakod.",
+      "export_vat_required": "Ange hur moms hanteras i exportpriset.",
+      "export_component_required": "Välj elhandelsersättning eller ersättning från nätbolaget.",
       "contradictory_topology": "Produktionskällor är valda. Ange att produktion finns eller är okänd, eller ta bort källorna innan du anger att produktion saknas.",
       "invalid_insight_threshold": "Ange en giltig prisgräns som är noll eller större, eller lämna fältet tomt.",
       "invalid_insight_percentile": "Ange en giltig percentil mellan 1 och 100.",

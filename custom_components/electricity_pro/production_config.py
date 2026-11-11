@@ -7,6 +7,14 @@ from homeassistant.config_entries import ConfigEntryBaseFlow, ConfigFlowResult
 from homeassistant.helpers import entity_registry as er, selector
 
 from .const import DOMAIN
+from .export_price_config import (
+    EXPORT_COMPONENTS,
+    EXPORT_ENERGY_SOURCE,
+    EXPORT_PRICE_PERIODS,
+    EXPORT_VAT_OPTIONS,
+    ExportPriceTerms,
+    parse_export_price_terms,
+)
 from .flow_sources import CONF_CONFIGURE_FLOWS, FLOW_KEYS
 from .flow_compatibility import (
     COMPATIBILITY_KEYS,
@@ -29,6 +37,9 @@ class ProductionFlow(ConfigEntryBaseFlow):
     _production_reference: dict[str, Any]
     _production_enabled = False
     _production_review_pending = False
+    _offer_fixed_export_price = False
+    _export_price_edited = False
+    _export_price_terms: ExportPriceTerms | None = None
 
     def _production_defaults(self) -> dict[str, Any]:
         raise NotImplementedError
@@ -161,6 +172,9 @@ class ProductionFlow(ConfigEntryBaseFlow):
             if self._production_values.get(key.replace("_phase_convention", "_entity"))
         )
         errors = {}
+        can_edit_export_price = self._offer_fixed_export_price and bool(
+            self._production_values.get(EXPORT_ENERGY_SOURCE)
+        )
         if user_input is not None:
             self._production_values.update(
                 {
@@ -174,6 +188,8 @@ class ProductionFlow(ConfigEntryBaseFlow):
                 for q in ("power", "energy")
             ):
                 errors[CONF_GENERATION] = "contradictory_topology"
+            elif can_edit_export_price and user_input.get("edit_fixed_export_price"):
+                return await self.async_step_fixed_export_price()
             else:
                 return await self._async_production_complete(
                     dict(self._production_values)
@@ -201,6 +217,81 @@ class ProductionFlow(ConfigEntryBaseFlow):
                 CONF_ENABLED, default=self._production_values.get(CONF_ENABLED) is True
             )
         ] = selector.BooleanSelector()
+        if can_edit_export_price:
+            fields[vol.Optional("edit_fixed_export_price", default=False)] = (
+                selector.BooleanSelector()
+            )
         return self.async_show_form(
             step_id="flow_compatibility", data_schema=vol.Schema(fields), errors=errors
+        )
+
+    async def async_step_fixed_export_price(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Edit the terms for the export register already confirmed in this flow."""
+        values = self._production_values
+        meter = values.get(EXPORT_ENERGY_SOURCE) if values is not None else None
+        if (
+            not self._offer_fixed_export_price
+            or not self._production_review_pending
+            or not isinstance(meter, str)
+            or not meter
+        ):
+            return await self.async_step_energy_flows()
+        assert values is not None
+        errors: dict[str, str] = {}
+        periods = self._production_defaults().get(EXPORT_PRICE_PERIODS, [])
+        last = next(
+            (period for period in reversed(periods) if period["meter"] == meter), None
+        )
+        defaults = {
+            "fixed_export_price_enabled": bool(last and last["valid_until"] is None),
+            "export_price_amount": last["amount_per_kwh"] if last else None,
+            "export_price_currency": last["currency"] if last else None,
+            "export_price_vat_treatment": last["vat_treatment"] if last else None,
+            "export_price_components": last["components"] if last else None,
+        }
+        if user_input is not None:
+            if user_input["fixed_export_price_enabled"]:
+                self._export_price_terms, errors = parse_export_price_terms(
+                    meter,
+                    user_input.get("export_price_amount", ""),
+                    user_input.get("export_price_currency", ""),
+                    user_input.get("export_price_vat_treatment", ""),
+                    user_input.get("export_price_components", []),
+                )
+            else:
+                self._export_price_terms = None
+            if not errors:
+                self._export_price_edited = True
+                return await self._async_production_complete(dict(values))
+            defaults.update(user_input)
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    "fixed_export_price_enabled", default=False
+                ): selector.BooleanSelector(),
+                vol.Optional("export_price_amount"): selector.TextSelector(),
+                vol.Optional("export_price_currency"): selector.TextSelector(),
+                vol.Optional("export_price_vat_treatment"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=list(EXPORT_VAT_OPTIONS),
+                        translation_key="export_price_vat",
+                    )
+                ),
+                vol.Optional("export_price_components"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=list(EXPORT_COMPONENTS),
+                        translation_key="export_price_components",
+                        multiple=True,
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(
+            step_id="fixed_export_price",
+            data_schema=self.add_suggested_values_to_schema(schema, defaults),
+            description_placeholders={"export_meter": meter},
+            errors=errors,
         )

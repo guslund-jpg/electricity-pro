@@ -3,7 +3,7 @@
 ## Status
 
 Proposed for [#241](https://github.com/guslund-jpg/electricity-pro/issues/241).
-The first increment covers the calculation and synthetic tests. Live validation
+The calculation and configuration are covered by synthetic tests. Live validation
 of physical energy sources is tracked separately in
 [#335](https://github.com/guslund-jpg/electricity-pro/issues/335).
 
@@ -29,13 +29,26 @@ increment spanning a price change, leaves the amount unavailable. A gap between
 reads can be priced when the meter delta is trustworthy and one fixed rate
 covers the whole interval. Keep full Decimal precision until display.
 
+## Configuration
+
+In the Production and export options, confirm the directional lifetime export
+register to open the optional Fixed export price form. Set the signed amount
+per kWh, currency, VAT treatment and the components already included in the
+amount. The form requires supplier or grid operator compensation. It records
+the declaration for the entered price.
+
+Save each price with its meter and UTC validity. Saving equivalent terms
+keeps the existing period. A price or declaration change closes the active
+period at the save time and starts the next one at that boundary. Disabling the
+price or removing or changing its meter closes the period. A different meter
+requires an explicit price declaration. Closed periods remain available.
+
 ## Follow-up
 
-Configuration must declare the export price source, currency, VAT treatment
-and covered components before publishing estimates. Report priced kWh and
-coverage alongside separate export day and month totals. Keep booked amounts
-at their original rate and scope persistence to the export meter and price
-contract. Follow the export meter's existing local-day baseline rules.
+Report priced kWh and coverage alongside separate export day and month totals.
+Keep booked amounts at their original rate and scope persistence to the export
+meter and price contract. Follow the export meter's existing local-day baseline
+rules.
 Import uses its own sources and totals.
 
 Supplier-provided export prices with explicit validity and market-based export
