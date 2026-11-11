@@ -4,6 +4,11 @@
 
 ### Changed
 
+- Organize the English and Swedish Standard and Enhanced dashboard examples
+  into Overview, Prices and Trends, and Electrical Details. (#420)
+- Hide monthly variable cost legend entries in both Enhanced examples when
+  the component has no recorded amount in any displayed month. Recorded zero
+  amounts keep their legend entries. (#421)
 - Show VAT separately in the monthly household breakdown when Electricity Pro
   applied it to a declared VAT-exclusive price. (#165)
 - Explain rounding differences in the monthly estimate and the Enhanced chart
