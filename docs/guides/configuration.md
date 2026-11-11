@@ -160,6 +160,12 @@ other sections, entity identities and unaffected energy tracking. Saving Usage
 insights retains optional bindings and does not validate or repair them.
 Fresh setup follows the same review rules for Custom and Tibber.
 
+In Configure, confirm a lifetime grid-export register and select **Configure
+fixed export price** during installation review. The optional form saves the
+price per kWh, currency, VAT treatment and included compensation components.
+The price applies from the time you save. See the
+[fixed export price design](../adr/0015-fixed-export-compensation.md#configuration).
+
 These navigation changes add no balance, battery attribution or export revenue.
 Real solar/battery validation remains outstanding in
 [#335](https://github.com/guslund-jpg/electricity-pro/issues/335).

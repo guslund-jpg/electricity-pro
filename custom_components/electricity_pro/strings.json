@@ -107,6 +107,20 @@
         "present": "Present"
       }
     },
+    "export_price_vat": {
+      "options": {
+        "included": "VAT included",
+        "excluded": "VAT excluded",
+        "not_applicable": "VAT not applicable"
+      }
+    },
+    "export_price_components": {
+      "options": {
+        "supplier_compensation": "Supplier compensation",
+        "grid_compensation": "Grid operator compensation",
+        "variable_deductions": "Variable deductions"
+      }
+    },
     "flow_phase": {
       "options": {
         "unknown": "Unknown / not confirmed",
@@ -806,10 +820,27 @@
           "confirm_flow_semantics": "The selected sources have these whole-site AC meanings and lifetime energy periods. No site balance, battery attribution or export revenue is calculated."
         }
       },
+      "fixed_export_price": {
+        "title": "Fixed export price",
+        "description": "Export register: {export_meter}. Price changes take effect when you save.",
+        "data": {
+          "fixed_export_price_enabled": "Use a fixed export price",
+          "export_price_amount": "Fixed price per kWh",
+          "export_price_currency": "Currency",
+          "export_price_vat_treatment": "VAT",
+          "export_price_components": "Components included in the price"
+        },
+        "data_description": {
+          "export_price_amount": "Enter the agreed amount per exported kWh. Negative and zero amounts are valid.",
+          "export_price_currency": "Enter a currency code such as SEK.",
+          "export_price_components": "Select the compensation and any deductions already included in the entered amount."
+        }
+      },
       "flow_compatibility": {
         "title": "Installation and compatibility",
         "description": "Review installation facts whenever optional sources are configured. Choose Unknown / not confirmed when unsure; missing sensors do not mean equipment is absent. Phase conventions apply separately to the selected power sources; leave unverified conventions unknown. Whole-site AC boundaries are declared in the source step. You can save these facts without enabling the optional diagnostic. The diagnostic checks configured power observations only: it does not calculate household demand, energy ratios or balance readiness. Battery charge/discharge and explicit grid-import power inputs are not yet supported.",
         "data": {
+          "edit_fixed_export_price": "Configure fixed export price",
           "flow_compatibility_enabled": "Enable Flow power compatibility diagnostic",
           "flow_generation_presence": "Local generation installed",
           "flow_storage_presence": "Battery storage installed",
@@ -1054,6 +1085,10 @@
       "invalid_good_price_settings": "Select Fixed or Adaptive, use a percentile from 1 to 100, and enter a valid optional ceiling.",
       "pricing_metadata_required": "Complete the price source type, included components, and VAT fields. Market energy must be selected.",
       "invalid_flow_source": "Choose distinct external power (W/kW) or lifetime energy (Wh/kWh) sources. Do not reuse an import source.",
+      "invalid_export_price": "Enter a finite price per kWh.",
+      "invalid_export_currency": "Enter a valid currency code.",
+      "export_vat_required": "Declare the VAT treatment of the export price.",
+      "export_component_required": "Select supplier or grid operator compensation.",
       "contradictory_topology": "Production sources are selected. Declare generation present or unknown, or return and remove those sources before declaring it absent.",
       "confirm_flow_semantics": "Confirm the selected whole-site AC source meanings, including household load excluding battery charging, and lifetime energy registers.",
       "markup_estimate_unavailable": "No reliable estimate is available. Check the VAT rate, matching area, source availability, unique Tibber home names and currency. Prices must have at least four exact completed intervals covering one hour, with a nonnegative addition varying by no more than 0.01 per kWh. Multiple Tibber accounts are unsupported. Retry later, or uncheck confirmation to use manual pricing.",

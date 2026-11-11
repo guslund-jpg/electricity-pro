@@ -231,6 +231,10 @@ async def test_each_optional_source_requires_review_without_diagnostic_opt_in(
     assert not entry.options
     defaults = result["data_schema"]({})
     assert defaults["flow_compatibility_enabled"] is False
+    if source_key == "grid_export_energy_entity":
+        assert defaults.pop("edit_fixed_export_price") is False
+    else:
+        assert "edit_fixed_export_price" not in defaults
     assert all(
         value == "unknown"
         for key, value in defaults.items()
