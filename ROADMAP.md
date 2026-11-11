@@ -61,6 +61,18 @@ The maintainer skipped separate checks of live Nord Pool publication and
 retries, overnight rollover on the combined build, and Adaptive Good Time.
 [Manual verification record](docs/validation/adr-0014.md)
 
+Live checks of the dashboard changes on `main` used Home Assistant Core
+2026.11.0. The Swedish Enhanced preview confirmed the new tab layout and card
+order in Electrical Details. The monthly variable cost legend showed only
+components with recorded amounts in both Swedish and English Enhanced.
+[Layout verification (#419)](https://github.com/guslund-jpg/electricity-pro/issues/419)
+and [legend verification (#165)](https://github.com/guslund-jpg/electricity-pro/issues/165).
+
+To apply these changes to an existing dashboard created from an example, copy
+the updated YAML for its language and variant into the dashboard's raw
+configuration editor. Carry over any local customizations.
+[Dashboard installation guide](examples/dashboards/README.md#quick-installation)
+
 ## Energy-flow follow-up after v1.6 🔭
 
 The [v1.6.0 release notes](docs/releases/1.6.0.md) describe the delivered
