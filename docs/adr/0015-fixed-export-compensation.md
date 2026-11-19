@@ -72,13 +72,44 @@ gaps, local calendar boundaries, the repeated hour, meter reset and restoration.
 The integration reload test uses HA's config-entry lifecycle and verifies import
 and export energy continuity alongside the new pricing baseline.
 
+## Persistent booking
+
+`ExportLedger` consumes each interval result once and keeps observed kWh and
+already-valued amounts for the current and last closed local day and month.
+Amounts are grouped by meter, meter generation, currency, VAT declaration and
+included components. Rate changes within one group accumulate their original
+signed amounts. Other declarations retain separate groups. Price configuration
+changes leave existing bookings intact.
+
+Each source/generation has a last processed UTC endpoint. Duplicate, older and
+overlapping intervals are rejected, including an attempted later valuation of
+an interval already consumed as unpriced. Calendar rollover rejects prior-day
+intervals and clears obsolete markers. The ledger retains summaries and replay
+markers rather than individual samples. Empty current periods have zero observed
+coverage and the retained closed periods carry their actual calendar IDs.
+
+The coordinator checkpoints the ledger's decimal strings, calendar periods and
+replay protection alongside the energy counters in the existing atomic storage
+file. A new zero-valued report also schedules a write. Reload and orderly
+shutdown flush pending state. After restart, booked totals restore together
+with their markers, while pricing continues to require a fresh report baseline.
+An abrupt power loss can lose updates since the last successful checkpoint,
+normally up to one minute with functioning storage. A failed write leaves the
+previous checkpoint intact, and a later save retries the current state.
+
+Local calendar periods advance even while the source is silent. Day-boundary
+measurement gaps retain the counter's existing partial-coverage rule. Closed
+day/month summaries survive a delayed write or restart across the boundary.
+UTC ordering handles the repeated local hour. The configured timezone determines
+calendar membership. An incompatible timezone or malformed ledger checkpoint
+pauses new booking and preserves that checkpoint for recovery. Older snapshots
+without a ledger start with empty export booking while retaining energy history.
+
 ## Follow-up
 
 Report priced kWh and coverage alongside separate export day and month totals.
-Keep booked amounts at their original rate and scope persistence to the export
-meter and price contract. Follow the export meter's existing local-day baseline
-rules.
-Import uses its own sources and totals.
+Define the sensors' metadata, display rounding and publication contract over the
+persisted partial coverage. Import uses its own sources and totals.
 
 Supplier-provided export prices with explicit validity and market-based export
 prices with declared adjustments require a later design. Verify the physical

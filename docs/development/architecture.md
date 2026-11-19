@@ -409,6 +409,16 @@ Observation state is transient and starts from a fresh report after reload or
 restart. The existing energy checkpoints retain their format and recovery rules.
 See [ADR-0015](../adr/0015-fixed-export-compensation.md#observed-interval-pricing).
 
+`export_ledger.py` books those interval results into local day/month summaries
+grouped by meter generation and monetary declaration. The checkpoint includes
+amounts, observed/priced energy and source/generation replay markers together
+with the energy counters. Current and last closed periods are retained. Cached
+results and previously unpriced intervals cannot be booked again. Source and
+rate changes preserve existing amounts. Reload restores booking while the
+observation still establishes a fresh pricing baseline. An incompatible ledger
+checkpoint is preserved with booking paused. See
+[persistent booking](../adr/0015-fixed-export-compensation.md#persistent-booking).
+
 The local `CostLedger` uses the same observed meter delta and price segments to
 accumulate the effective total and known variable cost components. The price
 resolver keeps a combined source price as one component and identifies rates

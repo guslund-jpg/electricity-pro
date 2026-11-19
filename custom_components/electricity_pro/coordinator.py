@@ -53,6 +53,7 @@ from .calculations import (
 from .cost_ledger import CostLedger, VariableCostSummary
 from .monthly_cost_archive import MonthlyVariableCost, MonthlyVariableCostArchive
 from .energy_flows import FlowCounter
+from .export_ledger import ExportLedger
 from .export_observation import ExportIntervalResult, ExportObservation
 from .export_price_config import EXPORT_PRICE_PERIODS
 from .flow_sources import CHANNELS
@@ -134,6 +135,7 @@ from .workday import async_get_non_working_dates
 _LOGGER = logging.getLogger(__name__)
 _VARIABLE_COST_STATISTICS = "variable_cost_statistics"
 _MONTHLY_VARIABLE_COST_ARCHIVE = "monthly_variable_cost_archive"
+_EXPORT_LEDGER = "export_ledger"
 
 
 class _StatisticsStore(Store[dict[str, Any]]):
@@ -283,6 +285,9 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         ] = {}
         self.flow_compatibility: _FlowCompatibilityAttributes = {"status": "disabled"}
         self._local_timezone = dt_util.get_default_time_zone()
+        self.export_ledger = ExportLedger(self._local_timezone)
+        self._export_ledger_paused = False
+        self._inactive_export_ledger: object = None
         self._provider = ElectricityProEntityProvider(
             hass=hass,
             entry=entry,
@@ -905,6 +910,19 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         stored = await self._store.async_load()
         if stored is None:
             return
+
+        if _EXPORT_LEDGER in stored:
+            try:
+                ledger = ExportLedger.from_dict(stored[_EXPORT_LEDGER])
+                if str(ledger.timezone) != str(self._local_timezone):
+                    raise ValueError("Export ledger timezone changed")
+                self.export_ledger = ledger
+            except KeyError, ValueError, TypeError, ArithmeticError:
+                self._export_ledger_paused = True
+                self._inactive_export_ledger = stored[_EXPORT_LEDGER]
+                _LOGGER.warning(
+                    "Pausing export booking with an incompatible ledger checkpoint"
+                )
 
         flow_state = stored.get("directional_flows", {})
         for channel in CHANNELS:
@@ -1581,6 +1599,11 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     def _statistics_data(self) -> dict[str, Any]:
         """Return serializable statistics state."""
         data: dict[str, Any] = {}
+        data[_EXPORT_LEDGER] = (
+            self._inactive_export_ledger
+            if self._export_ledger_paused
+            else self.export_ledger.as_dict()
+        )
         data["directional_flows"] = {
             channel: {"scope": self._flow_scope(channel), "counter": counter.as_dict()}
             for channel, counter in self._flow_counters.items()
@@ -1636,7 +1659,9 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
 
     def _read_flows(self, now: datetime) -> bool:
         """Publish independent flows; never combine them into a site balance."""
-        changed = False
+        changed = (
+            self.export_ledger.advance(now) if not self._export_ledger_paused else False
+        )
         power_inputs: list[PowerInput] = []
         settings = self._provider.flow_sources.compatibility_settings
         for channel in CHANNELS:
@@ -1693,6 +1718,13 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                         ),
                         accepted=valid,
                     )
+                    if (
+                        not self._export_ledger_paused
+                        and (export_interval := self.export_compensation) is not None
+                    ):
+                        changed |= self.export_ledger.record(
+                            export_interval, counter.generation
+                        )
                 changed |= before != counter.as_dict()
                 attrs.update(
                     {
