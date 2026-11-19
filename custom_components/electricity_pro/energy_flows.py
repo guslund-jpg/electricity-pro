@@ -38,9 +38,11 @@ class FlowCounter:
         self.pending_boundary = True
         self.generation = 0
         self.reason = "waiting_for_baseline"
+        self.last_increment: Decimal | None = None
 
     def update(self, meter: Decimal | None, now: datetime) -> bool:
         """Return whether this observation is safe to expose as current totals."""
+        self.last_increment = None
         day = now.date().isoformat()
         if self.day is not None and day < self.day:
             self.reason = "out_of_order"
@@ -64,6 +66,7 @@ class FlowCounter:
             delta = meter - self.high_water
             self.today += delta
             self.this_month += delta
+            self.last_increment = delta
         self.high_water = meter
         self.pending_boundary = False
         self.reason = "partial"

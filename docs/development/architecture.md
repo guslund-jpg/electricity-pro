@@ -400,6 +400,15 @@ and a separate rounded representation for the dashboard.
 Decimal strings, partial-coverage labels, calculations and one-minute
 publication keep their existing contracts.
 
+For fixed-rate export, `export_observation.py` pairs the directional counter's
+latest accepted increment with its two HA receipt timestamps. It selects one
+saved export-price period covering the interval and delegates arithmetic to
+`export_compensation.py`. The coordinator's `export_compensation` property holds
+the latest immutable interval result, including currency and price declarations.
+Observation state is transient and starts from a fresh report after reload or
+restart. The existing energy checkpoints retain their format and recovery rules.
+See [ADR-0015](../adr/0015-fixed-export-compensation.md#observed-interval-pricing).
+
 The local `CostLedger` uses the same observed meter delta and price segments to
 accumulate the effective total and known variable cost components. The price
 resolver keeps a combined source price as one component and identifies rates

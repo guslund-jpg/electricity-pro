@@ -43,6 +43,35 @@ period at the save time and starts the next one at that boundary. Disabling the
 price or removing or changing its meter closes the period. A different meter
 requires an explicit price declaration. Closed periods remain available.
 
+## Observed interval pricing
+
+The coordinator exposes the latest internal `ExportIntervalResult` through
+`export_compensation`. `ExportObservation` consumes accepted increments from the
+existing directional counter, pairs them with HA report receipt times, and
+selects one saved period for the same meter covering the entire interval.
+The result includes observed and priced kWh, signed amount, declared price,
+currency, VAT treatment, included components and the pricing reason. The amount
+uses the declared rate directly and retains Decimal precision.
+
+Repeated reads of a cached report retain the same result and interval start.
+A new report with the same meter value can establish a measured zero interval.
+Missing, partial or overlapping price coverage leaves the measured increment
+unpriced. The counter's accepted energy continues to contribute to its existing
+partial totals. A trustworthy same-day increment after a source gap can be
+priced when one saved period covers it.
+
+Observation state and interval results are transient. After startup or reload,
+pricing waits for a fresh source report as its baseline. A cached pre-start
+report cannot price downtime. A source change, confirmed meter reset or local
+day boundary also establishes a new pricing baseline. Existing persisted energy
+counters retain their recovery and calendar rules. Real acquisition times can
+differ from HA receipt times, so source delays remain a validation limitation.
+
+Tests exercise HA source normalization, price boundaries, duplicate reads, source
+gaps, local calendar boundaries, the repeated hour, meter reset and restoration.
+The integration reload test uses HA's config-entry lifecycle and verifies import
+and export energy continuity alongside the new pricing baseline.
+
 ## Follow-up
 
 Report priced kWh and coverage alongside separate export day and month totals.
