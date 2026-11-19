@@ -913,6 +913,11 @@ async def async_setup_entry(
                 entities.append(
                     ElectricityProFlowSensor(entry.runtime_data, entry, channel, period)
                 )
+    if entry.runtime_data.is_flow_source_configured("grid_export", "energy"):
+        entities.extend(
+            ElectricityProExportCompensationSensor(entry, period)
+            for period in ("today", "this_month")
+        )
     if entry.runtime_data.flow_compatibility_enabled:
         entities.append(
             ElectricityProFlowCompatibilitySensor(entry.runtime_data, entry)
@@ -1046,6 +1051,80 @@ class ElectricityProVariableCostSensor(ElectricityProNamedSensor):
             and self.coordinator.data.results.household_cost_unit
             in (None, self.native_unit_of_measurement)
         )
+
+
+class ElectricityProExportCompensationSensor(ElectricityProNamedSensor):
+    """Publish saved, partially covered export compensation in its own currency."""
+
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.TOTAL
+    _attr_suggested_display_precision = 2
+
+    def __init__(self, entry: ElectricityProConfigEntry, period: str) -> None:
+        super().__init__(entry.runtime_data)
+        self._period = period
+        key = f"export_compensation_{period}"
+        self.entity_description = SensorEntityDescription(
+            key=key,
+            name=f"Export compensation estimate {'today' if period == 'today' else 'this month'}",
+            translation_key=key,
+        )
+        self._attr_unique_id = f"{entry.entry_id}_{key}"
+        self._attr_device_info = device_info_for_entry(entry.entry_id)
+
+        self.internal_integration_suggested_object_id = f"{DOMAIN}_{key}"
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                self.coordinator.export_statistics_signal,
+                self.async_write_ha_state,
+            )
+        )
+
+    @property
+    def native_value(self) -> Decimal | None:
+        saved = self.coordinator.recorded_export_statistics.get(self._period)
+        return saved.amount if saved is not None else None
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        saved = self.coordinator.recorded_export_statistics.get(self._period)
+        return saved.currency if saved is not None else None
+
+    @property
+    def last_reset(self) -> datetime | None:
+        saved = self.coordinator.recorded_export_statistics.get(self._period)
+        return saved.last_reset if saved is not None else None
+
+    @property
+    def available(self) -> bool:
+        return (
+            super().available
+            and not self.coordinator.export_statistics_paused
+            and self.native_value is not None
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        saved = self.coordinator.recorded_export_statistics.get(self._period)
+        attrs: dict[str, object] = (
+            saved.attributes()
+            if saved is not None
+            else {"coverage": "partial", "reason": "waiting_for_priced_interval"}
+        )
+        if self.coordinator.export_statistics_paused:
+            attrs["reason"] = "publication_paused"
+        reading = self.coordinator.flow_values.get("grid_export_today")
+        attrs["source_status"] = (
+            reading[1].get("reason") if reading else "waiting_for_baseline"
+        )
+        attrs["fixed_export_price_enabled"] = (
+            self.coordinator.fixed_export_price_enabled
+        )
+        return attrs
 
 
 class ElectricityProFlowCompatibilitySensor(ElectricityProNamedSensor):

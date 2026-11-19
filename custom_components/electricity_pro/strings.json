@@ -46,6 +46,8 @@
       "production_today": { "name": "Production today" },
       "production_this_month": { "name": "Production this month" },
       "grid_export_power": { "name": "Grid export power" },
+      "export_compensation_today": { "name": "Export compensation estimate today" },
+      "export_compensation_this_month": { "name": "Export compensation estimate this month" },
       "grid_export_today": { "name": "Grid export today" },
       "grid_export_this_month": { "name": "Grid export this month" },
       "household_power": { "name": "Household demand power" },

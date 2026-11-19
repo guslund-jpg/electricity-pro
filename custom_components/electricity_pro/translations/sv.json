@@ -866,6 +866,8 @@
       "production_today": { "name": "Producerad energi i dag" },
       "production_this_month": { "name": "Producerad energi den här månaden" },
       "grid_export_power": { "name": "Effekt ut till elnätet" },
+      "export_compensation_today": { "name": "Uppskattad exportersättning i dag" },
+      "export_compensation_this_month": { "name": "Uppskattad exportersättning den här månaden" },
       "grid_export_today": { "name": "Exporterad energi i dag" },
       "grid_export_this_month": { "name": "Exporterad energi den här månaden" },
       "household_power": { "name": "Hushållets effektbehov" },

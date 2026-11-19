@@ -123,9 +123,9 @@ See [household cost estimates](../guides/costs-and-pricing.md#household-cost-est
 values mean import from the grid and negative values mean export. The configured
 source must measure whole-home net exchange rather than solar generation alone.
 
-Current Cost Rate uses the configured import price only while power is
-non-negative; it becomes unavailable during export because Electricity Pro has
-no export-compensation source. Peak Power Today remains peak import. Average
+Current Cost Rate uses the configured import price while power is non-negative
+and becomes unavailable during export. Fixed-price export compensation has
+separate daily/monthly estimates. Peak Power Today remains peak import. Average
 Power Today, Estimated Base Load, and Consumption Timing Score reject local days
 containing export rather than treating export as household consumption.
 
@@ -306,6 +306,41 @@ The compatibility sensor reports declaration/freshness/alignment reasons and
 `complete_balance_available: false`. It neither verifies energy conservation nor
 changes existing import costs or analytics. See [diagnostic scope](../guides/flow-compatibility.md).
 
+## Export compensation estimates
+
+Selecting a lifetime grid-export energy source creates the following optional
+development-branch sensors.
+
+| Default entity ID | English name | Swedish name |
+| --- | --- | --- |
+| `sensor.electricity_pro_export_compensation_today` | Export compensation estimate today | Uppskattad exportersättning i dag |
+| `sensor.electricity_pro_export_compensation_this_month` | Export compensation estimate this month | Uppskattad exportersättning den här månaden |
+
+They expose checkpointed signed amounts with monetary device class, `total`
+state class and the declared currency. Two display decimals are suggested while
+native values retain full precision. `last_reset` follows the local calendar
+day/month and survives reload or restart.
+
+Attributes include `period`, `timezone`, `coverage`, `reason`,
+`observed_export_kwh`, `priced_export_kwh`, `unpriced_export_kwh`,
+`pricing_coverage_percent`, `history_started_at` and `price_declarations`.
+Each declaration identifies its source, meter generation, currency, VAT
+treatment and included components. Energy attributes display three decimals.
+Pricing percentage uses unrounded energy and is absent for zero observed kWh.
+Coverage always remains partial, including at 100 percent observed pricing.
+
+Before a valid priced interval the amount is unavailable. Known zero prices or
+zero export increments can produce an available zero. Existing booked amounts
+remain available during a source gap or after disabling the price, with
+`source_status` and `fixed_export_price_enabled` explaining the context. Mixed
+declarations, currency changes and paused publication have explicit reasons.
+
+Each series keeps its initial currency. Publication follows successful storage
+writes, preserving closing periods before the next reset. Existing bookings at
+sensor introduction form the visible start balance; Recorder counts subsequent
+changes. See [export sensor design](../adr/0015-fixed-export-compensation.md#daily-and-monthly-sensors)
+and [Recorder guidance](../guides/recorder.md#export-compensation-history).
+
 ## Daily and monthly statistics
 
 Average Power Today and Average Market Price Today are implemented and listed
@@ -484,7 +519,9 @@ interval.
 Power factor, phase imbalance, projected demand charges, budget forecasts,
 whole-day consumption prediction and automatic device control are not current
 entities. Neither are calculated household balances, self-consumption or
-self-sufficiency ratios, export revenue and battery charge/discharge scheduling.
+self-sufficiency ratios, supplier/market-based export compensation and battery
+charge/discharge scheduling. Fixed-rate partial export compensation estimates
+are described above.
 
 Daily/monthly measurements and partial accumulated cost estimates must not be
 confused with predictions of the rest of the day or a complete future bill.

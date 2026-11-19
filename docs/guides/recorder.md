@@ -63,7 +63,7 @@ On the development branch, export compensation bookings use this same checkpoint
 for amounts, priced-energy coverage and replay protection. Reload/startup
 restores booked totals and starts a fresh pricing baseline. Current and last
 closed local day/month summaries are retained independently of Recorder history.
-The internal ledger provides the foundation for future export-compensation sensors.
+The daily/monthly export-compensation sensors publish acknowledged ledger snapshots.
 
 Continuous power coverage is stored as contiguous ranges. Gaps stay separate,
 and older snapshots are compacted when loaded and saved in the same format at
@@ -74,6 +74,28 @@ With normal storage operation, up to one minute of cost and observation updates
 can be missing. A continuing cumulative meter can recover some energy deltas.
 Missing historical prices and power observations cannot be recovered from the
 meter total. Recorder exclusions apply to database history separately.
+
+## Export compensation history
+
+Keep `sensor.electricity_pro_export_compensation_today` and
+`sensor.electricity_pro_export_compensation_this_month` in Recorder when their
+history is needed. Both use monetary `total` with local calendar resets, allowing
+negative export prices to reduce their signed amounts and statistical sums.
+They describe overlapping day/month periods of the same export bookings.
+
+Publication starts after a successful checkpoint write. A closing period is
+published before a later reset even when storage was delayed across midnight.
+Existing bookings at sensor introduction form the visible start balance;
+Recorder sums start with changes after introduction. New first amounts receive
+an explicit baseline, including negative and zero values. This creates forward
+history from publication timestamps. The `last_reset` attribute identifies the
+logical calendar cycle; earlier timestamped samples are not reconstructed.
+
+Reload and restart preserve published currency, amounts and history start.
+A new source report establishes the fresh pricing baseline, so gaps remain
+partial. Mixed declarations, a changed currency or paused booking/publication
+make the amount unavailable. Restoring compatible pricing can resume the series.
+See the [sensor reference](../reference/sensors.md#export-compensation-estimates).
 
 ## Variable cost component history
 

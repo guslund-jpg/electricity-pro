@@ -419,6 +419,13 @@ observation still establishes a fresh pricing baseline. An incompatible ledger
 checkpoint is preserved with booking paused. See
 [persistent booking](../adr/0015-fixed-export-compensation.md#persistent-booking).
 
+`export_statistics.py` projects the ledger into checkpoint-acknowledged daily
+and monthly snapshots. Each `ExportHistory` keeps closing periods ahead of later
+resets, pins its currency and preserves the series' start balance. The Store
+acknowledgement dispatches saved states to the two export-compensation sensors,
+including a first-value baseline for Recorder. Coverage and declarations travel
+with the saved amount. Publication queues share the existing statistics file.
+
 The local `CostLedger` uses the same observed meter delta and price segments to
 accumulate the effective total and known variable cost components. The price
 resolver keeps a combined source price as one component and identifies rates

@@ -42,6 +42,33 @@ class ExportPeriod:
     observed_kwh: Decimal = Decimal(0)
     amounts: tuple[ExportAmount, ...] = ()
 
+    def as_dict(self) -> dict[str, object]:
+        """Serialize the same immutable period used by booking and publication."""
+        return {
+            "period": self.period,
+            "observed_kwh": str(self.observed_kwh),
+            "amounts": [
+                {
+                    "source": row.contract.source,
+                    "generation": row.contract.generation,
+                    "currency": row.contract.currency,
+                    "vat_treatment": row.contract.vat_treatment,
+                    "components": list(row.contract.components),
+                    "priced_kwh": str(row.priced_kwh),
+                    "amount": str(row.amount),
+                }
+                for row in self.amounts
+            ],
+        }
+
+    @classmethod
+    def from_dict(cls, value: object, *, monthly: bool = False) -> ExportPeriod:
+        """Apply booking's validation to a checkpointed publication period."""
+        period = _restore_period(value, monthly=monthly)
+        if period is None:
+            raise ValueError("Missing export period")
+        return period
+
 
 def _add(
     period: ExportPeriod, observed_kwh: Decimal, booking: ExportAmount | None
@@ -68,24 +95,7 @@ def _add(
 
 
 def _period_data(period: ExportPeriod | None) -> dict[str, object] | None:
-    if period is None:
-        return None
-    return {
-        "period": period.period,
-        "observed_kwh": str(period.observed_kwh),
-        "amounts": [
-            {
-                "source": row.contract.source,
-                "generation": row.contract.generation,
-                "currency": row.contract.currency,
-                "vat_treatment": row.contract.vat_treatment,
-                "components": list(row.contract.components),
-                "priced_kwh": str(row.priced_kwh),
-                "amount": str(row.amount),
-            }
-            for row in period.amounts
-        ],
-    }
+    return period.as_dict() if period is not None else None
 
 
 def _generation(value: object) -> int:
