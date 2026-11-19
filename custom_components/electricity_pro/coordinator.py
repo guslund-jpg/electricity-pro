@@ -53,6 +53,8 @@ from .calculations import (
 from .cost_ledger import CostLedger, VariableCostSummary
 from .monthly_cost_archive import MonthlyVariableCost, MonthlyVariableCostArchive
 from .energy_flows import FlowCounter
+from .export_observation import ExportIntervalResult, ExportObservation
+from .export_price_config import EXPORT_PRICE_PERIODS
 from .flow_sources import CHANNELS
 from .flow_compatibility import (
     CONF_GENERATION,
@@ -275,6 +277,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._local_costs = CostLedger()
         self._monthly_variable_cost_archive = MonthlyVariableCostArchive()
         self._flow_counters = {channel: FlowCounter() for channel in CHANNELS}
+        self._export_observation = ExportObservation(dt_util.utcnow())
         self.flow_values: dict[
             str, tuple[Decimal | None, dict[str, str | int | None]]
         ] = {}
@@ -383,6 +386,11 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         )
 
         self.async_set_updated_data(self._read(power_observed=True))
+
+    @property
+    def export_compensation(self) -> ExportIntervalResult | None:
+        """Return the latest export interval valued at its declared fixed price."""
+        return self._export_observation.result
 
     @property
     def timing_score_yesterday(self) -> tuple[date, TimingScoreResult] | None:
@@ -1675,6 +1683,16 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                     meter = None
                     attrs["reason"] = "previous_day_reading"
                 valid = counter.update(meter, now)
+                if channel == "grid_export":
+                    self._export_observation.update(
+                        reading,
+                        counter,
+                        now,
+                        resolve_settings(self._entry.data, self._entry.options).get(
+                            EXPORT_PRICE_PERIODS, []
+                        ),
+                        accepted=valid,
+                    )
                 changed |= before != counter.as_dict()
                 attrs.update(
                     {

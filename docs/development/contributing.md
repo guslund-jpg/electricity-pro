@@ -221,6 +221,7 @@ The current strict scope is:
 | `history_storage.py` | Runtime narrowing of stored history values |
 | `flow_compatibility.py` | Normalized power observations and the supported diagnostic result statuses |
 | `energy_flows.py` | Directional lifetime counters and their persisted state |
+| `export_observation.py` | Accepted export intervals, saved fixed-price selection and transient pricing results |
 | `flow_sources.py` | Explicit source bindings, normalized readings and freshness checks |
 | `cost_ledger.py` | Observed cost allocation, currency resets and validated persisted totals |
 | `nordpool.py` | Native action response validation, interval normalization and delivery dates |
