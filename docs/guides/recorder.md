@@ -59,6 +59,12 @@ share the same deadline. Reload waits for the latest snapshot to be saved.
 Orderly shutdown uses Home Assistant's final write, and midnight rollover and
 explicit reset actions request a prompt write.
 
+On the development branch, export compensation bookings use this same checkpoint
+for amounts, priced-energy coverage and replay protection. Reload/startup
+restores booked totals and starts a fresh pricing baseline. Current and last
+closed local day/month summaries are retained independently of Recorder history.
+The internal ledger provides the foundation for future export-compensation sensors.
+
 Continuous power coverage is stored as contiguous ranges. Gaps stay separate,
 and older snapshots are compacted when loaded and saved in the same format at
 the next checkpoint.
