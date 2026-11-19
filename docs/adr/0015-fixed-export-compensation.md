@@ -105,11 +105,42 @@ calendar membership. An incompatible timezone or malformed ledger checkpoint
 pauses new booking and preserves that checkpoint for recovery. Older snapshots
 without a ledger start with empty export booking while retaining energy history.
 
-## Follow-up
+## Daily and monthly sensors
 
-Report priced kWh and coverage alongside separate export day and month totals.
-Define the sensors' metadata, display rounding and publication contract over the
-persisted partial coverage. Import uses its own sources and totals.
+A configured lifetime export register creates **Export compensation estimate
+today** and **Export compensation estimate this month**, translated into Swedish
+as **Uppskattad exportersättning i dag** and **Uppskattad exportersättning den här
+månaden**. Their default IDs are `sensor.electricity_pro_export_compensation_today`
+and `sensor.electricity_pro_export_compensation_this_month`. Unique IDs use the
+config-entry ID and fixed period key. Import retains its own sources and totals.
+
+Both sensors are monetary `total` sensors. Their `last_reset` is local midnight
+for the day or the first of the month, represented as a UTC instant. The native
+amount retains Decimal precision with two suggested display decimals. Energy
+attributes display three decimals, while pricing coverage uses unrounded values.
+The bounded attributes include period, timezone, source/generation declarations,
+VAT treatment, included components, observed/priced/unpriced kWh and history start.
+Coverage remains `partial` even when all observed energy is priced. Zero observed
+energy has no pricing percentage. A known zero amount is available after a valid
+priced interval; missing initial pricing is unavailable.
+
+Publication sums compatible declarations across meter generations and pins each
+series' currency. Mixed currency/VAT/component declarations or a changed currency
+make the period unavailable. A source gap or disabled price preserves already
+booked values with source status and price-enabled attributes. Paused booking
+or an invalid publication checkpoint makes the sensor unavailable.
+
+`ExportHistory` checkpoints the current and pending closing snapshots alongside
+the ledger. The Store's successful-write notification publishes a closing period
+before a later reset and preserves this order across restart. A failed write
+keeps the previous published value. New first amounts receive a zero baseline
+for Recorder, including a first amount after an entirely unavailable period.
+Existing checkpointed bookings at sensor introduction form the start balance:
+they remain visible, while Recorder sums begin with subsequent changes. Restored
+publication retains its currency and history start. Recorder tests verify first,
+negative and zero amounts, precision, delayed rollover and an actual Core restart.
+
+## Follow-up
 
 Supplier-provided export prices with explicit validity and market-based export
 prices with declared adjustments require a later design. Verify the physical

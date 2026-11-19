@@ -223,6 +223,7 @@ The current strict scope is:
 | `energy_flows.py` | Directional lifetime counters and their persisted state |
 | `export_observation.py` | Accepted export intervals, saved fixed-price selection and transient pricing results |
 | `export_ledger.py` | Scoped export bookings, replay markers and current/closed calendar-period checkpoints |
+| `export_statistics.py` | Checkpointed export sensor values, partial coverage and ordered calendar publication |
 | `flow_sources.py` | Explicit source bindings, normalized readings and freshness checks |
 | `cost_ledger.py` | Observed cost allocation, currency resets and validated persisted totals |
 | `nordpool.py` | Native action response validation, interval normalization and delivery dates |
@@ -380,7 +381,7 @@ The remaining explicit `Any` boundaries are deliberate limits of this scope:
 
 These exceptions do not establish that every persisted value is validated. A
 complete typed persistence schema would be separate work. Strict checking covers
-the 40 explicitly listed integration modules, not the tests or whole integration;
+the 43 explicitly listed integration modules, not the tests or whole integration;
 it is not a claim of complete typing or additional manual Home Assistant testing.
 
 ### Python formatting

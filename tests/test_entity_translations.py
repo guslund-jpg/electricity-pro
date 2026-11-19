@@ -31,9 +31,9 @@ from custom_components.electricity_pro.pricing import (
 _INTEGRATION_ROOT = (
     Path(__file__).resolve().parents[1] / "custom_components/electricity_pro"
 )
-_FIXED_FORECAST_IDS = {
+_FIXED_ENTITY_IDS = {
     f"cheapest_{hours}h_window_average_effective_price" for hours in (1, 2, 3)
-}
+} | {"export_compensation_today", "export_compensation_this_month"}
 
 
 def _entity_names(filename: str) -> dict[tuple[str, str], str]:
@@ -113,7 +113,7 @@ async def test_fresh_install_translates_names_but_keeps_default_ids(
 
     for (platform, key), name in names.items():
         english_name = english[platform, key]
-        object_id = key if key in _FIXED_FORECAST_IDS else slugify(english_name)
+        object_id = key if key in _FIXED_ENTITY_IDS else slugify(english_name)
         entity_id = f"{platform}.{DOMAIN}_{object_id}"
         state = hass.states.get(entity_id)
         registered = registry.async_get(entity_id)
