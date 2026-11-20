@@ -4,6 +4,27 @@ Electricity Pro uses Home Assistant's native `nordpool.get_prices_for_date`
 action. This lifecycle does not change live supplier prices, energy accounting
 or the tariff timezone used for household costs.
 
+## Startup and entity recovery
+
+Nord Pool is an optional setup-order dependency. When Home Assistant schedules
+it during startup, Electricity Pro waits for its setup before the first forecast
+request. An installation without Nord Pool does not load it automatically.
+Failed native entry setup or unavailable price data can still leave forecasts
+missing; the existing warning and 15-minute retry policy below applies.
+
+The Next inexpensive 1h window sensor requires a configured threshold and
+complete, comparable Effective Prices. An empty forecast at startup is pending
+data, not a reason to disable an existing entity. When a later coordinator
+update first supplies comparable prices, sensor setup adds or restores the same
+entity without a manual reload. Repeated updates do not add duplicate sensors.
+User-disabled entities remain disabled, and unloading the integration removes
+the listener waiting to register the sensor.
+
+Known incompatible initial pricing still withholds the sensor. Once registered,
+it remains registered through a later forecast gap, with its value unavailable
+until a qualifying window returns. Its entity ID, unique ID and history are
+retained.
+
 ## Market clock and delivery dates
 
 Requests use Nord Pool delivery dates in **CET/CEST**, represented by
@@ -72,6 +93,15 @@ Automated tests cover startup/restart and timer parity in UTC, Stockholm and
 Helsinki; summer/winter gates; both DST transition days; differing local/market
 dates; late publication and recovery; empty delivery-day data; real errors;
 duplicate/conflicting responses; and non-destructive cache handling.
+Setup tests also cover optional Nord Pool ordering, failed or empty initial
+retrieval followed by the actual 15-minute timer, existing and user-disabled
+entity identities, reload, later delivery-day outages and unload before recovery.
+
+On 20 November 2026, the `53394a4` build on Core 2026.11.2 reproduced a startup
+request before Nord Pool's entry was loaded. Forecasts returned at the next
+15-minute tick, but the disabled Next inexpensive entity needed a manual reload.
+The recovery changes above are tested locally; live verification of this fix
+remains pending on a separately approved build.
 
 For an optional real-system smoke test, check that today's forecasts remain
 available, tomorrow appears after publication without restarting, and ordinary

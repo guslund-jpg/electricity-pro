@@ -813,16 +813,6 @@ async def async_setup_entry(
             )
 
     forecast_configured = CONF_FORECAST_NORDPOOL_CONFIG_ENTRY in settings
-    expose_next_inexpensive_window = (
-        forecast_configured
-        and CONF_GOOD_PRICE_THRESHOLD in settings
-        and entry.runtime_data.forecast_prices_are_comparable
-    )
-    _update_next_inexpensive_window_registry(
-        hass,
-        entry,
-        expose=expose_next_inexpensive_window,
-    )
     if forecast_configured:
         entities.extend(
             (
@@ -877,14 +867,6 @@ async def async_setup_entry(
             )
         )
 
-        if expose_next_inexpensive_window:
-            entities.append(
-                ElectricityProNextInexpensive1hWindowSensor(
-                    coordinator=entry.runtime_data,
-                    entry=entry,
-                )
-            )
-
     if CONF_PRICE_ENTITY in settings:
         entities.append(
             ElectricityProConsumptionTimingScoreSensor(
@@ -923,6 +905,33 @@ async def async_setup_entry(
             ElectricityProFlowCompatibilitySensor(entry.runtime_data, entry)
         )
     async_add_entities(entities)
+
+    if not forecast_configured or CONF_GOOD_PRICE_THRESHOLD not in settings:
+        _update_next_inexpensive_window_registry(hass, entry, expose=False)
+        return
+
+    next_inexpensive_window_added = False
+
+    @callback
+    def async_add_next_inexpensive_window() -> None:
+        """Wait for comparable prices without disabling on a transient gap."""
+        nonlocal next_inexpensive_window_added
+        if next_inexpensive_window_added:
+            return
+        if not entry.runtime_data.forecast_prices_are_comparable:
+            if entry.runtime_data.forecast_intervals:
+                _update_next_inexpensive_window_registry(hass, entry, expose=False)
+            return
+        _update_next_inexpensive_window_registry(hass, entry, expose=True)
+        next_inexpensive_window_added = True
+        async_add_entities(
+            [ElectricityProNextInexpensive1hWindowSensor(entry.runtime_data, entry)]
+        )
+
+    entry.async_on_unload(
+        entry.runtime_data.async_add_listener(async_add_next_inexpensive_window)
+    )
+    async_add_next_inexpensive_window()
 
 
 class ElectricityProNamedSensor(
