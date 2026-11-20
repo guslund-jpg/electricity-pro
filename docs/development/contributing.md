@@ -346,6 +346,13 @@ availability bound to the same reader. Tests exercise all six phases independent
 including zero, unavailable readings and recovery. Entity attribute dictionaries
 use `object` values rather than `Any`; this does not validate their runtime contents.
 
+The conditional Next inexpensive window entity also listens for coordinator
+updates until comparable forecast prices allow its registration. Empty startup
+data stays pending; known incompatible pricing keeps the existing migration
+policy. Registration happens once per platform setup, preserves user-disabled
+choices, and removes its listener on unload. Runtime price calculations stay in
+the coordinator. See [forecast recovery](../reference/forecast-retrieval.md#startup-and-entity-recovery).
+
 Provider normalization explicitly checks missing states before reading attributes.
 Unit metadata enters as `object` and is narrowed where strings are required;
 malformed units cannot become measured readings. Tests cover missing states,

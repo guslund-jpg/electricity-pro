@@ -195,9 +195,9 @@ configured effective-price scope.
 
 `next_inexpensive_1h_window_start` is an absolute-threshold recommendation. It
 is exposed only when the configured live and forecast Effective Prices are
-complete and have matching component and VAT semantics. The currently
-supported native Nord Pool forecast is market-only and VAT-excluded with partial
-component coverage, so this recommendation is not created from that source.
+complete and have matching currency, component and VAT semantics. Raw native
+Nord Pool prices have partial component coverage. They qualify only when the
+configured adjustments produce complete, comparable Effective Prices.
 
 This safety rule does not affect Cheapest 1h, 2h, and 3h Window. Those sensors
 rank the available forecast scheduling prices relative to one another and do
@@ -207,6 +207,9 @@ On upgrade, an existing unusable Next Inexpensive entity is disabled by the
 integration rather than left as a permanently unavailable state. Its registry
 identity is retained so Electricity Pro can restore it if a future forecast
 source supplies compatible complete pricing.
+Missing startup data is kept pending instead. A later comparable forecast
+creates or restores the entity without a manual reload, preserving its identity
+and respecting user-disabled choices. See [forecast recovery](forecast-retrieval.md#startup-and-entity-recovery).
 
 ## Other implemented entities (stable release line)
 
@@ -222,7 +225,7 @@ source supplies compatible complete pricing.
 | `cheapest_1h_window_start`, `cheapest_2h_window_start`, `cheapest_3h_window_start` | Forecast-derived continuous-window starts, with a sufficiently long gap-free horizon | Timestamp | Timestamp / None |
 | `cheapest_1h_window_average_effective_price`, `cheapest_2h_window_average_effective_price`, `cheapest_3h_window_average_effective_price` | Average **scheduling price** for each window; historical keys retained, not a complete household Effective Price claim | Currency/kWh | None / None |
 | `price_direction` | Two-hour scheduling-price trend: rising/falling/stable | None | None / None |
-| `next_inexpensive_1h_window_start` | Complete comparable forecast plus configured threshold required; not exposed for current partial Nord Pool scope | Timestamp | Timestamp / None |
+| `next_inexpensive_1h_window_start` | Complete comparable Effective Price forecast plus configured threshold required | Timestamp | Timestamp / None |
 | `good_time_to_use_electricity` | **Binary sensor** created for fixed-threshold or adaptive configuration; incomplete inputs can leave it unknown | On/off | None / Not applicable |
 
 Forecast entities require a configured native Nord Pool entry. Window averages

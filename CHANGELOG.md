@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Wait for configured Nord Pool setup before retrieving forecasts at startup.
+  Recover the Next inexpensive 1h window sensor when the first comparable
+  forecast arrives later, preserving entity identity and user-disabled choices.
+
 ### Changed
 
 - Organize the English and Swedish Standard and Enhanced dashboard examples
