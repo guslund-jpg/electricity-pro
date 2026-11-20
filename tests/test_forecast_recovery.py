@@ -168,7 +168,9 @@ async def test_first_forecast_retry_recovers_entity_without_manual_reload(
 
         freezer.move_to(START + timedelta(minutes=15))
         async_fire_time_changed(hass, START + timedelta(minutes=15))
-        await hass.async_block_till_done()
+        # HA interval callbacks are background jobs. Finish the retry before
+        # removing the mocked native action, regardless of event-loop timing.
+        await hass.async_block_till_done(wait_background_tasks=True)
 
     assert fetch.await_count == 2
     registered = registry.async_get_entity_id("sensor", DOMAIN, unique_id)
@@ -216,7 +218,7 @@ async def test_expired_forecast_recovers_without_disabling_existing_entity(
         FETCH, AsyncMock(side_effect=HomeAssistantError("Nord Pool is offline"))
     ):
         async_fire_time_changed(hass, next_day)
-        await hass.async_block_till_done()
+        await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.states.get(ENTITY).state == "unavailable"
     assert registry.async_get(ENTITY).disabled_by is None
 
@@ -230,7 +232,7 @@ async def test_expired_forecast_recovers_without_disabling_existing_entity(
     freezer.move_to(retry_at)
     with patch(FETCH, AsyncMock(return_value=recovered)):
         async_fire_time_changed(hass, retry_at)
-        await hass.async_block_till_done()
+        await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.states.get(ENTITY).state == (WINDOW + timedelta(days=1)).isoformat()
     assert registry.async_get(ENTITY).id == original.id
 
