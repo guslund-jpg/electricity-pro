@@ -10,6 +10,30 @@ identifies the stable version. Work on `main` is not
 automatically released or hardware-validated. Release scope and priorities may
 change as testing and source availability improve.
 
+## v1.8.0 — First beta preparation
+
+Prepare **v1.8.0b1** before a stable v1.8.0 release. This is source preparation,
+not an announced publication. Retain Home Assistant Core **2026.9.0** and Python
+3.14 as the minimum after the [release review](docs/releases/1.8.0.md).
+
+- Include completed #288 source/result separation, monthly cost components,
+  Recorder statistics, the monthly archive and Enhanced chart from #165.
+- Include the three-tab Standard/Enhanced layout in both languages, fixed gauge
+  scales, rounding notes, itemized VAT and the refined monthly chart legend.
+- Include optional fixed export pricing, saved interval booking and separate
+  daily/monthly compensation estimates from #241. Keep them experimental and
+  retain real-export and settlement validation as open follow-up in #335/#241.
+- Include the Nord Pool startup/late-forecast recovery fix from #429.
+- Keep #312 parked in the backlog. Demand-charge invoices, hourly-import source
+  collection and tariff estimates from #414–#416 were reverted by #417; they
+  remain outside v1.8.0. Battery control and site-balance analytics are deferred.
+
+Known-zero export compensation cards and More info/history were manually checked
+for day and month in all four dashboard variants on Core **2026.11.2**. Earlier
+runtime/lifecycle and Recorder evidence is recorded separately. The exact
+versioned beta package still needs its final upgrade/reload/restart smoke test
+and explicit publication approval. [Beta validation record](docs/validation/v1.8.md)
+
 ## After v1.7.0 — Maintenance direction
 
 The validation/type-checking improvements and Enhanced forecast chart fix shipped
@@ -80,8 +104,9 @@ measured-channel foundation and its validation limits. Follow-up work builds on
 independent AC production/export/household channels, protected partial counters
 and opt-in power compatibility diagnostics.
 
-Calculated site balances, self-consumption/self-sufficiency and export revenue
-remain future work, not delivered by those independent channels. Solar/battery
+Calculated site balances, self-consumption/self-sufficiency and supplier/market
+export pricing remain future work. The v1.8.0 beta scope adds only the separate
+fixed-price partial export estimates described above. Solar/battery
 hardware validation is still outstanding; track release evidence in
 [#335](https://github.com/guslund-jpg/electricity-pro/issues/335) and the
 [validation plan](docs/validation/energy-flow-test-plan.md).
@@ -168,6 +193,8 @@ broader whole-home energy intelligence.
 Reliability, documentation and compatibility fixes can proceed independently
 of new capabilities. [Meter-derived monthly peak-hour statistics (#312)](https://github.com/guslund-jpg/electricity-pro/issues/312)
 remain a separately designed feature candidate, with no committed release date.
+The maintainer parked #312 during v1.8.0 preparation; it remains open and is
+excluded from the beta and stable release scope.
 The [recovery policy (#313)](https://github.com/guslund-jpg/electricity-pro/issues/313)
 is complete and documented in the [energy and cost recovery guide](docs/guides/monthly-energy-recovery.md);
 it does not add automatic historical repair.

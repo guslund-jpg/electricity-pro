@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+The changes below form the planned **v1.8.0b1** beta. Preparation does not
+establish a published release; see the [beta and upgrade notes](docs/releases/1.8.0.md).
+
+### Added
+
+- Add optional fixed export-price configuration with signed prices, currency,
+  VAT/component declarations and meter-scoped UTC validity periods. Equivalent
+  saves retain the current period; changes and disabling close it. (#423, #424)
+- Value observed directional export-energy intervals using their saved fixed
+  price, and persist signed compensation with replay protection across restart
+  and local day/month boundaries. Import prices and costs remain separate.
+  (#426, #427)
+- Add checkpointed daily and monthly export compensation estimate sensors with
+  partial observed/priced energy coverage and Recorder statistics. Known zero
+  remains distinct from unavailable data. These optional estimates are
+  experimental and not validated against real exported energy or bills. (#428)
+
 ### Fixed
 
 - Wait for configured Nord Pool setup before retrieving forecasts at startup.
@@ -10,6 +27,9 @@
 
 ### Changed
 
+- Complete the provider input/coordinator result separation and isolate bounded
+  observation histories and forecast caching. Preserve settings, entity
+  identities, Decimal calculations and existing history contracts. (#288)
 - Show separate daily and monthly export compensation estimates in the English
   and Swedish Standard and Enhanced dashboards. Keep signed and known-zero
   amounts, partial coverage and missing-data status distinct from import costs.
