@@ -350,8 +350,11 @@ energy coverage. Known zero and negative amounts remain signed sensor readings;
 missing amounts are not replaced with zero. Existing booked amounts are labelled
 when the source cannot be confirmed or fixed pricing is disabled. A daily
 publication gap after midnight shows missing data rather than yesterday's amount.
-Install the updated dashboard YAML to see the cards; their live UI verification
-remains pending.
+Install the updated dashboard YAML to see the cards. On 21 November 2026 the
+maintainer verified known-zero day/month amounts, coverage text and More info
+with history in Swedish/English Standard and Enhanced on Core 2026.11.2.
+Nonzero/signed and missing-data UI cases retain automated coverage only.
+See the [beta validation record](../validation/v1.8.md).
 
 ## Daily and monthly statistics
 

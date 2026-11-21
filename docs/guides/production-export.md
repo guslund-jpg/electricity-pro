@@ -30,16 +30,17 @@ displayed as zero. Unconfigured channels do not create new sensors.
 These are independent measurements, not a reconciled site balance. Export
 may include battery discharge; it is not labelled solar export. Existing
 Current Power, import energy, prices and costs keep their existing meanings.
-Both example dashboards include optional Production, Grid export and Household demand groups
-on Overview, with power and partial daily/monthly energy tiles. Absent or
+The current example dashboards include optional Production, Grid export and
+Household demand groups on Electrical Details, with power and partial daily/monthly
+energy tiles. Absent or
 unknown entities are hidden, while zero and unavailable readings remain
 visible. Tap a tile for history and source/coverage attributes.
 Copy the updated example YAML to your dashboard to see these cards;
 updating the integration alone does not update a manually copied dashboard.
 
-## Development navigation on main
+## Configure v1.7.2 and the v1.8.0 beta
 
-The unreleased shared configuration screens offer **Production and export**
+The shared configuration screens offer **Production and export**
 (**Produktion och export**) directly in Configure and after Grid charges in both
 Custom and Tibber setup. Leave the optional-source switch off for import-only
 monitoring. Enabling it displays the six source selectors before saving.
@@ -100,6 +101,33 @@ rules below. It does not replace Energy Today or monthly import energy, nor
 feed import costs, Average Power, base-load, timing-score or Good Time calculations.
 Multiplying all household energy by an import tariff would incorrectly charge
 for energy supplied locally; no such calculation is introduced here.
+
+## Fixed export price (beta)
+
+The planned v1.8.0 beta adds optional compensation estimates from a confirmed
+directional lifetime grid-export register. Select that source in **Production
+and export**, confirm its meaning, then choose **Configure fixed export price**
+in the installation/compatibility screen. The price form lets you enable the
+rate and enter its signed amount per kWh, currency, VAT treatment and included
+supplier/grid compensation. Use declarations matching your export agreement;
+an import price or generation reading is not an export agreement.
+
+Saving a changed price starts its validity at the save time and closes the old
+period at that same instant. An equivalent save retains the existing period.
+Disabling the price or changing/removing its meter closes the active period
+and retains earlier price periods and booked amounts. Past unpriced intervals
+are not retroactively valued.
+
+The daily/monthly compensation sensors and optional dashboard cards show saved,
+partially covered amounts separately from import costs. A negative amount is a
+cost for export; known zero is different from missing data. No amount is published
+until a priced interval has been saved. At a new day this can cause a temporary
+unavailable period; already booked amounts retain source/pricing context during
+a source outage or after the rate is disabled.
+
+Real nonzero export and supplier settlement are not yet verified. Supplier or
+market-linked price sources remain future work. See [sensor semantics](../reference/sensors.md#export-compensation-estimates)
+and the [beta validation record](../validation/v1.8.md).
 
 ## Coverage and meter protection
 
@@ -172,8 +200,9 @@ readings described here and do not establish complete balance readiness.
 
 Calculated household-demand balances, synchronized
 balance checks, self-consumption/self-sufficiency ratios, native daily-reset
-sources and export-price/revenue accounting are not
-provided here. In particular, this increment makes no claim about the origin
+sources and supplier/market-linked export pricing remain future work. The
+planned beta adds only the fixed-rate partial estimates above.
+This increment makes no claim about the origin
 of stored or exported energy.
 
 See the [energy-flow design](../adr/0013-production-and-bidirectional-energy-flows.md)

@@ -6,7 +6,9 @@ Pro using the [root README](../README.md#installation).
 These documents describe maintained behaviour on `main`.
 The [latest published release](https://github.com/guslund-jpg/electricity-pro/releases/latest)
 identifies the stable version; `main` can move ahead of that tag. The
-[v1.7.2 notes](releases/1.7.2.md) describe the current maintenance scope. Optional energy-flow features remain experimental.
+[v1.8.0 beta notes](releases/1.8.0.md) describe the next release preparation;
+the beta has not been published. Historical [v1.7.2 notes](releases/1.7.2.md)
+retain that release's scope. Optional energy-flow features remain experimental.
 Test evidence is not a claim of real solar/battery hardware validation.
 
 ## Setup and troubleshooting
@@ -63,6 +65,8 @@ Git history preserves previous versions.
 
 ## Validation and releases
 
+- [v1.8.0 beta preparation and upgrade notes](releases/1.8.0.md)
+- [v1.8.0 evidence and versioned-package smoke test](validation/v1.8.md)
 - [ADR-0014 manual continuity and tariff verification](validation/adr-0014.md)
 - [v1.7.2 maintenance update, upgrade notes and validation](releases/1.7.2.md)
 - [v1.7.1 release, upgrade notes and validation](releases/1.7.1.md)

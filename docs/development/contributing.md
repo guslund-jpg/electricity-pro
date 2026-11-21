@@ -55,7 +55,8 @@ Manual checks are in the
 
 ## Home Assistant support and release review
 
-Electricity Pro v1.7.x and `main` require **Home Assistant 2026.9.0** and Python 3.14.
+Electricity Pro v1.7.x, the v1.8.0 beta candidate and `main` require
+**Home Assistant 2026.9.0** and Python 3.14.
 Released v1.6.0 keeps its original 2025.9.0 minimum. Historical release notes
 and validation records describe those releases, not the current development floor.
 
@@ -89,6 +90,24 @@ Release checklist:
 Core 2026.9 provides Probatio, so validation imports it directly rather than
 using the older Voluptuous name or an action-schema compatibility adapter.
 See the [Home Assistant validation-engine announcement](https://contributors.home-assistant.io/blog/2026/09/30/probatio-validation-engine/).
+
+### v1.8.0 beta review — 21 November 2026
+
+Retain **Core 2026.9.0** and Python 3.14. The new fixed-price export, monthly
+cost statistics/archive and dashboard scope uses interfaces exercised by the
+minimum-Core suite; no newer required API was identified. Retain native
+Probatio, saved-setting overlays, source-scoped history migrations and existing
+entity identities. This release scope justifies no further compatibility-adapter
+removal. `hacs.json`, the minimum pin, CI and tooling keep the existing floor.
+
+Current stable Core is
+[2026.11.2](https://github.com/home-assistant/core/releases/tag/2026.11.2).
+The latest [harness release, 0.13.375](https://github.com/MatthewFlamm/pytest-homeassistant-custom-component/releases/tag/0.13.375),
+still targets Core **2026.10.4**. Retain it and the isolated 0.13.363 / Core
+2026.9.0 baseline. The configured test instance runs Core 2026.11.2; its manual
+checks are separate from a full automated suite on that version, which remains
+unavailable with the current harness pin. Exact candidate test/package results
+and remaining gates belong in the [v1.8 record](../validation/v1.8.md).
 
 ### Baseline review — 5 November 2026
 

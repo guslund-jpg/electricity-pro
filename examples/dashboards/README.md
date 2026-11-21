@@ -224,8 +224,10 @@ does not enable it. If both anchor entities are absent/unknown the group hides;
 a retained unavailable entity from a removed configuration can keep it visible.
 Standard uses native Tile cards; Enhanced uses its existing Mushroom cards.
 **Replace the YAML of existing dashboards** to get these additions. The existing
-SVG previews do not show the new optional cards. Live dashboard verification of
-these additions remains pending; template and visibility tests are separate evidence.
+SVG previews do not show the new optional cards. On 21 November 2026 the
+maintainer checked known-zero daily/monthly amounts, coverage notes and More info
+with history in all four variants on Core 2026.11.2. Nonzero/signed and missing-data
+UI states remain automated evidence. See the [beta validation record](../../docs/validation/v1.8.md).
 
 ## Card requirements
 

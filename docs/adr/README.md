@@ -16,9 +16,9 @@ See [architecture](../development/architecture.md) for current ownership and
 | [0010: signed values](0010-signed-power-and-negative-values.md) | Accepted |
 | [0011: market-price series](0011-market-price-series-contract.md) | Proposed status retained; public series implemented, formal acceptance not established by this cleanup |
 | [0012: adaptive classification](0012-adaptive-good-price-classification.md) | Accepted |
-| [0013: energy flows](0013-production-and-bidirectional-energy-flows.md) | Accepted design; only part implemented, unreleased |
-| [0014: source readings and integration results](0014-source-readings-and-integration-results.md) | Accepted design and three-PR delivery plan; implementation not started |
-| [0015: fixed export compensation](0015-fixed-export-compensation.md) | Proposed; calculation tested with synthetic inputs |
+| [0013: energy flows](0013-production-and-bidirectional-energy-flows.md) | Accepted design; measured-channel foundation released in v1.6.0, broader balance work deferred |
+| [0014: source readings and integration results](0014-source-readings-and-integration-results.md) | Accepted design; implementation and recorded manual verification complete in #288, including explicitly skipped checks |
+| [0015: fixed export compensation](0015-fixed-export-compensation.md) | Fixed-rate scope implemented for the v1.8.0 beta; automated and known-zero manual evidence, real export/settlement pending |
 
 Numbers 0002–0004 were unused placeholders and have been removed; existing
 records retain their numbers. Do not infer decisions from numbering gaps. Formal

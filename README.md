@@ -61,11 +61,12 @@ source requirements and price-component definitions.
 ## Release scope
 
 Use the [latest published release](https://github.com/guslund-jpg/electricity-pro/releases/latest)
-for ordinary installations. The current source includes the **v1.7.2**
-maintenance update: simplified Custom/Tibber configuration screens, reviewed
-Swedish entity labels and Swedish dashboard examples. Existing calculations,
-IDs and accumulated totals are preserved. **Home Assistant Core 2026.9.0 or
-newer is required.** See the [release and upgrade notes](docs/releases/1.7.2.md).
+for ordinary installations. This branch prepares **v1.8.0b1**, the first beta
+toward v1.8.0, with monthly cost components and charts, reorganized dashboards,
+and optional fixed-price export compensation estimates. The beta is **not yet
+published**. See the [beta scope and upgrade notes](docs/releases/1.8.0.md).
+The stable version's [v1.7.2 notes](docs/releases/1.7.2.md) remain
+available. **Home Assistant Core 2026.9.0 or newer is required.**
 
 A source version on `main` can precede publication. GitHub releases and their
 tags identify what has actually been published; the source version alone does
@@ -73,7 +74,10 @@ not make an update available through HACS.
 
 Optional production/export/household sources and compatibility diagnostics remain
 **experimental / not hardware-verified**. Synthetic validation does not establish
-real solar or battery compatibility. Battery control and export revenue are not included.
+real solar or battery compatibility. Fixed-price export compensation is a partial
+estimate, kept separate from import costs and not reconciled against supplier
+bills. Battery control, calculated site balance and demand-charge estimates are
+outside this beta.
 
 Documentation on `main` may move ahead of the stable release. Use tagged releases
 for ordinary installations and a separate test installation for development code.
@@ -104,6 +108,21 @@ negative means export. Export compensation is not inferred from import prices.
 - Voltage L1 / L2 / L3
 - Monthly Peak Hour Consumption
 - Monthly Peak Hour Time.
+
+Monthly cost estimates expose known variable components, accrued fixed supplier
+and grid fees, earlier unsplit costs, VAT where its basis is known, and rounding
+differences. Enhanced includes a stacked monthly variable-cost chart. Historical
+component coverage begins when it was recorded; older costs are not reconstructed.
+
+### Fixed export price (experimental)
+
+With a confirmed directional lifetime export-energy source, configure a separate
+fixed export price and its currency, VAT and included compensation components.
+Daily and monthly estimates retain positive, zero and negative amounts, their
+observed/priced energy coverage, and saved history. Negative compensation is a
+cost for export. Import costs are not reduced by these separate estimates.
+Real nonzero export and supplier settlement remain unverified.
+See [configuration and limits](docs/guides/production-export.md#fixed-export-price-beta).
 
 ### Insights
 

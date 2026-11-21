@@ -2,10 +2,14 @@
 
 ## Status
 
-Proposed for [#241](https://github.com/guslund-jpg/electricity-pro/issues/241).
-The calculation and configuration are covered by synthetic tests. Live validation
-of physical energy sources is tracked separately in
+The fixed-rate scope is implemented on `main` and included in the planned
+**v1.8.0b1** beta; [#241](https://github.com/guslund-jpg/electricity-pro/issues/241)
+remains open for verification and future pricing strategies. Automated tests
+cover calculation, configuration, persistence and Recorder. Manual runtime/UI
+checks include known-zero export and all four dashboard variants. These do not
+validate real nonzero export or settlement. Physical energy evidence is tracked in
 [#335](https://github.com/guslund-jpg/electricity-pro/issues/335).
+See the [beta evidence record](../validation/v1.8.md).
 
 ## Design
 
