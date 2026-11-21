@@ -1,9 +1,10 @@
 # Changelog
 
-## [Unreleased]
+## [1.8.0b1] — 2026-11-21
 
-The changes below form the planned **v1.8.0b1** beta. Preparation does not
-establish a published release; see the [beta and upgrade notes](docs/releases/1.8.0.md).
+Published as a GitHub [pre-release](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.8.0b1)
+from `b74f02c`; **v1.7.2** remains the latest stable release. See the
+[beta and upgrade notes](docs/releases/1.8.0.md).
 
 ### Added
 
