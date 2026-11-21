@@ -31,8 +31,10 @@ not an announced publication. Retain Home Assistant Core **2026.9.0** and Python
 Known-zero export compensation cards and More info/history were manually checked
 for day and month in all four dashboard variants on Core **2026.11.2**. Earlier
 runtime/lifecycle and Recorder evidence is recorded separately. The exact
-versioned beta package still needs its final upgrade/reload/restart smoke test
-and explicit publication approval. [Beta validation record](docs/validation/v1.8.md)
+versioned beta package passed its approved upgrade/reload/restart smoke test on
+Core **2026.11.2**, preserving configured identities, settings and checked
+history. Merge and publication still await explicit approval.
+[Beta validation record](docs/validation/v1.8.md)
 
 ## After v1.7.0 — Maintenance direction
 

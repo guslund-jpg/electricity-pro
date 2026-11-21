@@ -66,7 +66,7 @@ Git history preserves previous versions.
 ## Validation and releases
 
 - [v1.8.0 beta preparation and upgrade notes](releases/1.8.0.md)
-- [v1.8.0 evidence and pending package verification](validation/v1.8.md)
+- [v1.8.0 evidence and versioned-package smoke test](validation/v1.8.md)
 - [ADR-0014 manual continuity and tariff verification](validation/adr-0014.md)
 - [v1.7.2 maintenance update, upgrade notes and validation](releases/1.7.2.md)
 - [v1.7.1 release, upgrade notes and validation](releases/1.7.1.md)
