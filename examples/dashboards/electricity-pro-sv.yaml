@@ -199,6 +199,62 @@ views:
               icon: mdi:progress-clock
               color: green
 
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_export_compensation_today
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_export_compensation_today
+                  state_not: unknown
+                - condition: state
+                  entity: sensor.electricity_pro_export_compensation_today
+                  state_not: unavailable
+              card:
+                type: tile
+                entity: sensor.electricity_pro_export_compensation_today
+                name: Exportersättning (ca)
+                icon: mdi:transmission-tower-export
+                color: teal
+                tap_action:
+                  action: more-info
+            - type: markdown
+              content: >-
+                {% set export = 'sensor.electricity_pro_export_compensation_today' %}
+                {% if is_number(states(export)) %}
+                {% set observed = state_attr(export, 'observed_export_kwh') %}
+                {% set priced = state_attr(export, 'priced_export_kwh') %}
+                **Delvis täckning:**
+                {% if is_number(observed) and is_number(priced) %}
+                {{ ('%.3f' | format(observed | float)) | replace('.', ',') }} kWh observerade,
+                {{ ('%.3f' | format(priced | float)) | replace('.', ',') }} kWh prissatta.
+                {% else %}Täckningsunderlag saknas.{% endif %}
+                {% if state_attr(export, 'source_status') != 'partial' %}
+                Exportkällan kan inte bekräftas; bokfört belopp visas.
+                {% endif %}
+                {% if state_attr(export, 'fixed_export_price_enabled') is false %}
+                Fast exportpris är avstängt; bokfört belopp visas.
+                {% endif %}
+                {% if states(export) | float < 0 %}
+                Negativ ersättning är en kostnad för export.
+                {% endif %}
+                {% else %}
+                **Exportersättning (ca): Underlag saknas.**
+                Inget belopp kan visas för perioden.
+                {% endif %}
+                Separat från importkostnaden.
+                [Om exportersättning](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/reference/sensors.md#export-compensation-estimates)
+
   - title: "Priser och trender"
     path: trends
     icon: mdi:chart-areaspline
@@ -520,6 +576,62 @@ views:
               name: "Elhandelskostnad den här månaden"
               icon: mdi:calendar-month-outline
               color: green
+
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_this_month
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_export_compensation_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_export_compensation_this_month
+                  state_not: unknown
+                - condition: state
+                  entity: sensor.electricity_pro_export_compensation_this_month
+                  state_not: unavailable
+              card:
+                type: tile
+                entity: sensor.electricity_pro_export_compensation_this_month
+                name: Exportersättning (ca)
+                icon: mdi:transmission-tower-export
+                color: teal
+                tap_action:
+                  action: more-info
+            - type: markdown
+              content: >-
+                {% set export = 'sensor.electricity_pro_export_compensation_this_month' %}
+                {% if is_number(states(export)) %}
+                {% set observed = state_attr(export, 'observed_export_kwh') %}
+                {% set priced = state_attr(export, 'priced_export_kwh') %}
+                **Delvis täckning:**
+                {% if is_number(observed) and is_number(priced) %}
+                {{ ('%.3f' | format(observed | float)) | replace('.', ',') }} kWh observerade,
+                {{ ('%.3f' | format(priced | float)) | replace('.', ',') }} kWh prissatta.
+                {% else %}Täckningsunderlag saknas.{% endif %}
+                {% if state_attr(export, 'source_status') != 'partial' %}
+                Exportkällan kan inte bekräftas; bokfört belopp visas.
+                {% endif %}
+                {% if state_attr(export, 'fixed_export_price_enabled') is false %}
+                Fast exportpris är avstängt; bokfört belopp visas.
+                {% endif %}
+                {% if states(export) | float < 0 %}
+                Negativ ersättning är en kostnad för export.
+                {% endif %}
+                {% else %}
+                **Exportersättning (ca): Underlag saknas.**
+                Inget belopp kan visas för perioden.
+                {% endif %}
+                Separat från importkostnaden.
+                [Om exportersättning](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/reference/sensors.md#export-compensation-estimates)
 
   - title: "Eldetaljer"
     path: details

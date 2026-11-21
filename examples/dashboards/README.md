@@ -197,6 +197,36 @@ If Home Assistant assigned a different entity ID, replace that ID throughout
 the YAML. Cards and complete views can be removed or reordered without changing
 the integration.
 
+### Export compensation estimates (experimental)
+
+All four examples show **Export compensation (est.)** / **Exportersättning (ca)**
+under **Today** in Overview and **This month** in Prices and Trends. They use the
+[saved compensation sensors](../../docs/reference/sensors.md#export-compensation-estimates)
+in their own currency. Import costs and the stacked variable-cost chart stay
+separate; compensation is not subtracted from them. The daily amount is part of
+the monthly amount, so do not add the two together.
+
+Known zero amounts stay visible. Negative compensation is a cost for export:
+2 kWh at −0.20 SEK/kWh gives **−0.40 SEK**. The adjacent note shows observed and
+priced export energy with **partial coverage**, even if all observed energy was
+priced. This does not establish complete calendar-period coverage or agreement
+with a supplier bill. A saved amount remains visible with a status note if the
+source cannot be confirmed or fixed export pricing is off.
+
+Missing/unknown/unavailable amounts show **Data unavailable** / **Underlag saknas**,
+without substituting zero or the previous day's amount. A new day can temporarily
+lack an amount while waiting for its first saved priced interval. Tap an amount
+for history and attributes.
+
+Each group appears when its export-energy or compensation entity is neither
+absent nor `unknown`; `unavailable` keeps the group visible. Export power alone
+does not enable it. If both anchor entities are absent/unknown the group hides;
+a retained unavailable entity from a removed configuration can keep it visible.
+Standard uses native Tile cards; Enhanced uses its existing Mushroom cards.
+**Replace the YAML of existing dashboards** to get these additions. The existing
+SVG previews do not show the new optional cards. Live dashboard verification of
+these additions remains pending; template and visibility tests are separate evidence.
+
 ## Card requirements
 
 The example uses built-in Home Assistant cards, including headings, gauges,

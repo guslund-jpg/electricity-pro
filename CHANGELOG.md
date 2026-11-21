@@ -10,6 +10,10 @@
 
 ### Changed
 
+- Show separate daily and monthly export compensation estimates in the English
+  and Swedish Standard and Enhanced dashboards. Keep signed and known-zero
+  amounts, partial coverage and missing-data status distinct from import costs.
+  Existing dashboards need the updated YAML. (#241)
 - Organize the English and Swedish Standard and Enhanced dashboard examples
   into Overview, Prices and Trends, and Electrical Details. (#420)
 - Hide monthly variable cost legend entries in both Enhanced examples when

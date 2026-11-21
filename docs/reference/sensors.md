@@ -344,6 +344,15 @@ sensor introduction form the visible start balance; Recorder counts subsequent
 changes. See [export sensor design](../adr/0015-fixed-export-compensation.md#daily-and-monthly-sensors)
 and [Recorder guidance](../guides/recorder.md#export-compensation-history).
 
+The [Standard and Enhanced dashboard examples](../../examples/dashboards/README.md#export-compensation-estimates-experimental)
+show these estimates separately from import costs, with partial observed/priced
+energy coverage. Known zero and negative amounts remain signed sensor readings;
+missing amounts are not replaced with zero. Existing booked amounts are labelled
+when the source cannot be confirmed or fixed pricing is disabled. A daily
+publication gap after midnight shows missing data rather than yesterday's amount.
+Install the updated dashboard YAML to see the cards; their live UI verification
+remains pending.
+
 ## Daily and monthly statistics
 
 Average Power Today and Average Market Price Today are implemented and listed
