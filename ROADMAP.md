@@ -40,12 +40,16 @@ Core **2026.11.2**, preserving configured identities, settings and checked
 history. Publication did not change the HA test instance.
 [Beta validation record](docs/validation/v1.8.md)
 
+A direct **Marketplace upgrade from published v1.7.2 to v1.8.0b1** was reported
+successful on a separate **Core 2026.11.2** system. The maintainer saw correct
+settings, entities and history, with no new Electricity Pro warnings. This is
+inspection-level evidence; detailed before/after comparisons were not supplied.
+[Upgrade report](docs/validation/v1.8.md#marketplace-upgrade-report--21-november-2026)
+
 Before stable **v1.8.0**:
 
 - Collect beta observations of normal import/cost accumulation, forecasts,
   dashboards, history and daily rollover; resolve release-blocking regressions.
-- Record a direct Marketplace/HACS upgrade from published **v1.7.2**. The
-  versioned package smoke test began from a development installation.
 - Recheck Core support/test-harness availability and run the final candidate's
   automated checks and approved lifecycle verification.
 - Review open export/hardware evidence in #241/#335, including live nonzero and
