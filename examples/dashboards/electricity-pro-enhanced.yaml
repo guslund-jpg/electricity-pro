@@ -189,6 +189,62 @@ views:
               icon_color: green
               layout: vertical
 
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_today
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_export_compensation_today
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_export_compensation_today
+                  state_not: unknown
+                - condition: state
+                  entity: sensor.electricity_pro_export_compensation_today
+                  state_not: unavailable
+              card:
+                type: custom:mushroom-entity-card
+                entity: sensor.electricity_pro_export_compensation_today
+                name: Export compensation (est.)
+                icon: mdi:transmission-tower-export
+                icon_color: teal
+                tap_action:
+                  action: more-info
+            - type: markdown
+              content: >-
+                {% set export = 'sensor.electricity_pro_export_compensation_today' %}
+                {% if is_number(states(export)) %}
+                {% set observed = state_attr(export, 'observed_export_kwh') %}
+                {% set priced = state_attr(export, 'priced_export_kwh') %}
+                **Partial coverage:**
+                {% if is_number(observed) and is_number(priced) %}
+                {{ '%.3f' | format(observed | float) }} kWh observed,
+                {{ '%.3f' | format(priced | float) }} kWh priced.
+                {% else %}Coverage data unavailable.{% endif %}
+                {% if state_attr(export, 'source_status') != 'partial' %}
+                The export source cannot be confirmed; showing the booked amount.
+                {% endif %}
+                {% if state_attr(export, 'fixed_export_price_enabled') is false %}
+                Fixed export pricing is off; showing the booked amount.
+                {% endif %}
+                {% if states(export) | float < 0 %}
+                Negative compensation is a cost for export.
+                {% endif %}
+                {% else %}
+                **Export compensation (est.): Data unavailable.**
+                No amount can be shown for this period.
+                {% endif %}
+                Separate from import costs.
+                [Export compensation details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/reference/sensors.md#export-compensation-estimates)
+
   - title: "Prices and Trends"
     path: trends
     icon: mdi:chart-areaspline
@@ -587,6 +643,62 @@ views:
               icon: mdi:calendar-month-outline
               icon_color: green
               layout: vertical
+
+      - type: conditional
+        conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_grid_export_this_month
+                state_not: unknown
+              - condition: state
+                entity: sensor.electricity_pro_export_compensation_this_month
+                state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_export_compensation_this_month
+                  state_not: unknown
+                - condition: state
+                  entity: sensor.electricity_pro_export_compensation_this_month
+                  state_not: unavailable
+              card:
+                type: custom:mushroom-entity-card
+                entity: sensor.electricity_pro_export_compensation_this_month
+                name: Export compensation (est.)
+                icon: mdi:transmission-tower-export
+                icon_color: teal
+                tap_action:
+                  action: more-info
+            - type: markdown
+              content: >-
+                {% set export = 'sensor.electricity_pro_export_compensation_this_month' %}
+                {% if is_number(states(export)) %}
+                {% set observed = state_attr(export, 'observed_export_kwh') %}
+                {% set priced = state_attr(export, 'priced_export_kwh') %}
+                **Partial coverage:**
+                {% if is_number(observed) and is_number(priced) %}
+                {{ '%.3f' | format(observed | float) }} kWh observed,
+                {{ '%.3f' | format(priced | float) }} kWh priced.
+                {% else %}Coverage data unavailable.{% endif %}
+                {% if state_attr(export, 'source_status') != 'partial' %}
+                The export source cannot be confirmed; showing the booked amount.
+                {% endif %}
+                {% if state_attr(export, 'fixed_export_price_enabled') is false %}
+                Fixed export pricing is off; showing the booked amount.
+                {% endif %}
+                {% if states(export) | float < 0 %}
+                Negative compensation is a cost for export.
+                {% endif %}
+                {% else %}
+                **Export compensation (est.): Data unavailable.**
+                No amount can be shown for this period.
+                {% endif %}
+                Separate from import costs.
+                [Export compensation details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/reference/sensors.md#export-compensation-estimates)
 
       - type: conditional
         conditions:
