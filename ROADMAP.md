@@ -10,20 +10,24 @@ identifies the stable version. Work on `main` is not
 automatically released or hardware-validated. Release scope and priorities may
 change as testing and source availability improve.
 
-## v1.8.0 — First beta preparation
+## v1.8.0 — Beta testing
 
-Prepare **v1.8.0b1** before a stable v1.8.0 release. This is source preparation,
-not an announced publication. Retain Home Assistant Core **2026.9.0** and Python
-3.14 as the minimum after the [release review](docs/releases/1.8.0.md).
+[v1.8.0b1](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.8.0b1)
+was published as a GitHub **pre-release** on **21 November 2026**, from `b74f02c`,
+after the `main` checks passed. **v1.7.2 remains the latest stable release.**
+Retain Home Assistant Core **2026.9.0** and Python 3.14 as the minimum after the
+[release review](docs/releases/1.8.0.md).
 
-- Include completed #288 source/result separation, monthly cost components,
+The beta includes the following stable-release scope:
+
+- Completed #288 source/result separation, monthly cost components,
   Recorder statistics, the monthly archive and Enhanced chart from #165.
-- Include the three-tab Standard/Enhanced layout in both languages, fixed gauge
+- The three-tab Standard/Enhanced layout in both languages, fixed gauge
   scales, rounding notes, itemized VAT and the refined monthly chart legend.
-- Include optional fixed export pricing, saved interval booking and separate
+- Optional fixed export pricing, saved interval booking and separate
   daily/monthly compensation estimates from #241. Keep them experimental and
   retain real-export and settlement validation as open follow-up in #335/#241.
-- Include the Nord Pool startup/late-forecast recovery fix from #429.
+- The Nord Pool startup/late-forecast recovery fix from #429.
 - Keep #312 parked in the backlog. Demand-charge invoices, hourly-import source
   collection and tariff estimates from #414–#416 were reverted by #417; they
   remain outside v1.8.0. Battery control and site-balance analytics are deferred.
@@ -33,8 +37,25 @@ for day and month in all four dashboard variants on Core **2026.11.2**. Earlier
 runtime/lifecycle and Recorder evidence is recorded separately. The exact
 versioned beta package passed its approved upgrade/reload/restart smoke test on
 Core **2026.11.2**, preserving configured identities, settings and checked
-history. Merge and publication still await explicit approval.
+history. Publication did not change the HA test instance.
 [Beta validation record](docs/validation/v1.8.md)
+
+Before stable **v1.8.0**:
+
+- Collect beta observations of normal import/cost accumulation, forecasts,
+  dashboards, history and daily rollover; resolve release-blocking regressions.
+- Record a direct Marketplace/HACS upgrade from published **v1.7.2**. The
+  versioned package smoke test began from a development installation.
+- Recheck Core support/test-harness availability and run the final candidate's
+  automated checks and approved lifecycle verification.
+- Review open export/hardware evidence in #241/#335, including live nonzero and
+  signed compensation, partial coverage and month rollover. Record any accepted
+  deferrals explicitly and retain experimental labels; publication is not a pass.
+- Finalize stable release notes and validation outcomes, then obtain separate
+  approval for the stable release. #312 and demand-charge work remain paused.
+
+Use the [beta checklist and stable-release gates](docs/validation/v1.8.md#before-stable-v180)
+to distinguish required release decisions from open hardware follow-up.
 
 ## After v1.7.0 — Maintenance direction
 
