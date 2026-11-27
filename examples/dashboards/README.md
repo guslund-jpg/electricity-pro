@@ -100,15 +100,23 @@ name was already in use.
 
 ## Standard dashboard
 
-The English and Swedish Standard examples use three views:
+The English and Swedish Standard examples use four views:
 
 - **Overview / Översikt** — current power, Effective Price, current cost rate,
-  Good Time and today's energy and cost figures.
-- **Prices and Trends / Priser och trender** — upcoming low-price windows,
-  recent price history, yesterday's Consumption Timing Score and this month's
-  energy and cost breakdown.
+  Good Time and today's energy and cost figures, with optional daily production,
+  grid export, household energy and separate export compensation.
+- **Prices / Priser** — upcoming low-price windows and recent price history.
+- **Energy and costs / Energi och kostnader** — this month's energy and cost
+  breakdown, optional monthly energy channels and export compensation, followed
+  by yesterday's Consumption Timing Score.
 - **Electrical Details / Eldetaljer** — phase measurements first, then average
-  and peak power, monthly peak hour and optional flows, with power history last.
+  and peak power, monthly peak hour and optional power channels, with power
+  history last.
+
+After copying the updated YAML, replace old `trends` bookmarks/navigation links
+with `prices` for price planning or `energy` for energy/cost statistics.
+The `overview` and `details` paths stay the same. Published v1.8.0b1 retains the
+earlier three-view examples.
 
 The Overview translates the Good Time binary state into actionable wording:
 **Good time to use electricity** or **Wait for a better price**. Its tile shows
@@ -116,8 +124,9 @@ the current Effective Price rather than the localized `on` or `off` text.
 
 ![Illustrative Electricity Pro standard dashboard](electricity-pro-preview.svg)
 
-The preview is illustrative. Values, language, and visible optional cards depend
-on the entities configured in your Home Assistant installation.
+The preview is illustrative and predates the four-view layout. Values, language,
+and visible optional cards depend on the entities configured in your Home
+Assistant installation.
 
 ### Set the live gauge scales
 
@@ -163,9 +172,10 @@ din valuta per timme. Lägg gulgränsen under den och skalans max över den.
 
 ### Optional production, export and household demand (experimental)
 
-Electrical Details includes independent Production, Grid export and Household demand groups
-using built-in cards. They show configured power and partial daily/monthly
-energy sensors; power-only and energy-only configurations are supported.
+Independent Production, Grid export and Household demand groups use built-in
+cards. Daily energy belongs to Overview and monthly energy to Energy and costs;
+Electrical Details keeps power readings. Power-only and energy-only
+configurations are supported independently in their respective views.
 Energy tiles explicitly say **partial** and link to
 [source and coverage details](../../docs/guides/production-export.md). Export is not
 labelled solar export, household consumption, savings or revenue.
@@ -200,7 +210,8 @@ the integration.
 ### Export compensation estimates (experimental)
 
 All four examples show **Export compensation (est.)** / **Exportersättning (ca)**
-under **Today** in Overview and **This month** in Prices and Trends. They use the
+under **Today** in Overview and **This month** in Energy and costs, next to the
+corresponding measured export-energy tile. They use the
 [saved compensation sensors](../../docs/reference/sensors.md#export-compensation-estimates)
 in their own currency. Import costs and the stacked variable-cost chart stay
 separate; compensation is not subtracted from them. The daily amount is part of
@@ -236,17 +247,23 @@ tiles, conditional cards and history graphs. No HACS frontend cards are required
 
 ## Enhanced dashboard
 
-The English and Swedish Enhanced examples use the same three views:
+The English and Swedish Enhanced examples use the same four views:
 
-- **Overview / Översikt** — live gauges, Good Time and today's key figures.
-- **Prices and Trends / Priser och trender** — the spot-price forecast and
-  scheduling insights, recent price comparison, and the monthly cost breakdown
-  with an optional stacked chart.
+- **Overview / Översikt** — live gauges, Good Time and today's key figures,
+  including configured daily energy channels and separate export compensation.
+- **Prices / Priser** — the spot-price forecast, scheduling insights and recent
+  price comparison.
+- **Energy and costs / Energi och kostnader** — monthly energy channels, cost
+  breakdown, separate export compensation and the optional stacked cost chart.
 - **Electrical Details / Eldetaljer** — phase measurements first, then average
-  and peak readings and optional flows. The 24-hour and six-hour power charts
+  and peak readings and optional power channels. The 24-hour and six-hour power charts
   are at the bottom.
 
 ![Illustrative Electricity Pro enhanced dashboard](electricity-pro-enhanced-preview.svg)
+
+This illustration predates the four-view layout; the list above describes the
+maintained examples. Enhanced retains its existing cards; Standard's remaining
+daily cost and Consumption Timing Score cards are not added by this reordering.
 
 ### Required frontend dependencies
 
@@ -258,7 +275,7 @@ enhanced YAML:
 2. [ApexCharts Card](https://github.com/RomRider/apexcharts-card) — recorded
    power and price charts and the monthly variable cost chart (`custom:apexcharts-card`).
 
-**Prices and Trends** includes an optional stacked variable cost chart with priced kWh and
+**Energy and costs** includes an optional stacked variable cost chart with priced kWh and
 coverage for the last twelve local calendar months. It appears after the
 integration archives its first priced interval. To remove it, delete the
 conditional block for `sensor.electricity_pro_monthly_variable_cost_history`.
@@ -275,7 +292,7 @@ until both dependencies are installed and their frontend resources are loaded.
    **ApexCharts Card**, then refresh the browser when prompted.
 3. Create a new manual dashboard and open its raw configuration editor.
 4. Replace its contents with `electricity-pro-enhanced.yaml` and save.
-5. Exit edit mode and verify **Overview**, **Prices and Trends** and
+5. Exit edit mode and verify **Overview**, **Prices**, **Energy and costs** and
    **Electrical Details**.
 
 The enhanced example displays recorded Electricity Pro entity history and the

@@ -62,10 +62,10 @@ def chart_cards(request):
     dashboard = yaml.safe_load(
         (DASHBOARDS / f"electricity-pro-enhanced{suffix}.yaml").read_text()
     )
-    trends = next(view for view in dashboard["views"] if view["path"] == "trends")
+    energy = next(view for view in dashboard["views"] if view["path"] == "energy")
     block = next(
         card
-        for card in trends["cards"]
+        for card in energy["cards"]
         if card["type"] == "conditional"
         and card["conditions"][0].get("entity") == ENTITY
     )

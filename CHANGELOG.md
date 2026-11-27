@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Organize Swedish and English Standard and Enhanced dashboards into Overview,
+  Prices, Energy and costs, and Electrical Details. Group daily energy/export
+  with today's readings, monthly energy/export with cost history, and power
+  channels with electrical diagnostics. Existing dashboards need updated YAML;
+  old `trends` links move to `prices` or `energy`.
+
 ### Fixed
 
 - Label the Enhanced 24-hour power chart as five-minute averages in English

@@ -22,8 +22,10 @@ The beta includes the following stable-release scope:
 
 - Completed #288 source/result separation, monthly cost components,
   Recorder statistics, the monthly archive and Enhanced chart from #165.
-- The three-tab Standard/Enhanced layout in both languages, fixed gauge
-  scales, rounding notes, itemized VAT and the refined monthly chart legend.
+- Standard/Enhanced dashboards in both languages, fixed gauge scales, rounding
+  notes, itemized VAT and the refined monthly chart legend. The four-view
+  follow-up separates price planning from energy/cost history; published
+  v1.8.0b1 retains its earlier three-view YAML.
 - Optional fixed export pricing, saved interval booking and separate
   daily/monthly compensation estimates from #241. Keep them experimental and
   retain real-export and settlement validation as open follow-up in #335/#241.
@@ -52,6 +54,10 @@ live-verified in Swedish and English on **27 November 2026 / Core 2026.11.2**:
 the 24-hour averaging labels and both charts' current-power headers were correct.
 This dashboard revision follows v1.8.0b1 and needs updated YAML in existing
 dashboards. [Verification record](docs/validation/v1.8.md#enhanced-power-chart-verification--27-november-2026)
+
+The maintainer approved a separate Swedish Enhanced four-view preview. All four
+maintained examples now use that grouping; live review of the other variants
+remains separate. [Preview evidence](docs/validation/v1.8.md#four-view-dashboard-preview--27-november-2026)
 
 Before stable **v1.8.0**:
 

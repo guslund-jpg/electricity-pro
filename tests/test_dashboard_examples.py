@@ -604,13 +604,18 @@ def test_standard_dashboard_covers_core_measurements_and_insights() -> None:
 def test_dashboard_tabs_group_daily_price_and_electrical_cards(path: Path) -> None:
     """Users can find the same kinds of cards in each localized layout."""
     views = yaml.safe_load(path.read_text(encoding="utf-8"))["views"]
-    assert [view["path"] for view in views] == ["overview", "trends", "details"]
+    assert [view["path"] for view in views] == [
+        "overview",
+        "prices",
+        "energy",
+        "details",
+    ]
     assert [view["title"] for view in views] == _language(
         path,
-        ["Overview", "Prices and Trends", "Electrical Details"],
-        ["Översikt", "Priser och trender", "Eldetaljer"],
+        ["Overview", "Prices", "Energy and costs", "Electrical Details"],
+        ["Översikt", "Priser", "Energi och kostnader", "Eldetaljer"],
     )
-    overview, trends, details = [set(_walk_entity_ids(view)) for view in views]
+    overview, prices, energy, details = [set(_walk_entity_ids(view)) for view in views]
     assert {
         "sensor.electricity_pro_current_power",
         "sensor.electricity_pro_effective_price",
@@ -621,18 +626,30 @@ def test_dashboard_tabs_group_daily_price_and_electrical_cards(path: Path) -> No
     assert {
         "sensor.electricity_pro_cheapest_1h_window_start",
         "sensor.electricity_pro_current_market_price",
+    } <= prices
+    assert {
         MONTHLY_TOTAL,
-    } <= trends
+        "sensor.electricity_pro_energy_this_month",
+        "sensor.electricity_pro_export_compensation_this_month",
+    } <= energy
     assert {
         "sensor.electricity_pro_peak_power_time_today",
         "sensor.electricity_pro_monthly_peak_hour_consumption",
         "sensor.electricity_pro_current_l1",
         "sensor.electricity_pro_voltage_l3",
     } <= details
-    assert MONTHLY_TOTAL not in overview | details
+    assert MONTHLY_TOTAL not in overview | prices | details
+    for channel in ("production", "grid_export", "household_energy"):
+        daily = f"sensor.electricity_pro_{channel}_today"
+        monthly = f"sensor.electricity_pro_{channel}_this_month"
+        assert daily in overview and daily not in prices | energy | details
+        assert monthly in energy and monthly not in overview | prices | details
+    score = "sensor.electricity_pro_consumption_timing_score_yesterday"
+    if "enhanced" not in path.stem:
+        assert score in energy and score not in overview | prices | details
     electrical_cards = [
         card
-        for card in views[2]["cards"]
+        for card in views[3]["cards"]
         if card["type"] not in {"heading", "custom:mushroom-title-card"}
     ]
     assert "sensor.electricity_pro_current_l1" in _walk_entity_ids(electrical_cards[0])
