@@ -1295,7 +1295,7 @@ views:
         graph_span: 24h
         header:
           show: true
-          title: "Effekt vid elnätet"
+          title: "Effekt vid elnätet – femminutersmedelvärden"
           show_states: true
           colorize_states: true
         yaxis:
@@ -1309,7 +1309,7 @@ views:
             stroke_width: 1
             float_precision: 0
             show:
-              in_header: true
+              in_header: raw
             group_by:
               duration: 5min
               func: avg
@@ -1342,4 +1342,4 @@ views:
               stroke_width: 1
               float_precision: 0
               show:
-                in_header: true
+                in_header: raw

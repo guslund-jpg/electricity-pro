@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Label the Enhanced 24-hour power chart as five-minute averages in English
+  and Swedish. Show the latest Current Power sensor value above both power
+  charts, independently of graph averaging. Existing dashboards need updated YAML.
+
 ## [1.8.0b1] — 2026-11-21
 
 Published as a GitHub [pre-release](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.8.0b1)
