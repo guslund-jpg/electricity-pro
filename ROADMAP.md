@@ -46,6 +46,13 @@ settings, entities and history, with no new Electricity Pro warnings. This is
 inspection-level evidence; detailed before/after comparisons were not supplied.
 [Upgrade report](docs/validation/v1.8.md#marketplace-upgrade-report--21-november-2026)
 
+The Enhanced power-chart fix in
+[PR #434](https://github.com/guslund-jpg/electricity-pro/pull/434) was
+live-verified in Swedish and English on **27 November 2026 / Core 2026.11.2**:
+the 24-hour averaging labels and both charts' current-power headers were correct.
+This dashboard revision follows v1.8.0b1 and needs updated YAML in existing
+dashboards. [Verification record](docs/validation/v1.8.md#enhanced-power-chart-verification--27-november-2026)
+
 Before stable **v1.8.0**:
 
 - Collect beta observations of normal import/cost accumulation, forecasts,
