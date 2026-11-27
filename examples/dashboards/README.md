@@ -332,7 +332,10 @@ The six-hour Power Detail chart retains the
 individual recorded power readings instead of averaging them into five-minute
 groups. Use it to inspect whether a high reading is a brief transient or a
 sustained load. The 24-hour power chart uses five-minute averages for a
-clearer overview, so short peaks can appear lower or be hidden there.
+clearer overview, so short peaks can appear lower or be hidden there. Its title
+identifies that averaging in both languages. Both charts show the sensor's
+latest Current Power reading in the header, independently of graph averaging.
+Copy the updated YAML into existing dashboards to apply these changes.
 
 ## Customization
 
