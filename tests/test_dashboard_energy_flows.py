@@ -62,18 +62,23 @@ def groups(request, language_suffix):
             DASHBOARDS / request.param.replace(".yaml", f"{language_suffix}.yaml")
         ).read_text()
     )
-    details = next(view for view in dashboard["views"] if view["path"] == "details")
     result = {}
     for channel in CHANNELS:
-        groups = [
-            card
-            for card in details["cards"]
-            if card.get("type") == "conditional"
-            and card.get("card", {}).get("type") == "vertical-stack"
-            and entity_id(channel, "power") in str(card["conditions"])
-        ]
-        assert len(groups) == 1
-        result[channel] = groups[0]
+        for period, view_path in (
+            ("power", "details"),
+            ("today", "overview"),
+            ("this_month", "energy"),
+        ):
+            view = next(v for v in dashboard["views"] if v["path"] == view_path)
+            found = [
+                card
+                for card in view["cards"]
+                if card.get("type") == "conditional"
+                and card.get("card", {}).get("type") == "vertical-stack"
+                and entity_id(channel, period) in str(card["conditions"])
+            ]
+            assert len(found) == 1
+            result[channel, period] = found[0]
     return result
 
 
@@ -89,16 +94,19 @@ def test_groups_handle_absence_zero_outages_and_independent_sources(
     tiles = [tile for group in groups.values() for tile in visible_tiles(group, states)]
     expected = set(states) if state not in (None, "unknown") else set()
     assert {tile["entity"] for tile in tiles} == expected
-    assert matches(groups[channel]["conditions"], states) == bool(expected)
-    for other in set(CHANNELS) - {channel}:
-        assert not matches(groups[other]["conditions"], states)
+    for (other_channel, period), group in groups.items():
+        assert matches(group["conditions"], states) == (
+            other_channel == channel
+            and period in periods
+            and state not in (None, "unknown")
+        )
 
 
 async def test_notes_are_partial_only_for_energy_and_do_not_infer_origin(
     hass, groups, language_suffix
 ):
     sv = bool(language_suffix)
-    for channel, group in groups.items():
+    for (channel, period), group in groups.items():
         note = group["card"]["cards"][0]
         assert note["type"] == "markdown"
         for energy_configured in (False, True):
@@ -107,7 +115,7 @@ async def test_notes_are_partial_only_for_energy_and_do_not_infer_origin(
             text = Template(note["content"], hass).async_render(parse_result=False)
             assert (
                 ("Delvis uppmätt energi" if sv else "Partial energy totals") in text
-            ) == energy_configured
+            ) == (period != "power")
             assert ("Om mätning av energiflöden" if sv else "Flow details") in text
             assert len(text.split()) < 55
             if channel == "production":
@@ -145,6 +153,9 @@ def test_both_channels_visible_without_new_dependencies_or_calculations(
             "name"
         ] or tile["entity"].endswith("_power")
     for group in groups.values():
-        assert "custom:" not in str(group)
-        assert "float" not in str(group)
-        assert "revenue" not in str(group)
+        # Export energy shares a group with its existing monetary card; the
+        # measured-energy note and native tile still perform no calculations.
+        note = group["card"]["cards"][0]
+        assert "custom:" not in str(note)
+        assert "float" not in str(note)
+        assert "revenue" not in str(note)

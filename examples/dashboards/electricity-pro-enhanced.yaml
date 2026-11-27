@@ -191,6 +191,40 @@ views:
 
       - type: conditional
         conditions:
+          - condition: state
+            entity: sensor.electricity_pro_production_today
+            state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Production today
+
+
+                AC generation, excluding battery discharge.
+
+
+                **Partial energy totals:** observed increments only, not complete day/month totals.
+
+
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_today
+                name: Today (partial)
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+      - type: conditional
+        conditions:
           - condition: or
             conditions:
               - condition: state
@@ -202,6 +236,32 @@ views:
         card:
           type: vertical-stack
           cards:
+            - type: markdown
+              content: >-
+                ### Grid export today
+
+
+                Energy delivered to the grid; its source may include a battery.
+
+
+                **Partial energy totals:** observed increments only, not complete day/month totals.
+
+
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_today
+                name: Today (partial)
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
             - type: conditional
               conditions:
                 - condition: state
@@ -245,8 +305,43 @@ views:
                 Separate from import costs.
                 [Export compensation details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/reference/sensors.md#export-compensation-estimates)
 
-  - title: "Prices and Trends"
-    path: trends
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_household_energy_today
+            state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Household demand today
+
+
+                Measured non-storage load, including EV charging but excluding battery charging. Not grid import
+                or a cost estimate.
+
+
+                **Partial energy totals:** observed increments only, not complete day/month totals.
+
+
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_today
+                name: Today (partial)
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+  - title: "Prices"
+    path: prices
     icon: mdi:chart-areaspline
     cards:
       - type: custom:mushroom-title-card
@@ -499,6 +594,10 @@ views:
                 duration: 15min
                 func: avg
 
+  - title: "Energy and costs"
+    path: energy
+    icon: mdi:chart-bar
+    cards:
       - type: custom:mushroom-title-card
         title: This month
 
@@ -646,6 +745,40 @@ views:
 
       - type: conditional
         conditions:
+          - condition: state
+            entity: sensor.electricity_pro_production_this_month
+            state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Production this month
+
+
+                AC generation, excluding battery discharge.
+
+
+                **Partial energy totals:** observed increments only, not complete day/month totals.
+
+
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_this_month
+                name: This month (partial)
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+      - type: conditional
+        conditions:
           - condition: or
             conditions:
               - condition: state
@@ -657,6 +790,32 @@ views:
         card:
           type: vertical-stack
           cards:
+            - type: markdown
+              content: >-
+                ### Grid export this month
+
+
+                Energy delivered to the grid; its source may include a battery.
+
+
+                **Partial energy totals:** observed increments only, not complete day/month totals.
+
+
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_this_month
+                name: This month (partial)
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
             - type: conditional
               conditions:
                 - condition: state
@@ -699,6 +858,41 @@ views:
                 {% endif %}
                 Separate from import costs.
                 [Export compensation details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/reference/sensors.md#export-compensation-estimates)
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_household_energy_this_month
+            state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Household demand this month
+
+
+                Measured non-storage load, including EV charging but excluding battery charging. Not grid import
+                or a cost estimate.
+
+
+                **Partial energy totals:** observed increments only, not complete day/month totals.
+
+
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_this_month
+                name: This month (partial)
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
 
       - type: conditional
         conditions:
@@ -1059,17 +1253,9 @@ views:
 
       - type: conditional
         conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_production_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_production_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_production_this_month
-                state_not: unknown
+          - condition: state
+            entity: sensor.electricity_pro_production_power
+            state_not: unknown
         card:
           type: vertical-stack
           cards:
@@ -1077,14 +1263,11 @@ views:
               content: >-
                 ### Production
 
-                AC generation, excluding battery discharge.
-                {% if states('sensor.electricity_pro_production_today') != 'unknown'
-                   or states('sensor.electricity_pro_production_this_month') != 'unknown' %}
-                **Partial energy totals:** observed increments only, not complete
-                day/month totals.
-                {% endif %}
-                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
 
+                AC generation, excluding battery discharge.
+
+
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
             - type: conditional
               conditions:
                 - condition: state
@@ -1099,49 +1282,11 @@ views:
                 tap_action:
                   action: more-info
 
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_today
-                name: Today (partial)
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_this_month
-                name: This month (partial)
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-      # Hide absent/unknown entities, but retain zero and unavailable readings.
-
       - type: conditional
         conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_this_month
-                state_not: unknown
+          - condition: state
+            entity: sensor.electricity_pro_grid_export_power
+            state_not: unknown
         card:
           type: vertical-stack
           cards:
@@ -1149,14 +1294,11 @@ views:
               content: >-
                 ### Grid export
 
-                Energy delivered to the grid; its source may include a battery.
-                {% if states('sensor.electricity_pro_grid_export_today') != 'unknown'
-                   or states('sensor.electricity_pro_grid_export_this_month') != 'unknown' %}
-                **Partial energy totals:** observed increments only, not complete
-                day/month totals.
-                {% endif %}
-                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
 
+                Energy delivered to the grid; its source may include a battery.
+
+
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
             - type: conditional
               conditions:
                 - condition: state
@@ -1171,49 +1313,11 @@ views:
                 tap_action:
                   action: more-info
 
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_today
-                name: Today (partial)
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_this_month
-                name: This month (partial)
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-      # Measured load is independent of grid import and storage topology.
-
       - type: conditional
         conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_household_demand_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_household_energy_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_household_energy_this_month
-                state_not: unknown
+          - condition: state
+            entity: sensor.electricity_pro_household_demand_power
+            state_not: unknown
         card:
           type: vertical-stack
           cards:
@@ -1221,15 +1325,12 @@ views:
               content: >-
                 ### Household demand
 
-                Measured non-storage load, including EV charging but excluding
-                battery charging. Not grid import or a cost estimate.
-                {% if states('sensor.electricity_pro_household_energy_today') != 'unknown'
-                   or states('sensor.electricity_pro_household_energy_this_month') != 'unknown' %}
-                **Partial energy totals:** observed increments only, not complete
-                day/month totals.
-                {% endif %}
-                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
 
+                Measured non-storage load, including EV charging but excluding battery charging. Not grid import
+                or a cost estimate.
+
+
+                [Flow details](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
             - type: conditional
               conditions:
                 - condition: state
@@ -1239,34 +1340,6 @@ views:
                 type: tile
                 entity: sensor.electricity_pro_household_demand_power
                 name: Household demand power
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_energy_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_energy_today
-                name: Today (partial)
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_energy_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_energy_this_month
-                name: This month (partial)
                 icon: mdi:home-lightning-bolt
                 color: green
                 tap_action:

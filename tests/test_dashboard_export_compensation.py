@@ -16,7 +16,15 @@ def dashboard(request):
     return request.param, yaml.safe_load(request.param.read_text())
 
 
-@pytest.fixture(params=[("overview", "today"), ("trends", "this_month")])
+def amount_and_note(group, entity):
+    """Find money cards independently of the neighboring measured-energy tile."""
+    cards = group["card"]["cards"]
+    amount = next(c for c in cards if c.get("card", {}).get("entity") == entity)
+    note = next(c for c in cards if c["type"] == "markdown" and entity in c["content"])
+    return amount, note
+
+
+@pytest.fixture(params=[("overview", "today"), ("energy", "this_month")])
 def export_cards(dashboard, request):
     path, data = dashboard
     view, period = request.param
@@ -27,7 +35,7 @@ def export_cards(dashboard, request):
         for c in cards
         if c["type"] == "conditional" and entity in str(c["conditions"])
     )
-    amount, note = group["card"]["cards"]
+    amount, note = amount_and_note(group, entity)
     return path, entity, group, amount, note
 
 
@@ -204,10 +212,10 @@ async def test_day_rollover_does_not_reuse_month_or_previous_day(hass, dashboard
             and "export_compensation" in str(c["conditions"])
         )
         for view in data["views"]
-        if view["path"] in ("overview", "trends")
+        if view["path"] in ("overview", "energy")
     }
-    day_amount, day_note = groups["overview"]["card"]["cards"]
-    month_amount, month_note = groups["trends"]["card"]["cards"]
+    day_amount, day_note = amount_and_note(groups["overview"], daily)
+    month_amount, month_note = amount_and_note(groups["energy"], monthly)
     hass.states.async_set(daily, "unavailable")
     assert visible(groups["overview"]["conditions"], hass)
     assert not visible(day_amount["conditions"], hass)

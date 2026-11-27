@@ -201,6 +201,40 @@ views:
 
       - type: conditional
         conditions:
+          - condition: state
+            entity: sensor.electricity_pro_production_today
+            state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Produktion i dag
+
+
+                Produktion på AC-sidan, exklusive batteriurladdning.
+
+
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+
+
+                [Om mätning av energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_today
+                name: I dag (delvis uppmätt)
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+      - type: conditional
+        conditions:
           - condition: or
             conditions:
               - condition: state
@@ -212,6 +246,32 @@ views:
         card:
           type: vertical-stack
           cards:
+            - type: markdown
+              content: >-
+                ### Export till elnätet i dag
+
+
+                Energi som levereras till elnätet. Även energi från ett batteri kan ingå.
+
+
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+
+
+                [Om mätning av energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_today
+                name: I dag (delvis uppmätt)
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
             - type: conditional
               conditions:
                 - condition: state
@@ -255,8 +315,43 @@ views:
                 Separat från importkostnaden.
                 [Om exportersättning](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/reference/sensors.md#export-compensation-estimates)
 
-  - title: "Priser och trender"
-    path: trends
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_household_energy_today
+            state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Hushållets energibehov i dag
+
+
+                Uppmätt förbrukning inklusive elbilsladdning, men exklusive batteriladdning. Detta är hushållets
+                energibehov, inte elnätsimport eller en kostnadsuppskattning.
+
+
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+
+
+                [Om mätning av energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_today
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_today
+                name: I dag (delvis uppmätt)
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+  - title: "Priser"
+    path: prices
     icon: mdi:chart-areaspline
     cards:
       - type: heading
@@ -407,25 +502,10 @@ views:
             - entity: sensor.electricity_pro_effective_price
               name: "Effektivt elpris"
 
-      - type: grid
-        columns: 2
-        square: false
-        cards:
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_consumption_timing_score_yesterday
-                state_not: unavailable
-              - condition: state
-                entity: sensor.electricity_pro_consumption_timing_score_yesterday
-                state_not: unknown
-            card:
-              type: tile
-              entity: sensor.electricity_pro_consumption_timing_score_yesterday
-              name: "Konsumptionspoäng"
-              icon: mdi:meter-electric-outline
-              color: green
-
+  - title: "Energi och kostnader"
+    path: energy
+    icon: mdi:chart-bar
+    cards:
       - type: heading
         heading: "Den här månaden"
         icon: mdi:calendar-month
@@ -579,6 +659,40 @@ views:
 
       - type: conditional
         conditions:
+          - condition: state
+            entity: sensor.electricity_pro_production_this_month
+            state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Produktion den här månaden
+
+
+                Produktion på AC-sidan, exklusive batteriurladdning.
+
+
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+
+
+                [Om mätning av energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_production_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_production_this_month
+                name: Den här månaden (delvis uppmätt)
+                icon: mdi:solar-power
+                color: amber
+                tap_action:
+                  action: more-info
+
+      - type: conditional
+        conditions:
           - condition: or
             conditions:
               - condition: state
@@ -590,6 +704,32 @@ views:
         card:
           type: vertical-stack
           cards:
+            - type: markdown
+              content: >-
+                ### Export till elnätet den här månaden
+
+
+                Energi som levereras till elnätet. Även energi från ett batteri kan ingå.
+
+
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+
+
+                [Om mätning av energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_grid_export_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_grid_export_this_month
+                name: Den här månaden (delvis uppmätt)
+                icon: mdi:transmission-tower-export
+                color: blue
+                tap_action:
+                  action: more-info
+
             - type: conditional
               conditions:
                 - condition: state
@@ -632,6 +772,64 @@ views:
                 {% endif %}
                 Separat från importkostnaden.
                 [Om exportersättning](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/reference/sensors.md#export-compensation-estimates)
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_household_energy_this_month
+            state_not: unknown
+        card:
+          type: vertical-stack
+          cards:
+            - type: markdown
+              content: >-
+                ### Hushållets energibehov den här månaden
+
+
+                Uppmätt förbrukning inklusive elbilsladdning, men exklusive batteriladdning. Detta är hushållets
+                energibehov, inte elnätsimport eller en kostnadsuppskattning.
+
+
+                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
+
+
+                [Om mätning av energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
+            - type: conditional
+              conditions:
+                - condition: state
+                  entity: sensor.electricity_pro_household_energy_this_month
+                  state_not: unknown
+              card:
+                type: tile
+                entity: sensor.electricity_pro_household_energy_this_month
+                name: Den här månaden (delvis uppmätt)
+                icon: mdi:home-lightning-bolt
+                color: green
+                tap_action:
+                  action: more-info
+
+      - type: heading
+        heading: I går
+        icon: mdi:calendar-arrow-left
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.electricity_pro_consumption_timing_score_yesterday
+                state_not: unavailable
+              - condition: state
+                entity: sensor.electricity_pro_consumption_timing_score_yesterday
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.electricity_pro_consumption_timing_score_yesterday
+              name: "Konsumptionspoäng"
+              icon: mdi:meter-electric-outline
+              color: green
 
   - title: "Eldetaljer"
     path: details
@@ -832,17 +1030,9 @@ views:
 
       - type: conditional
         conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_production_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_production_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_production_this_month
-                state_not: unknown
+          - condition: state
+            entity: sensor.electricity_pro_production_power
+            state_not: unknown
         card:
           type: vertical-stack
           cards:
@@ -850,14 +1040,11 @@ views:
               content: >-
                 ### Produktion
 
-                Produktion på AC-sidan, exklusive batteriurladdning.
-                {% if states('sensor.electricity_pro_production_today') != 'unknown'
-                   or states('sensor.electricity_pro_production_this_month') != 'unknown' %}
-                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
-                {% endif %}
-                [Om mätning av
-                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
 
+                Produktion på AC-sidan, exklusive batteriurladdning.
+
+
+                [Om mätning av energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
             - type: conditional
               conditions:
                 - condition: state
@@ -866,55 +1053,17 @@ views:
               card:
                 type: tile
                 entity: sensor.electricity_pro_production_power
-                name: "Produktionseffekt"
+                name: Produktionseffekt
                 icon: mdi:solar-power
                 color: amber
                 tap_action:
                   action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_today
-                name: "I dag (delvis uppmätt)"
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_production_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_production_this_month
-                name: "Den här månaden (delvis uppmätt)"
-                icon: mdi:solar-power
-                color: amber
-                tap_action:
-                  action: more-info
-
-      # Dölj saknade/okända entiteter, men visa nollvärden och otillgängliga givare.
 
       - type: conditional
         conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_grid_export_this_month
-                state_not: unknown
+          - condition: state
+            entity: sensor.electricity_pro_grid_export_power
+            state_not: unknown
         card:
           type: vertical-stack
           cards:
@@ -922,14 +1071,11 @@ views:
               content: >-
                 ### Export till elnätet
 
-                Energi som levereras till elnätet. Även energi från ett batteri kan ingå.
-                {% if states('sensor.electricity_pro_grid_export_today') != 'unknown'
-                   or states('sensor.electricity_pro_grid_export_this_month') != 'unknown' %}
-                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
-                {% endif %}
-                [Om mätning av
-                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
 
+                Energi som levereras till elnätet. Även energi från ett batteri kan ingå.
+
+
+                [Om mätning av energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
             - type: conditional
               conditions:
                 - condition: state
@@ -938,55 +1084,17 @@ views:
               card:
                 type: tile
                 entity: sensor.electricity_pro_grid_export_power
-                name: "Effekt ut till elnätet"
+                name: Effekt ut till elnätet
                 icon: mdi:transmission-tower-export
                 color: blue
                 tap_action:
                   action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_today
-                name: "I dag (delvis uppmätt)"
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_grid_export_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_grid_export_this_month
-                name: "Den här månaden (delvis uppmätt)"
-                icon: mdi:transmission-tower-export
-                color: blue
-                tap_action:
-                  action: more-info
-
-      # Uppmätt förbrukning är oberoende av elnätsimport och lagringens utformning.
 
       - type: conditional
         conditions:
-          - condition: or
-            conditions:
-              - condition: state
-                entity: sensor.electricity_pro_household_demand_power
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_household_energy_today
-                state_not: unknown
-              - condition: state
-                entity: sensor.electricity_pro_household_energy_this_month
-                state_not: unknown
+          - condition: state
+            entity: sensor.electricity_pro_household_demand_power
+            state_not: unknown
         card:
           type: vertical-stack
           cards:
@@ -994,15 +1102,12 @@ views:
               content: >-
                 ### Hushållets energibehov
 
+
                 Uppmätt förbrukning inklusive elbilsladdning, men exklusive batteriladdning. Detta är hushållets
                 energibehov, inte elnätsimport eller en kostnadsuppskattning.
-                {% if states('sensor.electricity_pro_household_energy_today') != 'unknown'
-                   or states('sensor.electricity_pro_household_energy_this_month') != 'unknown' %}
-                **Delvis uppmätt energi:** endast observerade ökningar, inte kompletta dygns- eller månadstotaler.
-                {% endif %}
-                [Om mätning av
-                energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
 
+
+                [Om mätning av energiflöden](https://github.com/guslund-jpg/electricity-pro/blob/main/docs/guides/production-export.md)
             - type: conditional
               conditions:
                 - condition: state
@@ -1011,35 +1116,7 @@ views:
               card:
                 type: tile
                 entity: sensor.electricity_pro_household_demand_power
-                name: "Hushållets effektbehov"
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_energy_today
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_energy_today
-                name: "I dag (delvis uppmätt)"
-                icon: mdi:home-lightning-bolt
-                color: green
-                tap_action:
-                  action: more-info
-
-            - type: conditional
-              conditions:
-                - condition: state
-                  entity: sensor.electricity_pro_household_energy_this_month
-                  state_not: unknown
-              card:
-                type: tile
-                entity: sensor.electricity_pro_household_energy_this_month
-                name: "Den här månaden (delvis uppmätt)"
+                name: Hushållets effektbehov
                 icon: mdi:home-lightning-bolt
                 color: green
                 tap_action:
