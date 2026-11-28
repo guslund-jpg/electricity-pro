@@ -260,6 +260,7 @@ The current strict scope is:
 | `base_load.py` | Live base-load observations, duration-weighted power, base-load estimates and bounded power history |
 | `timing_score.py` | Live consumption-timing observations, completed-day result ownership, scores, matched intervals and bounded timing history |
 | `statistics_engine.py` | Cumulative counters, calendar periods and persisted snapshots |
+| `statistics_storage.py` | Ordered checkpoint adapters, scope predicates, narrow invalid-payload handling and dump omission |
 | `history_storage.py` | Runtime narrowing of stored history values |
 | `flow_compatibility.py` | Normalized power observations and the supported diagnostic result statuses |
 | `energy_flows.py` | Directional lifetime counters and their persisted state |
