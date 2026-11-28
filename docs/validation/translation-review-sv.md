@@ -1,5 +1,62 @@
 # Electricity Pro engelska och svenska texter för granskning
 
+## Aktuella svenska flödestexter – 28 november 2026
+
+Komplettering för #447, baserad på `e63664d` inför stabil v1.8.0. Den daterade
+granskningen från 7 november finns kvar nedan med oförändrade rad-ID:n,
+observationer och källreferenser. Dess reservtexter beskriver den versionen.
+
+En ny inventering före ändringen gav **738 engelska strängvärden**,
+**582 svenska** och **156 luckor**. Denna ändring fyller de **52 luckorna utanför
+de två äldre kombinerade formulären**:
+
+| Resursgrupp | Nyinstallation | Konfigurera |
+| --- | --- | --- |
+| `tibber` | 3 | 0 |
+| `forecast_area` | 3 | 3 |
+| `tibber_markup_estimate` | 4 | 4 |
+| `tibber_markup_review` | 4 | 4 |
+| `vat_context` | 3 | 3 |
+| `vat_country` | 3 | 3 |
+| `vat_review` | 4 | 4 |
+| Feltexter | 4 | 3 |
+| **Summa** | **28** | **24** |
+
+Efter kompletteringen finns **634 svenska strängvärden**. De **104 kvarvarande
+luckorna** ligger enbart under `config.step.manual` och
+`config.step.tibber_settings`. Dessa kompatibilitetsformulär och deras engelska
+reservtexter behålls i väntan på analysen i #446; de betraktas inte som borttagna
+eller bevisat oanvända.
+
+Automatiska tester jämför alla grundtextnycklar under `config` och `options`
+med svenska, utom de två uttryckligt angivna äldre formulären. Även framtida
+flödessteg och feltexter omfattas. Inga engelska reservtexter undantas i den
+aktuella flödesytan. Tomma översättningar underkänns. Tester kontrollerar även
+platshållarnas namn, antal och format samt Markdown-länkarnas mål. Representativa
+Tibber- och momsbeskrivningar renderas med elområde, valuta, tidigare nollmoms
+och källänk. Täckningstestet föll på de 28 respektive 24 luckorna före ändringen.
+
+Agentens språkliga jämförelse mot grundtexten behåller följande skillnader:
+
+- **Prognostillägg inklusive moms** är ett observerat tillägg för Nord
+  Pool-prognoser; Tibbers aktuella pris och fasta avgifter ändras inte.
+- Kraven på fyra avslutade intervall, en timmes underlag, unika Tibber-hem och
+  högst 0,01 per kWh i spridning finns kvar i feltexten.
+- Momsförslag kräver bekräftelse för hushållets elleverans. Tidigare värden,
+  även noll, behålls vid avböjd bekräftelse. Texten lovar inga automatiska
+  framtida skatteuppdateringar och ändrar inga avgifter inklusive moms.
+- Platshållarna `{count}`, `{area}`, `{spread}`, `{currency}`, `{hint}`,
+  `{context}`, `{previous}`, `{verified}` och `{source}` behålls exakt.
+  Momsassistansens länk använder fortfarande `{source}` som mål.
+
+Detta är resurs-, test- och textgranskning, **inte ny liveverifiering**.
+Separat visuell granskning av de nya texterna i HA har inte utförts av agenten
+eller underhållaren. Dynamiska platshållarvärden från kod och källor översätts
+inte av denna ändring. Integrationskod, sparade värden, entitets-ID:n,
+beräkningar och dashboardar ändras inte. HA-testinstansen lämnas oförändrad.
+
+## Historiskt granskningsunderlag – 7 november 2026
+
 Granskningsversion: `13c0e4a7762f2ac58c9844007fff90629c31b77c` den 7 november 2026.
 
 Rad-ID:n följer det första underlaget från `main` vid `1d03b4c` och är oförändrade.

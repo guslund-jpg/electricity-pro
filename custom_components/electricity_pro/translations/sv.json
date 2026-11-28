@@ -433,6 +433,58 @@
         "data_description": {
           "setup_method": "Tibber “fasttrack” känner av Tibber entiteter automatiskt."
         }
+      },
+      "forecast_area": {
+        "title": "Välj elområde för prognoser",
+        "description": "Den valda Nord Pool-integrationen innehåller flera elområden. Välj det som Electricity Pro ska använda.",
+        "data": {
+          "forecast_price_area": "Elområde för prognoser"
+        }
+      },
+      "tibber_markup_estimate": {
+        "title": "Jämför Tibber och Nord Pool",
+        "description": "Välj Nord Pool-elområdet för ditt Tibber-hem och bekräfta att de stämmer överens. Vi kan inte kontrollera hemmets elområde automatiskt. Kräver en uttryckligt angiven momssats och minst fyra matchande avslutade intervall som tillsammans täcker en timme. Lämna bekräftelsen avmarkerad för att återgå till manuell prissättning.",
+        "data": {
+          "forecast_price_area": "Nord Pool-elområde för detta Tibber-hem",
+          "confirm_matching_area": "Jag bekräftar att elområdet stämmer med mitt Tibber-hem; beräkna en uppskattning"
+        }
+      },
+      "tibber_markup_review": {
+        "title": "Granska uppskattat prognostillägg",
+        "description": "Jämförde {count} avslutade intervall för {area}. Observerad spridning: {spread} {currency}/kWh. Detta tillägg inklusive moms kan omfatta andra rörliga kostnader än det avtalade påslaget och kan ändras. Ändra förslaget vid behov. Det används bara för Nord Pool-prognoser, inte för Tibbers aktuella priser eller fasta avgifter. Lämna bekräftelsen avmarkerad för att behålla ditt manuella värde.",
+        "data": {
+          "supplier_markup_per_kwh": "Tillägg per kWh för prognoser (inklusive moms)",
+          "use_estimate": "Använd detta värde för Nord Pool-prognoser"
+        }
+      },
+      "vat_country": {
+        "title": "Momsland för hushållets el",
+        "description": "Land enligt Nord Pool: {hint}. Bekräfta landet för hushållets elleverans, inte bara prognosmarknaden. Ett elområde är inte ett skatteområde. Ingen momssats sparas förrän du bekräftar den. För andra länder, särskilda territorier, företag och osäkra fall bör manuella inställningar behållas.",
+        "data": {
+          "vat_country": "Land för hushållets elleverans"
+        }
+      },
+      "vat_context": {
+        "title": "Momsregler för hushållet",
+        "description": "Norska momsundantag följer hushållets geografiska läge, inte gränsen för elområde NO4. Isländsk reducerad moms gäller bara el som uppfyller villkoren för uppvärmning, inte automatiskt hushållets hela elanvändning. Välj förutsättningarna för den aktuella elleveransen; blandade eller osäkra fall behöver konfigureras manuellt.",
+        "data": {
+          "vat_context": "Hushållets läge eller typ av elleverans"
+        }
+      },
+      "vat_review": {
+        "title": "Granska föreslagen moms för hushållet",
+        "description": "Förutsättningar: {context}. Tidigare angiven momssats: {previous}. Källorna kontrollerades senast: {verified}. [Skattemyndighetens vägledning]({source}). Kontrollera momssatsen mot din faktura och ändra den vid behov. Bekräfta bara om dessa förutsättningar gäller för hushållets elleverans. Momssatsen används för aktuella priser utan moms och för Nord Pool-prognoser; Tibbers aktuella pris inklusive moms och avgifter inklusive moms ändras inte. Momssatsen sparas en gång och följer inte framtida skatteändringar automatiskt. Lämna bekräftelsen avmarkerad för att behålla den tidigare inställningen.",
+        "data": {
+          "price_vat_rate": "Moms att lägga till på priser utan moms (%)",
+          "use_vat_suggestion": "Bekräfta denna momssats för mitt hushåll"
+        }
+      },
+      "tibber": {
+        "title": "Välj Tibber-hem",
+        "description": "Välj det Tibber-hem vars Pulse-mätvärden och elavtal Electricity Pro ska använda.",
+        "data": {
+          "tibber_device": "Tibber-hem"
+        }
       }
     },
     "error": {
@@ -451,7 +503,11 @@
       "contradictory_topology": "Produktionskällor är valda. Ange att produktion finns eller är okänd, eller ta bort källorna innan du anger att produktion saknas.",
       "invalid_insight_threshold": "Ange en giltig prisgräns som är noll eller större, eller lämna fältet tomt.",
       "invalid_insight_percentile": "Ange en giltig percentil mellan 1 och 100.",
-      "invalid_insight_ceiling": "Ange ett giltigt pristak eller lämna fältet tomt. Noll och negativa tak är tillåtna."
+      "invalid_insight_ceiling": "Ange ett giltigt pristak eller lämna fältet tomt. Noll och negativa tak är tillåtna.",
+      "invalid_good_price_settings": "Välj Fast prisgräns eller Adaptiv bedömning, använd en percentil mellan 1 och 100 och ange ett giltigt pristak eller lämna taket tomt.",
+      "invalid_vat_suggestion": "Ange en ändlig momssats mellan 0 och 100 procent innan du bekräftar, eller lämna bekräftelsen avmarkerad för att behålla den tidigare inställningen.",
+      "markup_estimate_unavailable": "Ingen tillförlitlig uppskattning finns. Kontrollera momssatsen, att elområdena stämmer överens, att källorna är tillgängliga, att Tibber-hemmens namn är unika och att valutan stämmer. Priserna måste ha minst fyra exakt matchande avslutade intervall som tillsammans täcker en timme, med ett tillägg som är noll eller större och varierar med högst 0,01 per kWh. Flera Tibber-konton stöds inte. Försök igen senare eller avmarkera bekräftelsen för att använda manuell prissättning.",
+      "tibber_sources_not_found": "Inget aktiverat Tibber-hem med en entitet för aktuell effekt hittades. Välj anpassade eller blandade källor, eller aktivera Tibbers effektentitet."
     },
     "abort": {
       "review_unavailable": "Ingen installationskonfiguration finns att granska. Starta installationen igen."
@@ -794,6 +850,51 @@
             }
           }
         }
+      },
+      "forecast_area": {
+        "title": "Välj elområde för prognoser",
+        "description": "Den valda Nord Pool-integrationen innehåller flera elområden. Välj det som Electricity Pro ska använda.",
+        "data": {
+          "forecast_price_area": "Elområde för prognoser"
+        }
+      },
+      "tibber_markup_estimate": {
+        "title": "Jämför Tibber och Nord Pool",
+        "description": "Välj Nord Pool-elområdet för ditt Tibber-hem och bekräfta att de stämmer överens. Vi kan inte kontrollera hemmets elområde automatiskt. Kräver en uttryckligt angiven momssats och minst fyra matchande avslutade intervall som tillsammans täcker en timme. Lämna bekräftelsen avmarkerad för att återgå till manuell prissättning.",
+        "data": {
+          "forecast_price_area": "Nord Pool-elområde för detta Tibber-hem",
+          "confirm_matching_area": "Jag bekräftar att elområdet stämmer med mitt Tibber-hem; beräkna en uppskattning"
+        }
+      },
+      "tibber_markup_review": {
+        "title": "Granska uppskattat prognostillägg",
+        "description": "Jämförde {count} avslutade intervall för {area}. Observerad spridning: {spread} {currency}/kWh. Detta tillägg inklusive moms kan omfatta andra rörliga kostnader än det avtalade påslaget och kan ändras. Ändra förslaget vid behov. Det används bara för Nord Pool-prognoser, inte för Tibbers aktuella priser eller fasta avgifter. Lämna bekräftelsen avmarkerad för att behålla ditt manuella värde.",
+        "data": {
+          "supplier_markup_per_kwh": "Tillägg per kWh för prognoser (inklusive moms)",
+          "use_estimate": "Använd detta värde för Nord Pool-prognoser"
+        }
+      },
+      "vat_country": {
+        "title": "Momsland för hushållets el",
+        "description": "Land enligt Nord Pool: {hint}. Bekräfta landet för hushållets elleverans, inte bara prognosmarknaden. Ett elområde är inte ett skatteområde. Ingen momssats sparas förrän du bekräftar den. För andra länder, särskilda territorier, företag och osäkra fall bör manuella inställningar behållas.",
+        "data": {
+          "vat_country": "Land för hushållets elleverans"
+        }
+      },
+      "vat_context": {
+        "title": "Momsregler för hushållet",
+        "description": "Norska momsundantag följer hushållets geografiska läge, inte gränsen för elområde NO4. Isländsk reducerad moms gäller bara el som uppfyller villkoren för uppvärmning, inte automatiskt hushållets hela elanvändning. Välj förutsättningarna för den aktuella elleveransen; blandade eller osäkra fall behöver konfigureras manuellt.",
+        "data": {
+          "vat_context": "Hushållets läge eller typ av elleverans"
+        }
+      },
+      "vat_review": {
+        "title": "Granska föreslagen moms för hushållet",
+        "description": "Förutsättningar: {context}. Tidigare angiven momssats: {previous}. Källorna kontrollerades senast: {verified}. [Skattemyndighetens vägledning]({source}). Kontrollera momssatsen mot din faktura och ändra den vid behov. Bekräfta bara om dessa förutsättningar gäller för hushållets elleverans. Momssatsen används för aktuella priser utan moms och för Nord Pool-prognoser; Tibbers aktuella pris inklusive moms och avgifter inklusive moms ändras inte. Momssatsen sparas en gång och följer inte framtida skatteändringar automatiskt. Lämna bekräftelsen avmarkerad för att behålla den tidigare inställningen.",
+        "data": {
+          "price_vat_rate": "Moms att lägga till på priser utan moms (%)",
+          "use_vat_suggestion": "Bekräfta denna momssats för mitt hushåll"
+        }
       }
     },
     "error": {
@@ -816,7 +917,10 @@
       "contradictory_topology": "Produktionskällor är valda. Ange att produktion finns eller är okänd, eller ta bort källorna innan du anger att produktion saknas.",
       "invalid_insight_threshold": "Ange en giltig prisgräns som är noll eller större, eller lämna fältet tomt.",
       "invalid_insight_percentile": "Ange en giltig percentil mellan 1 och 100.",
-      "invalid_insight_ceiling": "Ange ett giltigt pristak eller lämna fältet tomt. Noll och negativa tak är tillåtna."
+      "invalid_insight_ceiling": "Ange ett giltigt pristak eller lämna fältet tomt. Noll och negativa tak är tillåtna.",
+      "invalid_good_price_settings": "Välj Fast prisgräns eller Adaptiv bedömning, använd en percentil mellan 1 och 100 och ange ett giltigt pristak eller lämna taket tomt.",
+      "invalid_vat_suggestion": "Ange en ändlig momssats mellan 0 och 100 procent innan du bekräftar, eller lämna bekräftelsen avmarkerad för att behålla den tidigare inställningen.",
+      "markup_estimate_unavailable": "Ingen tillförlitlig uppskattning finns. Kontrollera momssatsen, att elområdena stämmer överens, att källorna är tillgängliga, att Tibber-hemmens namn är unika och att valutan stämmer. Priserna måste ha minst fyra exakt matchande avslutade intervall som tillsammans täcker en timme, med ett tillägg som är noll eller större och varierar med högst 0,01 per kWh. Flera Tibber-konton stöds inte. Försök igen senare eller avmarkera bekräftelsen för att använda manuell prissättning."
     }
   },
   "entity": {

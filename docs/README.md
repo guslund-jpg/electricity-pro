@@ -71,6 +71,7 @@ Git history preserves previous versions.
 - [v1.7.2 maintenance update, upgrade notes and validation](releases/1.7.2.md)
 - [v1.7.1 release, upgrade notes and validation](releases/1.7.1.md)
 - [English/Swedish wording and standard entity-ID review](validation/translation-review-sv.md)
+- [Current Swedish guided-flow coverage and remaining frontend review](validation/translation-review-sv.md#aktuella-svenska-flödestexter--28-november-2026)
 - [Post-v1.7 consolidation: development build and pending manual checks](validation/post-v1.7.md)
 - [v1.7.0 release, upgrade notes and validation](releases/1.7.0.md)
 - [Home Assistant support and per-release review checklist](development/contributing.md#home-assistant-support-and-release-review)
