@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.8.0b2] — 2026-11-28
+
+Second beta toward v1.8.0; **v1.7.2** remains the latest stable release.
+See the [beta and upgrade notes](docs/releases/1.8.0.md). Existing dashboards
+need the selected YAML copied separately; integration calculations are unchanged.
+
 ### Added
 
 - Add optional Enhanced Clean dashboard examples in Swedish and English for

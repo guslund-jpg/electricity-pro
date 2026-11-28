@@ -62,9 +62,10 @@ source requirements and price-component definitions.
 
 Use the [latest published release](https://github.com/guslund-jpg/electricity-pro/releases/latest)
 for ordinary installations; **v1.7.2** remains the latest stable release.
-[v1.8.0b1](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.8.0b1)
+[v1.8.0b2](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.8.0b2)
 is published as an opt-in pre-release, with monthly cost components and charts,
-reorganized dashboards and optional fixed-price export compensation estimates.
+four-view dashboards, optional Enhanced Clean in both languages, a native
+Standard forecast table and optional fixed-price export compensation estimates.
 See the [beta scope and upgrade notes](docs/releases/1.8.0.md).
 The stable version's [v1.7.2 notes](docs/releases/1.7.2.md) remain
 available. **Home Assistant Core 2026.9.0 or newer is required.**
