@@ -9,6 +9,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
 from homeassistant.config_entries import ConfigEntry
@@ -58,6 +59,7 @@ from .export_observation import ExportIntervalResult
 from .export_price_config import EXPORT_PRICE_PERIODS
 from .export_statistics import ExportStatistics
 from .export_tracker import ExportTracker
+from .history_storage import stored_list, stored_record
 from .flow_sources import CHANNELS
 from .flow_compatibility import (
     CONF_GENERATION,
@@ -124,6 +126,13 @@ from .statistics_engine import (
     DailyPeakSnapshot,
     DailyPeakStatistic,
     StatisticsSnapshot,
+)
+from .statistics_storage import (
+    Checkpoint,
+    StatisticsComponent,
+    dump_components,
+    restore_components,
+    section,
 )
 from .timing_score import (
     CompletedTimingScore,
@@ -331,6 +340,16 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             f"{DOMAIN}.{entry.entry_id}.statistics",
             self._async_statistics_saved,
         )
+        self._flow_checkpoint_components = tuple(
+            StatisticsComponent(
+                (channel,),
+                partial(self._restore_flow_counter, channel),
+                warning=f"Ignoring invalid {channel} counter state",
+                scope=partial(self._matches_flow_checkpoint, channel),
+            )
+            for channel in CHANNELS
+        )
+        self._statistics_components = self._build_statistics_components()
 
     async def async_start(self) -> None:
         """Start listening for provider source changes."""
@@ -945,167 +964,307 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
             "timezone": str(self._local_timezone),
         }
 
-    async def _async_restore_statistics(self) -> None:
-        """Restore persisted statistics state when available."""
-        stored = await self._store.async_load()
-        if stored is None:
-            return
+    def _build_statistics_components(self) -> tuple[StatisticsComponent, ...]:
+        """Register existing sections in their original load and dump order."""
+        return (
+            StatisticsComponent(
+                ("export_ledger", "export_statistics"),
+                self._restore_export_checkpoint,
+                self._export_tracker.as_dict,
+                scope=lambda _: True,
+            ),
+            StatisticsComponent(
+                ("directional_flows",),
+                self._restore_directional_flows,
+                self._dump_directional_flows,
+            ),
+            StatisticsComponent(
+                ("local_costs", "local_cost_scope"),
+                self._restore_local_costs,
+                lambda: {
+                    "local_costs": self._local_costs.as_dict(),
+                    "local_cost_scope": self._local_cost_scope,
+                },
+                "Ignoring invalid local cost estimate state",
+                scope=lambda stored: (
+                    stored.get("local_cost_scope") == self._local_cost_scope
+                ),
+            ),
+            StatisticsComponent(
+                (_MONTHLY_VARIABLE_COST_ARCHIVE,),
+                self._restore_monthly_cost_archive,
+                lambda: section(
+                    _MONTHLY_VARIABLE_COST_ARCHIVE,
+                    self._monthly_variable_cost_archive.as_dict() or None,
+                ),
+                "Ignoring invalid monthly variable cost archive",
+            ),
+            StatisticsComponent(
+                (_VARIABLE_COST_STATISTICS,),
+                self._restore_variable_cost_statistics,
+                self._dump_variable_cost_statistics,
+                "Pausing variable cost statistics with an invalid checkpoint",
+                recover=self._pause_variable_cost_statistics,
+            ),
+            StatisticsComponent(
+                (
+                    _ENERGY_THIS_MONTH,
+                    "monthly_energy_source",
+                    "monthly_energy_started",
+                    "monthly_energy_legacy",
+                ),
+                self._restore_monthly_energy,
+                self._dump_monthly_energy,
+                "Ignoring invalid persisted energy statistics state",
+                scope=lambda stored: (
+                    _ENERGY_THIS_MONTH in stored
+                    and (
+                        stored.get("monthly_energy_source") is None
+                        or stored["monthly_energy_source"]
+                        == self._monthly_energy_source
+                    )
+                ),
+            ),
+            StatisticsComponent(
+                (
+                    _ENERGY_TODAY_FROM_TOTAL,
+                    _ENERGY_TODAY_SOURCE_ENTITY,
+                    _ENERGY_TODAY_PERIOD_COMPLETE,
+                ),
+                self._restore_daily_energy,
+                self._dump_daily_energy,
+                "Ignoring invalid persisted lifetime energy baseline",
+                scope=lambda stored: (
+                    self._provider.energy_source_is_lifetime_total
+                    and stored.get(_ENERGY_TODAY_SOURCE_ENTITY)
+                    == self._provider.energy_entity_id
+                    and _ENERGY_TODAY_FROM_TOTAL in stored
+                ),
+            ),
+            StatisticsComponent(
+                (_COST_THIS_MONTH, _COST_THIS_MONTH_UNIT),
+                self._restore_monthly_cost,
+                self._dump_monthly_cost,
+                "Ignoring invalid persisted cost statistics state",
+                scope=lambda stored: (
+                    _COST_THIS_MONTH in stored
+                    and isinstance(stored.get(_COST_THIS_MONTH_UNIT), str)
+                    and bool(stored[_COST_THIS_MONTH_UNIT])
+                ),
+            ),
+            StatisticsComponent(
+                (_PEAK_POWER_TODAY,),
+                self._restore_daily_peak,
+                lambda: section(
+                    _PEAK_POWER_TODAY, _snapshot_dict(self._peak_power_today.snapshot)
+                ),
+                "Ignoring invalid persisted daily peak state",
+            ),
+            StatisticsComponent(
+                (_TIMING_BUCKETS,),
+                self._restore_timing_buckets,
+                lambda: {_TIMING_BUCKETS: self._timing_buckets.as_dict()},
+                "Ignoring invalid persisted timing bucket history",
+            ),
+            StatisticsComponent(
+                (_TIMING_RESULT,),
+                self._restore_timing_result,
+                lambda: section(_TIMING_RESULT, self._completed_timing_score.as_dict()),
+                "Ignoring invalid persisted timing score result",
+                scope=lambda stored: isinstance(stored.get(_TIMING_RESULT), dict),
+                recover=lambda _: self._completed_timing_score.clear(),
+            ),
+            StatisticsComponent(
+                (_BASE_LOAD_BUCKETS,),
+                self._restore_base_load_buckets,
+                lambda: {_BASE_LOAD_BUCKETS: self._base_load_buckets.as_dict()},
+                "Ignoring invalid persisted base-load bucket history",
+            ),
+            StatisticsComponent(
+                (_BASE_LOAD_DAILY_SUMMARIES,),
+                self._restore_base_load_summaries,
+                lambda: {
+                    _BASE_LOAD_DAILY_SUMMARIES: self._base_load_summaries.as_list()
+                },
+                "Ignoring invalid persisted base-load summaries",
+                scope=lambda stored: isinstance(
+                    stored.get(_BASE_LOAD_DAILY_SUMMARIES), list
+                ),
+            ),
+            StatisticsComponent(
+                (_ADAPTIVE_PRICE_HISTORY,),
+                self._restore_adaptive_price_history,
+                lambda: {
+                    _ADAPTIVE_PRICE_HISTORY: self._adaptive_price_history.as_dict()
+                },
+                "Ignoring invalid persisted adaptive price history",
+            ),
+        )
 
+    def _restore_export_checkpoint(self, stored: Checkpoint) -> None:
         for warning in self._export_tracker.restore(
             stored,
             source_configured=self.is_flow_source_configured("grid_export", "energy"),
         ):
             _LOGGER.warning(warning)
 
-        flow_state = stored.get("directional_flows", {})
-        for channel in CHANNELS:
-            saved = flow_state.get(channel) if isinstance(flow_state, dict) else None
-            if isinstance(saved, dict) and saved.get("scope") == self._flow_scope(
-                channel
-            ):
-                try:
-                    self._flow_counters[channel] = FlowCounter.from_dict(
-                        saved["counter"]
-                    )
-                except KeyError, ValueError, TypeError, ArithmeticError:
-                    _LOGGER.warning("Ignoring invalid %s counter state", channel)
+    def _matches_flow_checkpoint(self, channel: str, stored: Checkpoint) -> bool:
+        saved = stored.get(channel)
+        return isinstance(saved, dict) and saved.get("scope") == self._flow_scope(
+            channel
+        )
 
-        if stored.get("local_cost_scope") == self._local_cost_scope:
-            try:
-                self._local_costs = CostLedger.from_dict(stored["local_costs"])
-            except KeyError, ValueError, TypeError, ArithmeticError:
-                _LOGGER.warning("Ignoring invalid local cost estimate state")
+    def _restore_flow_counter(self, channel: str, stored: Checkpoint) -> None:
+        self._flow_counters[channel] = FlowCounter.from_dict(stored[channel]["counter"])
 
-        if _MONTHLY_VARIABLE_COST_ARCHIVE in stored:
-            try:
-                self._monthly_variable_cost_archive = (
-                    MonthlyVariableCostArchive.from_dict(
-                        stored[_MONTHLY_VARIABLE_COST_ARCHIVE]
-                    )
-                )
-            except ValueError:
-                _LOGGER.warning("Ignoring invalid monthly variable cost archive")
+    def _restore_directional_flows(self, stored: Checkpoint) -> None:
+        flow_state = stored["directional_flows"]
+        if isinstance(flow_state, dict):
+            restore_components(
+                flow_state, self._flow_checkpoint_components, _LOGGER.warning
+            )
 
-        if _VARIABLE_COST_STATISTICS in stored:
-            raw_costs = stored[_VARIABLE_COST_STATISTICS]
-            if self._variable_cost_history is not None:
-                try:
-                    self._variable_cost_history.restore(raw_costs)
-                except KeyError, ValueError, TypeError, ArithmeticError:
-                    _LOGGER.warning(
-                        "Pausing variable cost statistics with an invalid checkpoint"
-                    )
-                    self._variable_cost_history = None
-                else:
-                    self.recorded_variable_costs = self._variable_cost_history.saved
-            if self._variable_cost_history is None:
-                self._inactive_variable_cost_statistics[_VARIABLE_COST_STATISTICS] = (
-                    raw_costs
-                )
+    def _dump_directional_flows(self) -> dict[str, Any]:
+        return {
+            "directional_flows": {
+                channel: {
+                    "scope": self._flow_scope(channel),
+                    "counter": counter.as_dict(),
+                }
+                for channel, counter in self._flow_counters.items()
+                if self._flow_scope(channel)["source"]
+            }
+        }
 
-        month_scope = stored.get("monthly_energy_source")
-        if _ENERGY_THIS_MONTH in stored and (
-            month_scope is None or month_scope == self._monthly_energy_source
-        ):
-            try:
-                snapshot = StatisticsSnapshot.from_dict(stored[_ENERGY_THIS_MONTH])
-            except ValueError:
-                _LOGGER.warning("Ignoring invalid persisted energy statistics state")
-            else:
-                self._energy_this_month = CumulativeStatistic(
-                    CalendarPeriod.MONTH,
-                    snapshot,
-                )
-                self._monthly_energy_legacy = (
-                    month_scope is None or stored.get("monthly_energy_legacy") is True
-                )
-                self._monthly_energy_started = stored.get("monthly_energy_started")
+    def _restore_local_costs(self, stored: Checkpoint) -> None:
+        self._local_costs = CostLedger.from_dict(stored_record(stored["local_costs"]))
 
-        if (
+    def _restore_monthly_cost_archive(self, stored: Checkpoint) -> None:
+        self._monthly_variable_cost_archive = MonthlyVariableCostArchive.from_dict(
+            stored[_MONTHLY_VARIABLE_COST_ARCHIVE]
+        )
+
+    def _restore_variable_cost_statistics(self, stored: Checkpoint) -> None:
+        history = self._variable_cost_history
+        if history is None:
+            self._pause_variable_cost_statistics(stored)
+        else:
+            history.restore(stored[_VARIABLE_COST_STATISTICS])
+            self.recorded_variable_costs = history.saved
+
+    def _pause_variable_cost_statistics(self, stored: Checkpoint) -> None:
+        self._variable_cost_history = None
+        self._inactive_variable_cost_statistics[_VARIABLE_COST_STATISTICS] = stored[
+            _VARIABLE_COST_STATISTICS
+        ]
+
+    def _dump_variable_cost_statistics(self) -> dict[str, Any]:
+        data: dict[str, Any] = {}
+        history = self._variable_cost_history
+        if history is not None and (periods := history.as_list()):
+            data[_VARIABLE_COST_STATISTICS] = periods
+        data.update(self._inactive_variable_cost_statistics)
+        return data
+
+    def _restore_monthly_energy(self, stored: Checkpoint) -> None:
+        snapshot = StatisticsSnapshot.from_dict(stored[_ENERGY_THIS_MONTH])
+        self._energy_this_month = CumulativeStatistic(CalendarPeriod.MONTH, snapshot)
+        self._monthly_energy_legacy = (
+            stored.get("monthly_energy_source") is None
+            or stored.get("monthly_energy_legacy") is True
+        )
+        self._monthly_energy_started = stored.get("monthly_energy_started")
+
+    def _dump_monthly_energy(self) -> dict[str, Any]:
+        data = section(
+            _ENERGY_THIS_MONTH, _snapshot_dict(self._energy_this_month.snapshot)
+        )
+        if data:
+            data.update(
+                monthly_energy_source=self._monthly_energy_source,
+                monthly_energy_started=self._monthly_energy_started,
+                monthly_energy_legacy=self._monthly_energy_legacy,
+            )
+        return data
+
+    def _restore_daily_energy(self, stored: Checkpoint) -> None:
+        self._energy_today_from_total = DailyConsumptionFromTotal(
+            StatisticsSnapshot.from_dict(stored[_ENERGY_TODAY_FROM_TOTAL])
+        )
+        self._energy_today_period_complete = (
+            stored.get(_ENERGY_TODAY_PERIOD_COMPLETE) is True
+        )
+
+    def _dump_daily_energy(self) -> dict[str, Any]:
+        data = section(
+            _ENERGY_TODAY_FROM_TOTAL,
+            _snapshot_dict(self._energy_today_from_total.snapshot),
+        )
+        if not (
             self._provider.energy_source_is_lifetime_total
-            and stored.get(_ENERGY_TODAY_SOURCE_ENTITY)
-            == self._provider.energy_entity_id
-            and _ENERGY_TODAY_FROM_TOTAL in stored
+            and self._provider.energy_entity_id is not None
         ):
-            try:
-                snapshot = StatisticsSnapshot.from_dict(
-                    stored[_ENERGY_TODAY_FROM_TOTAL]
-                )
-            except ValueError:
-                _LOGGER.warning("Ignoring invalid persisted lifetime energy baseline")
-            else:
-                self._energy_today_from_total = DailyConsumptionFromTotal(snapshot)
-                self._energy_today_period_complete = (
-                    stored.get(_ENERGY_TODAY_PERIOD_COMPLETE) is True
-                )
+            return {}
+        if data:
+            data[_ENERGY_TODAY_SOURCE_ENTITY] = self._provider.energy_entity_id
+            data[_ENERGY_TODAY_PERIOD_COMPLETE] = self._energy_today_period_complete
+        return data
 
-        cost_unit = stored.get(_COST_THIS_MONTH_UNIT)
-        if _COST_THIS_MONTH in stored and isinstance(cost_unit, str) and cost_unit:
-            try:
-                snapshot = StatisticsSnapshot.from_dict(stored[_COST_THIS_MONTH])
-            except ValueError:
-                _LOGGER.warning("Ignoring invalid persisted cost statistics state")
-            else:
-                self._cost_this_month = CumulativeStatistic(
-                    CalendarPeriod.MONTH,
-                    snapshot,
-                )
-                self._cost_this_month_unit = cost_unit
+    def _restore_monthly_cost(self, stored: Checkpoint) -> None:
+        self._cost_this_month = CumulativeStatistic(
+            CalendarPeriod.MONTH, StatisticsSnapshot.from_dict(stored[_COST_THIS_MONTH])
+        )
+        self._cost_this_month_unit = stored[_COST_THIS_MONTH_UNIT]
 
-        if _PEAK_POWER_TODAY in stored:
-            try:
-                peak_snapshot = DailyPeakSnapshot.from_dict(stored[_PEAK_POWER_TODAY])
-            except ValueError:
-                _LOGGER.warning("Ignoring invalid persisted daily peak state")
-            else:
-                local_today = dt_util.now().astimezone(self._local_timezone).date()
-                if peak_snapshot.period_start == local_today:
-                    self._peak_power_today = DailyPeakStatistic(peak_snapshot)
+    def _dump_monthly_cost(self) -> dict[str, Any]:
+        data = section(_COST_THIS_MONTH, _snapshot_dict(self._cost_this_month.snapshot))
+        if self._cost_this_month_unit is None:
+            return {}
+        if data:
+            data[_COST_THIS_MONTH_UNIT] = self._cost_this_month_unit
+        return data
 
-        if _TIMING_BUCKETS in stored:
-            try:
-                self._timing_buckets = TimingBucketAccumulator.from_dict(
-                    self._local_timezone,
-                    stored[_TIMING_BUCKETS],
-                )
-            except ValueError:
-                _LOGGER.warning("Ignoring invalid persisted timing bucket history")
+    def _restore_daily_peak(self, stored: Checkpoint) -> None:
+        snapshot = DailyPeakSnapshot.from_dict(stored[_PEAK_POWER_TODAY])
+        if (
+            snapshot.period_start
+            == dt_util.now().astimezone(self._local_timezone).date()
+        ):
+            self._peak_power_today = DailyPeakStatistic(snapshot)
 
-        timing_result = stored.get(_TIMING_RESULT)
-        if isinstance(timing_result, dict):
-            try:
-                self._completed_timing_score.restore(
-                    period_start=timing_result["period_start"],
-                    result=timing_result["result"],
-                )
-            except KeyError, TypeError, ValueError:
-                self._completed_timing_score.clear()
-                _LOGGER.warning("Ignoring invalid persisted timing score result")
+    def _restore_timing_buckets(self, stored: Checkpoint) -> None:
+        self._timing_buckets = TimingBucketAccumulator.from_dict(
+            self._local_timezone, stored[_TIMING_BUCKETS]
+        )
 
-        if _BASE_LOAD_BUCKETS in stored:
-            try:
-                self._base_load_buckets = BaseLoadBucketAccumulator.from_dict(
-                    self._local_timezone,
-                    stored[_BASE_LOAD_BUCKETS],
-                )
-            except ValueError:
-                _LOGGER.warning("Ignoring invalid persisted base-load bucket history")
+    def _restore_timing_result(self, stored: Checkpoint) -> None:
+        result = stored[_TIMING_RESULT]
+        self._completed_timing_score.restore(
+            period_start=result["period_start"], result=result["result"]
+        )
 
-        summaries = stored.get(_BASE_LOAD_DAILY_SUMMARIES)
-        if isinstance(summaries, list):
-            try:
-                self._base_load_summaries.restore(summaries)
-            except TypeError, ValueError:
-                _LOGGER.warning("Ignoring invalid persisted base-load summaries")
+    def _restore_base_load_buckets(self, stored: Checkpoint) -> None:
+        self._base_load_buckets = BaseLoadBucketAccumulator.from_dict(
+            self._local_timezone, stored[_BASE_LOAD_BUCKETS]
+        )
 
-        if _ADAPTIVE_PRICE_HISTORY in stored:
-            try:
-                self._adaptive_price_history = AdaptivePriceHistory.from_dict(
-                    self._local_timezone,
-                    stored[_ADAPTIVE_PRICE_HISTORY],
-                )
-            except ValueError:
-                _LOGGER.warning("Ignoring invalid persisted adaptive price history")
+    def _restore_base_load_summaries(self, stored: Checkpoint) -> None:
+        rows = [
+            stored_record(row)
+            for row in stored_list(stored[_BASE_LOAD_DAILY_SUMMARIES])
+        ]
+        self._base_load_summaries.restore(rows)
+
+    def _restore_adaptive_price_history(self, stored: Checkpoint) -> None:
+        self._adaptive_price_history = AdaptivePriceHistory.from_dict(
+            self._local_timezone, stored[_ADAPTIVE_PRICE_HISTORY]
+        )
+
+    async def _async_restore_statistics(self) -> None:
+        """Restore independent sections in their declared compatibility order."""
+        stored = await self._store.async_load()
+        if stored is not None:
+            restore_components(stored, self._statistics_components, _LOGGER.warning)
 
     @callback
     def _read(self, *, power_observed: bool = False) -> ElectricityProData:
@@ -1631,48 +1790,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @callback
     def _statistics_data(self) -> dict[str, Any]:
         """Return serializable statistics state."""
-        data: dict[str, Any] = self._export_tracker.as_dict()
-        data["directional_flows"] = {
-            channel: {"scope": self._flow_scope(channel), "counter": counter.as_dict()}
-            for channel, counter in self._flow_counters.items()
-            if self._flow_scope(channel)["source"]
-        }
-        data["local_costs"] = self._local_costs.as_dict()
-        data["local_cost_scope"] = self._local_cost_scope
-        if archive := self._monthly_variable_cost_archive.as_dict():
-            data[_MONTHLY_VARIABLE_COST_ARCHIVE] = archive
-        if (history := self._variable_cost_history) is not None and (
-            periods := history.as_list()
-        ):
-            data[_VARIABLE_COST_STATISTICS] = periods
-        data.update(self._inactive_variable_cost_statistics)
-        if (snapshot := self._energy_this_month.snapshot) is not None:
-            data[_ENERGY_THIS_MONTH] = snapshot.as_dict()
-            data["monthly_energy_source"] = self._monthly_energy_source
-            data["monthly_energy_started"] = self._monthly_energy_started
-            data["monthly_energy_legacy"] = self._monthly_energy_legacy
-        if (
-            self._provider.energy_source_is_lifetime_total
-            and (snapshot := self._energy_today_from_total.snapshot) is not None
-            and self._provider.energy_entity_id is not None
-        ):
-            data[_ENERGY_TODAY_FROM_TOTAL] = snapshot.as_dict()
-            data[_ENERGY_TODAY_SOURCE_ENTITY] = self._provider.energy_entity_id
-            data[_ENERGY_TODAY_PERIOD_COMPLETE] = self._energy_today_period_complete
-        if (
-            snapshot := self._cost_this_month.snapshot
-        ) is not None and self._cost_this_month_unit is not None:
-            data[_COST_THIS_MONTH] = snapshot.as_dict()
-            data[_COST_THIS_MONTH_UNIT] = self._cost_this_month_unit
-        if (peak_snapshot := self._peak_power_today.snapshot) is not None:
-            data[_PEAK_POWER_TODAY] = peak_snapshot.as_dict()
-        data[_TIMING_BUCKETS] = self._timing_buckets.as_dict()
-        if (timing_result := self._completed_timing_score.as_dict()) is not None:
-            data[_TIMING_RESULT] = timing_result
-        data[_BASE_LOAD_BUCKETS] = self._base_load_buckets.as_dict()
-        data[_BASE_LOAD_DAILY_SUMMARIES] = self._base_load_summaries.as_list()
-        data[_ADAPTIVE_PRICE_HISTORY] = self._adaptive_price_history.as_dict()
-        return data
+        return dump_components(self._statistics_components)
 
     def _flow_scope(self, channel: str) -> _FlowScope:
         """Scope each independently accumulated AC lifetime register."""
@@ -1854,3 +1972,10 @@ def _adaptive_tariff_signature(entry: ConfigEntry) -> str:
         sort_keys=True,
     )
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def _snapshot_dict(
+    snapshot: StatisticsSnapshot | DailyPeakSnapshot | None,
+) -> dict[str, str] | None:
+    """Serialize optional snapshots without treating a known zero as missing."""
+    return snapshot.as_dict() if snapshot is not None else None

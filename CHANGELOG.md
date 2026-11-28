@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Pair statistics restore/dump operations in an explicit component list, retaining
+  stored keys, scope checks, legacy metadata and paused financial checkpoints.
+  Isolate invalid sections without changing accounting or checkpoint cadence.
 - Collect export compensation observation, ledger, histories and paused state
   in a dedicated tracker. Preserve booking, checkpoint formats and Recorder
   publication order; the coordinator retains HA writes, scheduling and signals.

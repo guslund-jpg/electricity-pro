@@ -78,6 +78,7 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `pricing.py`, `grid_tariff.py` | Price/component/VAT contracts and variable grid tariffs |
 | `calculations.py`, `statistics.py` | Cost-rate, price, average-price and remaining-cost functions |
 | `statistics_engine.py` | Accumulators, lifetime-meter protection and daily peak state |
+| `statistics_storage.py` | Explicit checkpoint component adapters and common restore/dump orchestration |
 | `cost_ledger.py`, `household_cost.py` | Observed-energy pricing, coverage and accrued fixed fees |
 | `timing_score.py`, `base_load.py`, `adaptive_price.py` | Bounded historical calculations and comparable-price summaries |
 | `good_time.py` | Pure fixed/adaptive Good Time decisions and explanations, including forecast refinement |
@@ -215,6 +216,48 @@ whether saved state can be reused. Restart does not reconstruct missing readings
 or historical interval costs. See [meter protection](../guides/meter-reading-protection.md),
 [monthly recovery](../guides/monthly-energy-recovery.md) and
 [local cost coverage](../guides/costs-and-pricing.md#supplier-cost-estimates).
+
+### Statistics checkpoint components
+
+The coordinator registers paired load/dump callbacks in one ordered tuple of
+`StatisticsComponent` values. `statistics_storage.py` runs those callbacks and
+their explicit scope predicates; it does not discover fields through reflection
+or introduce a plugin registry. Registration captures callbacks, not snapshots,
+so each write still serializes the latest state. `Checkpoint` retains `Any` only
+at the existing untrusted JSON boundary; owning model loaders validate values.
+
+The existing version-1 Store key, payloads and registration order remain intact:
+
+| Fields | Scope and invalid-state policy |
+| --- | --- |
+| `export_ledger`, `export_statistics` | Delegate to ExportTracker, including timezone checks, retained raw incompatible checkpoints and independent booking/publication pause state |
+| `directional_flows` | Restore channels independently when their embedded source/boundary/timezone scope matches; ignore an invalid counter without blocking other channels |
+| `local_costs`, `local_cost_scope` | Require matching pricing/source/timezone scope; ignore invalid estimates |
+| `monthly_variable_cost_archive` | Validate through the archive owner; ignore invalid archive; omit an empty archive on dump |
+| `variable_cost_statistics` | Restore with Recorder enabled; otherwise retain raw data. On invalid history, pause publication and retain the raw section on subsequent saves |
+| `energy_this_month`, `monthly_energy_source`, `monthly_energy_started`, `monthly_energy_legacy` | Require matching source semantics, or retain the legacy missing-scope path as unverified; serialize metadata only with a snapshot |
+| `energy_today_from_total`, `energy_today_source_entity`, `energy_today_period_complete` | Require the configured lifetime source; preserve the completeness flag; omit without a lifetime snapshot/source |
+| `cost_this_month`, `cost_this_month_unit` | Require a nonempty saved unit; serialize only with a snapshot and unit |
+| `peak_power_today` | Restore only today's local peak; omit when no snapshot exists |
+| `consumption_timing_buckets` | Validate history through its owner; ignore invalid state |
+| `consumption_timing_score_yesterday` | Restore record-shaped results; clear the completed result on invalid state; omit a missing result |
+| `base_load_buckets` | Validate history through its owner; ignore invalid state |
+| `base_load_daily_summaries` | Restore list-shaped records through their owner; ignore invalid state |
+| `adaptive_price_history` | Validate comparable-price history through its owner; ignore invalid state |
+
+Ordinary adapters share narrow handling of `KeyError`, `ValueError`, `TypeError`
+and `ArithmeticError` from invalid payloads, with a component-specific recovery
+callback and warning. Scope evaluation, unexpected programming errors and dump
+failures propagate rather than silently returning an empty checkpoint. Export
+retains its own more specific pause/recovery policy. Record/list validation at
+the local-cost and daily-summary boundary prevents malformed outer shapes from
+being mistaken for programming errors.
+
+Known zero and empty history collections retain their existing representation;
+only the documented optional sections are omitted. There is no storage migration
+or change to accounting, replay markers, save cadence or unload/reset flushes.
+Successful-write acknowledgement and closing-period Recorder publication still
+belong to the coordinator and ExportTracker, outside the generic adapters.
 
 Recorder stores published entity history and eligible long-term statistics.
 Excluding source entities does not stop live calculations, but removes their
