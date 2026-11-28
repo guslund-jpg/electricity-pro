@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Split local cost updates into bounded meter, observation and interval-booking
+  operations, preserving Decimal arithmetic, coverage, VAT, archive order and
+  the existing checkpoint format.
 - Pair statistics restore/dump operations in an explicit component list, retaining
   stored keys, scope checks, legacy metadata and paused financial checkpoints.
   Isolate invalid sections without changing accounting or checkpoint cadence.
