@@ -4,6 +4,12 @@
 
 ### Changed
 
+- Make Overview a quick view of live power, Effective Price, current cost rate,
+  usage advice and cheapest 1/2/3-hour windows in Swedish and English Standard
+  and Enhanced. Keep those windows in Prices as well and collect daily/monthly
+  energy, import costs and separate export compensation in Energy and costs.
+  Standard retains native cards without frontend dependencies. Existing
+  dashboards need updated YAML; integration settings and calculations are unchanged.
 - Organize Swedish and English Standard and Enhanced dashboards into Overview,
   Prices, Energy and costs, and Electrical Details. Group daily energy/export
   with today's readings, monthly energy/export with cost history, and power
@@ -12,6 +18,8 @@
 
 ### Fixed
 
+- Hide the monthly peak-hour heading when neither optional value is available
+  in all four dashboard examples, while retaining a known zero.
 - Clarify monthly spot cost rows in Swedish and English Standard and Enhanced:
   distinguish VAT-exclusive amounts from gross amounts with VAT not itemized,
   and explain that mixed rows cover different consumption intervals. Existing

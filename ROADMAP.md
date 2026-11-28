@@ -70,6 +70,15 @@ Electricity Pro remained **1.8.0b1**. These revisions follow the published beta
 and need updated YAML in existing dashboards.
 [Rollout and verification record](docs/validation/v1.8.md#four-view-dashboards-and-spot-costs--28-november-2026)
 
+The maintainer's reviewed Swedish Enhanced alternative refines this grouping:
+Overview focuses on live readings, usage advice and cheapest 1/2/3-hour windows;
+Prices retains those windows alongside its charts. Energy and costs collects
+both daily and monthly statistics, and the optional monthly peak-hour heading
+follows its available values. The maintained Swedish/English Standard and
+Enhanced examples adopt this arrangement. Standard keeps native cards without
+frontend dependencies. These YAML revisions follow v1.8.0b1; the recorded
+verification above retains its original layout and scope.
+
 Before stable **v1.8.0**:
 
 - Collect beta observations of normal import/cost accumulation, forecasts,

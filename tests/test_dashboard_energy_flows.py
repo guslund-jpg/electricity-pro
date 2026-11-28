@@ -20,7 +20,7 @@ def entity_id(channel, period):
 
 
 def matches(conditions, states):
-    """Evaluate the state/or subset used here, with missing = unknown.
+    """Evaluate the state/and/or subset used here, with missing = unknown.
 
     Mirrors HA frontend checkStateCondition/checkOrCondition, rather than
     backend automation conditions (which have different missing-state rules).
@@ -29,6 +29,8 @@ def matches(conditions, states):
     def check(condition):
         if condition["condition"] == "or":
             return any(check(child) for child in condition["conditions"])
+        if condition["condition"] == "and":
+            return all(check(child) for child in condition["conditions"])
         assert condition["condition"] == "state"
         assert set(condition) == {"condition", "entity", "state_not"}
         return states.get(condition["entity"], "unknown") != condition["state_not"]
@@ -66,7 +68,7 @@ def groups(request, language_suffix):
     for channel in CHANNELS:
         for period, view_path in (
             ("power", "details"),
-            ("today", "overview"),
+            ("today", "energy"),
             ("this_month", "energy"),
         ):
             view = next(v for v in dashboard["views"] if v["path"] == view_path)
@@ -80,6 +82,43 @@ def groups(request, language_suffix):
             assert len(found) == 1
             result[channel, period] = found[0]
     return result
+
+
+@pytest.mark.parametrize(
+    "path", sorted(DASHBOARDS.glob("*.yaml")), ids=lambda p: p.stem
+)
+@pytest.mark.parametrize(
+    ("consumption", "time", "expected"),
+    [
+        (None, None, False),
+        ("unknown", "unknown", False),
+        ("unavailable", "unavailable", False),
+        ("unknown", "unavailable", False),
+        ("0", None, True),
+        ("2.5", "2026-11-28T08:00:00+01:00", True),
+        (None, "2026-11-28T08:00:00+01:00", True),
+    ],
+)
+def test_monthly_peak_heading_requires_a_visible_value(
+    path, consumption, time, expected
+):
+    """Hide an empty section while retaining known zero and either source."""
+    details = next(
+        v for v in yaml.safe_load(path.read_text())["views"] if v["path"] == "details"
+    )
+    heading = next(
+        c
+        for c in details["cards"]
+        if c.get("type") == "conditional"
+        and (c["card"].get("heading") or c["card"].get("title"))
+        in ("Monthly peak hour", "Månadens topptimme")
+    )
+    states = {
+        f"sensor.electricity_pro_monthly_peak_hour_{suffix}": state
+        for suffix, state in (("consumption", consumption), ("time", time))
+        if state is not None
+    }
+    assert matches(heading["conditions"], states) == expected
 
 
 @pytest.mark.parametrize("state", [None, "unknown", "0", "1.5", "unavailable"])
