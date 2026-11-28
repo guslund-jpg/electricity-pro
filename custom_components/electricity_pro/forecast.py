@@ -134,7 +134,7 @@ def validate_forecast_series(
         by_boundary.values(),
         key=lambda interval: (interval.start, interval.end),
     )
-    for previous, current in zip(deduplicated, deduplicated[1:]):
+    for previous, current in zip(deduplicated, deduplicated[1:], strict=False):
         if previous.end > current.start:
             raise ValueError("Forecast series contains overlapping intervals")
 

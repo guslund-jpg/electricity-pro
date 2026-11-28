@@ -52,7 +52,7 @@ def estimate_markup(
             raise ValueError("Duplicate Tibber intervals")
         durations = {
             (end - start).total_seconds()
-            for (start, _), (end, _) in zip(rows, rows[1:])
+            for (start, _), (end, _) in zip(rows, rows[1:], strict=False)
         }
         if len(durations) != 1 or not durations <= {900, 3600}:
             raise ValueError("Missing or mixed-resolution Tibber intervals")
@@ -66,7 +66,7 @@ def estimate_markup(
         }
         differences = []
         seconds = 0.0
-        for (start, price), (end, _) in zip(rows, rows[1:]):
+        for (start, price), (end, _) in zip(rows, rows[1:], strict=False):
             # The action supplies starts only. Use the next start, but never
             # guess the final end or bridge nonstandard gaps.
             duration = (end - start).total_seconds()

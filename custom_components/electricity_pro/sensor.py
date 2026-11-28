@@ -412,7 +412,7 @@ def _phase_current_descriptions() -> tuple[ElectricityProSensorEntityDescription
             available_fn=_phase_available(reader),
             required_config_key=conf_key,
         )
-        for phase, conf_key, reader in zip(PHASES, conf_keys, readers)
+        for phase, conf_key, reader in zip(PHASES, conf_keys, readers, strict=True)
     )
 
 
@@ -442,7 +442,7 @@ def _phase_voltage_descriptions() -> tuple[ElectricityProSensorEntityDescription
             available_fn=_phase_available(reader),
             required_config_key=conf_key,
         )
-        for phase, conf_key, reader in zip(PHASES, conf_keys, readers)
+        for phase, conf_key, reader in zip(PHASES, conf_keys, readers, strict=True)
     )
 
 

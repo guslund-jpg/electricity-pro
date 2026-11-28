@@ -385,6 +385,7 @@ def duration_weighted_percentile(
     for (lower_rank, lower_power), (upper_rank, upper_power) in zip(
         points,
         points[1:],
+        strict=False,
     ):
         if percentile <= upper_rank:
             fraction = (percentile - lower_rank) / (upper_rank - lower_rank)

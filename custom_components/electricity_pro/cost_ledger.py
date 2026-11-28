@@ -323,7 +323,7 @@ class CostLedger:
     ) -> None:
         """Split a delta by observed prices and local midnight using elapsed time."""
         points = [*self._segments, (now, prices)]
-        for (start, sample), (end, _) in zip(points, points[1:]):
+        for (start, sample), (end, _) in zip(points, points[1:], strict=False):
             while start.timestamp() < end.timestamp():
                 midnight = datetime.combine(
                     start.date() + timedelta(days=1),

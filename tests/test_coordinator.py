@@ -445,7 +445,7 @@ async def test_base_load_runtime_publishes_after_five_eligible_days(hass) -> Non
     await hass.config.async_set_time_zone("Europe/Stockholm")
     coordinator = ElectricityProCoordinator(hass, _daily_peak_entry())
     timezone = coordinator._local_timezone  # noqa: SLF001
-    for day, power in zip(range(20, 25), (180, 190, 200, 210, 220)):
+    for day, power in zip(range(20, 25), (180, 190, 200, 210, 220), strict=True):
         period_start = date(2026, 8, day)
         day_start = datetime(2026, 8, day, tzinfo=timezone)
         coordinator._base_load_buckets.add_segment(  # noqa: SLF001

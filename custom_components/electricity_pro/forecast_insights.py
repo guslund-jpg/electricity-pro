@@ -230,7 +230,7 @@ def find_price_direction(
         ):
             return None
         points = [left, *sorted(t for t in boundaries if left < t < right), right]
-        for segment_start, segment_end in zip(points, points[1:]):
+        for segment_start, segment_end in zip(points, points[1:], strict=False):
             # Evaluate once so the price and its declared component scope agree.
             fee = (
                 grid_fee_at(segment_start)
