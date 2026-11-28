@@ -100,7 +100,10 @@ from .production_config import ProductionFlow
 from .insight_config import InsightFlow
 from .review_config import ReviewFlow
 from .markup_estimate import CONF_ESTIMATE_MARKUP, MarkupEstimate, async_estimate_markup
-from .vat_suggestions import CONF_SUGGEST_VAT, assistance_field
+from .vat_suggestions import assistance_field
+
+# Retain the existing import name pending the legacy-caller audit in #446.
+from .vat_suggestions import CONF_SUGGEST_VAT as CONF_SUGGEST_VAT
 
 
 _SETUP_TIBBER = "tibber"
@@ -270,6 +273,102 @@ def _setup_method_schema() -> vol.Schema:
     )
 
 
+def _supplier_optional_key(name: str, default: Any) -> vol.Marker:
+    """Retain legacy supplier defaults, including explicit zero and empty values."""
+    return (
+        vol.Optional(name) if default is None else vol.Optional(name, default=default)
+    )
+
+
+def _supplier_amount_field(
+    name: str, default: float | None, *, step: float
+) -> dict[vol.Marker, Any]:
+    """Build a nonnegative supplier amount with its original precision."""
+    return {
+        _supplier_optional_key(name, default): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0, step=step, mode=selector.NumberSelectorMode.BOX
+            )
+        )
+    }
+
+
+def _supplier_adjustment_fields(
+    vat_rate_default: float | None, supplier_markup_default: float | None
+) -> dict[vol.Marker, Any]:
+    """Keep markup before VAT and its opt-in assistance control."""
+    return {
+        **_supplier_amount_field(
+            CONF_SUPPLIER_MARKUP_PER_KWH, supplier_markup_default, step=0.001
+        ),
+        **_vat_rate_field(vat_rate_default),
+    }
+
+
+def _supplier_price_fields(
+    excluded_sources: list[str],
+    *,
+    price_default: str | None,
+    pricing_strategy_default: str | None,
+    price_included_components_default: list[str] | None,
+    price_vat_treatment_default: str | None,
+    vat_rate_default: float | None,
+    supplier_markup_default: float | None,
+) -> dict[vol.Marker, Any]:
+    """Build only the live-price declarations and supplier pricing controls."""
+    return {
+        _supplier_optional_key(
+            CONF_PRICE_ENTITY, price_default
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                exclude_entities=excluded_sources, domain="sensor"
+            )
+        ),
+        _supplier_optional_key(
+            CONF_PRICING_STRATEGY, pricing_strategy_default
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=_PRICING_STRATEGY_OPTIONS,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        _supplier_optional_key(
+            CONF_PRICE_INCLUDED_COMPONENTS, price_included_components_default
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=_PRICE_COMPONENT_OPTIONS,
+                multiple=True,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        _supplier_optional_key(
+            CONF_PRICE_VAT_TREATMENT, price_vat_treatment_default
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=_VAT_OPTIONS, mode=selector.SelectSelectorMode.DROPDOWN
+            )
+        ),
+        **_supplier_adjustment_fields(vat_rate_default, supplier_markup_default),
+    }
+
+
+def _supplier_cost_field(
+    excluded_sources: list[str], default: str | None
+) -> dict[vol.Marker, Any]:
+    """Build the optional external daily supplier-cost source."""
+    return {
+        _supplier_optional_key(
+            CONF_ACCUMULATED_COST_TODAY_ENTITY, default
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                exclude_entities=excluded_sources,
+                domain="sensor",
+                device_class="monetary",
+            )
+        )
+    }
+
+
 def _tibber_settings_schema(
     *,
     include_forecast_pricing: bool = False,
@@ -307,14 +406,6 @@ def _tibber_settings_schema(
         if grid_fee_default is None
         else vol.Optional(CONF_GRID_FEE_PER_KWH, default=grid_fee_default)
     )
-    supplier_markup_key = (
-        vol.Optional(CONF_SUPPLIER_MARKUP_PER_KWH)
-        if supplier_markup_default is None
-        else vol.Optional(
-            CONF_SUPPLIER_MARKUP_PER_KWH,
-            default=supplier_markup_default,
-        )
-    )
     energy_tax_key = (
         vol.Optional(CONF_ENERGY_TAX_PER_KWH)
         if energy_tax_default is None
@@ -336,14 +427,6 @@ def _tibber_settings_schema(
             default=adaptive_price_ceiling_default,
         )
     )
-    fixed_supplier_fee_key = (
-        vol.Optional(CONF_FIXED_SUPPLIER_FEE_MONTHLY)
-        if fixed_supplier_fee_default is None
-        else vol.Optional(
-            CONF_FIXED_SUPPLIER_FEE_MONTHLY,
-            default=fixed_supplier_fee_default,
-        )
-    )
     fixed_grid_fee_key = (
         vol.Optional(CONF_FIXED_GRID_FEE_MONTHLY)
         if fixed_grid_fee_default is None
@@ -358,16 +441,7 @@ def _tibber_settings_schema(
                 selector.ConfigEntrySelectorConfig(integration="nordpool")
             ),
             **(
-                {
-                    supplier_markup_key: selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0,
-                            step=0.001,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
-                    **_vat_rate_field(vat_rate_default),
-                }
+                _supplier_adjustment_fields(vat_rate_default, supplier_markup_default)
                 if include_forecast_pricing
                 else {}
             ),
@@ -400,12 +474,8 @@ def _tibber_settings_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
-            fixed_supplier_fee_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.01,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
+            **_supplier_amount_field(
+                CONF_FIXED_SUPPLIER_FEE_MONTHLY, fixed_supplier_fee_default, step=0.01
             ),
             vol.Required(
                 CONF_GOOD_PRICE_MODE,
@@ -493,36 +563,6 @@ def _entity_schema(
             default=power_default,
         )
 
-    if price_default is None:
-        price_key = vol.Optional(CONF_PRICE_ENTITY)
-    else:
-        price_key = vol.Optional(
-            CONF_PRICE_ENTITY,
-            default=price_default,
-        )
-
-    if pricing_strategy_default is None:
-        pricing_strategy_key = vol.Optional(CONF_PRICING_STRATEGY)
-    else:
-        pricing_strategy_key = vol.Optional(
-            CONF_PRICING_STRATEGY,
-            default=pricing_strategy_default,
-        )
-    if price_included_components_default is None:
-        price_components_key = vol.Optional(CONF_PRICE_INCLUDED_COMPONENTS)
-    else:
-        price_components_key = vol.Optional(
-            CONF_PRICE_INCLUDED_COMPONENTS,
-            default=price_included_components_default,
-        )
-    if price_vat_treatment_default is None:
-        vat_treatment_key = vol.Optional(CONF_PRICE_VAT_TREATMENT)
-    else:
-        vat_treatment_key = vol.Optional(
-            CONF_PRICE_VAT_TREATMENT,
-            default=price_vat_treatment_default,
-        )
-
     if energy_default is None:
         energy_key = vol.Optional(CONF_ENERGY_ENTITY)
     else:
@@ -534,14 +574,6 @@ def _entity_schema(
         CONF_ENERGY_SOURCE_TYPE,
         default=energy_source_type_default,
     )
-
-    if accumulated_cost_today_default is None:
-        accumulated_cost_today_key = vol.Optional(CONF_ACCUMULATED_COST_TODAY_ENTITY)
-    else:
-        accumulated_cost_today_key = vol.Optional(
-            CONF_ACCUMULATED_COST_TODAY_ENTITY,
-            default=accumulated_cost_today_default,
-        )
 
     if current_l1_default is None:
         current_l1_key = vol.Optional(CONF_CURRENT_L1_ENTITY)
@@ -610,28 +642,12 @@ def _entity_schema(
             CONF_GRID_FEE_PER_KWH,
             default=grid_fee_per_kwh_default,
         )
-    supplier_markup_key = (
-        vol.Optional(CONF_SUPPLIER_MARKUP_PER_KWH)
-        if supplier_markup_per_kwh_default is None
-        else vol.Optional(
-            CONF_SUPPLIER_MARKUP_PER_KWH,
-            default=supplier_markup_per_kwh_default,
-        )
-    )
     energy_tax_key = (
         vol.Optional(CONF_ENERGY_TAX_PER_KWH)
         if energy_tax_per_kwh_default is None
         else vol.Optional(
             CONF_ENERGY_TAX_PER_KWH,
             default=energy_tax_per_kwh_default,
-        )
-    )
-    fixed_supplier_fee_key = (
-        vol.Optional(CONF_FIXED_SUPPLIER_FEE_MONTHLY)
-        if fixed_supplier_fee_monthly_default is None
-        else vol.Optional(
-            CONF_FIXED_SUPPLIER_FEE_MONTHLY,
-            default=fixed_supplier_fee_monthly_default,
         )
     )
     fixed_grid_fee_key = (
@@ -680,39 +696,15 @@ def _entity_schema(
                     device_class="power",
                 )
             ),
-            price_key: selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    exclude_entities=excluded_sources,
-                    domain="sensor",
-                )
+            **_supplier_price_fields(
+                excluded_sources,
+                price_default=price_default,
+                pricing_strategy_default=pricing_strategy_default,
+                price_included_components_default=price_included_components_default,
+                price_vat_treatment_default=price_vat_treatment_default,
+                vat_rate_default=vat_rate_default,
+                supplier_markup_default=supplier_markup_per_kwh_default,
             ),
-            pricing_strategy_key: selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=_PRICING_STRATEGY_OPTIONS,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            price_components_key: selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=_PRICE_COMPONENT_OPTIONS,
-                    multiple=True,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            vat_treatment_key: selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=_VAT_OPTIONS,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            supplier_markup_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.001,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
-            ),
-            **_vat_rate_field(vat_rate_default),
             energy_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     exclude_entities=excluded_sources,
@@ -725,13 +717,7 @@ def _entity_schema(
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
-            accumulated_cost_today_key: selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    exclude_entities=excluded_sources,
-                    domain="sensor",
-                    device_class="monetary",
-                )
-            ),
+            **_supplier_cost_field(excluded_sources, accumulated_cost_today_default),
             monthly_peak_hour_consumption_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     exclude_entities=excluded_sources,
@@ -775,12 +761,10 @@ def _entity_schema(
                     mode=selector.NumberSelectorMode.BOX,
                 )
             ),
-            fixed_supplier_fee_key: selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    step=0.01,
-                    mode=selector.NumberSelectorMode.BOX,
-                )
+            **_supplier_amount_field(
+                CONF_FIXED_SUPPLIER_FEE_MONTHLY,
+                fixed_supplier_fee_monthly_default,
+                step=0.01,
             ),
             vol.Required(
                 CONF_GOOD_PRICE_MODE,
@@ -865,38 +849,48 @@ def _entity_schema(
 def _supplier_schema(
     hass: HomeAssistant | None, values: dict[str, Any], known_tibber: bool
 ) -> vol.Schema:
-    """Compose supplier controls from the existing selector contracts."""
+    """Compose only supplier controls, without building combined legacy forms."""
     if known_tibber:
-        schema = _tibber_settings_schema(
-            include_forecast_pricing=bool(
-                values.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+        raw_fields = {
+            **(
+                _supplier_adjustment_fields(
+                    values.get(CONF_PRICE_VAT_RATE),
+                    values.get(CONF_SUPPLIER_MARKUP_PER_KWH),
+                )
+                if values.get(CONF_FORECAST_NORDPOOL_CONFIG_ENTRY)
+                else {}
             ),
-            vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
-            supplier_markup_default=values.get(CONF_SUPPLIER_MARKUP_PER_KWH),
-            fixed_supplier_fee_default=values.get(CONF_FIXED_SUPPLIER_FEE_MONTHLY),
-        )
+            **_supplier_amount_field(
+                CONF_FIXED_SUPPLIER_FEE_MONTHLY,
+                values.get(CONF_FIXED_SUPPLIER_FEE_MONTHLY),
+                step=0.01,
+            ),
+        }
     else:
-        schema = _entity_schema(
-            hass=hass,
-            price_default=values.get(CONF_PRICE_ENTITY),
-            pricing_strategy_default=values.get(CONF_PRICING_STRATEGY),
-            price_included_components_default=values.get(
-                CONF_PRICE_INCLUDED_COMPONENTS
+        excluded_sources = _own_source_entities(hass)
+        raw_fields = {
+            **_supplier_price_fields(
+                excluded_sources,
+                price_default=values.get(CONF_PRICE_ENTITY),
+                pricing_strategy_default=values.get(CONF_PRICING_STRATEGY),
+                price_included_components_default=values.get(
+                    CONF_PRICE_INCLUDED_COMPONENTS
+                ),
+                price_vat_treatment_default=values.get(CONF_PRICE_VAT_TREATMENT),
+                vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
+                supplier_markup_default=values.get(CONF_SUPPLIER_MARKUP_PER_KWH),
             ),
-            price_vat_treatment_default=values.get(CONF_PRICE_VAT_TREATMENT),
-            vat_rate_default=values.get(CONF_PRICE_VAT_RATE),
-            supplier_markup_per_kwh_default=values.get(CONF_SUPPLIER_MARKUP_PER_KWH),
-            fixed_supplier_fee_monthly_default=values.get(
-                CONF_FIXED_SUPPLIER_FEE_MONTHLY
+            **_supplier_cost_field(
+                excluded_sources, values.get(CONF_ACCUMULATED_COST_TODAY_ENTITY)
             ),
-            accumulated_cost_today_default=values.get(
-                CONF_ACCUMULATED_COST_TODAY_ENTITY
+            **_supplier_amount_field(
+                CONF_FIXED_SUPPLIER_FEE_MONTHLY,
+                values.get(CONF_FIXED_SUPPLIER_FEE_MONTHLY),
+                step=0.01,
             ),
-        )
+        }
     fields: dict[vol.Marker, Any] = {}
-    for key, value in schema.schema.items():
-        if key.schema not in (*SUPPLIER_KEYS, CONF_SUGGEST_VAT):
-            continue
+    for key, value in raw_fields.items():
         if key.schema in SUPPLIER_KEYS:
             # Suggestions remain editable/clearable. Schema defaults would
             # restore an old value when the frontend omits a cleared field.

@@ -6,6 +6,8 @@
 
 ### Changed
 
+- Build guided supplier controls from shared field builders while retaining
+  legacy setup paths, selector order/defaults and clearable saved-value suggestions.
 - Complete 52 Swedish guided setup/options strings and enforce source-key,
   interpolation-placeholder and Markdown-link parity without changing legacy
   compatibility screens or configuration behavior.

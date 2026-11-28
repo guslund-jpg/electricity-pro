@@ -165,8 +165,13 @@ The Tibber markup estimate is constrained to the resolved forecast area.
 `SupplierFlow` in `supplier_config.py` follows the market screen and collects
 supplier-owned live price declarations, VAT, markup, fixed fees and the optional
 daily cost source. Both setup paths and options use the same navigation and
-validation. `config_flow.py` composes its controls from the existing selector
-builders. Unknown declarations stay editable; a supported, fully declared Tibber
+validation. `config_flow.py` composes supplier controls directly from focused
+price/declaration, amount and daily-cost field builders. The retained combined
+forms reuse those same builders in their original positions. Legacy fields keep
+schema defaults, including zero/empty values; guided supplier fields expose
+clearable suggestions instead. VAT/markup and assistance controls keep their
+existing order and selector contracts without constructing the combined forms
+for the supplier screen. Unknown declarations stay editable; a supported, fully declared Tibber
 contract shows its known bindings and hides redundant declarations. Forecast
 VAT/markup and estimation controls appear only when applicable. Meter-only Tibber
 discovery does not imply a contract or supplier cost source.
@@ -622,10 +627,12 @@ contracts. The remaining work is narrower:
 - The coordinator still composes calculations and configures history scopes,
   storage callbacks and calendar transitions. Further extraction needs a bounded
   behavior/ownership case, not a generic persistence framework.
-- Supplier forms still construct/filter the larger retained schemas. The caller
-  audit and schema decoupling in
+- Guided supplier fields now use focused builders shared with the retained
+  combined forms. Other remaining screens still use those larger schemas. The
+  caller audit and further setup cleanup in
   [#446](https://github.com/guslund-jpg/electricity-pro/issues/446) precede any
-  retirement of compatibility submission paths or resources.
+  retirement of compatibility submission paths or resources; no retirement
+  decision has been made by the field-builder extraction.
 - Integration actions repeat entry lookup and validation. Their per-action
   differences and translated failures are tracked in
   [#453](https://github.com/guslund-jpg/electricity-pro/issues/453).

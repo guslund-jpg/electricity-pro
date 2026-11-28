@@ -1,9 +1,17 @@
 """Supplier section boundaries through Home Assistant's real flow manager."""
 
 import pytest
+import probatio as vol
 from homeassistant import config_entries
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.electricity_pro.config_flow import (
+    _entity_schema,
+    _supplier_schema,
+    _tibber_settings_schema,
+)
+from custom_components.electricity_pro.settings import resolve_settings
 
 from tests.flow_helpers import (
     confirm_review,
@@ -70,6 +78,155 @@ async def open_supplier(hass, profile="custom", data=None, options=None):
     manager = hass.config_entries.options
     result = await start_supplier(manager, entry.entry_id)
     return entry, manager, result
+
+
+@pytest.mark.parametrize("known_tibber", [False, True])
+@pytest.mark.parametrize("forecast", [False, True])
+@pytest.mark.parametrize("amount", [None, 0, 12.5])
+def test_supplier_schema_keeps_clearable_suggestions(known_tibber, forecast, amount):
+    """Omitted supplier values must not be restored by schema defaults."""
+    values = {
+        **TIBBER_CONTRACT,
+        MARKET: "native" if forecast else None,
+        "price_vat_rate": amount,
+        "supplier_markup_per_kwh": amount,
+        "fixed_supplier_fee_monthly": amount,
+    }
+    schema = _supplier_schema(None, values, known_tibber)
+    fields = {key.schema: key for key in schema.schema}
+    if not known_tibber:
+        expected = [
+            "price_entity",
+            "pricing_strategy",
+            "price_included_components",
+            "price_vat_treatment",
+            "supplier_markup_per_kwh",
+            "price_vat_rate",
+            "suggest_vat_rate",
+            "accumulated_cost_today_entity",
+            "fixed_supplier_fee_monthly",
+        ]
+    elif forecast:
+        expected = [
+            "supplier_markup_per_kwh",
+            "price_vat_rate",
+            "suggest_vat_rate",
+            "fixed_supplier_fee_monthly",
+            "estimate_supplier_markup",
+        ]
+    else:
+        expected = ["fixed_supplier_fee_monthly"]
+    assert list(fields) == expected
+    for name in (
+        "price_vat_rate",
+        "supplier_markup_per_kwh",
+        "fixed_supplier_fee_monthly",
+    ):
+        if name in fields:
+            assert fields[name].default is vol.UNDEFINED
+            assert fields[name].description == {"suggested_value": amount}
+            assert schema({name: 0})[name] == 0
+    assert schema({}) == {
+        name: False
+        for name in ("suggest_vat_rate", "estimate_supplier_markup")
+        if name in fields
+    }
+
+
+@pytest.mark.parametrize("profile", ["custom", "tibber"])
+@pytest.mark.parametrize("amount", [None, 0, 12.5])
+def test_legacy_supplier_schema_retains_defaults(profile, amount):
+    """Retained combined forms still apply their original defaults, including zero."""
+    if profile == "custom":
+        schema = _entity_schema(
+            power_default="sensor.power",
+            vat_rate_default=amount,
+            supplier_markup_per_kwh_default=amount,
+            fixed_supplier_fee_monthly_default=amount,
+        )
+    else:
+        schema = _tibber_settings_schema(
+            include_forecast_pricing=True,
+            vat_rate_default=amount,
+            supplier_markup_default=amount,
+            fixed_supplier_fee_default=amount,
+        )
+    submitted = schema({})
+    fields = {key.schema: key for key in schema.schema}
+    for name in (
+        "price_vat_rate",
+        "supplier_markup_per_kwh",
+        "fixed_supplier_fee_monthly",
+    ):
+        if amount is None:
+            assert fields[name].default is vol.UNDEFINED
+            assert name not in submitted
+        else:
+            assert fields[name].default() == amount
+            assert submitted[name] == amount
+
+
+@pytest.mark.parametrize("known_tibber", [False, True])
+@pytest.mark.parametrize("forecast", [False, True])
+def test_supplier_schema_does_not_construct_combined_forms(
+    monkeypatch, known_tibber, forecast
+):
+    """Supplier controls stay independent of unrelated legacy form construction."""
+
+    def forbidden_builder(**kwargs):
+        pytest.fail("Supplier controls constructed a combined legacy form")
+
+    for name in ("_entity_schema", "_tibber_settings_schema"):
+        monkeypatch.setattr(
+            f"custom_components.electricity_pro.config_flow.{name}", forbidden_builder
+        )
+    schema = _supplier_schema(
+        None, {MARKET: "native" if forecast else None}, known_tibber
+    )
+    assert "fixed_supplier_fee_monthly" in {key.schema for key in schema.schema}
+
+
+@pytest.mark.parametrize("profile", ["custom", "tibber"])
+@pytest.mark.parametrize("saved", [0, 12.5])
+@pytest.mark.parametrize("clear", [False, True])
+async def test_supplier_options_keep_or_clear_saved_amounts(
+    hass, profile, saved, clear
+):
+    """Frontend omission overrides setup data instead of reviving saved amounts."""
+    native = MockConfigEntry(
+        domain="nordpool", data={"areas": ["SE3"], "currency": "SEK"}
+    )
+    native.add_to_hass(hass)
+    names = (
+        "price_vat_rate",
+        "supplier_markup_per_kwh",
+        "fixed_supplier_fee_monthly",
+    )
+    entry, manager, result = await open_supplier(
+        hass,
+        profile,
+        {**TIBBER_CONTRACT, MARKET: native.entry_id, **dict.fromkeys(names, saved)},
+    )
+    assert all(form_values(result)[name] == saved for name in names)
+    result = await confirm_supplier(
+        manager, result, dict.fromkeys(names) if clear else None
+    )
+    if clear:
+        # Clearing VAT in a known country retains the existing assistance step.
+        assert result["step_id"] == "vat_review"
+        result = await manager.async_configure(
+            result["flow_id"], {"use_vat_suggestion": False}
+        )
+    assert result["type"] == "create_entry", {
+        "step": result.get("step_id"),
+        "errors": result.get("errors"),
+    }
+    effective = resolve_settings(entry.data, entry.options)
+    for name in names:
+        assert name in entry.options
+        assert entry.options[name] == (None if clear else saved)
+        assert effective[name] == (None if clear else saved)
+        assert entry.data[name] == saved
 
 
 @pytest.mark.parametrize("profile", ["custom", "tibber"])
