@@ -91,6 +91,29 @@ Core 2026.9 provides Probatio, so validation imports it directly rather than
 using the older Voluptuous name or an action-schema compatibility adapter.
 See the [Home Assistant validation-engine announcement](https://contributors.home-assistant.io/blog/2026/09/30/probatio-validation-engine/).
 
+### v1.8.0b2 review — 28 November 2026
+
+Retain **Core 2026.9.0** and Python 3.14. Since v1.8.0b1, integration files
+change only in the manifest version; the dashboard and documentation changes
+introduce no newer required Core API. Keep native Probatio, saved-data migrations,
+setting compatibility and existing entity identities. No further adapter removal
+or dependency-pin change is justified. The minimum declaration and CI/tooling
+remain consistent.
+
+Current stable Core is
+[2026.11.3](https://github.com/home-assistant/core/releases/tag/2026.11.3).
+The latest [harness release, 0.13.375](https://github.com/MatthewFlamm/pytest-homeassistant-custom-component/releases/tag/0.13.375),
+still pins Core **2026.10.4**. Retain that development baseline and the isolated
+0.13.363 / Core **2026.9.0** baseline; run both complete suites on the versioned
+b2 candidate. A full automated integration suite on current stable Core
+2026.11.3 remains unverified. Earlier manual Core 2026.11.2 results do not close
+that gap.
+
+The maintainer approved preparing, merging and publishing b2 while leaving the
+HA test instance unchanged. No new b2 upgrade/reload/restart smoke test is run;
+retain b1 lifecycle results under their original build. Candidate results and
+remaining beta gates are recorded in the [v1.8 record](../validation/v1.8.md).
+
 ### v1.8.0 beta review — 21 November 2026
 
 Retain **Core 2026.9.0** and Python 3.14. The new fixed-price export, monthly

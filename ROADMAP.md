@@ -12,13 +12,15 @@ change as testing and source availability improve.
 
 ## v1.8.0 — Beta testing
 
-[v1.8.0b1](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.8.0b1)
-was published as a GitHub **pre-release** on **21 November 2026**, from `b74f02c`,
-after the `main` checks passed. **v1.7.2 remains the latest stable release.**
+[v1.8.0b2](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.8.0b2)
+is the second GitHub **pre-release**, including the dashboard revisions and
+Enhanced Clean described below. **v1.7.2 remains the latest stable release.**
+The first beta, [v1.8.0b1](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.8.0b1),
+was published on **21 November 2026**, from `b74f02c`, after green `main` checks.
 Retain Home Assistant Core **2026.9.0** and Python 3.14 as the minimum after the
 [release review](docs/releases/1.8.0.md).
 
-The beta includes the following stable-release scope:
+The beta series includes the following stable-release scope:
 
 - Completed #288 source/result separation, monthly cost components,
   Recorder statistics, the monthly archive and Enhanced chart from #165.
@@ -37,9 +39,11 @@ The beta includes the following stable-release scope:
 Known-zero export compensation cards and More info/history were manually checked
 for day and month in all four dashboard variants on Core **2026.11.2**. Earlier
 runtime/lifecycle and Recorder evidence is recorded separately. The exact
-versioned beta package passed its approved upgrade/reload/restart smoke test on
+versioned **v1.8.0b1** package passed its approved upgrade/reload/restart smoke test on
 Core **2026.11.2**, preserving configured identities, settings and checked
-history. Publication did not change the HA test instance.
+history. The b2 release changes only the integration's manifest version and
+does not install, reload or restart HA. A new b2 lifecycle smoke test remains
+unperformed; earlier b1 results are retained as historical evidence.
 [Beta validation record](docs/validation/v1.8.md)
 
 A direct **Marketplace upgrade from published v1.7.2 to v1.8.0b1** was reported
@@ -66,7 +70,7 @@ references.
 monthly spot-cost rows and explains their separate VAT coverage. On **28 November
 2026**, the maintainer confirmed the new names and explanation with live values
 in all four dashboard variants. Integration code and settings stayed unchanged;
-Electricity Pro remained **1.8.0b1**. These revisions follow the published beta
+Electricity Pro remained **1.8.0b1**. These revisions follow the first published beta
 and need updated YAML in existing dashboards.
 [Rollout and verification record](docs/validation/v1.8.md#four-view-dashboards-and-spot-costs--28-november-2026)
 
@@ -86,11 +90,11 @@ readbacks and live template rendering passed. Maintainer visual layout approval
 covers the Swedish Enhanced alternative; the other checks retain their agent
 or automated provenance. Electricity Pro remained **1.8.0b1**, with integration
 code/settings unchanged and no restart. Existing dashboards need updated YAML;
-the published beta's YAML is unchanged. The planned **30 November–1 December**
+the published b1 YAML is unchanged. The planned **30 November–1 December**
 live month rollover remains outstanding.
 [Scope and verification record](docs/validation/v1.8.md#dashboard-layout-and-native-standard-forecast--28-november-2026)
 
-The next beta also includes optional **Enhanced Clean** examples in Swedish
+**v1.8.0b2** also includes optional **Enhanced Clean** examples in Swedish
 and English, preserving Enhanced's data/visibility while reducing explanatory
 text and grouping day/month value cards. Both Enhanced variants use Mushroom
 and ApexCharts; Standard and the existing Enhanced remain available. The Swedish
