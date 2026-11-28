@@ -103,15 +103,41 @@ name was already in use.
 The English and Swedish Standard examples use four views:
 
 - **Overview / Översikt** — current power, Effective Price, current cost rate,
-  Good Time and today's energy and cost figures, with optional daily production,
-  grid export, household energy and separate export compensation.
-- **Prices / Priser** — upcoming low-price windows and recent price history.
-- **Energy and costs / Energi och kostnader** — this month's energy and cost
-  breakdown, optional monthly energy channels and export compensation, followed
-  by yesterday's Consumption Timing Score.
+  Good Time and cheapest 1/2/3-hour windows with their average Effective Prices.
+- **Prices / Priser** — a native spot-price forecast table, the same cheapest
+  windows, further scheduling insights and recent price history.
+- **Energy and costs / Energi och kostnader** — today's energy, costs and
+  remaining-cost estimate, followed by this month's energy and cost breakdown
+  and yesterday's Consumption Timing Score. Optional production, grid export,
+  household energy and separate export compensation appear in their day/month
+  groups.
 - **Electrical Details / Eldetaljer** — phase measurements first, then average
   and peak power, monthly peak hour and optional power channels, with power
-  history last.
+  history last, with separate 24-hour and six-hour native history graphs.
+
+The monthly peak-hour heading follows its optional values: it hides when both
+are absent, `unknown` or `unavailable`, and stays visible for a known zero.
+Standard uses only native Home Assistant cards; it requires neither Mushroom
+nor ApexCharts Card.
+
+The forecast uses HA's built-in [Markdown card](https://www.home-assistant.io/dashboards/markdown/).
+Expand it to see the published current/upcoming intervals, their local dates,
+times in Home Assistant's configured time zone and spot prices in the source
+currency per kWh. Ordinary periods use `HH:MM–HH:MM`; only the repeated autumn
+hour adds a time-zone abbreviation, such as `CEST` or `CET`, to distinguish the
+two occurrences. It keeps the supplied intervals, including quarter-hour
+periods, and shows four decimal
+places, known zero and negative prices. Completed intervals disappear as time
+advances. Missing periods are not filled or converted into zero.
+
+The table declares the source's VAT treatment. Spot prices exclude supplier
+markup, energy tax and grid fees; they are separate from the Effective Prices
+on the cheapest-window cards. A missing/unknown forecast source hides the card;
+an unavailable source or exhausted forecast shows a missing-data note.
+This is a table of forecast data. The native
+[history graph](https://www.home-assistant.io/dashboards/history-graph/) reads
+recorded history and does not plot this future interval list. Standard adds
+no helper entities or Recorder writes for the table.
 
 After copying the updated YAML, replace old `trends` bookmarks/navigation links
 with `prices` for price planning or `energy` for energy/cost statistics.
@@ -173,7 +199,7 @@ din valuta per timme. Lägg gulgränsen under den och skalans max över den.
 ### Optional production, export and household demand (experimental)
 
 Independent Production, Grid export and Household demand groups use built-in
-cards. Daily energy belongs to Overview and monthly energy to Energy and costs;
+cards. Daily and monthly energy belong to Energy and costs;
 Electrical Details keeps power readings. Power-only and energy-only
 configurations are supported independently in their respective views.
 Energy tiles explicitly say **partial** and link to
@@ -210,7 +236,7 @@ the integration.
 ### Export compensation estimates (experimental)
 
 All four examples show **Export compensation (est.)** / **Exportersättning (ca)**
-under **Today** in Overview and **This month** in Energy and costs, next to the
+under **Today** and **This month** in Energy and costs, next to the
 corresponding measured export-energy tile. They use the
 [saved compensation sensors](../../docs/reference/sensors.md#export-compensation-estimates)
 in their own currency. Import costs and the stacked variable-cost chart stay
@@ -249,15 +275,18 @@ tiles, conditional cards and history graphs. No HACS frontend cards are required
 
 The English and Swedish Enhanced examples use the same four views:
 
-- **Overview / Översikt** — live gauges, Good Time and today's key figures,
-  including configured daily energy channels and separate export compensation.
+- **Overview / Översikt** — live power, price and cost-rate gauges, Good Time,
+  and cheapest 1/2/3-hour windows with their average Effective Prices.
 - **Prices / Priser** — the spot-price forecast, scheduling insights and recent
-  price comparison.
-- **Energy and costs / Energi och kostnader** — monthly energy channels, cost
-  breakdown, separate export compensation and the optional stacked cost chart.
+  price comparison; the cheapest-window cards remain available here as well.
+- **Energy and costs / Energi och kostnader** — daily energy and cost figures,
+  followed by monthly energy, the cost breakdown and optional stacked cost chart.
+  Configured daily/monthly production, grid export, household energy and separate
+  export compensation appear with their matching period.
 - **Electrical Details / Eldetaljer** — phase measurements first, then average
   and peak readings and optional power channels. The 24-hour and six-hour power charts
-  are at the bottom.
+  are at the bottom. The monthly peak-hour heading hides when neither value is
+  available, preserving known zero.
 
 ![Illustrative Electricity Pro enhanced dashboard](electricity-pro-enhanced-preview.svg)
 

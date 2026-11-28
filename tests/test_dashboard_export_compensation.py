@@ -24,7 +24,7 @@ def amount_and_note(group, entity):
     return amount, note
 
 
-@pytest.fixture(params=[("overview", "today"), ("energy", "this_month")])
+@pytest.fixture(params=[("energy", "today"), ("energy", "this_month")])
 def export_cards(dashboard, request):
     path, data = dashboard
     view, period = request.param
@@ -204,20 +204,20 @@ async def test_day_rollover_does_not_reuse_month_or_previous_day(hass, dashboard
     monthly = PREFIX + "export_compensation_this_month"
     hass.states.async_set(daily, "5.12", attrs())
     hass.states.async_set(monthly, "25.12", attrs())
+    cards = next(view["cards"] for view in data["views"] if view["path"] == "energy")
     groups = {
-        view["path"]: next(
+        period: next(
             c
-            for c in view["cards"]
+            for c in cards
             if c["type"] == "conditional"
-            and "export_compensation" in str(c["conditions"])
+            and f"export_compensation_{period}" in str(c["conditions"])
         )
-        for view in data["views"]
-        if view["path"] in ("overview", "energy")
+        for period in ("today", "this_month")
     }
-    day_amount, day_note = amount_and_note(groups["overview"], daily)
-    month_amount, month_note = amount_and_note(groups["energy"], monthly)
+    day_amount, day_note = amount_and_note(groups["today"], daily)
+    month_amount, month_note = amount_and_note(groups["this_month"], monthly)
     hass.states.async_set(daily, "unavailable")
-    assert visible(groups["overview"]["conditions"], hass)
+    assert visible(groups["today"]["conditions"], hass)
     assert not visible(day_amount["conditions"], hass)
     assert visible(month_amount["conditions"], hass)
     assert day_amount["card"]["entity"] == daily

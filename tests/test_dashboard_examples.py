@@ -658,15 +658,34 @@ def test_dashboard_tabs_group_daily_price_and_electrical_cards(path: Path) -> No
         "sensor.electricity_pro_current_power",
         "sensor.electricity_pro_effective_price",
         "sensor.electricity_pro_current_cost_rate",
-        "sensor.electricity_pro_energy_today",
-        "sensor.electricity_pro_total_cost_estimate_today",
     } <= overview
+    cheapest = {
+        f"sensor.electricity_pro_cheapest_{hours}h_window_{suffix}"
+        for hours in (1, 2, 3)
+        for suffix in ("start", "average_effective_price")
+    }
+    assert cheapest <= overview & prices
+    for entity in cheapest:
+        pair = [
+            next(
+                c
+                for c in _walk(view)
+                if isinstance(c, dict)
+                and c.get("type") in {"tile", "custom:mushroom-entity-card"}
+                and c.get("entity") == entity
+            )
+            for view in views[:2]
+        ]
+        assert pair[0] == pair[1]
     assert {
         "sensor.electricity_pro_cheapest_1h_window_start",
         "sensor.electricity_pro_current_market_price",
     } <= prices
     assert {
         MONTHLY_TOTAL,
+        "sensor.electricity_pro_energy_today",
+        "sensor.electricity_pro_total_cost_estimate_today",
+        "sensor.electricity_pro_export_compensation_today",
         "sensor.electricity_pro_energy_this_month",
         "sensor.electricity_pro_export_compensation_this_month",
     } <= energy
@@ -677,14 +696,27 @@ def test_dashboard_tabs_group_daily_price_and_electrical_cards(path: Path) -> No
         "sensor.electricity_pro_voltage_l3",
     } <= details
     assert MONTHLY_TOTAL not in overview | prices | details
+    assert not any(entity.endswith("_today") for entity in overview)
     for channel in ("production", "grid_export", "household_energy"):
         daily = f"sensor.electricity_pro_{channel}_today"
         monthly = f"sensor.electricity_pro_{channel}_this_month"
-        assert daily in overview and daily not in prices | energy | details
+        assert daily in energy and daily not in overview | prices | details
         assert monthly in energy and monthly not in overview | prices | details
     score = "sensor.electricity_pro_consumption_timing_score_yesterday"
     if "enhanced" not in path.stem:
         assert score in energy and score not in overview | prices | details
+        assert "sensor.electricity_pro_remaining_cost_today" in energy
+        assert not any(
+            isinstance(card, dict) and str(card.get("type", "")).startswith("custom:")
+            for card in _walk(views)
+        )
+        assert sorted(
+            card["hours_to_show"]
+            for card in _walk(views[3])
+            if isinstance(card, dict)
+            and card.get("type") == "history-graph"
+            and "sensor.electricity_pro_current_power" in _walk_entity_ids(card)
+        ) == [6, 24]
     electrical_cards = [
         card
         for card in views[3]["cards"]
