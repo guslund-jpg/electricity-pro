@@ -59,6 +59,14 @@ def auto_enable_custom_integrations(
     """Enable custom integrations for every test."""
 
 
+def _set_optional_sensors(hass, entry_data, sensors):
+    """Keep optional measurements in declaration order, retaining known zero."""
+    for config_key, entity_id, value, attributes in sensors:
+        if value is not None:
+            hass.states.async_set(entity_id, value, attributes)
+            entry_data[config_key] = entity_id
+
+
 @pytest.fixture
 def setup_electricity_pro(hass):
     """Set up Electricity Pro with configurable source sensors."""
@@ -190,107 +198,74 @@ def setup_electricity_pro(hass):
             if energy_source_type is not None:
                 entry_data[CONF_ENERGY_SOURCE_TYPE] = energy_source_type
 
-        if accumulated_cost_today_value is not None:
-            hass.states.async_set(
-                "sensor.test_accumulated_cost_today",
-                accumulated_cost_today_value,
-                {
-                    "unit_of_measurement": accumulated_cost_today_unit,
-                    "device_class": "monetary",
-                    "state_class": "total",
-                },
-            )
-            entry_data[CONF_ACCUMULATED_COST_TODAY_ENTITY] = (
-                "sensor.test_accumulated_cost_today"
-            )
-
-        if current_l1_value is not None:
-            hass.states.async_set(
-                "sensor.test_current_l1",
-                current_l1_value,
-                {
-                    "unit_of_measurement": "A",
-                    "device_class": "current",
-                },
-            )
-            entry_data[CONF_CURRENT_L1_ENTITY] = "sensor.test_current_l1"
-
-        if current_l2_value is not None:
-            hass.states.async_set(
-                "sensor.test_current_l2",
-                current_l2_value,
-                {
-                    "unit_of_measurement": "A",
-                    "device_class": "current",
-                },
-            )
-            entry_data[CONF_CURRENT_L2_ENTITY] = "sensor.test_current_l2"
-
-        if current_l3_value is not None:
-            hass.states.async_set(
-                "sensor.test_current_l3",
-                current_l3_value,
-                {
-                    "unit_of_measurement": "A",
-                    "device_class": "current",
-                },
-            )
-            entry_data[CONF_CURRENT_L3_ENTITY] = "sensor.test_current_l3"
-        if voltage_l1_value is not None:
-            hass.states.async_set(
-                "sensor.test_voltage_l1",
-                voltage_l1_value,
-                {
-                    "unit_of_measurement": "V",
-                    "device_class": "voltage",
-                },
-            )
-            entry_data[CONF_VOLTAGE_L1_ENTITY] = "sensor.test_voltage_l1"
-
-        if voltage_l2_value is not None:
-            hass.states.async_set(
-                "sensor.test_voltage_l2",
-                voltage_l2_value,
-                {
-                    "unit_of_measurement": "V",
-                    "device_class": "voltage",
-                },
-            )
-            entry_data[CONF_VOLTAGE_L2_ENTITY] = "sensor.test_voltage_l2"
-
-        if voltage_l3_value is not None:
-            hass.states.async_set(
-                "sensor.test_voltage_l3",
-                voltage_l3_value,
-                {
-                    "unit_of_measurement": "V",
-                    "device_class": "voltage",
-                },
-            )
-            entry_data[CONF_VOLTAGE_L3_ENTITY] = "sensor.test_voltage_l3"
-
-        if monthly_peak_hour_consumption_value is not None:
-            hass.states.async_set(
-                "sensor.test_monthly_peak_hour_consumption",
-                monthly_peak_hour_consumption_value,
-                {
-                    "unit_of_measurement": monthly_peak_hour_consumption_unit,
-                    "device_class": "energy",
-                    "state_class": "measurement",
-                },
-            )
-            entry_data[CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY] = (
-                "sensor.test_monthly_peak_hour_consumption"
-            )
-        if monthly_peak_hour_time_value is not None:
-            hass.states.async_set(
-                "sensor.test_monthly_peak_hour_time",
-                monthly_peak_hour_time_value,
-                {"device_class": "timestamp"},
-            )
-            entry_data[CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY] = (
-                "sensor.test_monthly_peak_hour_time"
-            )
+        _set_optional_sensors(
+            hass,
+            entry_data,
+            (
+                (
+                    CONF_ACCUMULATED_COST_TODAY_ENTITY,
+                    "sensor.test_accumulated_cost_today",
+                    accumulated_cost_today_value,
+                    {
+                        "unit_of_measurement": accumulated_cost_today_unit,
+                        "device_class": "monetary",
+                        "state_class": "total",
+                    },
+                ),
+                (
+                    CONF_CURRENT_L1_ENTITY,
+                    "sensor.test_current_l1",
+                    current_l1_value,
+                    {"unit_of_measurement": "A", "device_class": "current"},
+                ),
+                (
+                    CONF_CURRENT_L2_ENTITY,
+                    "sensor.test_current_l2",
+                    current_l2_value,
+                    {"unit_of_measurement": "A", "device_class": "current"},
+                ),
+                (
+                    CONF_CURRENT_L3_ENTITY,
+                    "sensor.test_current_l3",
+                    current_l3_value,
+                    {"unit_of_measurement": "A", "device_class": "current"},
+                ),
+                (
+                    CONF_VOLTAGE_L1_ENTITY,
+                    "sensor.test_voltage_l1",
+                    voltage_l1_value,
+                    {"unit_of_measurement": "V", "device_class": "voltage"},
+                ),
+                (
+                    CONF_VOLTAGE_L2_ENTITY,
+                    "sensor.test_voltage_l2",
+                    voltage_l2_value,
+                    {"unit_of_measurement": "V", "device_class": "voltage"},
+                ),
+                (
+                    CONF_VOLTAGE_L3_ENTITY,
+                    "sensor.test_voltage_l3",
+                    voltage_l3_value,
+                    {"unit_of_measurement": "V", "device_class": "voltage"},
+                ),
+                (
+                    CONF_MONTHLY_PEAK_HOUR_CONSUMPTION_ENTITY,
+                    "sensor.test_monthly_peak_hour_consumption",
+                    monthly_peak_hour_consumption_value,
+                    {
+                        "unit_of_measurement": monthly_peak_hour_consumption_unit,
+                        "device_class": "energy",
+                        "state_class": "measurement",
+                    },
+                ),
+                (
+                    CONF_MONTHLY_PEAK_HOUR_TIME_ENTITY,
+                    "sensor.test_monthly_peak_hour_time",
+                    monthly_peak_hour_time_value,
+                    {"device_class": "timestamp"},
+                ),
+            ),
+        )
         entry = MockConfigEntry(
             domain=DOMAIN,
             title="Electricity Pro",

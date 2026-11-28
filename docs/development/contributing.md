@@ -225,8 +225,31 @@ The explicit baseline is:
 
 - `E4`: import/statement structure;
 - `E7`: statement and comparison mistakes;
-- `E9`: runtime/syntax-related errors; and
-- `F`: Pyflakes checks, including unused imports/locals and undefined names.
+- `E9`: runtime/syntax-related errors;
+- `F`: Pyflakes checks, including unused imports/locals and undefined names; and
+- `C901`: function complexity above **20**, configured once through
+  `[lint.mccabe] max-complexity = 20` in `ruff.toml`.
+
+The ceiling applies to all three source directories, including test fixtures
+and helper functions. The normal local command, pre-commit and Repository quality
+CI use the same configuration; no extra CI-only rule selection or threshold is
+needed. A function at 20 passes; one at 21 fails the lint check. Lowering the
+ceiling further is a separate reviewed change.
+
+After the coordinator/persistence and CostLedger refactors (#455–#457), production
+code already met this ceiling. Before enabling C901, the remaining test helpers
+were split without changing sensor metadata, fixture arguments or confirmation
+order:
+
+| Function | Before | After |
+| --- | --- | --- |
+| `setup_electricity_pro` | 28 | 19 |
+| nested `_setup` | 27 | 18 |
+| `configure_settings` | 21 | 17 |
+
+The extracted optional-sensor and follow-up-confirmation helpers have complexity
+3 and 5 respectively. No staged exceptions or C901 suppressions are needed.
+B905 and any later threshold reduction remain separate work.
 
 No module-wide or test-wide suppressions are configured. Ruff's normal
 generated-directory and Git-ignore handling still applies; the three explicit

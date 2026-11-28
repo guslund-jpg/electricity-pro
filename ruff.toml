@@ -5,8 +5,12 @@ line-length = 88
 
 [lint]
 # Import placement / statement errors and Pyflakes (including unused imports,
-# undefined names and unused locals). No integration/test-wide suppressions.
-select = ["E4", "E7", "E9", "F"]
+# undefined names and unused locals), plus the function complexity ceiling.
+# No integration/test-wide suppressions.
+select = ["E4", "E7", "E9", "F", "C901"]
+
+[lint.mccabe]
+max-complexity = 20
 
 [format]
 # Shared formatter policy, checked in CI and pre-commit.

@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Enforce Ruff C901 with a complexity ceiling of 20 across integration code,
+  tests and scripts through the shared local, pre-commit and CI lint command.
+  Simplify the remaining test helpers without changing integration behavior.
 - Split local cost updates into bounded meter, observation and interval-booking
   operations, preserving Decimal arithmetic, coverage, VAT, archive order and
   the existing checkpoint format.

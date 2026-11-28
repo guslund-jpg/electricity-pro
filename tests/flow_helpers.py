@@ -292,6 +292,11 @@ async def configure_settings(manager, result, values):
             )
         }
     result = await manager.async_configure(result["flow_id"], values)
+    return await _confirm_settings_followups(manager, result)
+
+
+async def _confirm_settings_followups(manager, result):
+    """Complete automatic follow-up screens in the existing confirmation order."""
     if result.get("step_id") == "grid" and not result.get("errors"):
         result = await confirm_grid(manager, result)
     if result.get("step_id") == "energy_flows" and not result.get("errors"):
