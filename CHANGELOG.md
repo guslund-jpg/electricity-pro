@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add optional Enhanced Clean dashboard examples in Swedish and English for
+  comparison during the v1.8.0 beta. Retain Enhanced's gauges, charts, source
+  entities and visibility, with compact day/month value grids and estimate/
+  partial labels in place of explanatory text cards. Mushroom and ApexCharts
+  Card are required; Standard and Enhanced remain available. Copy the selected
+  YAML separately from the integration upgrade.
+
 ### Changed
 
 - Add a six-hour power-history graph alongside the 24-hour graph in Swedish and

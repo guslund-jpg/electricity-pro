@@ -9,9 +9,12 @@ import yaml
 
 DASHBOARDS = Path(__file__).parents[1] / "examples" / "dashboards"
 PREFIX = "sensor.electricity_pro_"
+DASHBOARDS_WITH_NOTES = sorted(
+    path for path in DASHBOARDS.glob("*.yaml") if "-clean" not in path.stem
+)
 
 
-@pytest.fixture(params=sorted(DASHBOARDS.glob("*.yaml")), ids=lambda p: p.stem)
+@pytest.fixture(params=DASHBOARDS_WITH_NOTES, ids=lambda p: p.stem)
 def dashboard(request):
     return request.param, yaml.safe_load(request.param.read_text())
 

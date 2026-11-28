@@ -56,11 +56,18 @@ def chart_rows():
     return monthly_cost_chart_rows(archive.months, date(2026, 11, 2))
 
 
+@pytest.fixture(params=["", "-clean"], ids=["enhanced", "clean"])
+def chart_variant(request):
+    return request.param
+
+
 @pytest.fixture(params=["en", "sv"])
-def chart_cards(request):
+def chart_cards(request, chart_variant):
     suffix = "-sv" if request.param == "sv" else ""
     dashboard = yaml.safe_load(
-        (DASHBOARDS / f"electricity-pro-enhanced{suffix}.yaml").read_text()
+        (
+            DASHBOARDS / f"electricity-pro-enhanced{chart_variant}{suffix}.yaml"
+        ).read_text()
     )
     energy = next(view for view in dashboard["views"] if view["path"] == "energy")
     block = next(
@@ -73,10 +80,13 @@ def chart_cards(request):
         {"condition": "state", "entity": ENTITY, "state_not": "unavailable"},
         {"condition": "state", "entity": ENTITY, "state_not": "unknown"},
     ]
-    chart, coverage = block["card"]["cards"]
+    chart, *notes = block["card"]["cards"]
+    assert len(notes) == (0 if chart_variant else 1)
+    coverage = notes[0] if notes else None
     return request.param, chart, coverage
 
 
+@pytest.mark.parametrize("chart_variant", [""], indirect=True)
 async def test_monthly_chart_coverage_labels(hass, chart_cards, chart_rows):
     language, _, note = chart_cards
     hass.states.async_set(

@@ -12,6 +12,10 @@ from homeassistant.helpers.template import Template
 
 DASHBOARD_EXAMPLES = Path(__file__).parents[1] / "examples" / "dashboards"
 MONTHLY_TOTAL = "sensor.electricity_pro_total_cost_estimate_this_month"
+# Enhanced Clean intentionally omits the explanatory Markdown cards below.
+DASHBOARDS_WITH_NOTES = sorted(
+    path for path in DASHBOARD_EXAMPLES.glob("*.yaml") if "-clean" not in path.stem
+)
 
 
 def _language(path, english, swedish):
@@ -66,7 +70,7 @@ async def test_dashboard_coverage_notes_render(hass, coverage) -> None:
             "tracking_started_at": "2026-09-14T12:00:00+00:00",
         },
     )
-    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+    for path in DASHBOARDS_WITH_NOTES:
         dashboard = yaml.safe_load(path.read_text())
         cards = [
             item
@@ -129,7 +133,7 @@ async def test_household_dashboard_notes_explain_missing_fixed_fees(hass) -> Non
             "missing_components": ["fixed_supplier_fee", "fixed_grid_fee"],
         },
     )
-    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+    for path in DASHBOARDS_WITH_NOTES:
         dashboard = yaml.safe_load(path.read_text())
         rendered = "\n".join(
             Template(item["content"], hass).async_render(parse_result=False)
@@ -206,7 +210,7 @@ async def test_monthly_dashboard_cost_breakdown(
         attributes["accrued_fixed_fee_breakdown"] = {"supplier": supplier, "grid": grid}
         attributes["variable_cost_breakdown"] = None
     hass.states.async_set(MONTHLY_TOTAL, state, attributes)
-    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+    for path in DASHBOARDS_WITH_NOTES:
         rendered = _monthly_cost_note(hass, path)
         assert (
             _language(path, "Breakdown not yet available", "Uppdelning saknas ännu")
@@ -296,7 +300,7 @@ async def test_monthly_dashboard_itemizes_only_known_vat(hass, gross, net, vat):
             "variable_cost_breakdown": breakdown,
         },
     )
-    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+    for path in DASHBOARDS_WITH_NOTES:
         rendered = _monthly_cost_note(hass, path)
         rows = (
             ("Spot cost (excl. VAT)", "Spotkostnad (exkl. moms)", net),
@@ -356,7 +360,7 @@ async def test_monthly_dashboard_shows_total_estimate_rounding(hass, adjustment)
             "unit_of_measurement": "SEK",
         },
     )
-    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+    for path in DASHBOARDS_WITH_NOTES:
         rendered = _monthly_cost_note(hass, path)
         label = _language(
             path, "Total estimate rounding", "Avrundning av totalestimatet"
@@ -450,7 +454,7 @@ async def test_monthly_dashboard_shows_variable_lines_and_coverage(hass, rows, c
             "priced_energy_kwh": "80",
         },
     )
-    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+    for path in DASHBOARDS_WITH_NOTES:
         rendered = _monthly_cost_note(hass, path)
         assert (
             _language(
@@ -511,7 +515,7 @@ async def test_cost_notes_remain_compact_and_prioritize_household_coverage(
             "tracking_started_at": "2026-09-14T21:08:00+02:00",
         },
     )
-    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+    for path in DASHBOARDS_WITH_NOTES:
         dashboard = yaml.safe_load(path.read_text())
         notes = [
             item
@@ -532,7 +536,7 @@ async def test_cost_notes_remain_compact_and_prioritize_household_coverage(
 async def test_dashboard_notes_do_not_call_external_costs_local_estimates(hass) -> None:
     """Absent attributes and provider totals render without misleading warnings."""
     hass.states.async_set("sensor.electricity_pro_cost_today", "50")
-    for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
+    for path in DASHBOARDS_WITH_NOTES:
         dashboard = yaml.safe_load(path.read_text())
         for card in _walk(dashboard):
             if isinstance(card, dict) and card.get("type") == "markdown":

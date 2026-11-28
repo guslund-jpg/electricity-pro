@@ -11,7 +11,8 @@ import yaml
 
 ROOT = Path(__file__).parents[1]
 DASHBOARDS = ROOT / "examples" / "dashboards"
-PAIRS = ("electricity-pro", "electricity-pro-enhanced")
+WITH_NOTES = ("electricity-pro", "electricity-pro-enhanced")
+PAIRS = (*WITH_NOTES, "electricity-pro-enhanced-clean")
 PRESENTATION = {
     "title",
     "heading",
@@ -90,7 +91,11 @@ def test_language_variants_share_operational_configuration(name):
             for a, b in zip(en, sv, strict=True):
                 compare(a, b, field)
         elif field in PRESENTATION and isinstance(en, str):
-            if en in ("Electricity Pro", "Electricity Pro Enhanced"):
+            if en in (
+                "Electricity Pro",
+                "Electricity Pro Enhanced",
+                "Electricity Pro Enhanced Clean",
+            ):
                 assert en == sv
             else:
                 assert en != sv, f"Untranslated {field}: {en}"
@@ -105,7 +110,7 @@ def test_language_variants_share_operational_configuration(name):
     compare(english, swedish)
 
 
-@pytest.mark.parametrize("name", PAIRS)
+@pytest.mark.parametrize("name", WITH_NOTES)
 @pytest.mark.parametrize(
     "missing", [[], ["fixed_supplier_fee", "fixed_grid_fee", "complete_variable_price"]]
 )
@@ -146,8 +151,9 @@ async def test_swedish_missing_cost_components_render_without_english_keys(
     [("on", "Bra tillfälle att använda el"), ("off", "Vänta på ett bättre pris")],
 )
 @pytest.mark.parametrize("price", ["0", "-0.25", "1.234"])
+@pytest.mark.parametrize("variant", ["enhanced", "enhanced-clean"])
 async def test_swedish_enhanced_advice_keeps_state_logic_precision_and_currency(
-    hass, state, phrase, price
+    hass, state, phrase, price, variant
 ):
     hass.states.async_set(
         "binary_sensor.electricity_pro_good_time_to_use_electricity", state
@@ -157,7 +163,9 @@ async def test_swedish_enhanced_advice_keeps_state_logic_precision_and_currency(
         price,
         {"unit_of_measurement": "EUR/kWh"},
     )
-    data = yaml.safe_load((DASHBOARDS / "electricity-pro-enhanced-sv.yaml").read_text())
+    data = yaml.safe_load(
+        (DASHBOARDS / f"electricity-pro-{variant}-sv.yaml").read_text()
+    )
     advice = next(
         item
         for item in walk(data)
