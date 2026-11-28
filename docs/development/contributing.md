@@ -266,6 +266,7 @@ The current strict scope is:
 | `export_observation.py` | Accepted export intervals, saved fixed-price selection and transient pricing results |
 | `export_ledger.py` | Scoped export bookings, replay markers and current/closed calendar-period checkpoints |
 | `export_statistics.py` | Checkpointed export sensor values, partial coverage and ordered calendar publication |
+| `export_tracker.py` | Export runtime ownership, compatible checkpoints and ordered acknowledgement callbacks |
 | `flow_sources.py` | Explicit source bindings, normalized readings and freshness checks |
 | `cost_ledger.py` | Observed cost allocation, currency resets and validated persisted totals |
 | `nordpool.py` | Native action response validation, interval normalization and delivery dates |
