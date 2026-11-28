@@ -90,6 +90,14 @@ the published beta's YAML is unchanged. The planned **30 November–1 December**
 live month rollover remains outstanding.
 [Scope and verification record](docs/validation/v1.8.md#dashboard-layout-and-native-standard-forecast--28-november-2026)
 
+The next beta also includes optional **Enhanced Clean** examples in Swedish
+and English, preserving Enhanced's data/visibility while reducing explanatory
+text and grouping day/month value cards. Both Enhanced variants use Mushroom
+and ApexCharts; Standard and the existing Enhanced remain available. The Swedish
+Clean layout was reviewed on the test instance; the English version has
+automated coverage and awaits a separate frontend review. Choose and copy its
+YAML through the [dashboard guide](examples/dashboards/README.md#enhanced-clean-dashboard).
+
 Before stable **v1.8.0**:
 
 - Collect beta observations of normal import/cost accumulation, forecasts,

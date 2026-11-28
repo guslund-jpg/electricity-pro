@@ -176,14 +176,15 @@ Start with the **Standard dashboard**. It uses only cards included with Home
 Assistant and covers live measurements, daily and monthly statistics, Effective
 Price, current market-price context, and scheduling and retrospective insights.
 
-| Example      | Recommended for                         | Additional requirements      |
-| ------------ | --------------------------------------- | ---------------------------- |
-| **Standard** | Most users and first-time setup         | None                         |
-| **Enhanced** | Richer presentation and forecast charts | Mushroom and ApexCharts Card |
+| Example            | Recommended for                                | Additional requirements      |
+| ------------------ | ---------------------------------------------- | ---------------------------- |
+| **Standard**       | Most users and first-time setup                | None                         |
+| **Enhanced**       | Richer presentation and forecast charts        | Mushroom and ApexCharts Card |
+| **Enhanced Clean** | Enhanced gauges/charts with fewer explanations | Mushroom and ApexCharts Card |
 
 Marketplace / HACS installs the integration but does not add a dashboard automatically. The
 [one-minute dashboard guide](examples/dashboards/README.md#quick-installation)
-links directly to both ready-to-copy YAML examples.
+links directly to all three ready-to-copy variants in English and Swedish.
 
 ### Explore prices and timing
 
@@ -273,7 +274,7 @@ your dashboards automatically. Find all available values under **Settings →
 Devices & services → Electricity Pro → Entities**. From there, individual
 entities can be added to any existing dashboard.
 
-Two optional, ready-to-copy dashboard examples are maintained in
+Three optional, ready-to-copy dashboard variants are maintained in
 [`examples/dashboards`](examples/dashboards/README.md):
 
 - **Recommended:** [`electricity-pro.yaml`](examples/dashboards/electricity-pro.yaml)
@@ -282,6 +283,9 @@ Two optional, ready-to-copy dashboard examples are maintained in
 - [`electricity-pro-enhanced.yaml`](examples/dashboards/electricity-pro-enhanced.yaml)
   adds Mushroom and ApexCharts Card presentation.
   [Svensk version](examples/dashboards/electricity-pro-enhanced-sv.yaml).
+- [`electricity-pro-enhanced-clean.yaml`](examples/dashboards/electricity-pro-enhanced-clean.yaml)
+  keeps Enhanced's gauges/charts with compact value cards and fewer explanations.
+  [Svensk version](examples/dashboards/electricity-pro-enhanced-clean-sv.yaml).
 
 Dashboard YAML is not installed or imported by Marketplace / HACS. Follow the
 [dashboard installation guide](examples/dashboards/README.md#quick-installation) to

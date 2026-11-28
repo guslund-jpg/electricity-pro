@@ -1,16 +1,14 @@
 # Example dashboards
 
-Electricity Pro includes a dependency-free standard dashboard and an optional
-enhanced dashboard with richer presentation cards.
+Electricity Pro includes Standard, Enhanced and the optional Enhanced Clean.
+All three are presentation choices using the same integration entities and
+calculations. Standard uses native Home Assistant cards; both Enhanced variants
+use Mushroom and ApexCharts Card.
 
-The enhanced dashboard never changes Electricity Pro calculations or entity
-semantics. It is an optional presentation layer only.
-
-Both examples label daily and monthly costs as supplier costs. Context notes
-link to the full cost definitions instead of repeating them above the cards.
-For local estimates, the notes show priced consumption and fixed-fee timing;
-for partial monthly energy they show the tracking/reset timestamp. Older
-unverified monthly totals are flagged without claiming that they are incorrect.
+Standard and Enhanced include context notes about priced consumption, fixed
+fees, missing components and partial/unverified monthly energy. Enhanced Clean
+keeps gauges, value cards and charts, with compact estimate/partial labels and
+details available through More info instead of explanatory text cards.
 
 To see these presentation changes in an existing manually copied dashboard,
 update its YAML from the appropriate example. Updating the integration alone
@@ -19,27 +17,30 @@ does not rewrite that dashboard. Sensor entity IDs and calculations are unchange
 ## Choose a dashboard
 
 Household cost estimates are shown before the supplier-only breakdown.
-They include observed effective variable costs plus accrued fixed fees; notes
-identify partial periods, missing settings and excluded demand charges.
+They include observed effective variable costs plus accrued fixed fees.
+Standard and Enhanced's notes identify partial periods, missing settings and
+excluded demand charges; Clean keeps compact estimate labels.
 See [household cost estimates](../../docs/guides/costs-and-pricing.md#household-cost-estimates).
 
 | Example | Choose it when | Dependencies |
 | ------- | -------------- | ------------ |
 | **Standard — recommended** | You want a reliable first setup using native Home Assistant cards | None |
 | **Enhanced** | You want richer cards, combined price charts, and the forward-price chart | Mushroom and ApexCharts Card |
+| **Enhanced Clean** | You prefer the Enhanced charts and gauges with fewer explanations and compact day/month value grids | Mushroom and ApexCharts Card |
 
 Begin with Standard unless the enhanced presentation is important to you and
-its two frontend dependencies are already installed. Both examples use the same
+its two frontend dependencies are already installed. All variants use the same
 Electricity Pro entities and can coexist as separate dashboards.
 
 ## Language versions
 
-Both examples are available in English and Swedish:
+All three variants are available in English and Swedish:
 
 | Example | English | Svenska |
 | ------- | ------- | ------- |
 | Standard | [English YAML](electricity-pro.yaml) | [Svensk YAML](electricity-pro-sv.yaml) |
 | Enhanced | [English YAML](electricity-pro-enhanced.yaml) | [Svensk YAML](electricity-pro-enhanced-sv.yaml) |
+| Enhanced Clean | [English YAML](electricity-pro-enhanced-clean.yaml) | [Svensk YAML](electricity-pro-enhanced-clean-sv.yaml) |
 
 Choose the YAML language explicitly. Hard-coded dashboard labels do not switch
 when you change your Home Assistant profile language. Both versions use the same
@@ -63,7 +64,8 @@ from the chosen dashboard YAML. State translations require Electricity Pro
 selected YAML.
 
 **Svenska:** Välj svensk YAML ovan och följ installationsstegen nedan. Standard
-använder enbart inbyggda kort; Enhanced kräver Mushroom och ApexCharts Card.
+använder enbart inbyggda kort; Enhanced och Enhanced Clean kräver Mushroom och
+ApexCharts Card. Enhanced Clean visar färre förklaringar och kompaktare värdekort.
 Använd svenska som profilspråk för svenska sensortillstånd. Kopiera YAML-filen
 på nytt för att uppdatera en befintlig dashboard.
 **Konsumptionspoäng** i Standard beskriver gårdagens förbrukningsmönster i
@@ -77,11 +79,12 @@ rendering tests cover both languages; visual layout still needs a frontend check
 ## Quick installation
 
 HACS installs the Electricity Pro integration but does not create or modify
-Home Assistant dashboards. Installing either example takes about a minute:
+Home Assistant dashboards. Install any variant as a separate dashboard:
 
 1. Open the chosen source file and use GitHub's **Copy raw file** button:
    - Standard: [English](electricity-pro.yaml) / [Svenska](electricity-pro-sv.yaml)
    - Enhanced: [English](electricity-pro-enhanced.yaml) / [Svenska](electricity-pro-enhanced-sv.yaml)
+   - Enhanced Clean: [English](electricity-pro-enhanced-clean.yaml) / [Svenska](electricity-pro-enhanced-clean-sv.yaml)
 2. In Home Assistant, open **Settings → Dashboards → Add dashboard**.
 3. Choose **New dashboard from scratch**, give it a title such as
    **Electricity Pro**, enable **Show in sidebar**, and create it.
@@ -202,12 +205,14 @@ Independent Production, Grid export and Household demand groups use built-in
 cards. Daily and monthly energy belong to Energy and costs;
 Electrical Details keeps power readings. Power-only and energy-only
 configurations are supported independently in their respective views.
-Energy tiles explicitly say **partial** and link to
-[source and coverage details](../../docs/guides/production-export.md). Export is not
+Energy tiles explicitly say **partial**. Standard and Enhanced link to
+[source and coverage details](../../docs/guides/production-export.md); Clean
+keeps the compact label and More info action. Export is not
 labelled solar export, household consumption, savings or revenue.
 
 Household demand is shown only from explicitly selected non-storage load sources.
-Its notes distinguish it from grid import and exclude battery charging.
+Standard and Enhanced's notes distinguish it from grid import and explain that
+battery charging is excluded. Clean keeps the same source definitions.
 These tiles do not substitute household energy for imported energy or alter
 costs, existing statistics or recommendations.
 
@@ -235,31 +240,38 @@ the integration.
 
 ### Export compensation estimates (experimental)
 
-All four examples show **Export compensation (est.)** / **Exportersättning (ca)**
-under **Today** and **This month** in Energy and costs, next to the
-corresponding measured export-energy tile. They use the
+All variants show separate export estimates under **Today** and **This month**
+in Energy and costs, next to the corresponding measured export-energy tile.
+They use the
 [saved compensation sensors](../../docs/reference/sensors.md#export-compensation-estimates)
 in their own currency. Import costs and the stacked variable-cost chart stay
 separate; compensation is not subtracted from them. The daily amount is part of
 the monthly amount, so do not add the two together.
 
+Standard and Enhanced name this card **Export compensation (est.)** /
+**Exportersättning (ca)**. Clean uses **Export value (est.)** /
+**Exportersättning (ca)** with the same sensor and its More info action.
+
 Known zero amounts stay visible. Negative compensation is a cost for export:
-2 kWh at −0.20 SEK/kWh gives **−0.40 SEK**. The adjacent note shows observed and
-priced export energy with **partial coverage**, even if all observed energy was
+2 kWh at −0.20 SEK/kWh gives **−0.40 SEK**. In Standard and Enhanced, the adjacent
+note shows observed and priced export energy with **partial coverage**, even if
+all observed energy was
 priced. This does not establish complete calendar-period coverage or agreement
 with a supplier bill. A saved amount remains visible with a status note if the
 source cannot be confirmed or fixed export pricing is off.
 
-Missing/unknown/unavailable amounts show **Data unavailable** / **Underlag saknas**,
-without substituting zero or the previous day's amount. A new day can temporarily
-lack an amount while waiting for its first saved priced interval. Tap an amount
+Standard and Enhanced's notes show **Data unavailable** / **Underlag saknas**
+for missing/unknown/unavailable amounts. Clean hides the unavailable amount card
+and adds no replacement text. None substitutes zero or the previous day's amount.
+A new day can temporarily lack an amount while waiting for its first saved
+priced interval. Tap an amount
 for history and attributes.
 
 Each group appears when its export-energy or compensation entity is neither
 absent nor `unknown`; `unavailable` keeps the group visible. Export power alone
 does not enable it. If both anchor entities are absent/unknown the group hides;
 a retained unavailable entity from a removed configuration can keep it visible.
-Standard uses native Tile cards; Enhanced uses its existing Mushroom cards.
+Standard uses native Tile cards; Enhanced and Clean use Mushroom cards.
 **Replace the YAML of existing dashboards** to get these additions. The existing
 SVG previews do not show the new optional cards. On 21 November 2026 the
 maintainer checked known-zero daily/monthly amounts, coverage notes and More info
@@ -383,9 +395,43 @@ identifies that averaging in both languages. Both charts show the sensor's
 latest Current Power reading in the header, independently of graph averaging.
 Copy the updated YAML into existing dashboards to apply these changes.
 
+## Enhanced Clean dashboard
+
+Enhanced Clean is an additional option for comparing a quieter interface during
+the v1.8.0 beta. Standard and Enhanced remain available with their context notes.
+Create a separate dashboard from the Clean YAML in the
+[language table](#language-versions) to compare the two Enhanced variants.
+
+Clean uses the same four views, source entities, conditional visibility,
+gauge scales and five ApexCharts charts as Enhanced. The changes are:
+
+- Remove the fourteen explanatory Markdown cards and section subtitles,
+  including the long monthly cost breakdown and the table beneath its chart.
+- Group today's and this month's value cards into two-column grids with short
+  names. Optional energy tiles and export estimates use a vertical layout.
+- Retain the stacked monthly chart, component tooltip, rounding line, legend
+  filtering, forecast and six-hour/24-hour power charts. The 24-hour title still
+  identifies five-minute averaging, and both power headers show current power.
+- Keep **(est.) / (ca)** on total-cost/export estimates and **(partial) /
+  (delvis)** on optional measured-energy tiles. More info exposes history,
+  original entity names and available coverage/source attributes.
+
+Clean omits the adjacent explanations of missing fees, calendar coverage,
+itemized VAT, unavailable export sources and disabled fixed export pricing.
+A booked export amount can remain visible during a source gap or with pricing
+off; its status attributes remain available through More info. Use Standard or
+Enhanced when you want these explanations displayed alongside the values.
+Amounts, stored history and integration settings have the same meaning in all
+variants; Clean creates no helpers or additional Recorder writes.
+
+Both languages require the same [Mushroom and ApexCharts resources](#required-frontend-dependencies)
+as Enhanced. Copy the selected Clean YAML into a new dashboard's raw editor,
+retain any local entity IDs/scales and exit edit mode before checking optional
+card visibility. An integration upgrade does not install or replace dashboards.
+
 ## Customization
 
-For either dashboard, replace entity IDs if Home Assistant assigned different
+For any variant, replace entity IDs if Home Assistant assigned different
 names. You can remove cards for features you do not configure, adjust graph
 spans and grouping intervals, or reorder views without changing Electricity
 Pro itself.
