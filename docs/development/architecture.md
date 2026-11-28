@@ -86,6 +86,7 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `forecast.py`, `forecast_insights.py` | Interval contracts, validation, delivery-date cache and scheduling calculations |
 | `nordpool.py`, `workday.py` | HA action adapters for market delivery dates and non-working dates |
 | `energy_flows.py` | Pure protected lifetime counters for independent partial directional totals |
+| `export_tracker.py` | Export observation, booking, histories, acknowledged publications and paused checkpoint ownership |
 | `flow_sources.py` | Explicit optional source bindings, HA state reading, unit/freshness validation |
 | `flow_compatibility.py` | Boundary, declaration, freshness and timestamp-alignment diagnostic |
 | `sensor.py`, `binary_sensor.py` | Entities, metadata, availability and some calculation orchestration |
@@ -425,6 +426,19 @@ resets, pins its currency and preserves the series' start balance. The Store
 acknowledgement dispatches saved states to the two export-compensation sensors,
 including a first-value baseline for Recorder. Coverage and declarations travel
 with the saved amount. Publication queues share the existing statistics file.
+
+`export_tracker.py` owns the observation, ledger, daily/monthly histories,
+recorded snapshots and paused/inactive checkpoints together. The coordinator
+delegates advance/observe/history updates, export restore/dump and acknowledgement
+to this typed owner. Existing coordinator queries remain available to entities.
+The tracker performs no Home Assistant I/O and can be tested without a running
+HA instance. It receives the startup clock, whether the source is configured and
+current observations explicitly. Its acknowledgement callbacks publish each
+zero baseline and saved amount before
+requesting any follow-up write. The coordinator retains Store I/O, save cadence,
+warnings, dispatcher delivery, listeners and timers. Stored `export_ledger` and
+`export_statistics` keys and payload formats are unchanged; an incompatible
+checkpoint is still retained verbatim with the affected work paused.
 
 The local `CostLedger` uses the same observed meter delta and price segments to
 accumulate the effective total and known variable cost components. The price

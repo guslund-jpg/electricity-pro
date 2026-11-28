@@ -430,4 +430,4 @@ async def test_older_snapshot_and_different_timezone(hass, freezer):
     ):
         await changed_zone._async_restore_statistics()
     assert changed_zone._statistics_data()["export_ledger"] == saved
-    assert changed_zone._export_ledger_paused
+    assert changed_zone.export_statistics_paused

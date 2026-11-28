@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Collect export compensation observation, ledger, histories and paused state
+  in a dedicated tracker. Preserve booking, checkpoint formats and Recorder
+  publication order; the coordinator retains HA writes, scheduling and signals.
+
 ## [1.8.0b2] — 2026-11-28
 
 Second beta toward v1.8.0; **v1.7.2** remains the latest stable release.

@@ -13,6 +13,7 @@ from custom_components.electricity_pro.export_statistics import (
     ExportHistory,
     ExportStatistics,
 )
+from custom_components.electricity_pro.coordinator import ElectricityProCoordinator
 from custom_components.electricity_pro.sensor import (
     ElectricityProExportCompensationSensor,
 )
@@ -22,6 +23,7 @@ from tests.test_export_observation import (
     CHANGE,
     END,
     EXPORT,
+    config_entry,
     price_period,
     report,
 )
@@ -215,3 +217,77 @@ async def test_partial_pricing_and_disabled_price_preserve_booked_value(hass, fr
     assert Decimal(state.state) == Decimal("0.50")
     assert state.attributes["fixed_export_price_enabled"] is False
     assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+@pytest.mark.parametrize("rate,amount", [("0.50", "1"), ("-0.20", "-0.40"), ("0", "0")])
+async def test_checkpoint_dispatch_observes_baseline_before_each_saved_amount(
+    hass, freezer, rate, amount
+):
+    entry = await setup_entry(hass, freezer, [price_period(rate)])
+    coordinator = entry.runtime_data
+    report(hass, freezer, coordinator, START + timedelta(seconds=20), "102")
+    await hass.async_block_till_done()
+    checkpoint = json.loads(json.dumps(coordinator._statistics_data()))
+    assert coordinator.recorded_export_statistics == {}
+    publications = []
+
+    def dispatched(_hass, signal):
+        if signal == coordinator.export_statistics_signal:
+            publications.append(
+                {
+                    period: snapshot.amount
+                    for period, snapshot in coordinator.recorded_export_statistics.items()
+                }
+            )
+
+    with (
+        patch(
+            "custom_components.electricity_pro.coordinator.async_dispatcher_send",
+            side_effect=dispatched,
+        ),
+        patch.object(coordinator, "_schedule_statistics_save") as schedule,
+    ):
+        await coordinator._async_save_statistics()
+    amount = Decimal(amount)
+    assert publications == [
+        {"today": Decimal(0)},
+        {"today": amount},
+        {"today": amount, "this_month": Decimal(0)},
+        {"today": amount, "this_month": amount},
+    ]
+    schedule.assert_not_called()
+    for key in ("export_ledger", "export_statistics"):
+        assert coordinator._statistics_data()[key] == checkpoint[key]
+    assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+@pytest.mark.parametrize("checkpoint", [None, {"today": []}, [], {"unexpected": [{}]}])
+async def test_invalid_publication_checkpoint_is_retained_while_booking_continues(
+    hass, freezer, checkpoint, caplog
+):
+    freezer.move_to(START)
+    coordinator = ElectricityProCoordinator(hass, config_entry([price_period()]))
+    with patch.object(
+        coordinator._store,
+        "async_load",
+        return_value={"export_statistics": checkpoint},
+    ):
+        await coordinator._async_restore_statistics()
+    report(hass, freezer, coordinator, START, "100")
+    report(hass, freezer, coordinator, START + timedelta(seconds=20), "102")
+    assert coordinator.export_statistics_paused
+    assert coordinator.export_compensation.amount == 1
+    assert coordinator.export_ledger.today.amounts[0].amount == 1
+    assert coordinator.flow_values["grid_export_today"][0] == 2
+    saved = json.loads(json.dumps(coordinator._statistics_data()))
+    assert saved["export_statistics"] == checkpoint
+    coordinator._async_statistics_saved(saved)
+    assert coordinator.recorded_export_statistics == {}
+    assert "Pausing export publication" in caplog.text
+
+    restarted = ElectricityProCoordinator(hass, config_entry([price_period()]))
+    with patch.object(restarted._store, "async_load", return_value=saved):
+        await restarted._async_restore_statistics()
+    assert restarted.export_statistics_paused
+    for key in ("export_ledger", "export_statistics"):
+        assert restarted._statistics_data()[key] == saved[key]

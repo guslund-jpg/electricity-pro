@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -54,10 +54,10 @@ from .cost_ledger import CostLedger, VariableCostSummary
 from .monthly_cost_archive import MonthlyVariableCost, MonthlyVariableCostArchive
 from .energy_flows import FlowCounter
 from .export_ledger import ExportLedger
-from .export_observation import ExportIntervalResult, ExportObservation
+from .export_observation import ExportIntervalResult
 from .export_price_config import EXPORT_PRICE_PERIODS
-from .export_statistics import ExportHistory, ExportStatistics
-from .history_storage import stored_list, stored_record
+from .export_statistics import ExportStatistics
+from .export_tracker import ExportTracker
 from .flow_sources import CHANNELS
 from .flow_compatibility import (
     CONF_GENERATION,
@@ -137,8 +137,6 @@ from .workday import async_get_non_working_dates
 _LOGGER = logging.getLogger(__name__)
 _VARIABLE_COST_STATISTICS = "variable_cost_statistics"
 _MONTHLY_VARIABLE_COST_ARCHIVE = "monthly_variable_cost_archive"
-_EXPORT_LEDGER = "export_ledger"
-_EXPORT_STATISTICS = "export_statistics"
 
 
 class _StatisticsStore(Store[dict[str, Any]]):
@@ -282,24 +280,12 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         self._local_costs = CostLedger()
         self._monthly_variable_cost_archive = MonthlyVariableCostArchive()
         self._flow_counters = {channel: FlowCounter() for channel in CHANNELS}
-        self._export_observation = ExportObservation(dt_util.utcnow())
         self.flow_values: dict[
             str, tuple[Decimal | None, dict[str, str | int | None]]
         ] = {}
         self.flow_compatibility: _FlowCompatibilityAttributes = {"status": "disabled"}
         self._local_timezone = dt_util.get_default_time_zone()
-        self.export_ledger = ExportLedger(self._local_timezone)
-        self._export_ledger_paused = False
-        self._inactive_export_ledger: object = None
-        self._export_histories = {
-            period: ExportHistory(
-                self._local_timezone, dt_util.utcnow(), monthly=period == "this_month"
-            )
-            for period in ("today", "this_month")
-        }
-        self.recorded_export_statistics: dict[str, ExportStatistics] = {}
-        self._export_publication_paused = False
-        self._inactive_export_statistics: object = None
+        self._export_tracker = ExportTracker(self._local_timezone, dt_util.utcnow)
         self.export_statistics_signal = f"{DOMAIN}_{entry.entry_id}_export_statistics"
         self._provider = ElectricityProEntityProvider(
             hass=hass,
@@ -408,12 +394,22 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @property
     def export_compensation(self) -> ExportIntervalResult | None:
         """Return the latest export interval valued at its declared fixed price."""
-        return self._export_observation.result
+        return self._export_tracker.result
+
+    @property
+    def export_ledger(self) -> ExportLedger:
+        """Expose the existing booking view while the tracker owns its state."""
+        return self._export_tracker.ledger
+
+    @property
+    def recorded_export_statistics(self) -> Mapping[str, ExportStatistics]:
+        """Return only checkpoint-acknowledged export sensor values."""
+        return self._export_tracker.recorded_statistics
 
     @property
     def export_statistics_paused(self) -> bool:
         """Keep unavailable publication distinct from a known zero amount."""
-        return self._export_ledger_paused or self._export_publication_paused
+        return self._export_tracker.paused
 
     @property
     def fixed_export_price_enabled(self) -> bool:
@@ -532,25 +528,15 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
 
     @callback
     def _async_export_statistics_saved(self, data: dict[str, Any]) -> None:
-        if self.export_statistics_paused:
-            return
-        for period, raw in stored_record(data.get(_EXPORT_STATISTICS, {})).items():
-            history = self._export_histories[period]
-            saved = ExportStatistics.from_dict(
-                stored_list(raw)[0], monthly=period == "this_month"
-            )
-            finished = history.confirm(saved)
-            previous = self.recorded_export_statistics.get(period)
-            if previous != saved:
-                if saved.amount is not None and (
-                    previous is None or previous.amount is None
-                ):
-                    self.recorded_export_statistics[period] = saved.zero_baseline()
-                    async_dispatcher_send(self.hass, self.export_statistics_signal)
-                self.recorded_export_statistics[period] = saved
-                async_dispatcher_send(self.hass, self.export_statistics_signal)
-            if history.dirty:
-                self._schedule_statistics_save(immediate=finished)
+        self._export_tracker.confirm_saved(
+            data,
+            publish=lambda: async_dispatcher_send(
+                self.hass, self.export_statistics_signal
+            ),
+            schedule_save=lambda immediate: self._schedule_statistics_save(
+                immediate=immediate
+            ),
+        )
 
     async def _async_save_statistics(self) -> None:
         """Flush the latest checkpoint for unload or a user-initiated reset."""
@@ -965,44 +951,11 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
         if stored is None:
             return
 
-        if _EXPORT_LEDGER in stored:
-            try:
-                ledger = ExportLedger.from_dict(stored[_EXPORT_LEDGER])
-                if str(ledger.timezone) != str(self._local_timezone):
-                    raise ValueError("Export ledger timezone changed")
-                self.export_ledger = ledger
-            except KeyError, ValueError, TypeError, ArithmeticError:
-                self._export_ledger_paused = True
-                self._inactive_export_ledger = stored[_EXPORT_LEDGER]
-                _LOGGER.warning(
-                    "Pausing export booking with an incompatible ledger checkpoint"
-                )
-
-        if _EXPORT_STATISTICS in stored:
-            try:
-                for period, raw in stored_record(stored[_EXPORT_STATISTICS]).items():
-                    self._export_histories[period].restore(raw)
-                self.recorded_export_statistics = {
-                    period: history.saved
-                    for period, history in self._export_histories.items()
-                    if history.saved is not None
-                }
-            except KeyError, ValueError, TypeError, ArithmeticError:
-                self._export_publication_paused = True
-                self._inactive_export_statistics = stored[_EXPORT_STATISTICS]
-                _LOGGER.warning("Pausing export publication with an invalid checkpoint")
-        if not self.export_statistics_paused and self.is_flow_source_configured(
-            "grid_export", "energy"
+        for warning in self._export_tracker.restore(
+            stored,
+            source_configured=self.is_flow_source_configured("grid_export", "energy"),
         ):
-            for period, export_period in (
-                ("today", self.export_ledger.today),
-                ("this_month", self.export_ledger.this_month),
-            ):
-                history = self._export_histories[period]
-                if history.checkpoint is None:
-                    history.initialize(export_period)
-                if history.saved is not None:
-                    self.recorded_export_statistics[period] = history.saved
+            _LOGGER.warning(warning)
 
         flow_state = stored.get("directional_flows", {})
         for channel in CHANNELS:
@@ -1678,21 +1631,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
     @callback
     def _statistics_data(self) -> dict[str, Any]:
         """Return serializable statistics state."""
-        data: dict[str, Any] = {}
-        data[_EXPORT_LEDGER] = (
-            self._inactive_export_ledger
-            if self._export_ledger_paused
-            else self.export_ledger.as_dict()
-        )
-        data[_EXPORT_STATISTICS] = (
-            self._inactive_export_statistics
-            if self._export_publication_paused
-            else {
-                period: history.as_list()
-                for period, history in self._export_histories.items()
-                if history.checkpoint is not None
-            }
-        )
+        data: dict[str, Any] = self._export_tracker.as_dict()
         data["directional_flows"] = {
             channel: {"scope": self._flow_scope(channel), "counter": counter.as_dict()}
             for channel, counter in self._flow_counters.items()
@@ -1748,9 +1687,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
 
     def _read_flows(self, now: datetime) -> bool:
         """Publish independent flows; never combine them into a site balance."""
-        changed = (
-            self.export_ledger.advance(now) if not self._export_ledger_paused else False
-        )
+        changed = self._export_tracker.advance(now)
         power_inputs: list[PowerInput] = []
         settings = self._provider.flow_sources.compatibility_settings
         for channel in CHANNELS:
@@ -1798,7 +1735,7 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                     attrs["reason"] = "previous_day_reading"
                 valid = counter.update(meter, now)
                 if channel == "grid_export":
-                    self._export_observation.update(
+                    changed |= self._export_tracker.observe(
                         reading,
                         counter,
                         now,
@@ -1807,13 +1744,6 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                         ),
                         accepted=valid,
                     )
-                    if (
-                        not self._export_ledger_paused
-                        and (export_interval := self.export_compensation) is not None
-                    ):
-                        changed |= self.export_ledger.record(
-                            export_interval, counter.generation
-                        )
                 changed |= before != counter.as_dict()
                 attrs.update(
                     {
@@ -1836,16 +1766,9 @@ class ElectricityProCoordinator(DataUpdateCoordinator[ElectricityProData]):
                         value if valid else None,
                         {**attrs, "period": period_id},
                     )
-        if not self.export_statistics_paused and self.is_flow_source_configured(
-            "grid_export", "energy"
-        ):
-            for period, export_period in (
-                ("today", self.export_ledger.today),
-                ("this_month", self.export_ledger.this_month),
-            ):
-                history = self._export_histories[period]
-                history.update(export_period)
-                changed |= history.dirty
+        changed |= self._export_tracker.update_history(
+            source_configured=self.is_flow_source_configured("grid_export", "energy")
+        )
         if self._provider.flow_sources.compatibility_enabled:
             generation = settings.get(CONF_GENERATION) or "unknown"
             storage = settings.get(CONF_STORAGE) or "unknown"
