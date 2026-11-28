@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Complete 52 Swedish guided setup/options strings and enforce source-key,
+  interpolation-placeholder and Markdown-link parity without changing legacy
+  compatibility screens or configuration behavior.
 - Require explicit zip length contracts with Ruff B905 in local, pre-commit and
   CI checks, preserving intentional neighboring-interval truncation and checking
   the fixed phase and test-data alignments.
