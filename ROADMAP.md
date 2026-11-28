@@ -70,15 +70,25 @@ Electricity Pro remained **1.8.0b1**. These revisions follow the published beta
 and need updated YAML in existing dashboards.
 [Rollout and verification record](docs/validation/v1.8.md#four-view-dashboards-and-spot-costs--28-november-2026)
 
-The maintainer's reviewed Swedish Enhanced alternative refines this grouping:
-Overview focuses on live readings, usage advice and cheapest 1/2/3-hour windows;
-Prices retains those windows alongside its charts. Energy and costs collects
-both daily and monthly statistics, and the optional monthly peak-hour heading
-follows its available values. The maintained Swedish/English Standard and
-Enhanced examples adopt this arrangement. Standard keeps native cards without
-frontend dependencies, with 24-hour/six-hour power history and a collapsible
-spot-price forecast table. These YAML revisions follow v1.8.0b1; the recorded
-verification above retains its original layout and scope.
+[PR #439](https://github.com/guslund-jpg/electricity-pro/pull/439), squash-merged
+as `60acee3`, adopts the reviewed Swedish Enhanced alternative in both languages
+and variants. Overview focuses on live readings, usage advice and cheapest
+1/2/3-hour windows; Prices retains those windows. Energy and costs collects
+daily/monthly statistics, and the optional monthly peak-hour heading follows
+its available values. Standard adds six-hour power history alongside its
+24-hour graph and a collapsible native spot-price forecast table using HA's
+local time zone, without Mushroom or ApexCharts dependencies.
+
+On **28 November 2026 / Core 2026.11.2**, agent browser checks covered all four
+layouts and both Standard forecast tables, including expansion, local-time
+formatting and the native power graphs. Recovery copies, separate-session
+readbacks and live template rendering passed. Maintainer visual layout approval
+covers the Swedish Enhanced alternative; the other checks retain their agent
+or automated provenance. Electricity Pro remained **1.8.0b1**, with integration
+code/settings unchanged and no restart. Existing dashboards need updated YAML;
+the published beta's YAML is unchanged. The planned **30 November–1 December**
+live month rollover remains outstanding.
+[Scope and verification record](docs/validation/v1.8.md#dashboard-layout-and-native-standard-forecast--28-november-2026)
 
 Before stable **v1.8.0**:
 
