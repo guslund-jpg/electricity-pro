@@ -55,9 +55,20 @@ the 24-hour averaging labels and both charts' current-power headers were correct
 This dashboard revision follows v1.8.0b1 and needs updated YAML in existing
 dashboards. [Verification record](docs/validation/v1.8.md#enhanced-power-chart-verification--27-november-2026)
 
-The maintainer approved a separate Swedish Enhanced four-view preview. All four
-maintained examples now use that grouping; live review of the other variants
-remains separate. [Preview evidence](docs/validation/v1.8.md#four-view-dashboard-preview--27-november-2026)
+The approved Swedish Enhanced preview became the four-view layout in
+[PR #436](https://github.com/guslund-jpg/electricity-pro/pull/436). All four
+Swedish/English Standard and Enhanced test dashboards received the new grouping
+on **27 November 2026 / Core 2026.11.2**. Saved-configuration readback and live
+template rendering passed, preserving existing metric/graph cards and sensor
+references.
+
+[PR #437](https://github.com/guslund-jpg/electricity-pro/pull/437) clarified the
+monthly spot-cost rows and explains their separate VAT coverage. On **28 November
+2026**, the maintainer confirmed the new names and explanation with live values
+in all four dashboard variants. Integration code and settings stayed unchanged;
+Electricity Pro remained **1.8.0b1**. These revisions follow the published beta
+and need updated YAML in existing dashboards.
+[Rollout and verification record](docs/validation/v1.8.md#four-view-dashboards-and-spot-costs--28-november-2026)
 
 Before stable **v1.8.0**:
 
