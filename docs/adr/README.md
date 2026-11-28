@@ -14,7 +14,7 @@ See [architecture](../development/architecture.md) for current ownership and
 | [0008: base load](0008-base-load-estimation.md) | Accepted |
 | [0009: average power](0009-average-power-today.md) | Accepted |
 | [0010: signed values](0010-signed-power-and-negative-values.md) | Accepted |
-| [0011: market-price series](0011-market-price-series-contract.md) | Proposed status retained; public series implemented, formal acceptance not established by this cleanup |
+| [0011: market-price series](0011-market-price-series-contract.md) | Proposed retained by the [28 November 2026 status review](0011-market-price-series-contract.md#status); public series implemented, no formal acceptance found in the reviewed records |
 | [0012: adaptive classification](0012-adaptive-good-price-classification.md) | Accepted |
 | [0013: energy flows](0013-production-and-bidirectional-energy-flows.md) | Accepted design; measured-channel foundation released in v1.6.0, broader balance work deferred |
 | [0014: source readings and integration results](0014-source-readings-and-integration-results.md) | Accepted design; implementation and recorded manual verification complete in #288, including explicitly skipped checks |
