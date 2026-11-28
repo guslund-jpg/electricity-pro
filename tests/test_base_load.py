@@ -202,6 +202,7 @@ def test_rolling_estimate_uses_median_and_rejects_outlier_day() -> None:
         for day, estimate in zip(
             (19, 20, 21, 22, 23, 24, 25),
             ("180", "190", "200", "205", "210", "220", "2000"),
+            strict=True,
         )
     )
 
@@ -222,6 +223,7 @@ def test_rolling_estimate_averages_middle_values_for_even_day_count() -> None:
         for day, estimate in zip(
             (20, 21, 22, 23, 24, 25),
             ("100", "200", "300", "400", "500", "600"),
+            strict=True,
         )
     )
 

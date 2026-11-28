@@ -104,7 +104,7 @@ def test_explicit_valid_vat_required(vat):
 
 def test_zero_vat_is_valid():
     rows, market = samples()
-    for row, interval in zip(rows, market):
+    for row, interval in zip(rows, market, strict=True):
         row["price"] = float(interval.market_price + Decimal("0.18"))
     assert estimate_markup(rows, market, vat_rate=0, now=NOW).value == Decimal("0.180")
 

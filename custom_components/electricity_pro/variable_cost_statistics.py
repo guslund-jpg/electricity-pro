@@ -57,7 +57,7 @@ class VariableCostHistory:
         if not periods or any(
             following.currency != earlier.currency
             or following.last_reset <= earlier.last_reset
-            for earlier, following in zip(periods, periods[1:])
+            for earlier, following in zip(periods, periods[1:], strict=False)
         ):
             raise ValueError("Invalid variable cost statistics periods")
         self.saved = periods[0]

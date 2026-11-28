@@ -249,7 +249,9 @@ async def test_estimated_base_load_publishes_value_and_metadata(
         required_days=5,
         daily_estimates=tuple(
             (date(2026, 8, day), Decimal(value))
-            for day, value in zip(range(21, 26), ("190", "200", "205.4", "210", "220"))
+            for day, value in zip(
+                range(21, 26), ("190", "200", "205.4", "210", "220"), strict=True
+            )
         ),
     )
     with patch.object(

@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Require explicit zip length contracts with Ruff B905 in local, pre-commit and
+  CI checks, preserving intentional neighboring-interval truncation and checking
+  the fixed phase and test-data alignments.
 - Enforce Ruff C901 with a complexity ceiling of 20 across integration code,
   tests and scripts through the shared local, pre-commit and CI lint command.
   Simplify the remaining test helpers without changing integration behavior.

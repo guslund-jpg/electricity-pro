@@ -5,9 +5,9 @@ line-length = 88
 
 [lint]
 # Import placement / statement errors and Pyflakes (including unused imports,
-# undefined names and unused locals), plus the function complexity ceiling.
+# undefined names and unused locals), function complexity and explicit zip lengths.
 # No integration/test-wide suppressions.
-select = ["E4", "E7", "E9", "F", "C901"]
+select = ["E4", "E7", "E9", "F", "C901", "B905"]
 
 [lint.mccabe]
 max-complexity = 20

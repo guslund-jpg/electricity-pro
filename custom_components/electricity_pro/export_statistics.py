@@ -202,7 +202,7 @@ class ExportHistory:
             )
             or any(
                 later.last_reset <= earlier.last_reset
-                for earlier, later in zip(snapshots, snapshots[1:])
+                for earlier, later in zip(snapshots, snapshots[1:], strict=False)
             )
         ):
             raise ValueError("Invalid export publication periods")
