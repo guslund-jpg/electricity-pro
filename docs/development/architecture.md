@@ -37,7 +37,7 @@ boundary, including its separate clock read.
 The coordinator uses this contract at its four provider-read sites: normal
 reads, daily rollover, meter-reset confirmation and forecast-insight refresh.
 History helpers consume explicit readings/context. Each normal read creates
-fresh `IntegrationResults` with the 32 selected/derived fields and applies
+fresh `IntegrationResults` with the 33 selected/derived fields and applies
 the existing typed updates in the same order. It publishes one immutable
 `ElectricityProData(readings, context, results)` containing the same input groups
 and the selected results. There is no parallel result cache or flat runtime view.
@@ -45,13 +45,36 @@ and the selected results. There is no parallel result cache or flat runtime view
 Sensors, attribute/value/unit/availability helpers and the Good Time adapter
 consume explicit groups. Existing calculations invoked by entities retain their
 evaluation location and timing. Monthly-reset and rollover overlays replace only
-the nested `results`, preserving the publication's input groups. Forecasts,
-histories and optional flow results retain their separate coordinator ownership.
+the nested `results`, preserving the publication's input groups. Forecast caches,
+history owners and optional flow state remain separate from the published
+snapshot. The coordinator orchestrates those owners; it does not merge their
+mutable histories into `ElectricityProData`.
 `review_config.py` reads saved settings and native Nord Pool configuration, and
 integration actions call public coordinator methods; neither uses a flat runtime
 snapshot.
 
-[ADR-0014](../adr/0014-source-readings-and-integration-results.md) records the field
+The completed #288 separation and the #444/#445/#448 follow-ups give each
+boundary an explicit role:
+
+- `SourceReadings` contains normalized source values; `CalculationContext`
+  contains resolved price/settings inputs. `ProviderSnapshot` carries both
+  without derived-result placeholders.
+- `IntegrationResults` contains the selected and derived values for one read.
+  The coordinator publishes it with the input groups in `ElectricityProData`;
+  this is composition of distinct immutable contracts, not a flat input/output
+  model or a second result cache.
+- Typed owners retain their own observation cursors, bounded histories and
+  validated checkpoints. `ExportTracker` owns export observation, booking,
+  histories, saved publications and paused state; `CostLedger` owns observed
+  import-cost allocation and component balances.
+- The coordinator retains HA listeners/timers, retrieval, Store I/O and save
+  acknowledgement delivery. Its ordered `StatisticsComponent` registrations
+  pair each owner's scope/load/dump/recovery rules through
+  `statistics_storage.py`; that module performs no HA I/O. Model loaders and
+  `history_storage.py` validate stored values rather than reconstructing missing
+  observations from Recorder.
+
+[ADR-0014](../adr/0014-source-readings-and-integration-results.md) records the original field
 inventory and the three implementation stages. The grouped runtime contract is
 in place; the flat model, transitional provider entry point and both legacy views
 have been removed. The configured Core 2026.11.0 test instance on `31d7fa6`
@@ -68,18 +91,28 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `__init__.py`, `const.py`, `services.yaml` | Config-entry lifecycle, platforms, constants and public actions |
 | `config_flow.py` | Standard/Tibber setup, options, validation, drafts and confirmations |
 | `measurement_config.py` | Shared measurement forms, source review and energy-counter confirmation |
+| `market_config.py` | Native Nord Pool entry, bidding-area and currency review before supplier configuration |
+| `supplier_config.py` | Shared supplier declarations, VAT/markup assistance, fixed fees and optional daily cost source |
+| `grid_config.py` | Grid amounts, high/low schedule, Workday source and draft validation |
+| `production_config.py`, `insight_config.py` | Optional measured-flow declarations and fixed/adaptive usage preferences |
 | `review_config.py` | Read-only final setup draft and options overview with configured price-component coverage |
 | `source_adapters.py` | Guided discovery and provider-specific configuration assistance |
 | `provider.py` | HA state reading, normalization, configured tariffs and canonical `ProviderSnapshot` construction |
 | `data.py` | Pure immutable source/context/result contracts and the grouped published snapshot |
 | `pricing_config.py`, `vat_suggestions.py` | Price declarations and editable regional VAT suggestions |
+| `export_price_config.py` | Fixed export-price declarations and meter-bound UTC validity periods |
 | `markup_estimate.py` | User-requested Tibber/Nord Pool comparison; acquisition and estimator in one module |
-| `coordinator.py` | Events, timers, retrieval, persistence, rollovers and result composition |
+| `coordinator.py` | HA events/timers, retrieval, Store I/O/acknowledgements, calendar orchestration and grouped result composition |
 | `pricing.py`, `grid_tariff.py` | Price/component/VAT contracts and variable grid tariffs |
 | `calculations.py`, `statistics.py` | Cost-rate, price, average-price and remaining-cost functions |
 | `statistics_engine.py` | Accumulators, lifetime-meter protection and daily peak state |
-| `statistics_storage.py` | Explicit checkpoint component adapters and common restore/dump orchestration |
-| `cost_ledger.py`, `household_cost.py` | Observed-energy pricing, coverage and accrued fixed fees |
+| `statistics_storage.py` | Ordered paired checkpoint adapters, scope predicates and explicit invalid-state recovery; no HA I/O |
+| `history_storage.py` | Narrow stored-value validation and covered-range merging; model owners retain semantic/range checks |
+| `cost_ledger.py` | Protected import-meter deltas, observed price segments, daily/monthly cost and component allocation |
+| `household_cost.py` | Calendar-based fixed-fee accrual and missing-fee metadata |
+| `cost_display.py` | Decimal display rounding and signed reconciliation between displayed cost lines and their total |
+| `monthly_cost_archive.py` | Cost-month archive, twelve-month retention and chart rows with explicit coverage/gaps |
+| `variable_cost_statistics.py` | Ordered monthly component snapshots and acknowledgement state for Recorder publication |
 | `timing_score.py`, `base_load.py`, `adaptive_price.py` | Bounded historical calculations and comparable-price summaries |
 | `good_time.py` | Pure fixed/adaptive Good Time decisions and explanations, including forecast refinement |
 | `settings.py` | Shared saved-settings overlay: options override setup data without normalization |
@@ -88,6 +121,8 @@ Paths are relative to `custom_components/electricity_pro/`.
 | `nordpool.py`, `workday.py` | HA action adapters for market delivery dates and non-working dates |
 | `energy_flows.py` | Pure protected lifetime counters for independent partial directional totals |
 | `export_tracker.py` | Export observation, booking, histories, acknowledged publications and paused checkpoint ownership |
+| `export_observation.py`, `export_compensation.py` | Accepted export intervals, effective saved-price selection and pure signed compensation arithmetic |
+| `export_ledger.py`, `export_statistics.py` | Scoped export balances/replay markers and ordered day/month publication snapshots |
 | `flow_sources.py` | Explicit optional source bindings, HA state reading, unit/freshness validation |
 | `flow_compatibility.py` | Boundary, declaration, freshness and timestamp-alignment diagnostic |
 | `sensor.py`, `binary_sensor.py` | Entities, metadata, availability and some calculation orchestration |
@@ -557,8 +592,10 @@ Optional channels publish independent measured AC production,
 directional export and non-storage household demand, with protected partial
 daily/monthly lifetime-meter deltas. They do not replace import costs or net-grid
 analytics. Compatibility checks use HA receipt timestamps; `aligned` does not
-mean a complete site balance. Battery charge/discharge inputs, device control,
-self-consumption ratios and export revenue are not implemented. See
+mean a complete site balance. Fixed-rate export compensation is implemented
+separately as an experimental estimate, without netting it against import costs.
+Battery charge/discharge inputs, device control and self-consumption ratios
+remain unimplemented. See
 [optional sources](../guides/production-export.md) and [compatibility](../guides/flow-compatibility.md).
 
 ## Public actions
@@ -575,20 +612,32 @@ guides before using them.
 
 ## Known architectural debt
 
-The code is not yet a completely separated analytics engine:
+The grouped input/result separation in
+[#288](https://github.com/guslund-jpg/electricity-pro/issues/288) is complete.
+Export state ownership, paired statistics components and bounded cost-allocation
+operations followed in #444/#445/#448. Sharing one published envelope does not
+undo the distinct `SourceReadings`, `CalculationContext` and `IntegrationResults`
+contracts. The remaining work is narrower:
 
-- The coordinator owns many histories, persistence formats and calculation paths.
-- Raw normalized inputs and derived outputs share `ElectricityProData`.
-- Sensor helpers still invoke calculations and normalize inputs; the extracted
-  Good Time decision module is one bounded separation, not an entity-layer rewrite.
-- The primary setup/options sections are shared; former submission paths remain
-  for compatibility, and language resources still mirror setup/options keys.
+- The coordinator still composes calculations and configures history scopes,
+  storage callbacks and calendar transitions. Further extraction needs a bounded
+  behavior/ownership case, not a generic persistence framework.
+- Supplier forms still construct/filter the larger retained schemas. The caller
+  audit and schema decoupling in
+  [#446](https://github.com/guslund-jpg/electricity-pro/issues/446) precede any
+  retirement of compatibility submission paths or resources.
+- Integration actions repeat entry lookup and validation. Their per-action
+  differences and translated failures are tracked in
+  [#453](https://github.com/guslund-jpg/electricity-pro/issues/453).
+- Sensor helpers retain some calculation composition. The separate registration
+  cleanup in [#454](https://github.com/guslund-jpg/electricity-pro/issues/454)
+  must preserve configured-versus-available semantics, registry identity and
+  delayed exposure rather than hide the dynamic listener path.
 
-These are targets for small, behaviour-preserving changes in
-[#288](https://github.com/guslund-jpg/electricity-pro/issues/288), not a wholesale
-rewrite. Keep acquisition at provider boundaries, pass explicit time/data to
-pure calculations, keep presentation thin, and update this document when
-ownership changes.
+Keep acquisition at provider boundaries, pass explicit time/data to pure
+calculations and keep presentation thin. The
+[v1.8 review tracker](https://github.com/guslund-jpg/electricity-pro/issues/443)
+records completion and release decisions; these follow-ups do not reopen #288.
 
 ## Tests, decisions and repository layout
 

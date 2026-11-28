@@ -9,13 +9,14 @@ Keys identify implementation/unique-ID suffixes, not guaranteed entity IDs.
 Home Assistant derives IDs from names and retains user renames. For example,
 Energy Today retains key `current_energy`; dashboard labels can also differ.
 
-All 49 sensors and the Good Time binary sensor have English and Swedish display
+The sensors and the Good Time binary sensor have English and Swedish display
 resources. English is the fallback for other languages. Existing entity IDs,
 unique IDs and user-defined display names are retained; new installations keep
 the established English ID bases even when the display language is Swedish.
-The [bilingual review](../validation/translation-review-sv.md#sensorer) lists the
-verified default IDs and both display names. Dashboard YAML has its own labels
-and is selected/copied separately from the Home Assistant profile language.
+The dated [bilingual review](../validation/translation-review-sv.md#sensorer)
+lists the default IDs and display names verified for that build. Dashboard YAML
+has its own labels and is selected/copied separately from the Home Assistant
+profile language.
 
 Configured inputs control entity creation, while valid data and sufficient
 coverage control availability. “Available” below means implemented, not that
@@ -445,6 +446,62 @@ continuity and coverage, not simply reaching the next month.
 
 A future provider-independent implementation may calculate billing peaks from
 historical interval data and configurable tariff rules.
+
+## Monthly variable cost history
+
+| Entity key | Display name | Type | Unit | Device class / state class |
+| --- | --- | --- | --- | --- |
+| `monthly_variable_cost_history` | Monthly variable cost history / Historik för rörlig månadskostnad | Archive-backed variable cost | Selected currency | Monetary / None |
+
+This entity is created when both an import-energy entity and a live-price entity
+are configured. It does not require Recorder. Configuration controls creation;
+valid observed energy and component pricing control whether archive amounts
+exist. Before any eligible archive row exists, there is no numeric state.
+
+The state is the signed total of the **latest archived month** in the selected
+currency, with suggested display precision of two decimals. It is not a running
+sum of the chart, a full bill or necessarily the current month's cost: after a
+month boundary it can still show the preceding month until a new row is booked.
+Currency follows the current household-cost currency when known, otherwise the
+latest archive row's currency; rows in other currencies are excluded rather than
+combined. Fixed fees and export compensation are not part of this archive.
+
+### History and coverage
+
+The `months` attribute provides twelve local calendar positions, oldest first,
+ending with the current month. Each row has `month` (`YYYY-MM`), `coverage`,
+`priced_kwh`, `total` and `components`. Known values use Decimal strings;
+known zero and negative amounts remain known values rather than missing data.
+Known rows also have `display`, containing cent-rounded total/component lines
+and a signed `rounding_adjustment` when needed to reconcile displayed amounts.
+
+- `ongoing`: the current month has a recorded row; this does not promise complete
+  coverage so far.
+- `complete`: a closed month has continuous observed pricing from its first
+  local midnight to the next month's first midnight.
+- `partial`: a closed recorded month starts late, ends early or has an internal
+  gap. Its amount covers only the recorded portions.
+- `missing`: no archived row in the selected currency. Energy/total are `null`
+  and components are empty; the chart leaves a gap instead of drawing zero.
+
+History starts with eligible priced slices booked after archive collection
+begins. It does not backfill Recorder data, older unsplit balances or periods
+without observed component pricing. A late reading spanning local midnight can
+book slices in both months under their cost-month keys. The bounded archive is
+persisted in the `monthly_variable_cost_archive` statistics checkpoint section
+and restored on restart; missing or invalid months remain gaps rather than
+invented complete totals.
+
+### Publication and Recorder
+
+The chart entity reads the live archive and refreshes **once per minute** rather
+than publishing each meter event. Its `months` attribute is explicitly excluded
+from Recorder through `_unrecorded_attributes`; ordinary state history can still
+be recorded. With **no state class**, this entity is not a long-term-statistics
+source. Its chart data comes from the saved archive, separately from the
+checkpoint-acknowledged variable-cost component sensors used for Recorder.
+See [monthly chart data](../guides/costs-and-pricing.md#monthly-chart-data) and
+[component history](../guides/recorder.md#variable-cost-component-history).
 
 ## Current insights
 
