@@ -676,7 +676,7 @@ views:
           {% endif %}
           {% if display is mapping %}
           {% set variable_cost_labels = {
-            'market_energy': 'Spot energy',
+            'market_energy': 'Spot cost',
             'supplier_markup': 'Supplier markup',
             'supplier_price': 'Combined supplier price',
             'bundled_price': 'Combined variable price',
@@ -693,10 +693,16 @@ views:
           {{ '\n' }}- {{ label }} (excl. VAT) {{ display.lines[net_key] }} {{ currency }}
           {%- endif %}
           {%- if key in display.lines %}
-          {{ '\n' }}- {{ label }} {{ display.lines[key] }} {{ currency }}
+          {{ '\n' }}- {{ label }}{{ ' (VAT not itemized)' if key == 'market_energy' else '' }}
+          {{ display.lines[key] }} {{ currency }}
           {%- endif %}
           {%- endfor %}
           {{ '\n\n' }}
+          {% if 'market_energy' in display.lines and 'market_energy_excluding_vat' in display.lines %}
+          The spot cost rows cover different consumption intervals. Amounts with VAT not itemized
+          include VAT and are not included in the VAT row.
+          {{ '\n\n' }}
+          {% endif %}
           {% else %}
           *Breakdown not yet available.*
           {% endif %}
