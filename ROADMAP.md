@@ -76,7 +76,8 @@ Prices retains those windows alongside its charts. Energy and costs collects
 both daily and monthly statistics, and the optional monthly peak-hour heading
 follows its available values. The maintained Swedish/English Standard and
 Enhanced examples adopt this arrangement. Standard keeps native cards without
-frontend dependencies. These YAML revisions follow v1.8.0b1; the recorded
+frontend dependencies, with 24-hour/six-hour power history and a collapsible
+spot-price forecast table. These YAML revisions follow v1.8.0b1; the recorded
 verification above retains its original layout and scope.
 
 Before stable **v1.8.0**:

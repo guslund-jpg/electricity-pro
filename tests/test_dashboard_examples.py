@@ -710,6 +710,13 @@ def test_dashboard_tabs_group_daily_price_and_electrical_cards(path: Path) -> No
             isinstance(card, dict) and str(card.get("type", "")).startswith("custom:")
             for card in _walk(views)
         )
+        assert sorted(
+            card["hours_to_show"]
+            for card in _walk(views[3])
+            if isinstance(card, dict)
+            and card.get("type") == "history-graph"
+            and "sensor.electricity_pro_current_power" in _walk_entity_ids(card)
+        ) == [6, 24]
     electrical_cards = [
         card
         for card in views[3]["cards"]

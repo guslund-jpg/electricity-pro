@@ -192,6 +192,55 @@ views:
         heading: Upcoming price windows
         icon: mdi:calendar-clock
 
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_current_market_price
+            state_not: unknown
+        card:
+          type: markdown
+          title: Spot price forecast
+          card_size: 4
+          content: |
+            {% set source = 'sensor.electricity_pro_current_market_price' %}
+            {% set forecast = state_attr(source, 'forecast') %}
+            {% set currency = state_attr(source, 'currency') %}
+            {% set area = state_attr(source, 'price_area') %}
+            {% set vat = state_attr(source, 'vat_treatment') %}
+            {% set current = now() %}
+            {% set ns = namespace(rows=[]) %}
+            {% if has_value(source) and forecast is sequence and forecast is not string and currency %}
+            {% for interval in forecast if interval is mapping %}
+            {% set start = as_datetime(interval.get('start'), none) %}
+            {% set end = as_datetime(interval.get('end'), none) %}
+            {% if start is not none and end is not none and start.tzinfo is not none and end.tzinfo is not none
+                  and start < end and end > current and is_number(interval.get('price')) %}
+            {% set ns.rows = ns.rows + [dict(start=start, end=end, price=interval.price)] %}
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+            {% if ns.rows %}
+            **Area:** {{ area | e if area else '—' }} · **Unit:** {{ currency | e }}/kWh.
+            Spot prices exclude supplier markup, energy tax and grid fees.
+            {% if vat == 'excluded' %}VAT excluded.{% elif vat == 'included' %}VAT included.{% else %}VAT treatment unknown.{% endif %}
+
+            Only published intervals are shown; gaps are not filled. Times include their UTC offsets.
+
+            <details>
+            <summary>Show {{ ns.rows | count }} current/upcoming price intervals</summary>
+            <table>
+            <thead><tr><th>Date</th><th>Period (local time)</th><th>Spot price ({{ currency | e }}/kWh)</th></tr></thead>
+            <tbody>
+            {% for row in ns.rows %}
+            <tr><td>{{ as_local(row.start).strftime('%Y-%m-%d') }}</td><td>{{ as_local(row.start).strftime('%H:%M %z') }}–{{ as_local(row.end).strftime('%H:%M %z') }}</td><td>{{ '%.4f' | format(row.price | float) }}</td></tr>
+            {% endfor %}
+            </tbody>
+            </table>
+            </details>
+            {% else %}
+            *No published current or upcoming forecast is available.*
+            {% endif %}
+
       - type: grid
         columns: 2
         square: false
@@ -1232,6 +1281,13 @@ views:
       - type: history-graph
         title: Power — last 24 hours
         hours_to_show: 24
+        entities:
+          - entity: sensor.electricity_pro_current_power
+            name: Current power
+
+      - type: history-graph
+        title: Power detail — last 6 hours
+        hours_to_show: 6
         entities:
           - entity: sensor.electricity_pro_current_power
             name: Current power

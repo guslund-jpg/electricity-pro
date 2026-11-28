@@ -104,8 +104,8 @@ The English and Swedish Standard examples use four views:
 
 - **Overview / Översikt** — current power, Effective Price, current cost rate,
   Good Time and cheapest 1/2/3-hour windows with their average Effective Prices.
-- **Prices / Priser** — the same cheapest windows, further scheduling insights
-  and recent price history.
+- **Prices / Priser** — a native spot-price forecast table, the same cheapest
+  windows, further scheduling insights and recent price history.
 - **Energy and costs / Energi och kostnader** — today's energy, costs and
   remaining-cost estimate, followed by this month's energy and cost breakdown
   and yesterday's Consumption Timing Score. Optional production, grid export,
@@ -113,12 +113,28 @@ The English and Swedish Standard examples use four views:
   groups.
 - **Electrical Details / Eldetaljer** — phase measurements first, then average
   and peak power, monthly peak hour and optional power channels, with power
-  history last.
+  history last, with separate 24-hour and six-hour native history graphs.
 
 The monthly peak-hour heading follows its optional values: it hides when both
 are absent, `unknown` or `unavailable`, and stays visible for a known zero.
 Standard uses only native Home Assistant cards; it requires neither Mushroom
 nor ApexCharts Card.
+
+The forecast uses HA's built-in [Markdown card](https://www.home-assistant.io/dashboards/markdown/).
+Expand it to see the published current/upcoming intervals, their local dates,
+times with UTC offsets and spot prices in the source currency per kWh. It keeps
+the supplied intervals, including quarter-hour periods, and shows four decimal
+places, known zero and negative prices. Completed intervals disappear as time
+advances. Missing periods are not filled or converted into zero.
+
+The table declares the source's VAT treatment. Spot prices exclude supplier
+markup, energy tax and grid fees; they are separate from the Effective Prices
+on the cheapest-window cards. A missing/unknown forecast source hides the card;
+an unavailable source or exhausted forecast shows a missing-data note.
+This is a table of forecast data. The native
+[history graph](https://www.home-assistant.io/dashboards/history-graph/) reads
+recorded history and does not plot this future interval list. Standard adds
+no helper entities or Recorder writes for the table.
 
 After copying the updated YAML, replace old `trends` bookmarks/navigation links
 with `prices` for price planning or `energy` for energy/cost statistics.

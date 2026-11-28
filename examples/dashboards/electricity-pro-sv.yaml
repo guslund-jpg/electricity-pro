@@ -193,6 +193,55 @@ views:
         heading: "Kommande prisperioder"
         icon: mdi:calendar-clock
 
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.electricity_pro_current_market_price
+            state_not: unknown
+        card:
+          type: markdown
+          title: Spotprisprognos
+          card_size: 4
+          content: |
+            {% set source = 'sensor.electricity_pro_current_market_price' %}
+            {% set forecast = state_attr(source, 'forecast') %}
+            {% set currency = state_attr(source, 'currency') %}
+            {% set area = state_attr(source, 'price_area') %}
+            {% set vat = state_attr(source, 'vat_treatment') %}
+            {% set current = now() %}
+            {% set ns = namespace(rows=[]) %}
+            {% if has_value(source) and forecast is sequence and forecast is not string and currency %}
+            {% for interval in forecast if interval is mapping %}
+            {% set start = as_datetime(interval.get('start'), none) %}
+            {% set end = as_datetime(interval.get('end'), none) %}
+            {% if start is not none and end is not none and start.tzinfo is not none and end.tzinfo is not none
+                  and start < end and end > current and is_number(interval.get('price')) %}
+            {% set ns.rows = ns.rows + [dict(start=start, end=end, price=interval.price)] %}
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+            {% if ns.rows %}
+            **Elområde:** {{ area | e if area else '—' }} · **Enhet:** {{ currency | e }}/kWh.
+            Spotpriser utan elhandelspåslag, energiskatt och elnätsavgifter.
+            {% if vat == 'excluded' %}Moms ingår inte.{% elif vat == 'included' %}Moms ingår.{% else %}Momshantering okänd.{% endif %}
+
+            Endast publicerade perioder visas; luckor fylls inte ut. Tiderna visas med UTC-offset.
+
+            <details>
+            <summary>Visa {{ ns.rows | count }} pågående/kommande prisperioder</summary>
+            <table>
+            <thead><tr><th>Datum</th><th>Period (lokal tid)</th><th>Spotpris ({{ currency | e }}/kWh)</th></tr></thead>
+            <tbody>
+            {% for row in ns.rows %}
+            <tr><td>{{ as_local(row.start).strftime('%Y-%m-%d') }}</td><td>{{ as_local(row.start).strftime('%H:%M %z') }}–{{ as_local(row.end).strftime('%H:%M %z') }}</td><td>{{ '%.4f' | format(row.price | float) | replace('.', ',') }}</td></tr>
+            {% endfor %}
+            </tbody>
+            </table>
+            </details>
+            {% else %}
+            *Ingen publicerad prognos för pågående eller kommande perioder är tillgänglig.*
+            {% endif %}
+
       - type: grid
         columns: 2
         square: false
@@ -1247,6 +1296,13 @@ views:
       - type: history-graph
         title: "Effekt – senaste 24 timmarna"
         hours_to_show: 24
+        entities:
+          - entity: sensor.electricity_pro_current_power
+            name: "Aktuell effekt"
+
+      - type: history-graph
+        title: "Effekt i detalj – senaste 6 timmarna"
+        hours_to_show: 6
         entities:
           - entity: sensor.electricity_pro_current_power
             name: "Aktuell effekt"
