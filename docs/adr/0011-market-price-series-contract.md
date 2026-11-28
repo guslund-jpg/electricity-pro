@@ -13,6 +13,23 @@ formal acceptance, and this cleanup does not record an invented approval.
 The context below describes the problem when the proposal was written, not a
 claim that these public outputs are still missing.
 
+Status review — 28 November 2026 (#451): **Proposed retained**.
+The tracked ADR history and the linked issue/PR records were reviewed:
+
+- [PR #218](https://github.com/guslund-jpg/electricity-pro/pull/218) introduced
+  this record as a proposal and explicitly left acceptance before the
+  implementation follow-up. Its merge did not change the Proposed status.
+- [PR #295](https://github.com/guslund-jpg/electricity-pro/pull/295) explicitly
+  retained Proposed while documenting the implemented public outputs.
+- [Issue #217](https://github.com/guslund-jpg/electricity-pro/issues/217)
+  describes feature scope and implementation criteria. Its closure does not
+  record a separate formal acceptance of this ADR.
+
+No explicit formal acceptance was found in these reviewed records. Retain
+Proposed until a maintainer decision is recorded in a reviewed change. This
+status review changes neither the implemented public contract nor the design
+below; release approval and runtime/hardware validation remain separate.
+
 ## Context
 
 Electricity Pro already normalizes native Nord Pool day-ahead data into ordered

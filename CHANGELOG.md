@@ -1,5 +1,7 @@
 # Changelog
 
+<!-- Legacy anchors retain links to release headings before normalization. -->
+
 ## [Unreleased]
 
 ### Changed
@@ -23,7 +25,10 @@
   in a dedicated tracker. Preserve booking, checkpoint formats and Recorder
   publication order; the coordinator retains HA writes, scheduling and signals.
 
-## [1.8.0b2] — 2026-11-28
+<!-- markdownlint-disable-next-line MD033 -->
+<a name="180b2--2026-11-28"></a>
+
+## [1.8.0b2] - 2026-11-28
 
 Second beta toward v1.8.0; **v1.7.2** remains the latest stable release.
 See the [beta and upgrade notes](docs/releases/1.8.0.md). Existing dashboards
@@ -70,7 +75,10 @@ need the selected YAML copied separately; integration calculations are unchanged
   and Swedish. Show the latest Current Power sensor value above both power
   charts, independently of graph averaging. Existing dashboards need updated YAML.
 
-## [1.8.0b1] — 2026-11-21
+<!-- markdownlint-disable-next-line MD033 -->
+<a name="180b1--2026-11-21"></a>
+
+## [1.8.0b1] - 2026-11-21
 
 Published as a GitHub [pre-release](https://github.com/guslund-jpg/electricity-pro/releases/tag/v1.8.0b1)
 from `b74f02c`; **v1.7.2** remains the latest stable release. See the
@@ -134,7 +142,10 @@ from `b74f02c`; **v1.7.2** remains the latest stable release. See the
   Rate scales in the dashboard examples, including an independent high-cost
   boundary in local currency per hour. (#215)
 
-## [1.7.2]
+<!-- markdownlint-disable-next-line MD033 -->
+<a name="172"></a>
+
+## [1.7.2] - 2026-11-07
 
 Requires Home Assistant Core 2026.9.0 or newer. See the
 [upgrade notes and release validation](docs/releases/1.7.2.md).
@@ -863,7 +874,12 @@ verification. See the [upgrade notes and validation limits](docs/releases/1.6.0.
 - 144 automated tests
 - Home Assistant verification
 
-## [0.6.0] - Foundation Release 2026-07-26
+<!-- markdownlint-disable-next-line MD033 -->
+<a name="060---foundation-release-2026-07-26"></a>
+
+## [0.6.0] - 2026-07-26
+
+Foundation Release
 
 ### Added
 
