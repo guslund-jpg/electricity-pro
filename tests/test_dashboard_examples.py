@@ -257,51 +257,84 @@ async def test_monthly_dashboard_cost_breakdown(
             )
 
 
-async def test_monthly_dashboard_itemizes_only_known_vat(hass):
+@pytest.mark.parametrize(
+    ("gross", "net", "vat"),
+    [
+        ("2.95", "1.00", "0.25"),
+        (None, "1.00", "0.25"),
+        ("4.20", None, None),
+        ("0.00", "0.00", "0.00"),
+        ("-2.95", "-1.00", "-0.25"),
+    ],
+    ids=["mixed", "net-only", "legacy-gross-only", "mixed-zero", "mixed-negative"],
+)
+async def test_monthly_dashboard_itemizes_only_known_vat(hass, gross, net, vat):
+    """Explain separate spot-cost intervals while retaining supplied amounts."""
+    lines = {
+        key: value
+        for key, value in (
+            ("market_energy", gross),
+            ("market_energy_excluding_vat", net),
+            ("vat", vat),
+        )
+        if value is not None
+    }
+    total = str(sum(map(Decimal, lines.values())))
+    breakdown = {
+        "display": {"total": total, "lines": {"market_energy": total}},
+        "priced_energy_kwh": "2",
+    }
+    if vat is not None:
+        breakdown["vat_display"] = {"total": total, "lines": lines}
     hass.states.async_set(
         MONTHLY_TOTAL,
-        "4.20",
+        total,
         {
-            "variable_cost": "4.20",
+            "variable_cost": total,
             "accrued_fixed_fees": "0",
             "unit_of_measurement": "SEK",
-            "variable_cost_breakdown": {
-                "display": {"total": "4.20", "lines": {"market_energy": "4.20"}},
-                "vat_display": {
-                    "total": "4.20",
-                    "lines": {
-                        "market_energy": "2.95",
-                        "market_energy_excluding_vat": "1.00",
-                        "vat": "0.25",
-                    },
-                },
-                "priced_energy_kwh": "2",
-            },
+            "variable_cost_breakdown": breakdown,
         },
     )
     for path in DASHBOARD_EXAMPLES.glob("*.yaml"):
         rendered = _monthly_cost_note(hass, path)
+        rows = (
+            ("Spot cost (excl. VAT)", "Spotkostnad (exkl. moms)", net),
+            (
+                "Spot cost (VAT not itemized)",
+                "Spotkostnad (moms ej särredovisad)",
+                gross,
+            ),
+            ("VAT on specified items", "Moms på specificerade poster", vat),
+        )
+        for english, swedish, amount in rows:
+            label = _language(path, english, swedish)
+            if amount is None:
+                assert f"- {label}" not in rendered
+            else:
+                value = _language(path, amount, amount.replace(".", ","))
+                assert rendered.count(f"- {label} {value} SEK") == 1
+        explanation = _language(
+            path,
+            "The spot cost rows cover different consumption intervals.",
+            "Spotkostnadsraderna gäller olika förbrukningsintervall.",
+        )
+        assert (explanation in rendered) == (gross is not None and net is not None)
+        if gross is not None and net is not None:
+            assert (
+                _language(
+                    path,
+                    "include VAT and are not included in the VAT row.",
+                    "inkluderar moms och ingår inte i momsraden.",
+                )
+                in rendered
+            )
         assert (
             _language(
                 path,
-                "- Spot energy (excl. VAT) 1.00 SEK",
-                "- Spotpris (exkl. moms) 1,00 SEK",
+                f"**Variable cost** {total} SEK",
+                f"**Rörlig kostnad** {total.replace('.', ',')} SEK",
             )
-            in rendered
-        )
-        assert (
-            _language(path, "- Spot energy 2.95 SEK", "- Spotpris 2,95 SEK") in rendered
-        )
-        assert (
-            _language(
-                path,
-                "- VAT on specified items 0.25 SEK",
-                "- Moms på specificerade poster 0,25 SEK",
-            )
-            in rendered
-        )
-        assert (
-            _language(path, "**Variable cost** 4.20 SEK", "**Rörlig kostnad** 4,20 SEK")
             in rendered
         )
 
@@ -376,7 +409,12 @@ async def test_monthly_dashboard_shows_total_estimate_rounding(hass, adjustment)
         ),
         (
             (
-                ("market_energy", "-4.00", "Spot energy", "Spotpris"),
+                (
+                    "market_energy",
+                    "-4.00",
+                    "Spot cost (VAT not itemized)",
+                    "Spotkostnad (moms ej särredovisad)",
+                ),
                 ("supplier_markup", "0.00", "Supplier markup", "Elhandelspåslag"),
             ),
             "80",

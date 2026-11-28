@@ -12,6 +12,10 @@
 
 ### Fixed
 
+- Clarify monthly spot cost rows in Swedish and English Standard and Enhanced:
+  distinguish VAT-exclusive amounts from gross amounts with VAT not itemized,
+  and explain that mixed rows cover different consumption intervals. Existing
+  dashboards need updated YAML; calculations and totals are unchanged.
 - Label the Enhanced 24-hour power chart as five-minute averages in English
   and Swedish. Show the latest Current Power sensor value above both power
   charts, independently of graph averaging. Existing dashboards need updated YAML.

@@ -175,6 +175,13 @@ the monthly breakdown. The optional `vat_display` attribute contains the
 itemized view, including any display rounding. Both views reconcile to the
 same gross subtotal, and the chart continues to show gross variable costs.
 
+In Standard and Enhanced, **Spot cost (excl. VAT)** identifies the part with
+separate VAT data. **Spot cost (VAT not itemized)** includes VAT at its recorded
+gross amount. When both rows appear, a short note explains that they cover
+different consumption intervals and that the gross row is excluded from the
+separate VAT row. Swedish dashboards use **Spotkostnad (exkl. moms)** and
+**Spotkostnad (moms ej särredovisad)**. Existing dashboards need updated YAML.
+
 Update the integration, verify pricing and fixed fees, and update the example
 dashboard YAML. Both examples place household estimates before supplier costs.
 The effective average price remains a variable-cost measure, excluding fixed fees.
