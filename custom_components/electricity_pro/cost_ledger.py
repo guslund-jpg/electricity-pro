@@ -196,6 +196,18 @@ class CostLedger:
         monthly_archive: MonthlyVariableCostArchive | None = None,
     ) -> None:
         """Apply readings; gaps over 15 minutes and meter resets are unpriced."""
+        self._advance_period(now, unit)
+        if unit is None:
+            supplier = effective = None
+        if breakdown is not None and breakdown.total != effective:
+            breakdown = None
+        prices = (supplier, effective, breakdown)
+        meter = self._accepted_meter(meter, lifetime=lifetime)
+        if meter is not None:
+            self._update_observation(now, meter, prices, lifetime, monthly_archive)
+
+    def _advance_period(self, now: datetime, unit: str | None) -> None:
+        """Advance currency/calendar totals even when the reading is unusable."""
         if unit is not None and self.unit not in (None, unit):
             self._reset()
         if unit is not None:
@@ -210,11 +222,11 @@ class CostLedger:
             self.monthly_supplier = self.monthly_supplier_energy = Decimal(0)
             self.monthly_effective = self.monthly_energy = Decimal(0)
             self._monthly_components = _VariableCostPeriod()
-        if unit is None:
-            supplier = effective = None
-        if breakdown is not None and breakdown.total != effective:
-            breakdown = None
-        prices = (supplier, effective, breakdown)
+
+    def _accepted_meter(
+        self, meter: Decimal | None, *, lifetime: bool
+    ) -> Decimal | None:
+        """Reject lifetime regressions before any gap can establish a baseline."""
         if lifetime and meter is not None and meter.is_finite() and meter >= 0:
             if (
                 self._lifetime_high_water is not None
@@ -224,12 +236,23 @@ class CostLedger:
                 # Pricing across the suspect interval is deliberately omitted.
                 self._meter = self._at = None
                 self._segments = []
-                return
+                return None
             self._lifetime_high_water = meter
         if meter is None or not meter.is_finite() or meter < 0:
             self._meter = self._at = None
             self._segments = []
-            return
+            return None
+        return meter
+
+    def _update_observation(
+        self,
+        now: datetime,
+        meter: Decimal,
+        prices: _PriceSample,
+        lifetime: bool,
+        monthly_archive: MonthlyVariableCostArchive | None,
+    ) -> None:
+        """Keep baseline, gap and daily-reset decisions in their existing order."""
         if self._at is None or self._meter is None:
             self._baseline(now, meter, prices)
             return
@@ -246,102 +269,126 @@ class CostLedger:
             # The provider may still expose yesterday's total after midnight.
             # Do not treat that stale daily total as today's consumption.
             if self._segments[-1][1] != prices:
-                self._segments.append((now, prices))
-                if len(self._segments) > 256:
-                    self._discard_next_delta = True
-                    self._baseline(now, meter, prices)
+                self._append_price(now, meter, prices)
             return
         if meter < self._meter:
-            # Daily sources reset at midnight; the new reading covers only today.
             if not lifetime and now.date() != self._at.date():
-                midnight = datetime.combine(now.date(), time.min, tzinfo=now.tzinfo)
-                self._meter = Decimal(0)
-                self._at = midnight
-                midnight_prices = self._segments[0][1]
-                for at, observation in self._segments:
-                    if at.timestamp() <= midnight.timestamp():
-                        midnight_prices = observation
-                self._segments = [
-                    (midnight, midnight_prices),
-                    *[
-                        segment
-                        for segment in self._segments
-                        if segment[0].timestamp() > midnight.timestamp()
-                    ],
-                ]
-                seconds = Decimal(str(now.timestamp() - midnight.timestamp()))
+                seconds = self._start_daily_period(now)
             else:
                 self._baseline(now, meter, prices)
                 return
         if meter != self._meter and seconds > 0:
-            delta = meter - self._meter
-            points = [*self._segments, (now, prices)]
-            for (start, (sp, ep, parts)), (end, _) in zip(points, points[1:]):
-                while start.timestamp() < end.timestamp():
-                    midnight = datetime.combine(
-                        start.date() + timedelta(days=1),
-                        time.min,
-                        tzinfo=start.tzinfo,
-                    )
-                    stop = min(end, midnight, key=lambda value: value.timestamp())
-                    energy = (
-                        delta
-                        * Decimal(str(stop.timestamp() - start.timestamp()))
-                        / seconds
-                    )
-                    day = start.date().isoformat()
-                    same_month = day[:7] == self.month
-                    same_day = day == self.day
-                    if sp is not None and sp.is_finite():
-                        if same_month:
-                            self.monthly_supplier += energy * sp
-                            self.monthly_supplier_energy += energy
-                        if same_day:
-                            self.daily_supplier += energy * sp
-                            self.daily_supplier_energy += energy
-                    if ep is not None and ep.is_finite():
-                        cost = energy * ep
-                        amounts = (
-                            tuple(
-                                (key, energy * rate) for key, rate in parts.components
-                            )
-                            if parts is not None
-                            else ()
-                        )
-                        if (
-                            amounts
-                            and monthly_archive is not None
-                            and self.unit is not None
-                            and energy > 0
-                        ):
-                            # A reading just after midnight can close a priced
-                            # slice in the previous month as well as the new one.
-                            monthly_archive.record(
-                                start, stop, self.unit, energy, amounts
-                            )
-                        if same_month:
-                            self.monthly_effective += cost
-                            self.monthly_energy += energy
-                            if parts is not None and amounts:
-                                self._monthly_components.add(
-                                    start,
-                                    energy,
-                                    cost,
-                                    amounts,
-                                    source_vat=parts.source_vat,
-                                )
-                        if same_day:
-                            self.daily_effective += cost
-                            self.daily_energy += energy
-                            if amounts:
-                                self._daily_components.add(start, energy, cost, amounts)
-                    start = stop
+            self._allocate_delta(
+                now, meter - self._meter, seconds, prices, monthly_archive
+            )
             self._baseline(now, meter, prices)
         elif not self._segments or self._segments[-1][1] != prices:
-            self._segments.append((now, prices))
-            if len(self._segments) > 256:
-                self._discard_next_delta = True
-                self._baseline(now, meter, prices)
+            self._append_price(now, meter, prices)
+
+    def _start_daily_period(self, now: datetime) -> Decimal:
+        """A daily counter reset covers only readings since local midnight."""
+        midnight = datetime.combine(now.date(), time.min, tzinfo=now.tzinfo)
+        self._meter = Decimal(0)
+        self._at = midnight
+        midnight_prices = self._segments[0][1]
+        for at, observation in self._segments:
+            if at.timestamp() <= midnight.timestamp():
+                midnight_prices = observation
+        self._segments = [
+            (midnight, midnight_prices),
+            *[
+                segment
+                for segment in self._segments
+                if segment[0].timestamp() > midnight.timestamp()
+            ],
+        ]
+        return Decimal(str(now.timestamp() - midnight.timestamp()))
+
+    def _append_price(
+        self, now: datetime, meter: Decimal, prices: _PriceSample
+    ) -> None:
+        """Bound open price observations and skip the next delta after overflow."""
+        self._segments.append((now, prices))
+        if len(self._segments) > 256:
+            self._discard_next_delta = True
+            self._baseline(now, meter, prices)
+
+    def _allocate_delta(
+        self,
+        now: datetime,
+        delta: Decimal,
+        seconds: Decimal,
+        prices: _PriceSample,
+        monthly_archive: MonthlyVariableCostArchive | None,
+    ) -> None:
+        """Split a delta by observed prices and local midnight using elapsed time."""
+        points = [*self._segments, (now, prices)]
+        for (start, sample), (end, _) in zip(points, points[1:]):
+            while start.timestamp() < end.timestamp():
+                midnight = datetime.combine(
+                    start.date() + timedelta(days=1),
+                    time.min,
+                    tzinfo=start.tzinfo,
+                )
+                stop = min(end, midnight, key=lambda value: value.timestamp())
+                energy = (
+                    delta * Decimal(str(stop.timestamp() - start.timestamp())) / seconds
+                )
+                self._record_slice(start, stop, energy, sample, monthly_archive)
+                start = stop
+
+    def _record_slice(
+        self,
+        start: datetime,
+        stop: datetime,
+        energy: Decimal,
+        prices: _PriceSample,
+        monthly_archive: MonthlyVariableCostArchive | None,
+    ) -> None:
+        """Book matched supplier/effective amounts, archive rows and components."""
+        sp, ep, parts = prices
+        day = start.date().isoformat()
+        same_month = day[:7] == self.month
+        same_day = day == self.day
+        if sp is not None and sp.is_finite():
+            if same_month:
+                self.monthly_supplier += energy * sp
+                self.monthly_supplier_energy += energy
+            if same_day:
+                self.daily_supplier += energy * sp
+                self.daily_supplier_energy += energy
+        if ep is not None and ep.is_finite():
+            cost = energy * ep
+            amounts = (
+                tuple((key, energy * rate) for key, rate in parts.components)
+                if parts is not None
+                else ()
+            )
+            if (
+                amounts
+                and monthly_archive is not None
+                and self.unit is not None
+                and energy > 0
+            ):
+                # A reading just after midnight can close a priced
+                # slice in the previous month as well as the new one.
+                monthly_archive.record(start, stop, self.unit, energy, amounts)
+            if same_month:
+                self.monthly_effective += cost
+                self.monthly_energy += energy
+                if parts is not None and amounts:
+                    self._monthly_components.add(
+                        start,
+                        energy,
+                        cost,
+                        amounts,
+                        source_vat=parts.source_vat,
+                    )
+            if same_day:
+                self.daily_effective += cost
+                self.daily_energy += energy
+                if amounts:
+                    self._daily_components.add(start, energy, cost, amounts)
 
     def _baseline(
         self,

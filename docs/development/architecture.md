@@ -492,6 +492,16 @@ section in the existing statistics checkpoint stores daily and monthly amounts
 with covered cost, priced energy and the first covered interval's start time.
 Older totals restore without component coverage. Open intervals remain in memory.
 
+`CostLedger.update` coordinates private operations for currency/calendar advance,
+meter acceptance, observation baselines and interval allocation. Lifetime
+regressions are rejected before gap handling; gaps, the discard-next-delta flag
+and daily-source reset decisions retain their existing order. Price-memory
+overflow still skips the next delta. Allocation retains the same Decimal
+operation order, elapsed UTC seconds and local-midnight splits, including both
+DST changes. Each slice books supplier amounts, then its archive row and effective
+component/VAT amounts in the original order. Serialization, restored high-water
+markers and the rule against restoring open price intervals are unchanged.
+
 `variable_cost_statistics.py` accumulates the new monthly ledger deltas for
 Recorder. Its ordered periods share the coordinator statistics checkpoint. The
 Store acknowledges a successful write before the dedicated monetary sensors

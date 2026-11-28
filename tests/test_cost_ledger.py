@@ -8,6 +8,9 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from custom_components.electricity_pro.cost_ledger import CostLedger
+from custom_components.electricity_pro.monthly_cost_archive import (
+    MonthlyVariableCostArchive,
+)
 from custom_components.electricity_pro.pricing import (
     EffectivePriceBreakdown,
     VariableCostComponent,
@@ -262,11 +265,12 @@ def test_daily_source_stale_at_midnight_is_not_charged_again():
     assert c.daily_supplier == 2
 
 
-def test_fall_back_interval_uses_elapsed_not_wall_clock_time():
+@pytest.mark.parametrize("month,day", [(3, 29), (10, 25)])
+def test_dst_interval_uses_elapsed_not_wall_clock_time(month, day):
     c = CostLedger()
     tz = ZoneInfo("Europe/Stockholm")
-    first = datetime(2026, 10, 25, 0, 55, tzinfo=UTC).astimezone(tz)
-    second = datetime(2026, 10, 25, 1, 5, tzinfo=UTC).astimezone(tz)
+    first = datetime(2026, month, day, 0, 55, tzinfo=UTC).astimezone(tz)
+    second = datetime(2026, month, day, 1, 5, tzinfo=UTC).astimezone(tz)
     c.update(first, D(100), D(2), D(3), "SEK", lifetime=True)
     c.update(second, D(101), D(2), D(3), "SEK", lifetime=True)
     assert c.daily_supplier == 2
@@ -380,3 +384,122 @@ def test_currency_change_resets_totals_high_water_and_pending_gap():
     assert c.daily_supplier == c.monthly_supplier == 4
     assert c.daily_effective == c.monthly_effective == 5
     assert c.daily_energy == c.monthly_energy == 1
+
+
+def test_late_month_booking_keeps_vat_components_and_archive_call_order(monkeypatch):
+    c = CostLedger()
+    archive = MonthlyVariableCostArchive()
+    start = datetime(2026, 11, 30, 23, 55, tzinfo=ZoneInfo("Europe/Stockholm"))
+    market = VariableCostComponent.MARKET_ENERGY
+    tax = VariableCostComponent.ENERGY_TAX
+    grid = VariableCostComponent.VARIABLE_GRID_FEE
+    positive = EffectivePriceBreakdown(
+        D("2.50"), ((market, D("1.25")), (tax, D("0.75")), (grid, D("0.50"))), D("0.25")
+    )
+    zero = EffectivePriceBreakdown(
+        D(0), ((market, D("-0.50")), (tax, D("0.25")), (grid, D("0.25"))), D("-0.10")
+    )
+    c.update(
+        start, D(100), D(1), positive.total, "SEK", lifetime=True, breakdown=positive
+    )
+    c.update(
+        start + timedelta(minutes=4),
+        D(100),
+        D("-0.20"),
+        zero.total,
+        "SEK",
+        lifetime=True,
+        breakdown=zero,
+    )
+    calls = []
+    record = archive.record
+
+    def recording(at, stop, unit, energy, amounts):
+        calls.append((at, stop, energy, c.monthly_supplier, c.monthly_energy))
+        record(at, stop, unit, energy, amounts)
+
+    monkeypatch.setattr(archive, "record", recording)
+    end = start + timedelta(minutes=8)
+    midnight = start + timedelta(minutes=5)
+    c.update(
+        end,
+        D(108),
+        D("-0.20"),
+        zero.total,
+        "SEK",
+        lifetime=True,
+        breakdown=zero,
+        monthly_archive=archive,
+    )
+    assert calls == [
+        (start, start + timedelta(minutes=4), D(4), D(0), D(0)),
+        (start + timedelta(minutes=4), midnight, D(1), D(0), D(0)),
+        (midnight, end, D(3), D("-0.60"), D(0)),
+    ]
+    assert c.daily_supplier == c.monthly_supplier == D("-0.60")
+    assert c.daily_effective == c.monthly_effective == 0
+    assert c.daily_energy == c.monthly_energy == 3
+    details = c.as_dict()["variable_cost_breakdown"]
+    assert details["monthly"] == {
+        "started_at": midnight.isoformat(),
+        "priced_kwh": "3",
+        "covered_cost": "0",
+        "components": {
+            "market_energy": "-1.50",
+            "energy_tax": "0.75",
+            "variable_grid_fee": "0.75",
+        },
+        "itemized_vat": {"market_energy": {"gross": "-1.50", "vat": "-0.30"}},
+    }
+    november, december = archive.months
+    assert (november.priced_kwh, november.total) == (5, 10)
+    assert (december.priced_kwh, december.total) == (3, 0)
+    assert dict(november.components) == {
+        market: D("4.50"),
+        tax: D("3.25"),
+        grid: D("2.25"),
+    }
+    assert dict(december.components) == {
+        market: D("-1.50"),
+        tax: D("0.75"),
+        grid: D("0.75"),
+    }
+    assert CostLedger.from_dict(c.as_dict()).as_dict() == c.as_dict()
+    assert (
+        MonthlyVariableCostArchive.from_dict(archive.as_dict()).as_dict()
+        == archive.as_dict()
+    )
+
+
+@pytest.mark.parametrize(
+    "lifetime,midnight", [(True, False), (False, False), (False, True)]
+)
+def test_full_price_memory_discards_next_delta_before_booking(lifetime, midnight):
+    c = CostLedger()
+    start = datetime(2026, 11, 30, 23, 59, 59, tzinfo=UTC) if midnight else START
+    c.update(start, D(100), D(2), D(3), "SEK", lifetime=lifetime)
+    for index in range(257):
+        c.update(
+            start + timedelta(seconds=1, milliseconds=index),
+            D(100),
+            D(index),
+            D(index),
+            "SEK",
+            lifetime=lifetime,
+        )
+    c.update(start + timedelta(seconds=2), D(101), D(2), D(3), "SEK", lifetime=lifetime)
+    assert all(getattr(c, key) == 0 for key in TOTAL_KEYS)
+    c.update(start + timedelta(seconds=3), D(102), D(2), D(3), "SEK", lifetime=lifetime)
+    assert c.daily_supplier == c.monthly_supplier == 2
+    assert c.daily_effective == c.monthly_effective == 3
+    assert c.daily_energy == c.monthly_energy == 1
+
+
+@pytest.mark.parametrize("gap,expected", [(900, 1), (901, 0)])
+def test_fifteen_minute_gap_boundary_preserves_coverage(gap, expected):
+    c = CostLedger()
+    update(c, 0, "100")
+    c.update(START + timedelta(seconds=gap), D(101), D(2), D(3), "SEK", lifetime=True)
+    assert c.monthly_energy == expected
+    assert c.monthly_supplier == 2 * expected
+    assert c.monthly_effective == 3 * expected
