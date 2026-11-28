@@ -225,7 +225,7 @@ views:
             Spotpriser utan elhandelspåslag, energiskatt och elnätsavgifter.
             {% if vat == 'excluded' %}Moms ingår inte.{% elif vat == 'included' %}Moms ingår.{% else %}Momshantering okänd.{% endif %}
 
-            Endast publicerade perioder visas; luckor fylls inte ut. Tiderna visas med UTC-offset.
+            Endast publicerade perioder visas; luckor fylls inte ut. Tiderna visas i Home Assistants lokala tidszon.
 
             <details>
             <summary>Visa {{ ns.rows | count }} pågående/kommande prisperioder</summary>
@@ -233,7 +233,11 @@ views:
             <thead><tr><th>Datum</th><th>Period (lokal tid)</th><th>Spotpris ({{ currency | e }}/kWh)</th></tr></thead>
             <tbody>
             {% for row in ns.rows %}
-            <tr><td>{{ as_local(row.start).strftime('%Y-%m-%d') }}</td><td>{{ as_local(row.start).strftime('%H:%M %z') }}–{{ as_local(row.end).strftime('%H:%M %z') }}</td><td>{{ '%.4f' | format(row.price | float) | replace('.', ',') }}</td></tr>
+            {% set start_local = as_local(row.start) %}
+            {% set end_local = as_local(row.end) %}
+            {% set start_repeated = start_local.replace(fold=0).utcoffset() != start_local.replace(fold=1).utcoffset() %}
+            {% set end_repeated = end_local.replace(fold=0).utcoffset() != end_local.replace(fold=1).utcoffset() %}
+            <tr><td>{{ start_local.strftime('%Y-%m-%d') }}</td><td>{{ start_local.strftime('%H:%M %Z' if start_repeated else '%H:%M') | e }}–{{ end_local.strftime('%H:%M %Z' if end_repeated else '%H:%M') | e }}</td><td>{{ '%.4f' | format(row.price | float) | replace('.', ',') }}</td></tr>
             {% endfor %}
             </tbody>
             </table>

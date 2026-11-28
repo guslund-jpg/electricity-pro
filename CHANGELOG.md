@@ -8,7 +8,7 @@
   English Standard, using native Home Assistant cards without frontend dependencies.
 - Add a collapsible spot-price forecast table to Swedish and English Standard
   using the native Markdown card. Show published current/upcoming periods,
-  currency, VAT status and local times with UTC offsets, preserving zero,
+  currency, VAT status and local times, preserving zero,
   negative prices and gaps without adding helpers or frontend dependencies.
 - Make Overview a quick view of live power, Effective Price, current cost rate,
   usage advice and cheapest 1/2/3-hour windows in Swedish and English Standard

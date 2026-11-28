@@ -70,10 +70,11 @@ async def test_native_forecast_keeps_quarters_zero_negative_and_gaps(
     assert "<details>" in text and "<summary>" in text and "<table>" in text
     assert "3 pågående/kommande" in text if swedish else "3 current/upcoming" in text
     assert text.count("<tr>") == 4  # Three intervals plus the header.
-    assert "13:00 +0100–13:15 +0100" in text
-    assert "13:15 +0100–13:30 +0100" in text
-    assert "13:45 +0100–14:00 +0100" in text
-    assert "13:30 +0100–13:45 +0100" not in text
+    assert "13:00–13:15" in text
+    assert "13:15–13:30" in text
+    assert "13:45–14:00" in text
+    assert "13:30–13:45" not in text
+    assert "+0100" not in text and "CET" not in text
     for amount in ("0.0000", "-0.2000", "1.2346"):
         assert (amount.replace(".", ",") if swedish else amount) in text
     assert "99.0000" not in text and "99,0000" not in text
@@ -144,6 +145,57 @@ async def test_native_forecast_distinguishes_repeated_autumn_hour(
         ],
     )
     text = render(hass, card)
-    assert "02:00 +0200–02:15 +0200" in text
-    assert "02:00 +0100–02:15 +0100" in text
+    assert "02:00 CEST–02:15 CEST" in text
+    assert "02:00 CET–02:15 CET" in text
+    assert "+0200" not in text and "+0100" not in text
     assert text.count("<tr>") == 3
+
+
+async def test_native_forecast_labels_repeated_hour_at_clock_change(
+    hass, freezer, forecast_card
+):
+    card, _ = forecast_card
+    await hass.config.async_set_time_zone("Europe/Stockholm")
+    freezer.move_to("2026-10-25T00:50:00+00:00")
+    set_forecast(
+        hass,
+        [
+            interval("2026-10-25T00:45:00Z", "2026-10-25T01:00:00Z", 0.1),
+            interval("2026-10-25T01:45:00Z", "2026-10-25T02:00:00Z", 0.2),
+            interval("2026-10-25T02:00:00Z", "2026-10-25T02:15:00Z", 0.3),
+        ],
+    )
+    text = render(hass, card)
+    assert "02:45 CEST–02:00 CET" in text
+    assert "02:45 CET–03:00" in text
+    assert "03:00–03:15" in text
+
+
+async def test_native_forecast_uses_configured_time_zone_and_local_date(
+    hass, freezer, forecast_card
+):
+    card, _ = forecast_card
+    await hass.config.async_set_time_zone("Asia/Kolkata")
+    freezer.move_to("2026-11-28T18:52:00+00:00")
+    set_forecast(
+        hass,
+        [interval("2026-11-28T18:45:00Z", "2026-11-28T19:00:00Z", 0.5)],
+    )
+    text = render(hass, card)
+    assert "<td>2026-11-29</td><td>00:15–00:30</td>" in text
+    assert "+0530" not in text and "IST" not in text
+
+
+async def test_native_forecast_skips_nonexistent_spring_hour(
+    hass, freezer, forecast_card
+):
+    card, _ = forecast_card
+    await hass.config.async_set_time_zone("Europe/Stockholm")
+    freezer.move_to("2026-03-29T00:50:00+00:00")
+    set_forecast(
+        hass,
+        [interval("2026-03-29T00:45:00Z", "2026-03-29T01:00:00Z", 0.5)],
+    )
+    text = render(hass, card)
+    assert "01:45–03:00" in text
+    assert "CET" not in text and "02:00" not in text

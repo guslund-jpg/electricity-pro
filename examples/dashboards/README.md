@@ -122,8 +122,11 @@ nor ApexCharts Card.
 
 The forecast uses HA's built-in [Markdown card](https://www.home-assistant.io/dashboards/markdown/).
 Expand it to see the published current/upcoming intervals, their local dates,
-times with UTC offsets and spot prices in the source currency per kWh. It keeps
-the supplied intervals, including quarter-hour periods, and shows four decimal
+times in Home Assistant's configured time zone and spot prices in the source
+currency per kWh. Ordinary periods use `HH:MM–HH:MM`; only the repeated autumn
+hour adds a time-zone abbreviation, such as `CEST` or `CET`, to distinguish the
+two occurrences. It keeps the supplied intervals, including quarter-hour
+periods, and shows four decimal
 places, known zero and negative prices. Completed intervals disappear as time
 advances. Missing periods are not filled or converted into zero.
 

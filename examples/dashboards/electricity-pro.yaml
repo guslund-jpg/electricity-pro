@@ -224,7 +224,7 @@ views:
             Spot prices exclude supplier markup, energy tax and grid fees.
             {% if vat == 'excluded' %}VAT excluded.{% elif vat == 'included' %}VAT included.{% else %}VAT treatment unknown.{% endif %}
 
-            Only published intervals are shown; gaps are not filled. Times include their UTC offsets.
+            Only published intervals are shown; gaps are not filled. Times use Home Assistant's local time zone.
 
             <details>
             <summary>Show {{ ns.rows | count }} current/upcoming price intervals</summary>
@@ -232,7 +232,11 @@ views:
             <thead><tr><th>Date</th><th>Period (local time)</th><th>Spot price ({{ currency | e }}/kWh)</th></tr></thead>
             <tbody>
             {% for row in ns.rows %}
-            <tr><td>{{ as_local(row.start).strftime('%Y-%m-%d') }}</td><td>{{ as_local(row.start).strftime('%H:%M %z') }}–{{ as_local(row.end).strftime('%H:%M %z') }}</td><td>{{ '%.4f' | format(row.price | float) }}</td></tr>
+            {% set start_local = as_local(row.start) %}
+            {% set end_local = as_local(row.end) %}
+            {% set start_repeated = start_local.replace(fold=0).utcoffset() != start_local.replace(fold=1).utcoffset() %}
+            {% set end_repeated = end_local.replace(fold=0).utcoffset() != end_local.replace(fold=1).utcoffset() %}
+            <tr><td>{{ start_local.strftime('%Y-%m-%d') }}</td><td>{{ start_local.strftime('%H:%M %Z' if start_repeated else '%H:%M') | e }}–{{ end_local.strftime('%H:%M %Z' if end_repeated else '%H:%M') | e }}</td><td>{{ '%.4f' | format(row.price | float) }}</td></tr>
             {% endfor %}
             </tbody>
             </table>
